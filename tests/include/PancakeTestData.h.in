@@ -1,0 +1,18 @@
+// Author: Derek Barnett and Ivan Sovic
+
+#ifndef PANCAKETESTDATA_H
+#define PANCAKETESTDATA_H
+
+#include <string>
+
+namespace PacBio {
+namespace PancakeTestsConfig {
+
+const std::string Data_Dir = std::string("@pancake_TestsDir@/data");
+const std::string Generated_Dir = std::string("@GeneratedDir@");
+const std::string GeneratedData_Dir = std::string("@GeneratedTestDataDir@");
+
+}  // namespace PancakeTestsConfig
+}  // namespace PacBio
+
+#endif  // PANCAKETESTDATA_H

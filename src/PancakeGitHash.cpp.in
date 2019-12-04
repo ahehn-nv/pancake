@@ -1,0 +1,17 @@
+// Author: Derek Barnett
+
+#include <pacbio/pancake/Version.h>
+
+namespace PacBio {
+namespace Pancake {
+namespace {
+
+static constexpr char pancakeGitSha1[] = "@PANCAKE_GIT_SHA1@";
+
+} // namespace
+
+std::string PancakeGitSha1()
+{ return pancakeGitSha1; }
+
+} // namespace Pancake
+} // namespace PacBio

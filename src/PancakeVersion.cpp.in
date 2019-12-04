@@ -1,0 +1,20 @@
+// Author: Derek Barnett
+
+#include <pacbio/pancake/Version.h>
+
+namespace PacBio {
+namespace Pancake {
+namespace {
+
+constexpr char   pancakeVersion[]    = "@PANCAKE_VERSION@";
+constexpr size_t pancakeVersionMajor = @PANCAKE_VERSION_MAJOR@;
+constexpr size_t pancakeVersionMinor = @PANCAKE_VERSION_MINOR@;
+constexpr size_t pancakeVersionPatch = @PANCAKE_VERSION_PATCH@;
+
+} // namespace
+
+std::string PancakeVersion()
+{ return pancakeVersion; }
+
+} // namespace Pancake
+} // namespace PacBio
