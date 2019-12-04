@@ -1,0 +1,8 @@
+/tmp/
+.DS_Store
+/build*
+.vscode
+
+# Meson WrapDB stuff
+/subprojects/*
+!/subprojects/*.wrap

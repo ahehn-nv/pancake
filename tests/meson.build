@@ -1,0 +1,47 @@
+pancake_test_cpp_sources = files([
+  'src/test_pancake.cpp'
+])
+
+# find GoogleTest
+pancake_gtest_dep = dependency('gtest_main', fallback : ['gtest', 'gtest_main_dep'])
+
+pancake_pancakeTestData_h_config = configuration_data()
+pancake_pancakeTestData_h_config.set('pancake_TestsDir', meson.current_source_dir())
+pancake_pancakeTestData_h_config.set('CMAKE_CURRENT_BINARY_DIR', meson.current_build_dir())
+pancake_pancakeTestData_h_config.set('GeneratedDir', meson.current_build_dir())
+pancake_pancakeTestData_h_config.set('GeneratedTestDataDir', meson.current_build_dir())
+
+pancake_pancakeTestData_h = configure_file(
+  input : files('include/PancakeTestData.h.in'),
+  output : 'PancakeTestData.h',
+  configuration : pancake_pancakeTestData_h_config)
+pancake_test_cpp_sources += pancake_pancakeTestData_h
+
+pancake_test = executable(
+  'pancake_test', [
+    pancake_test_cpp_sources],
+  dependencies : [pancake_gtest_dep, pancake_pbcopper_dep],
+  include_directories : [pancake_include_directories, include_directories('include')],
+  link_with : [pancake_lib],
+  cpp_args : pancake_warning_flags,
+  install : false)
+
+#########
+# tests #
+#########
+
+test(
+  'pancake formatting check',
+  pancake_clang_formatter,
+  args : [
+    '--all'],
+  workdir : meson.source_root())
+
+test(
+  'pancake gtest unittests',
+  pancake_test,
+  args : [
+    '--gtest_output=xml:' + join_paths(meson.build_root(), 'pancake-gtest-unittests.xml')],
+  env : [
+    'ARGS=-V',
+    'VERBOSE=1'])

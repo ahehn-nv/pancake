@@ -1,0 +1,92 @@
+project(
+  'pancake',
+  ['cpp', 'c'],
+  version : '0.1.0',
+  default_options : [
+    'buildtype=release',
+    'warning_level=3',
+    'cpp_std=c++14',
+    'c_std=c11',
+    'b_ndebug=if-release'],
+  license : 'BSD-3',
+  meson_version : '>= 0.46.0')
+
+############
+# CXXFLAGS #
+############
+
+pancake_warning_flags = []
+cpp = meson.get_compiler('cpp')
+foreach cflag: [
+  '-Wduplicated-cond',
+  '-Wduplicated-branches',
+  '-Wlogical-op',
+  '-Wrestrict',
+  '-Wnull-dereference',
+  '-Wuseless-cast',
+  '-Wdouble-promotion',
+#  '-Wshadow',
+  '-Wformat=1']
+    if cpp.has_argument(cflag)
+      pancake_warning_flags += cflag
+    endif
+endforeach
+
+################
+# dependencies #
+################
+
+# pbcopper
+pancake_pbcopper_dep = dependency('pbcopper', required : true, fallback : ['pbcopper', 'pbcopper_dep'])
+
+###########
+# headers #
+###########
+
+subdir('include')
+
+#####################
+# sources + library #
+#####################
+
+subdir('src')
+
+##########
+# extras #
+#########
+
+if not meson.is_subproject()
+  # tests
+  if get_option('tests')
+    pancake_clang_formatter = find_program('tools/check-formatting')
+    subdir('tests')
+  endif
+endif
+
+###################
+# dependency info #
+###################
+
+if not meson.is_subproject()
+  # need to add pbcopper into 'Requires:' field,
+  # but Meson currently only allows this if it's a
+  # 'pkgconfig-dependency object' and not a subproject
+  pancake_requires = []
+  if pancake_pbcopper_dep.type_name() == 'pkgconfig'
+    pancake_requires = [pancake_pbcopper_dep]
+  endif
+
+  import('pkgconfig').generate(
+    pancake_lib,
+    version : meson.project_version(),
+    name : 'pancake',
+    requires : pancake_requires,
+    filebase : 'pancake',
+    description : 'A fast overlapper for HiFi reads.')
+endif
+
+pancake_dep = declare_dependency(
+  include_directories : pancake_include_directories,
+  link_with : pancake_lib,
+  dependencies : [pancake_pbcopper_dep],
+  version : meson.project_version())
