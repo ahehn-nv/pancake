@@ -30,7 +30,11 @@ pancake_version_sources = [
 
 pancake_cpp_sources = files([
     'Pancake.cpp',
-    'Settings.cpp'
+    'Settings.cpp',
+    'overlaphifi/OverlapHifiSettings.cpp',
+    'overlaphifi/OverlapHifiWorkflow.cpp',
+    'seqdb/SeqDBSettings.cpp',
+    'seqdb/SeqDBWorkflow.cpp',
 ])
 
 pancake_cpp_sources += pancake_version_sources
