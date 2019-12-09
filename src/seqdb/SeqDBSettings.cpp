@@ -9,42 +9,60 @@ namespace OptionNames {
 
 // clang-format off
 
-const CLI_v2::Option BlockSize{
+const CLI_v2::PositionalArgument OutputPrefix {
 R"({
-    "names" : ["block-size"],
-    "description" : "Block size in MB.",
-    "type" : "int",
-    "default" : 1000
+    "name" : "prefix",
+    "description" : "The prefix of the DB files."
 })"};
 
 const CLI_v2::PositionalArgument Input {
 R"({
-    "name" : "input.*",
-    "description" : "Input data"
+    "name" : "<input.fasta> [...]",
+    "description" : "One or more input sequence files, in FASTA or FASTQ formats."
 })"};
 
-const CLI_v2::PositionalArgument Output {
+const CLI_v2::Option IsFofn {
 R"({
-    "name" : "output.fasta",
-    "description" : "Output results"
-})"};
+    "names" : ["fofn"],
+    "description" : "Input is a FOFN file."
+})", SeqDBSettings::Defaults::IsFofn};
+
+const CLI_v2::Option CompressionLevel {
+R"({
+    "names" : ["c", "compression"],
+    "description" : "Compression level for output sequences.",
+    "type" : "int"
+})", SeqDBSettings::Defaults::CompressionLevel};
+
+const CLI_v2::Option BlockSize{
+R"({
+    "names" : ["block-size"],
+    "description" : "Block size in MB. Value 0 means all sequences will be in one block.",
+    "type" : "int"
+})", SeqDBSettings::Defaults::BlockSize};
 
 // clang-format on
 
 }  // namespace OptionNames
 
-SeqDBSettings::SeqDBSettings()
-{
-    // init with defaults, then modify only as needed
-    // makes testing components much easier
-}
+SeqDBSettings::SeqDBSettings() = default;
 
 SeqDBSettings::SeqDBSettings(const PacBio::CLI_v2::Results& options)
-    : BlockSize{options[OptionNames::BlockSize]}
+    : OutputPrefix{options[OptionNames::OutputPrefix]}
+    , InputFiles{options[OptionNames::Input]}
+    , IsFofn{options[OptionNames::IsFofn]}
     , NumThreads{options.NumThreads()}
-    , InputFile{options[OptionNames::Input]}
-    , OutputFile{options[OptionNames::Output]}
+    , CompressionLevel{options[OptionNames::CompressionLevel]}
+    , BlockSize{options[OptionNames::BlockSize]}
 {
+    // Allow multiple positional input arguments.
+    const auto& files = options.PositionalArguments();
+    if (files.size() < 2)
+        throw std::runtime_error{"Not enough input files specified, at least one required."};
+    OutputPrefix = files[0];
+    InputFiles.clear();
+    for (size_t i = 1; i < files.size(); ++i)
+        InputFiles.push_back(files[i]);
 }
 
 PacBio::CLI_v2::Interface SeqDBSettings::CreateCLI()
@@ -54,11 +72,13 @@ PacBio::CLI_v2::Interface SeqDBSettings::CreateCLI()
 
     // clang-format off
     i.AddOptionGroup("Algorithm Options", {
-        OptionNames::BlockSize
+        OptionNames::IsFofn,
+        OptionNames::CompressionLevel,
+        OptionNames::BlockSize,
     });
     i.AddPositionalArguments({
+        OptionNames::OutputPrefix,
         OptionNames::Input,
-        OptionNames::Output
     });
 
     // clang-format on
