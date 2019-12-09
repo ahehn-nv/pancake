@@ -6,15 +6,12 @@
 
 #include <pbcopper/cli2/CLI.h>
 
-#include <pacbio/pancake/Settings.h>
-#include <pacbio/pancake/Version.h>
+#include <pacbio/Version.h>
 
 #include "overlaphifi/OverlapHifiSettings.h"
 #include "overlaphifi/OverlapHifiWorkflow.h"
 #include "seqdb/SeqDBSettings.h"
 #include "seqdb/SeqDBWorkflow.h"
-
-#include "Workflow.h"
 
 PacBio::CLI_v2::MultiToolInterface CreateMultiInterface()
 {

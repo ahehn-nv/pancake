@@ -1,7 +1,7 @@
 // Author: Ivan Sovic
 
 #include "overlaphifi/OverlapHifiSettings.h"
-#include <pacbio/pancake/Version.h>
+#include <pacbio/Version.h>
 
 namespace PacBio {
 namespace Pancake {
@@ -13,9 +13,8 @@ const CLI_v2::Option BlockSize{
 R"({
     "names" : ["block-size"],
     "description" : "Block size in MB.",
-    "type" : "int",
-    "default" : 1000
-})"};
+    "type" : "int"
+})", OverlapHifiSettings::Defaults::BlockSize};
 
 const CLI_v2::PositionalArgument Input {
 R"({
@@ -33,11 +32,7 @@ R"({
 
 }  // namespace OptionNames
 
-OverlapHifiSettings::OverlapHifiSettings()
-{
-    // init with defaults, then modify only as needed
-    // makes testing components much easier
-}
+OverlapHifiSettings::OverlapHifiSettings() = default;
 
 OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     : BlockSize{options[OptionNames::BlockSize]}

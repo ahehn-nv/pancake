@@ -3,8 +3,8 @@
 #ifndef PANCAKE_OVERLAP_HIFI_SETTINGS_H
 #define PANCAKE_OVERLAP_HIFI_SETTINGS_H
 
-#include <string>
 #include <cstdint>
+#include <string>
 
 #include <pbcopper/cli2/CLI.h>
 
@@ -13,8 +13,14 @@ namespace Pancake {
 
 struct OverlapHifiSettings
 {
-    int64_t BlockSize;
-    size_t NumThreads;
+    struct Defaults
+    {
+        static const int64_t BlockSize = 1000;
+        static const size_t NumThreads = 1;
+    };
+
+    int64_t BlockSize = Defaults::BlockSize;
+    size_t NumThreads = Defaults::NumThreads;
     std::string InputFile;
     std::string OutputFile;
 

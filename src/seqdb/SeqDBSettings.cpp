@@ -1,7 +1,7 @@
 // Author: Ivan Sovic
 
 #include "seqdb/SeqDBSettings.h"
-#include <pacbio/pancake/Version.h>
+#include <pacbio/Version.h>
 
 namespace PacBio {
 namespace Pancake {

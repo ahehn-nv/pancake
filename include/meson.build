@@ -7,11 +7,10 @@ if not meson.is_subproject()
   # pacbio/pancake
   install_headers(
     files([
-      'pacbio/pancake/Pancake.h',
-      'pacbio/pancake/Settings.h',
-      'pacbio/pancake/Version.h'
-    ]),
-    subdir : 'pacbio/pancake')
+      'pacbio/Version.h',
+    ])
+    # subdir : '')
+  )
 
 endif
 
