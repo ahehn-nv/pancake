@@ -21,7 +21,7 @@ pancake_test_cpp_sources += pancake_pancakeTestData_h
 pancake_test = executable(
   'pancake_test', [
     pancake_test_cpp_sources],
-  dependencies : [pancake_gtest_dep, pancake_pbcopper_dep],
+  dependencies : [pancake_gtest_dep] + pancake_lib_deps,
   include_directories : [pancake_include_directories, include_directories('include')],
   link_with : [pancake_lib],
   cpp_args : pancake_warning_flags,

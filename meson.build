@@ -39,6 +39,15 @@ endforeach
 # pbcopper
 pancake_pbcopper_dep = dependency('pbcopper', required : true, fallback : ['pbcopper', 'pbcopper_dep'])
 
+# pbbam
+pancake_pbbam_dep = dependency('pbbam', fallback : ['pbbam', 'pbbam_dep'])
+
+# Collect all deps.
+pancake_lib_deps = [
+  pancake_pbcopper_dep,
+  pancake_pbbam_dep
+]
+
 ###########
 # headers #
 ###########
@@ -72,9 +81,11 @@ if not meson.is_subproject()
   # but Meson currently only allows this if it's a
   # 'pkgconfig-dependency object' and not a subproject
   pancake_requires = []
-  if pancake_pbcopper_dep.type_name() == 'pkgconfig'
-    pancake_requires = [pancake_pbcopper_dep]
-  endif
+  foreach dep : pancake_lib_deps
+    if dep.type_name() == 'pkgconfig'
+      pancake_requires.append(dep)
+    endif
+  endforeach
 
   import('pkgconfig').generate(
     pancake_lib,
@@ -88,5 +99,5 @@ endif
 pancake_dep = declare_dependency(
   include_directories : pancake_include_directories,
   link_with : pancake_lib,
-  dependencies : [pancake_pbcopper_dep],
+  dependencies: pancake_lib_deps,
   version : meson.project_version())
