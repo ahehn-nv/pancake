@@ -12,4 +12,7 @@ conf:
 	rm -rf "${CURRENT_BUILD_DIR}"
 	bash -vex scripts/ci/configure_fallback.sh
 
+test:
+	ninja -C "${CURRENT_BUILD_DIR}" -v test
+
 all: conf build
