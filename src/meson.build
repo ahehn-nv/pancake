@@ -29,8 +29,10 @@ pancake_version_sources = [
 ###########
 
 pancake_cpp_sources = files([
-    'Pancake.cpp',
-    'Settings.cpp'
+    'overlaphifi/OverlapHifiSettings.cpp',
+    'overlaphifi/OverlapHifiWorkflow.cpp',
+    'seqdb/SeqDBSettings.cpp',
+    'seqdb/SeqDBWorkflow.cpp',
 ])
 
 pancake_cpp_sources += pancake_version_sources
@@ -58,7 +60,6 @@ if not meson.is_subproject()
   pancake_main_exe = executable(
     'pancake', files([
       'main/main.cpp',
-      'main/Workflow.cpp'
     ]),
     install : true,
     dependencies : [pancake_pbcopper_dep],

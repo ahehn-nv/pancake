@@ -1,14 +1,14 @@
-// Author: Derek Barnett
+// Author: Ivan Sovic
 
-#ifndef PANCAKE_WORKFLOW_H
-#define PANCAKE_WORKFLOW_H
+#ifndef PANCAKE_SEQDB_WORKFLOW_H
+#define PANCAKE_SEQDB_WORKFLOW_H
 
 #include <pbcopper/cli2/CLI.h>
 
 namespace PacBio {
 namespace Pancake {
 
-struct Workflow
+struct SeqDBWorkflow
 {
     static int Runner(const PacBio::CLI_v2::Results& options);
 };
@@ -16,4 +16,4 @@ struct Workflow
 }  // namespace Pancake
 }  // namespace PacBio
 
-#endif  // PANCAKE_WORKFLOW_H
+#endif  // PANCAKE_SEQDB_WORKFLOW_H
