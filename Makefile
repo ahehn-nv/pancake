@@ -2,7 +2,7 @@ CURRENT_BUILD_DIR?=build
 ENABLED_TESTS?=true
 export ENABLED_TESTS CURRENT_BUILD_DIR
 
-.PHONY: build conf
+.PHONY: all build conf unit cram modules
 
 build:
 	mkdir -p ${CURRENT_BUILD_DIR} && ninja -C "${CURRENT_BUILD_DIR}" -v
@@ -12,7 +12,13 @@ conf:
 	rm -rf "${CURRENT_BUILD_DIR}"
 	bash -vex scripts/ci/configure_fallback.sh
 
-test:
+unit:
 	ninja -C "${CURRENT_BUILD_DIR}" -v test
 
-all: conf build
+cram: modules
+	scripts/cram tests/cram/*.t
+
+all: conf build cram
+
+modules:
+	git submodule update --init --recursive
