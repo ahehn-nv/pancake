@@ -8,10 +8,16 @@ if not meson.is_subproject()
   install_headers(
     files([
       'pacbio/Version.h',
+      'pacbio/seqdb/Lookups.h',
+      'pacbio/seqdb/Range.h',
+      'pacbio/seqdb/SeqDBCache.h',
+      'pacbio/seqdb/SeqDBWriterBase.h',
+      'pacbio/seqdb/SeqDBWriterCompressed.h',
+      'pacbio/seqdb/Twobit.h',
     ])
     # subdir : '')
   )
 
 endif
 
-pancake_include_directories = include_directories('.')
+pancake_include_directories = include_directories(['.', 'pacbio'])
