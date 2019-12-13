@@ -1,18 +1,21 @@
 #include <gtest/gtest.h>
 #include <pacbio/seqdb/Twobit.h>
 
-void HelperRoundTrip(const std::string& inBases, int32_t numBases, const std::vector<uint8_t>& expectedTwobit,
+void HelperRoundTrip(const std::string& inBases, int32_t numBases,
+                     const std::vector<uint8_t>& expectedTwobit,
                      const std::vector<PacBio::Pancake::Range>& expectedRanges,
+                     int32_t expectedCompressedBases,
                      bool expectedException)
 {
     // Compress the input sequence.
     std::vector<uint8_t> twobit;
     std::vector<PacBio::Pancake::Range> ranges;
-    PacBio::Pancake::CompressSequence(inBases, twobit, ranges);
+    int32_t numCompressedBases = PacBio::Pancake::CompressSequence(inBases, twobit, ranges);
 
     // Check the compression results.
     EXPECT_EQ(expectedTwobit, twobit);
     EXPECT_EQ(expectedRanges, ranges);
+    EXPECT_EQ(expectedCompressedBases, numCompressedBases);
 
     // Decompress the sequence.
     // Run round trip, expected to see the same sequence or an exception.
@@ -33,7 +36,8 @@ TEST(Twobit_RoundTrip, Empty)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit;
     const std::vector<PacBio::Pancake::Range> expectedRanges;
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 0;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_1_Base_NoN_1)
@@ -43,7 +47,8 @@ TEST(Twobit_RoundTrip, Simple_1_Base_NoN_1)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{0};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 1}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 1;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_1_Base_NoN_2)
@@ -53,7 +58,8 @@ TEST(Twobit_RoundTrip, Simple_1_Base_NoN_2)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{128};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 1}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 1;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_2_Bases_NoN)
@@ -63,7 +69,8 @@ TEST(Twobit_RoundTrip, Simple_2_Bases_NoN)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{144};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 2}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 2;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_3_Bases_NoN)
@@ -73,7 +80,8 @@ TEST(Twobit_RoundTrip, Simple_3_Bases_NoN)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{156};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 3}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 3;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_4_Bases_NoN)
@@ -83,7 +91,8 @@ TEST(Twobit_RoundTrip, Simple_4_Bases_NoN)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{27};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 4}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 4;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_WithN_1)
@@ -93,7 +102,8 @@ TEST(Twobit_RoundTrip, Simple_WithN_1)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{27, 252};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 4}, {5, 8}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 7;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_WithN_2)
@@ -103,7 +113,8 @@ TEST(Twobit_RoundTrip, Simple_WithN_2)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{159, 48};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 3}, {4, 7}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 6;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_WithMultipleN)
@@ -114,7 +125,8 @@ TEST(Twobit_RoundTrip, Simple_WithMultipleN)
     const std::vector<uint8_t> expectedTwobit{156, 108, 192};
     const std::vector<PacBio::Pancake::Range> expectedRanges{
         {0, 3}, {4, 5}, {6, 7}, {10, 11}, {12, 15}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 9;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_WithN_In_Last_Pos)
@@ -124,7 +136,8 @@ TEST(Twobit_RoundTrip, Simple_WithN_In_Last_Pos)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{147};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 4}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 4;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, Simple_WithN_In_FirstPos)
@@ -134,7 +147,8 @@ TEST(Twobit_RoundTrip, Simple_WithN_In_FirstPos)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{147};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{3, 7}};
-    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, false);
+    int32_t expectedComprBases = 4;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, DecompressSanityCheck1)
@@ -144,15 +158,16 @@ TEST(Twobit_RoundTrip, DecompressSanityCheck1)
     const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{27};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 4}};
-    HelperRoundTrip(inBases, numBases - 1, expectedTwobit, expectedRanges, true);
+    int32_t expectedComprBases = 4;
+    HelperRoundTrip(inBases, numBases, expectedTwobit, expectedRanges, expectedComprBases, false);
 }
 
 TEST(Twobit_RoundTrip, DecompressSanityCheck2)
 {
     // ACGT = 00-01-10-11(binary) = 27(dec)
     const std::string inBases("ACGT");
-    const int32_t numBases = inBases.size();
     const std::vector<uint8_t> expectedTwobit{27};
     const std::vector<PacBio::Pancake::Range> expectedRanges{{0, 4}};
-    HelperRoundTrip(inBases, -1, expectedTwobit, expectedRanges, true);
+    int32_t expectedComprBases = 4;
+    HelperRoundTrip(inBases, -1, expectedTwobit, expectedRanges, expectedComprBases, true);
 }

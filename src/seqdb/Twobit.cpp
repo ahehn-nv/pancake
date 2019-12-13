@@ -10,7 +10,7 @@
 namespace PacBio {
 namespace Pancake {
 
-void CompressSequence(const std::string& bases, std::vector<uint8_t>& twobit,
+int32_t CompressSequence(const std::string& bases, std::vector<uint8_t>& twobit,
                       std::vector<PacBio::Pancake::Range>& ranges)
 {
     twobit.clear();
@@ -64,6 +64,7 @@ void CompressSequence(const std::string& bases, std::vector<uint8_t>& twobit,
     if (range.Span() > 0) {  // Non-N base span should be > 0.
         ranges.emplace_back(range);
     }
+    return addedBases;
 }
 
 void DecompressSequence(const std::vector<uint8_t>& twobit, int32_t numBases,

@@ -33,7 +33,10 @@ namespace Pancake {
 /// \param[out] twobit         Resulting 2-bit packed vector.
 /// \param[out] ranges         A vector of contiguous non-ACTG ranges in the
 ///                            packed 2-bit vector.
-void CompressSequence(const std::string& bases, std::vector<uint8_t>& twobit,
+///
+/// \returns Number of bases that were compressed to twobit representation.
+///
+int32_t CompressSequence(const std::string& bases, std::vector<uint8_t>& twobit,
                       std::vector<PacBio::Pancake::Range>& ranges);
 
 /// \brief Decompresses a 2-bit compressed sequence into a string.
@@ -51,6 +54,9 @@ void CompressSequence(const std::string& bases, std::vector<uint8_t>& twobit,
 /// \param[in] ranges          A vector of contiguous non-ACTG ranges in the
 ///                            packed 2-bit vector.
 /// \param[out]  bases         Decompressed sequence in ASCII encoding.
+///
+/// \throws std::runtime_error if ranges is empty or if numBases is invalid.
+///
 void DecompressSequence(const std::vector<uint8_t>& twobit, int32_t numBases,
                         const std::vector<PacBio::Pancake::Range>& ranges, std::string& bases);
 
