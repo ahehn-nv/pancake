@@ -36,6 +36,12 @@ endforeach
 # dependencies #
 ################
 
+# zlib
+pancacke_zlib_dep = dependency('zlib', required : true, fallback : ['zlib', 'zlib_dep'])
+
+# htslib
+pancake_htslib_dep = dependency('htslib', required : true, version : '>=1.4', fallback : ['htslib', 'htslib_dep'])
+
 # pbcopper
 pancake_pbcopper_dep = dependency('pbcopper', required : true, fallback : ['pbcopper', 'pbcopper_dep'])
 
@@ -44,6 +50,8 @@ pancake_pbbam_dep = dependency('pbbam', fallback : ['pbbam', 'pbbam_dep'])
 
 # Collect all deps.
 pancake_lib_deps = [
+  pancacke_zlib_dep,
+  pancake_htslib_dep,
   pancake_pbcopper_dep,
   pancake_pbbam_dep
 ]
@@ -83,7 +91,7 @@ if not meson.is_subproject()
   pancake_requires = []
   foreach dep : pancake_lib_deps
     if dep.type_name() == 'pkgconfig'
-      pancake_requires.append(dep)
+      pancake_requires += [dep]
     endif
   endforeach
 

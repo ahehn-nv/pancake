@@ -17,7 +17,7 @@ namespace Pancake {
 class SeqDBWriterBase
 {
 public:
-    virtual ~SeqDBWriterBase() { }
+    virtual ~SeqDBWriterBase() {}
     virtual void AddSequence(const std::string& header, const std::string& seq) = 0;
     virtual bool WriteSequences() = 0;
     virtual void WriteIndex() = 0;

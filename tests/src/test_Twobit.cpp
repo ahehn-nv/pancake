@@ -4,8 +4,7 @@
 void HelperRoundTrip(const std::string& inBases, int32_t numBases,
                      const std::vector<uint8_t>& expectedTwobit,
                      const std::vector<PacBio::Pancake::Range>& expectedRanges,
-                     int32_t expectedCompressedBases,
-                     bool expectedException)
+                     int32_t expectedCompressedBases, bool expectedException)
 {
     // Compress the input sequence.
     std::vector<uint8_t> twobit;

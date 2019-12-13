@@ -11,7 +11,7 @@ namespace PacBio {
 namespace Pancake {
 
 int32_t CompressSequence(const std::string& bases, std::vector<uint8_t>& twobit,
-                      std::vector<PacBio::Pancake::Range>& ranges)
+                         std::vector<PacBio::Pancake::Range>& ranges)
 {
     twobit.clear();
     ranges.clear();
