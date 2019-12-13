@@ -12,13 +12,11 @@ namespace Pancake {
 
 struct FileDeleter
 {
-    void operator()(std::FILE* fp) const
-    {
-        fclose(fp);
-    }
+    void operator()(std::FILE* fp) const { fclose(fp); }
 };
 
-inline std::unique_ptr<FILE, FileDeleter> OpenFile(const std::string& filename, const std::string& mode)
+inline std::unique_ptr<FILE, FileDeleter> OpenFile(const std::string& filename,
+                                                   const std::string& mode)
 {
     auto ret = std::unique_ptr<FILE, FileDeleter>(fopen(filename.c_str(), mode.c_str()));
     if (ret == nullptr) {

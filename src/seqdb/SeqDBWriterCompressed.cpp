@@ -1,25 +1,23 @@
 // Authors: Ivan Sovic
 
-#include <pacbio/seqdb/SeqDBWriterCompressed.h>
 #include <pacbio/seqdb/CompressedSequence.h>
+#include <pacbio/seqdb/SeqDBWriterCompressed.h>
 #include <cmath>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 
 namespace PacBio {
 namespace Pancake {
 
 std::unique_ptr<SeqDBWriterCompressed> CreateSeqDBWriterCompressed(
-                            const std::string& filenamePrefix, int64_t flushSize,
-                            int64_t fileBlockSize) {
+    const std::string& filenamePrefix, int64_t flushSize, int64_t fileBlockSize)
+{
     return std::make_unique<SeqDBWriterCompressed>(filenamePrefix, flushSize, fileBlockSize);
 }
 
 SeqDBWriterCompressed::SeqDBWriterCompressed(const std::string& filenamePrefix, int64_t flushSize,
                                              int64_t fileBlockSize)
-    : filenamePrefix_(filenamePrefix)
-    , flushSizeBytes_(flushSize)
-    , fileBlockSize_(fileBlockSize)
+    : filenamePrefix_(filenamePrefix), flushSizeBytes_(flushSize), fileBlockSize_(fileBlockSize)
 {
     // Perform the actuall throwable work here, so that the constructor doesn't throw.
     seqBuffer_.reserve(flushSizeBytes_);
@@ -27,7 +25,8 @@ SeqDBWriterCompressed::SeqDBWriterCompressed(const std::string& filenamePrefix, 
     OpenNewIndexFile_();
 }
 
-SeqDBWriterCompressed::~SeqDBWriterCompressed() {
+SeqDBWriterCompressed::~SeqDBWriterCompressed()
+{
     FlushSequenceBuffer();
     WriteIndex();
 }
@@ -118,7 +117,8 @@ bool SeqDBWriterCompressed::WriteSequences()
     return num == seqBuffer_.size();
 }
 
-void SeqDBWriterCompressed::WriteIndex() {
+void SeqDBWriterCompressed::WriteIndex()
+{
     // An output index file should be open at all times, starting from construction.
     if (fpOutIndex_ == nullptr) {
         throw std::runtime_error("Cannot write the index because an output file is not open.");
@@ -126,30 +126,28 @@ void SeqDBWriterCompressed::WriteIndex() {
 
     // Write the version and compression information.
     fprintf(fpOutIndex_.get(), "V\t%s\n", version_.c_str());
-    fprintf(fpOutIndex_.get(), "C\t1\n"); // Compression is turned on.
+    fprintf(fpOutIndex_.get(), "C\t1\n");  // Compression is turned on.
 
     // Write all the files and their sizes.
-    for (const auto& f: fileLines_) {
-        fprintf(fpOutIndex_.get(), "F\t%d\t%s\t%d\t%lld\t%lld\n",
-                        f.fileId, f.filename.c_str(), f.numSequences, f.numBytes, f.numCompressedBases);
+    for (const auto& f : fileLines_) {
+        fprintf(fpOutIndex_.get(), "F\t%d\t%s\t%d\t%lld\t%lld\n", f.fileId, f.filename.c_str(),
+                f.numSequences, f.numBytes, f.numCompressedBases);
     }
 
     // Write the indexes of all sequences.
     for (size_t i = 0; i < seqLines_.size(); ++i) {
-        fprintf(fpOutIndex_.get(), "S\t%d\t%s\t%d\t%lld\t%d\t%d", seqLines_[i].seqId, seqLines_[i].header.c_str(),
-                            seqLines_[i].fileId, seqLines_[i].fileOffset, seqLines_[i].numBytes, seqLines_[i].numBases);
+        fprintf(fpOutIndex_.get(), "S\t%d\t%s\t%d\t%lld\t%d\t%d", seqLines_[i].seqId,
+                seqLines_[i].header.c_str(), seqLines_[i].fileId, seqLines_[i].fileOffset,
+                seqLines_[i].numBytes, seqLines_[i].numBases);
         fprintf(fpOutIndex_.get(), "\t%lu", seqLines_[i].ranges.size());
-        for (const auto& r: seqLines_[i].ranges) {
-            fprintf (fpOutIndex_.get(), "\t%d\t%d", r.start, r.end);
+        for (const auto& r : seqLines_[i].ranges) {
+            fprintf(fpOutIndex_.get(), "\t%d\t%d", r.start, r.end);
         }
         fprintf(fpOutIndex_.get(), "\n");
     }
 }
 
-void SeqDBWriterCompressed::ClearSequenceBuffer()
-{
-    seqBuffer_.clear();
-}
+void SeqDBWriterCompressed::ClearSequenceBuffer() { seqBuffer_.clear(); }
 
 void SeqDBWriterCompressed::CloseFiles()
 {

@@ -37,7 +37,7 @@ namespace Pancake {
 /// \returns Number of bases that were compressed to twobit representation.
 ///
 int32_t CompressSequence(const std::string& bases, std::vector<uint8_t>& twobit,
-                      std::vector<PacBio::Pancake::Range>& ranges);
+                         std::vector<PacBio::Pancake::Range>& ranges);
 
 /// \brief Decompresses a 2-bit compressed sequence into a string.
 ///

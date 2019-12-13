@@ -46,7 +46,8 @@ public:
     void FlushSequenceBuffer() override;
     void CloseFiles() override;
 
-    std::unique_ptr<FILE, FileDeleter> OpenFile(const std::string& filename, const std::string& mode);
+    std::unique_ptr<FILE, FileDeleter> OpenFile(const std::string& filename,
+                                                const std::string& mode);
 
 private:
     void OpenNewSequenceFile_();
@@ -54,7 +55,7 @@ private:
 
     const std::string version_{"0.1.0"};
     std::string filenamePrefix_;
-    int64_t flushSizeBytes_ = 1024*1024*1024;   // 1GB
+    int64_t flushSizeBytes_ = 1024 * 1024 * 1024;  // 1GB
     int64_t fileBlockSize_ = 0;
     std::vector<uint8_t> seqBuffer_;
     std::vector<SeqDBSequenceLine> seqLines_;
@@ -68,8 +69,7 @@ private:
 };
 
 std::unique_ptr<SeqDBWriterCompressed> CreateSeqDBWriterCompressed(
-                            const std::string& filenamePrefix, int64_t flushSize,
-                            int64_t fileBlockSize);
+    const std::string& filenamePrefix, int64_t flushSize, int64_t fileBlockSize);
 
 }  // namespace Pancake
 }  // namespace PacBio
