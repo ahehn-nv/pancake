@@ -18,7 +18,8 @@ struct SeqDBSettings
         static const bool IsFofn = false;
         static const size_t NumThreads = 1;
         static const int32_t CompressionLevel = 1;
-        static const int64_t BlockSize = 1000;
+        static constexpr float BufferSize = 1000.0f;
+        static constexpr float BlockSize = 1000.0f;
     };
 
     std::string OutputPrefix;
@@ -26,7 +27,8 @@ struct SeqDBSettings
     bool IsFofn = Defaults::IsFofn;
     size_t NumThreads = Defaults::NumThreads;
     int32_t CompressionLevel = Defaults::CompressionLevel;
-    int64_t BlockSize = Defaults::BlockSize;
+    float BufferSize = Defaults::BufferSize;
+    float BlockSize = Defaults::BlockSize;
 
     SeqDBSettings();
     SeqDBSettings(const PacBio::CLI_v2::Results& options);
