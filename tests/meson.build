@@ -4,6 +4,10 @@ pancake_test_cpp_sources = files([
   'src/test_Util.cpp',
 ])
 
+pancake_test_cram_sources = files([
+  'cram/test_seqdb_writer.t',
+])
+
 # find GoogleTest
 pancake_gtest_dep = dependency('gtest_main', fallback : ['gtest', 'gtest_main_dep'])
 
@@ -47,3 +51,16 @@ test(
   env : [
     'ARGS=-V',
     'VERBOSE=1'])
+
+test(
+  'pancake cram test',
+  pancake_cram_script,
+  args : [
+    '--xunit-file=' + join_paths(meson.build_root(), 'pancake-cram-ccs.xml'),
+    '--keep-tmpdir',
+    '--verbose'] +
+    pancake_test_cram_sources,
+  env : [
+    'BIN_DIR=' + join_paths(meson.build_root(), 'src'),
+    'PROJECT_DIR=' + join_paths([meson.current_source_dir(), '..'])],
+  timeout : 36000) # with '-O0 -g' tests can be *very* slow

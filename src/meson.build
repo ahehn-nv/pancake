@@ -45,6 +45,8 @@ pancake_cpp_sources += pancake_version_sources
 # - or using shared libraries
 pancake_lib_install = (not meson.is_subproject()) or (get_option('default_library') == 'shared')
 
+pancake_exe_dir = meson.current_source_dir()
+
 pancake_lib = library(
   'pancake',
   pancake_cpp_sources,

@@ -4,10 +4,8 @@ export ENABLED_TESTS CURRENT_BUILD_DIR
 
 .PHONY: all build conf unit cram modules check-formatting
 
-build: 
-	mkdir -p ${CURRENT_BUILD_DIR} && ninja -C "${CURRENT_BUILD_DIR}" -v
-	${CURRENT_BUILD_DIR}/tests/pancake_test
-	tools/check-formatting --all
+build:
+	mkdir -p ${CURRENT_BUILD_DIR} && ninja -C "${CURRENT_BUILD_DIR}" -v test
 
 conf:
 	rm -rf "${CURRENT_BUILD_DIR}"
