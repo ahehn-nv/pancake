@@ -2,6 +2,7 @@
 
 #include <pacbio/seqdb/CompressedSequence.h>
 #include <pacbio/seqdb/SeqDBWriterCompressed.h>
+#include <pacbio/seqdb/Util.h>
 #include <cmath>
 #include <iostream>
 #include <sstream>
@@ -20,6 +21,7 @@ SeqDBWriterCompressed::SeqDBWriterCompressed(const std::string& filenamePrefix, 
     : filenamePrefix_(filenamePrefix), flushSizeBytes_(flushSize), fileBlockSize_(fileBlockSize)
 {
     // Perform the actuall throwable work here, so that the constructor doesn't throw.
+    SplitPath(filenamePrefix_, parentFolder_, basenamePrefix_);
     seqBuffer_.reserve(flushSizeBytes_);
     OpenNewSequenceFile_();
     OpenNewIndexFile_();
@@ -92,11 +94,12 @@ void SeqDBWriterCompressed::OpenNewSequenceFile_()
     // Register a new file object.
     SeqDBFileLine fileLine;
     fileLine.fileId = static_cast<int32_t>(fileLines_.size());
-    fileLine.filename = filenamePrefix_ + "." + std::to_string(fileLines_.size()) + ".2bit";
+    fileLine.filename = basenamePrefix_ + ".seqdb." + std::to_string(fileLines_.size()) + ".seq";
     fileLines_.emplace_back(fileLine);
 
     // Open the new file and return the pointer.
-    fpOutSeqs_ = PacBio::Pancake::OpenFile(fileLine.filename.c_str(), "wb");
+    fpOutSeqs_ =
+        PacBio::Pancake::OpenFile(JoinPath(parentFolder_, fileLine.filename).c_str(), "wb");
 }
 
 void SeqDBWriterCompressed::FlushSequenceBuffer()

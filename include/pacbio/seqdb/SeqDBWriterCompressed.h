@@ -46,15 +46,14 @@ public:
     void FlushSequenceBuffer() override;
     void CloseFiles() override;
 
-    std::unique_ptr<FILE, FileDeleter> OpenFile(const std::string& filename,
-                                                const std::string& mode);
-
 private:
     void OpenNewSequenceFile_();
     void OpenNewIndexFile_();
 
     const std::string version_{"0.1.0"};
     std::string filenamePrefix_;
+    std::string parentFolder_;
+    std::string basenamePrefix_;
     int64_t flushSizeBytes_ = 1024 * 1024 * 1024;  // 1GB
     int64_t fileBlockSize_ = 0;
     std::vector<uint8_t> seqBuffer_;
