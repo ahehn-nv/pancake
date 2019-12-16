@@ -76,6 +76,13 @@ if not meson.is_subproject()
   # tests
   if get_option('tests')
     pancake_clang_formatter = find_program('tools/check-formatting')
+
+    pancake_cram_script = find_program('cram', required : false)
+    if not pancake_cram_script.found()
+      warning('Using bundled cram script')
+      pancake_cram_script = find_program('scripts/cram', required : true)
+    endif
+
     subdir('tests')
   endif
 endif
