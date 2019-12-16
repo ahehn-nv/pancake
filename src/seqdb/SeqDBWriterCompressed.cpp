@@ -92,7 +92,7 @@ void SeqDBWriterCompressed::OpenNewSequenceFile_()
     // Register a new file object.
     SeqDBFileLine fileLine;
     fileLine.fileId = static_cast<int32_t>(fileLines_.size());
-    fileLine.filename = filenamePrefix_ + "." + std::to_string(fileLines_.size()) + ".2bit";
+    fileLine.filename = filenamePrefix_ + ".seqdb." + std::to_string(fileLines_.size()) + ".seq";
     fileLines_.emplace_back(fileLine);
 
     // Open the new file and return the pointer.
