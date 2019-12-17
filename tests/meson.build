@@ -1,5 +1,6 @@
 pancake_test_cpp_sources = files([
   'src/test_Pancake.cpp',
+  'src/test_SeqDBReader.cpp',
   'src/test_Twobit.cpp',
   'src/test_Util.cpp',
 ])
