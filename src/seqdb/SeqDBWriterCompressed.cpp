@@ -11,14 +11,19 @@ namespace PacBio {
 namespace Pancake {
 
 std::unique_ptr<SeqDBWriterCompressed> CreateSeqDBWriterCompressed(
-    const std::string& filenamePrefix, int64_t flushSize, int64_t fileBlockSize)
+    const std::string& filenamePrefix, bool useCompression, int64_t flushSize,
+    int64_t fileBlockSize)
 {
-    return std::make_unique<SeqDBWriterCompressed>(filenamePrefix, flushSize, fileBlockSize);
+    return std::make_unique<SeqDBWriterCompressed>(filenamePrefix, useCompression, flushSize,
+                                                   fileBlockSize);
 }
 
-SeqDBWriterCompressed::SeqDBWriterCompressed(const std::string& filenamePrefix, int64_t flushSize,
-                                             int64_t fileBlockSize)
-    : filenamePrefix_(filenamePrefix), flushSizeBytes_(flushSize), fileBlockSize_(fileBlockSize)
+SeqDBWriterCompressed::SeqDBWriterCompressed(const std::string& filenamePrefix, bool useCompression,
+                                             int64_t flushSize, int64_t fileBlockSize)
+    : filenamePrefix_(filenamePrefix)
+    , useCompression_(useCompression)
+    , flushSizeBytes_(flushSize)
+    , fileBlockSize_(fileBlockSize)
 {
     // Perform the actuall throwable work here, so that the constructor doesn't throw.
     SplitPath(filenamePrefix_, parentFolder_, basenamePrefix_);
@@ -48,34 +53,57 @@ void SeqDBWriterCompressed::AddSequence(const std::string& header, const std::st
         OpenNewSequenceFile_();
     }
 
-    // Compress the sequence.
-    auto compressed = PacBio::Pancake::CompressedSequence(seq);
-    const auto& twobit = compressed.GetTwobit();
-    const int64_t seqBytes = static_cast<int64_t>(twobit.size());
+    int32_t numBytes = 0;
+    std::vector<Range> ranges;
+    int64_t numUncompressedBases = 0;
+    int64_t numCompressedBases = 0;
 
-    // Add the compressed bytes to the buffer.
-    seqBuffer_.insert(seqBuffer_.end(), twobit.begin(), twobit.end());
+    // Add the bases (either compressed or uncompressed), and initialize the
+    // byte and length values properly.
+    if (useCompression_) {
+        // Compress the sequence.
+        PacBio::Pancake::CompressedSequence compressed = PacBio::Pancake::CompressedSequence(seq);
+        const auto& bytes = compressed.GetTwobit();
+        // Add the compressed bytes to the buffer.
+        seqBuffer_.insert(seqBuffer_.end(), bytes.begin(), bytes.end());
+        // Set the numeric values used for the index.
+        numBytes = static_cast<int32_t>(bytes.size());
+        ranges = compressed.GetRanges();
+        numUncompressedBases = compressed.GetNumUncompressedBases();
+        numCompressedBases = compressed.GetNumCompressedBases();
+
+    } else {
+        // Convert the bytes to the internal type.
+        const uint8_t* bytes = reinterpret_cast<const uint8_t*>(seq.data());
+        // Add the bytes to the buffer.
+        seqBuffer_.insert(seqBuffer_.end(), bytes, bytes + seq.size());
+        // Set the numeric values used for the index.
+        numBytes = static_cast<int32_t>(seq.size());
+        ranges = {Range{0, static_cast<int32_t>(seq.size())}};
+        numUncompressedBases = numBytes;
+        numCompressedBases = numBytes;
+    }
 
     // Create a new index registry object.
     SeqDBSequenceLine sl;
     sl.seqId = static_cast<int32_t>(seqLines_.size());
     sl.header = header;
-    sl.numBytes = static_cast<int32_t>(twobit.size());
+    sl.numBytes = numBytes;
     sl.numBases = static_cast<int32_t>(seq.size());
     sl.fileId = fileLines_.back().fileId;
     sl.fileOffset = fileLines_.back().numBytes;
-    sl.ranges = compressed.GetRanges();
+    sl.ranges = ranges;
     seqLines_.emplace_back(sl);
 
     // Increase counts for the current file.
-    fileLines_.back().numBytes += seqBytes;
+    fileLines_.back().numBytes += numBytes;
     ++fileLines_.back().numSequences;
-    fileLines_.back().numUncompressedBases += compressed.GetNumUncompressedBases();
-    fileLines_.back().numCompressedBases += compressed.GetNumCompressedBases();
+    fileLines_.back().numUncompressedBases += numUncompressedBases;
+    fileLines_.back().numCompressedBases += numCompressedBases;
 
     // Increase the global counts.
     ++totalOutSeqs_;
-    totalOutBytes_ += seqBytes;
+    totalOutBytes_ += numBytes;
 
     // Flush the sequences if we reached the buffer size.
     if (static_cast<int64_t>(seqBuffer_.size()) > flushSizeBytes_) {
@@ -129,7 +157,8 @@ void SeqDBWriterCompressed::WriteIndex()
 
     // Write the version and compression information.
     fprintf(fpOutIndex_.get(), "V\t%s\n", version_.c_str());
-    fprintf(fpOutIndex_.get(), "C\t1\n");  // Compression is turned on.
+    fprintf(fpOutIndex_.get(), "C\t%d\n",
+            static_cast<int32_t>(useCompression_));  // Compression is turned on.
 
     // Write all the files and their sizes.
     for (const auto& f : fileLines_) {
