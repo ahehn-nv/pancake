@@ -2,7 +2,7 @@
 
 #include "seqdb/SeqDBWorkflow.h"
 #include <pbbam/FastaReader.h>
-#include <seqdb/SeqDBWriterCompressed.h>
+#include <seqdb/SeqDBWriter.h>
 #include "seqdb/SeqDBSettings.h"
 
 #include <string>
@@ -17,7 +17,7 @@ int SeqDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 {
     SeqDBSettings settings{options};
 
-    auto writer = PacBio::Pancake::CreateSeqDBWriterCompressed(
+    auto writer = PacBio::Pancake::CreateSeqDBWriter(
         settings.OutputPrefix, settings.CompressionLevel, settings.BufferSize, settings.BlockSize);
 
     for (const auto& inFile : settings.InputFiles) {

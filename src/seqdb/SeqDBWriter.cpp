@@ -1,7 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <pacbio/seqdb/CompressedSequence.h>
-#include <pacbio/seqdb/SeqDBWriterCompressed.h>
+#include <pacbio/seqdb/SeqDBWriter.h>
 #include <pacbio/seqdb/Util.h>
 #include <cmath>
 #include <iostream>
@@ -10,16 +10,15 @@
 namespace PacBio {
 namespace Pancake {
 
-std::unique_ptr<SeqDBWriterCompressed> CreateSeqDBWriterCompressed(
-    const std::string& filenamePrefix, bool useCompression, int64_t flushSize,
-    int64_t fileBlockSize)
+std::unique_ptr<SeqDBWriter> CreateSeqDBWriter(const std::string& filenamePrefix,
+                                               bool useCompression, int64_t flushSize,
+                                               int64_t fileBlockSize)
 {
-    return std::make_unique<SeqDBWriterCompressed>(filenamePrefix, useCompression, flushSize,
-                                                   fileBlockSize);
+    return std::make_unique<SeqDBWriter>(filenamePrefix, useCompression, flushSize, fileBlockSize);
 }
 
-SeqDBWriterCompressed::SeqDBWriterCompressed(const std::string& filenamePrefix, bool useCompression,
-                                             int64_t flushSize, int64_t fileBlockSize)
+SeqDBWriter::SeqDBWriter(const std::string& filenamePrefix, bool useCompression, int64_t flushSize,
+                         int64_t fileBlockSize)
     : filenamePrefix_(filenamePrefix)
     , useCompression_(useCompression)
     , flushSizeBytes_(flushSize)
@@ -32,13 +31,13 @@ SeqDBWriterCompressed::SeqDBWriterCompressed(const std::string& filenamePrefix, 
     OpenNewIndexFile_();
 }
 
-SeqDBWriterCompressed::~SeqDBWriterCompressed()
+SeqDBWriter::~SeqDBWriter()
 {
     FlushSequenceBuffer();
     WriteIndex();
 }
 
-void SeqDBWriterCompressed::AddSequence(const std::string& header, const std::string& seq)
+void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
 {
     // We need access to the open file to count the number of sequences, bases and bytes.
     if (fileLines_.empty()) {
@@ -111,13 +110,13 @@ void SeqDBWriterCompressed::AddSequence(const std::string& header, const std::st
     }
 }
 
-void SeqDBWriterCompressed::OpenNewIndexFile_()
+void SeqDBWriter::OpenNewIndexFile_()
 {
     outIndexFilename_ = filenamePrefix_ + ".seqdb";
     fpOutIndex_ = PacBio::Pancake::OpenFile(outIndexFilename_.c_str(), "w");
 }
 
-void SeqDBWriterCompressed::OpenNewSequenceFile_()
+void SeqDBWriter::OpenNewSequenceFile_()
 {
     // Register a new file object.
     SeqDBFileLine fileLine;
@@ -130,13 +129,13 @@ void SeqDBWriterCompressed::OpenNewSequenceFile_()
         PacBio::Pancake::OpenFile(JoinPath(parentFolder_, fileLine.filename).c_str(), "wb");
 }
 
-void SeqDBWriterCompressed::FlushSequenceBuffer()
+void SeqDBWriter::FlushSequenceBuffer()
 {
     WriteSequences();
     ClearSequenceBuffer();
 }
 
-bool SeqDBWriterCompressed::WriteSequences()
+bool SeqDBWriter::WriteSequences()
 {
     // An output sequence file should be open at all times, starting from construction.
     if (fpOutSeqs_ == nullptr) {
@@ -148,7 +147,7 @@ bool SeqDBWriterCompressed::WriteSequences()
     return num == seqBuffer_.size();
 }
 
-void SeqDBWriterCompressed::WriteIndex()
+void SeqDBWriter::WriteIndex()
 {
     // An output index file should be open at all times, starting from construction.
     if (fpOutIndex_ == nullptr) {
@@ -179,9 +178,9 @@ void SeqDBWriterCompressed::WriteIndex()
     }
 }
 
-void SeqDBWriterCompressed::ClearSequenceBuffer() { seqBuffer_.clear(); }
+void SeqDBWriter::ClearSequenceBuffer() { seqBuffer_.clear(); }
 
-void SeqDBWriterCompressed::CloseFiles()
+void SeqDBWriter::CloseFiles()
 {
     fpOutIndex_ = nullptr;
     fpOutSeqs_ = nullptr;

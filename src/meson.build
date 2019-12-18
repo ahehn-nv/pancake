@@ -36,7 +36,7 @@ pancake_cpp_sources = files([
     'seqdb/SeqDBReader.cpp',
     'seqdb/SeqDBSettings.cpp',
     'seqdb/SeqDBWorkflow.cpp',
-    'seqdb/SeqDBWriterCompressed.cpp',
+    'seqdb/SeqDBWriter.cpp',
     'seqdb/Twobit.cpp',
 ])
 
