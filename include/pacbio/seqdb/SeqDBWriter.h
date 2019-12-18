@@ -33,12 +33,12 @@
 namespace PacBio {
 namespace Pancake {
 
-class SeqDBWriterCompressed : SeqDBWriterBase
+class SeqDBWriter : SeqDBWriterBase
 {
 public:
-    SeqDBWriterCompressed(const std::string& filenamePrefix, int64_t flushSize,
-                          int64_t fileBlockSize);
-    ~SeqDBWriterCompressed();
+    SeqDBWriter(const std::string& filenamePrefix, bool useCompression, int64_t flushSize,
+                int64_t fileBlockSize);
+    ~SeqDBWriter() override;
 
     void AddSequence(const std::string& header, const std::string& seq) override;
     bool WriteSequences() override;
@@ -55,6 +55,7 @@ private:
     std::string filenamePrefix_;
     std::string parentFolder_;
     std::string basenamePrefix_;
+    bool useCompression_ = true;
     int64_t flushSizeBytes_ = 1024 * 1024 * 1024;  // 1GB
     int64_t fileBlockSize_ = 0;
     std::vector<uint8_t> seqBuffer_;
@@ -68,8 +69,9 @@ private:
     std::unique_ptr<FILE, FileDeleter> fpOutSeqs_{nullptr};
 };
 
-std::unique_ptr<SeqDBWriterCompressed> CreateSeqDBWriterCompressed(
-    const std::string& filenamePrefix, int64_t flushSize, int64_t fileBlockSize);
+std::unique_ptr<SeqDBWriter> CreateSeqDBWriter(const std::string& filenamePrefix,
+                                               bool useCompression, int64_t flushSize,
+                                               int64_t fileBlockSize);
 
 }  // namespace Pancake
 }  // namespace PacBio

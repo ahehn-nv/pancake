@@ -12,7 +12,6 @@ namespace Pancake {
 class Range
 {
 public:
-    Range() = default;
     ~Range() = default;
 
     int32_t Span() const { return end - start; }

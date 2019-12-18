@@ -12,7 +12,7 @@ if not meson.is_subproject()
       'pacbio/seqdb/Range.h',
       'pacbio/seqdb/SeqDBIndexCache.h',
       'pacbio/seqdb/SeqDBWriterBase.h',
-      'pacbio/seqdb/SeqDBWriterCompressed.h',
+      'pacbio/seqdb/SeqDBWriter.h',
       'pacbio/seqdb/Twobit.h',
     ])
     # subdir : '')
