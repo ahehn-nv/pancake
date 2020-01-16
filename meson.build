@@ -36,6 +36,9 @@ endforeach
 # dependencies #
 ################
 
+# Threads.
+pancake_thread_dep = dependency('threads', required : true)
+
 # zlib
 pancacke_zlib_dep = dependency('zlib', required : true, fallback : ['zlib', 'zlib_dep'])
 
@@ -50,6 +53,7 @@ pancake_pbbam_dep = dependency('pbbam', fallback : ['pbbam', 'pbbam_dep'])
 
 # Collect all deps.
 pancake_lib_deps = [
+  pancake_thread_dep,
   pancacke_zlib_dep,
   pancake_htslib_dep,
   pancake_pbcopper_dep,
