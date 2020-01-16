@@ -10,6 +10,8 @@
 
 #include "overlaphifi/OverlapHifiSettings.h"
 #include "overlaphifi/OverlapHifiWorkflow.h"
+#include "seeddb/SeedDBSettings.h"
+#include "seeddb/SeedDBWorkflow.h"
 #include "seqdb/SeqDBSettings.h"
 #include "seqdb/SeqDBWorkflow.h"
 
@@ -24,6 +26,9 @@ PacBio::CLI_v2::MultiToolInterface CreateMultiInterface()
         {"seqdb",
             PacBio::Pancake::SeqDBSettings::CreateCLI(),
            &PacBio::Pancake::SeqDBWorkflow::Runner},
+        {"seeddb",
+            PacBio::Pancake::SeedDB::SeedDBSettings::CreateCLI(),
+           &PacBio::Pancake::SeedDB::SeedDBWorkflow::Runner},
         {"ovl-hifi",
             PacBio::Pancake::OverlapHifiSettings::CreateCLI(),
            &PacBio::Pancake::OverlapHifiWorkflow::Runner}
