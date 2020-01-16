@@ -86,7 +86,7 @@ SeqDBSettings::SeqDBSettings(const PacBio::CLI_v2::Results& options)
 
 PacBio::CLI_v2::Interface SeqDBSettings::CreateCLI()
 {
-    PacBio::CLI_v2::Interface i{"pancake", "HiFi overlapping.",
+    PacBio::CLI_v2::Interface i{"pancake", "Convert FASTA/FASTQ sequences to SeqDB.",
                                 PacBio::Pancake::PancakeFormattedVersion()};
 
     // clang-format off

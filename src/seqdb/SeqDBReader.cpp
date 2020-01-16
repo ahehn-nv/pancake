@@ -24,7 +24,7 @@ SeqDBReader::SeqDBReader(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqD
 
 SeqDBReader::~SeqDBReader() = default;
 
-bool SeqDBReader::GetSequence(BAM::FastaSequence& record, int64_t seqId)
+bool SeqDBReader::GetSequence(Pancake::FastaSequenceId& record, int64_t seqId)
 {
     // Clear the output.
     record.Bases("");
@@ -52,7 +52,7 @@ bool SeqDBReader::GetSequence(BAM::FastaSequence& record, int64_t seqId)
     return true;
 }
 
-bool SeqDBReader::GetSequence(BAM::FastaSequence& record, const std::string& seqName)
+bool SeqDBReader::GetSequence(Pancake::FastaSequenceId& record, const std::string& seqName)
 {
     // Clear the output.
     record.Bases("");
@@ -115,7 +115,7 @@ bool SeqDBReader::JumpTo(const std::string& seqName)
     return true;
 }
 
-bool SeqDBReader::GetNext(BAM::FastaSequence& record)
+bool SeqDBReader::GetNext(Pancake::FastaSequenceId& record)
 {
     // Clear the output.
     record.Bases("");
@@ -139,7 +139,7 @@ bool SeqDBReader::GetNext(BAM::FastaSequence& record)
     return true;
 }
 
-bool SeqDBReader::GetNextBatch(std::vector<BAM::FastaSequence>& records, int64_t batchSize)
+bool SeqDBReader::GetNextBatch(std::vector<Pancake::FastaSequenceId>& records, int64_t batchSize)
 {
     records.clear();
 
@@ -156,7 +156,7 @@ bool SeqDBReader::GetNextBatch(std::vector<BAM::FastaSequence>& records, int64_t
         const auto& sl = seqDBIndexCache_->seqLines[fileHandler_.nextOrdinalId];
 
         // Load the data and decompress if required.
-        BAM::FastaSequence record;
+        Pancake::FastaSequenceId record;
         // Load the data and decompress if required, and update fileHandler_->nextOrdinalId.
         LoadAndUnpackSequence_(record, fileHandler_, seqDBIndexCache_->fileLines,
                                seqDBIndexCache_->indexParentFolder, sl, fileHandler_.nextOrdinalId,
@@ -174,7 +174,7 @@ bool SeqDBReader::GetNextBatch(std::vector<BAM::FastaSequence>& records, int64_t
     return true;
 }
 
-bool SeqDBReader::GetBlock(std::vector<BAM::FastaSequence>& records, int32_t blockId)
+bool SeqDBReader::GetBlock(std::vector<Pancake::FastaSequenceId>& records, int32_t blockId)
 {
     records.clear();
 
@@ -205,7 +205,7 @@ bool SeqDBReader::GetBlock(std::vector<BAM::FastaSequence>& records, int32_t blo
         const auto& sl = seqDBIndexCache_->seqLines[fileHandler_.nextOrdinalId];
 
         // Load the data and decompress if required.
-        BAM::FastaSequence record;
+        Pancake::FastaSequenceId record;
         // Load the data and decompress if required, and update fileHandler_->nextOrdinalId.
         LoadAndUnpackSequence_(record, fileHandler_, seqDBIndexCache_->fileLines,
                                seqDBIndexCache_->indexParentFolder, sl, fileHandler_.nextOrdinalId,
@@ -247,7 +247,7 @@ void SeqDBReader::AccessLocation_(OpenFileHandler& fileHandler,
 }
 
 void SeqDBReader::LoadAndUnpackSequence_(
-    BAM::FastaSequence& record, OpenFileHandler& fileHandler,
+    Pancake::FastaSequenceId& record, OpenFileHandler& fileHandler,
     const std::vector<PacBio::Pancake::SeqDBFileLine>& fileLines,
     const std::string& indexParentFolder, const SeqDBSequenceLine& sl, int32_t ordinalId,
     bool isCompressed) const
@@ -271,6 +271,7 @@ void SeqDBReader::LoadAndUnpackSequence_(
         DecompressSequence(data, sl.numBases, sl.ranges, bases);
         record.Name(sl.header);
         record.Bases(bases);
+        record.Id(sl.seqId);
 
     } else {
         std::string bases(sl.numBytes, '\0');
@@ -283,6 +284,7 @@ void SeqDBReader::LoadAndUnpackSequence_(
         }
         record.Name(sl.header);
         record.Bases(bases);
+        record.Id(sl.seqId);
     }
 }
 
