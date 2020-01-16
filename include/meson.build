@@ -10,6 +10,7 @@ if not meson.is_subproject()
       'pacbio/Version.h',
       'pacbio/seqdb/Lookups.h',
       'pacbio/seqdb/Range.h',
+      'pacbio/seqdb/FastaSequenceId.h',
       'pacbio/seqdb/SeqDBIndexCache.h',
       'pacbio/seqdb/SeqDBWriterBase.h',
       'pacbio/seqdb/SeqDBWriter.h',
