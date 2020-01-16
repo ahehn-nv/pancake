@@ -17,7 +17,6 @@ struct SeedDBSettings
     struct Defaults
     {
         static const size_t NumThreads = 1;
-        static constexpr float BufferSize = 1000.0f;
         static const bool SplitBlocks = false;
         static const int32_t KmerSize = 30;
         static const int32_t MinimizerWindow = 80;
@@ -28,7 +27,6 @@ struct SeedDBSettings
     std::string InputFile;
     std::string OutputPrefix;
     size_t NumThreads = Defaults::NumThreads;
-    float BufferSize = Defaults::BufferSize;
     bool SplitBlocks = Defaults::SplitBlocks;
     int32_t KmerSize = Defaults::KmerSize;
     int32_t MinimizerWindow = Defaults::MinimizerWindow;
