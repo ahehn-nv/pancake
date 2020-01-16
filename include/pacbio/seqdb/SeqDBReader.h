@@ -6,7 +6,7 @@
 #include <pacbio/seqdb/SeqDBReaderBase.h>
 #include <pacbio/seqdb/SeqDBWriterBase.h>
 #include <pacbio/seqdb/Util.h>
-#include <pbbam/FastaSequence.h>
+#include <seqdb/FastaSequenceId.h>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -19,11 +19,11 @@ class SeqDBReader : SeqDBReaderBase
 public:
     SeqDBReader(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBCache);
     ~SeqDBReader();
-    bool GetSequence(BAM::FastaSequence& record, int64_t seqId) override;
-    bool GetSequence(BAM::FastaSequence& record, const std::string& seqName) override;
-    bool GetNext(BAM::FastaSequence& record) override;
-    bool GetNextBatch(std::vector<BAM::FastaSequence>& records, int64_t batchSize) override;
-    bool GetBlock(std::vector<BAM::FastaSequence>& records, int32_t blockId) override;
+    bool GetSequence(Pancake::FastaSequenceId& record, int64_t seqId) override;
+    bool GetSequence(Pancake::FastaSequenceId& record, const std::string& seqName) override;
+    bool GetNext(Pancake::FastaSequenceId& record) override;
+    bool GetNextBatch(std::vector<Pancake::FastaSequenceId>& records, int64_t batchSize) override;
+    bool GetBlock(std::vector<Pancake::FastaSequenceId>& records, int32_t blockId) override;
 
     bool JumpTo(int64_t seqId) override;
     bool JumpTo(const std::string& seqName) override;
@@ -46,7 +46,7 @@ private:
                          const std::string& indexParentFolder, int32_t fileId,
                          int32_t nextOrdinalId, int64_t offset) const;
 
-    void LoadAndUnpackSequence_(BAM::FastaSequence& record, OpenFileHandler& fileHandler,
+    void LoadAndUnpackSequence_(Pancake::FastaSequenceId& record, OpenFileHandler& fileHandler,
                                 const std::vector<PacBio::Pancake::SeqDBFileLine>& fileLines,
                                 const std::string& indexParentFolder, const SeqDBSequenceLine& sl,
                                 int32_t ordinalId, bool isCompressed) const;

@@ -89,7 +89,8 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
     }
 
     if (cache->seqLines.empty())
-        throw std::runtime_error("There were no sequences in the input index file.");
+        throw std::runtime_error("There are no sequences in the input index file: " +
+                                 indexFilename);
 
     range.end = static_cast<int32_t>(cache->seqLines.size());
     if (range.Span() > 0) cache->blocks.emplace_back(range);

@@ -5,6 +5,7 @@
 #include <pacbio/seqdb/SeqDBReader.h>
 #include <pbbam/FastaReader.h>
 #include <pbbam/FastaSequence.h>
+#include <seqdb/FastaSequenceId.h>
 #include <sstream>
 
 std::vector<PacBio::BAM::FastaSequence> HelperLoadFasta(const std::string& inFasta)
@@ -45,7 +46,7 @@ TEST(SeqDBReaderCompressed, GetNext)
 
     // Collect all sequences as a single string for comparison.
     std::vector<PacBio::BAM::FastaSequence> result;
-    PacBio::BAM::FastaSequence record;
+    PacBio::Pancake::FastaSequenceId record;
     while (reader.GetNext(record)) {
         result.emplace_back(record);
     }
@@ -76,7 +77,7 @@ TEST(SeqDBReaderCompressed, GetSequenceByID1)
     // Reverse access all sequences by ID and check if they're the same.
     for (int32_t i = static_cast<int32_t>(expected.size()) - 1; i >= 0; --i) {
         const auto& expRecord = expected[i];
-        PacBio::BAM::FastaSequence record;
+        PacBio::Pancake::FastaSequenceId record;
         reader.GetSequence(record, i);
         EXPECT_EQ(expRecord, record);
     }
@@ -114,8 +115,9 @@ TEST(SeqDBReaderCompressed, GetSequenceByID2)
     // Run the test.
     std::vector<PacBio::BAM::FastaSequence> results;
     for (const auto& seqId : testSeqIds) {
-        PacBio::BAM::FastaSequence record;
+        PacBio::Pancake::FastaSequenceId record;
         reader.GetSequence(record, seqId);
+        // Cast it to BAM::FastaSequence during emplacement.
         results.emplace_back(record);
     }
     EXPECT_EQ(expected, results);
@@ -140,7 +142,7 @@ TEST(SeqDBReaderCompressed, GetSequenceByName)
     // Reverse access all sequences by name and check if they're the same.
     for (int32_t i = static_cast<int32_t>(expected.size()) - 1; i >= 0; --i) {
         const auto& expRecord = expected[i];
-        PacBio::BAM::FastaSequence record;
+        PacBio::Pancake::FastaSequenceId record;
         reader.GetSequence(record, expRecord.Name());
         EXPECT_EQ(expRecord, record);
     }
@@ -161,7 +163,7 @@ TEST(SeqDBReaderCompressed, GetSequenceByIdNotExisting)
 
     // Fetchin non-existent sequence names throws.
     {
-        PacBio::BAM::FastaSequence record;
+        PacBio::Pancake::FastaSequenceId record;
         try {
             reader.GetSequence(record, 10);
             ASSERT_TRUE(false);
@@ -169,7 +171,7 @@ TEST(SeqDBReaderCompressed, GetSequenceByIdNotExisting)
         }
     }
     {
-        PacBio::BAM::FastaSequence record;
+        PacBio::Pancake::FastaSequenceId record;
         try {
             reader.GetSequence(record, -1);
             ASSERT_TRUE(false);
@@ -195,7 +197,7 @@ TEST(SeqDBReaderCompressed, GetSequenceByNameNotExisting)
     // This is because it's hard for a user to know if the sequence is existing
     // or not, so hard to prevent throws.
     {
-        PacBio::BAM::FastaSequence record;
+        PacBio::Pancake::FastaSequenceId record;
         bool rv = reader.GetSequence(record, "some_nonexistent_name");
         ASSERT_FALSE(rv);
     }
@@ -211,8 +213,12 @@ TEST(SeqDBReaderCompressed, GetNextBatchAllAtOnce)
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
     // Expect all sequences in the same block.
-    const std::vector<std::vector<PacBio::BAM::FastaSequence>> expected = {
-        {fastaSeqs[0], fastaSeqs[1], fastaSeqs[2], fastaSeqs[3], fastaSeqs[4]}};
+    const std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> expected = {
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4}}};
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -222,8 +228,8 @@ TEST(SeqDBReaderCompressed, GetNextBatchAllAtOnce)
     PacBio::Pancake::SeqDBReader reader(seqDBCache);
 
     // Collect all sequences as a single string for comparison.
-    std::vector<PacBio::BAM::FastaSequence> records;
-    std::vector<std::vector<PacBio::BAM::FastaSequence>> results;
+    std::vector<PacBio::Pancake::FastaSequenceId> records;
+    std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> results;
     while (reader.GetNextBatch(records, batchSize)) {
         results.emplace_back(records);
     }
@@ -240,8 +246,12 @@ TEST(SeqDBReaderCompressed, GetNextBatchEverySeqSeparately)
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
     // Expect all sequences in the same block.
-    const std::vector<std::vector<PacBio::BAM::FastaSequence>> expected = {
-        {fastaSeqs[0]}, {fastaSeqs[1]}, {fastaSeqs[2]}, {fastaSeqs[3]}, {fastaSeqs[4]}};
+    const std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> expected = {
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4}}};
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -251,8 +261,8 @@ TEST(SeqDBReaderCompressed, GetNextBatchEverySeqSeparately)
     PacBio::Pancake::SeqDBReader reader(seqDBCache);
 
     // Collect all sequences as a single string for comparison.
-    std::vector<PacBio::BAM::FastaSequence> records;
-    std::vector<std::vector<PacBio::BAM::FastaSequence>> results;
+    std::vector<PacBio::Pancake::FastaSequenceId> records;
+    std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> results;
     while (reader.GetNextBatch(records, batchSize)) {
         results.emplace_back(records);
     }
@@ -269,8 +279,12 @@ TEST(SeqDBReaderCompressed, GetNextBatch10kbp)
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
     // Expect 3 blocks of sequences.
-    const std::vector<std::vector<PacBio::BAM::FastaSequence>> expected = {
-        {fastaSeqs[0], fastaSeqs[1]}, {fastaSeqs[2]}, {fastaSeqs[3], fastaSeqs[4]}};
+    const std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> expected = {
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4}}};
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -280,8 +294,8 @@ TEST(SeqDBReaderCompressed, GetNextBatch10kbp)
     PacBio::Pancake::SeqDBReader reader(seqDBCache);
 
     // Load sequences in batches of ~10kbp.
-    std::vector<PacBio::BAM::FastaSequence> records;
-    std::vector<std::vector<PacBio::BAM::FastaSequence>> results;
+    std::vector<PacBio::Pancake::FastaSequenceId> records;
+    std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> results;
     while (reader.GetNextBatch(records, batchSize)) {
         results.emplace_back(records);
     }
@@ -300,8 +314,12 @@ TEST(SeqDBReaderCompressed, GetBlockAllSeqsOneBlock)
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
     // Expect 3 blocks of sequences.
-    const std::vector<std::vector<PacBio::BAM::FastaSequence>> expected = {
-        {fastaSeqs[0], fastaSeqs[1], fastaSeqs[2], fastaSeqs[3], fastaSeqs[4]}};
+    const std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> expected = {
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4}}};
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -311,8 +329,8 @@ TEST(SeqDBReaderCompressed, GetBlockAllSeqsOneBlock)
     PacBio::Pancake::SeqDBReader reader(seqDBCache);
 
     // Load sequences in batches of ~10kbp.
-    std::vector<PacBio::BAM::FastaSequence> records;
-    std::vector<std::vector<PacBio::BAM::FastaSequence>> results;
+    std::vector<PacBio::Pancake::FastaSequenceId> records;
+    std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> results;
     for (const auto& blockId : testBlocks) {
         reader.GetBlock(records, blockId);
         results.emplace_back(records);
@@ -332,8 +350,12 @@ TEST(SeqDBReaderCompressed, GetBlockEachSeqSeparateBlock)
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
     // Expect 3 blocks of sequences.
-    const std::vector<std::vector<PacBio::BAM::FastaSequence>> expected = {
-        {fastaSeqs[0]}, {fastaSeqs[1]}, {fastaSeqs[2]}, {fastaSeqs[3]}, {fastaSeqs[4]}};
+    const std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> expected = {
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4}}};
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -343,8 +365,8 @@ TEST(SeqDBReaderCompressed, GetBlockEachSeqSeparateBlock)
     PacBio::Pancake::SeqDBReader reader(seqDBCache);
 
     // Load sequences in batches of ~10kbp.
-    std::vector<PacBio::BAM::FastaSequence> records;
-    std::vector<std::vector<PacBio::BAM::FastaSequence>> results;
+    std::vector<PacBio::Pancake::FastaSequenceId> records;
+    std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> results;
     for (const auto& blockId : testBlocks) {
         reader.GetBlock(records, blockId);
         results.emplace_back(records);
@@ -364,8 +386,12 @@ TEST(SeqDBReaderCompressed, GetBlock10kbp)
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
     // Expect 3 blocks of sequences.
-    const std::vector<std::vector<PacBio::BAM::FastaSequence>> expected = {
-        {fastaSeqs[0], fastaSeqs[1], fastaSeqs[2]}, {fastaSeqs[3], fastaSeqs[4]}};
+    const std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> expected = {
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2}},
+        {PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3},
+         PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4}}};
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -375,8 +401,8 @@ TEST(SeqDBReaderCompressed, GetBlock10kbp)
     PacBio::Pancake::SeqDBReader reader(seqDBCache);
 
     // Load sequences in batches of ~10kbp.
-    std::vector<PacBio::BAM::FastaSequence> records;
-    std::vector<std::vector<PacBio::BAM::FastaSequence>> results;
+    std::vector<PacBio::Pancake::FastaSequenceId> records;
+    std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> results;
     for (const auto& blockId : testBlocks) {
         reader.GetBlock(records, blockId);
         results.emplace_back(records);
@@ -401,7 +427,7 @@ TEST(SeqDBReaderCompressed, GetBlockOutOfBounds)
     PacBio::Pancake::SeqDBReader reader(seqDBCache);
 
     // Load sequences in batches of ~10kbp.
-    std::vector<PacBio::BAM::FastaSequence> records;
+    std::vector<PacBio::Pancake::FastaSequenceId> records;
     for (const auto& blockId : testBlocks) {
         try {
             reader.GetBlock(records, blockId);
@@ -426,8 +452,12 @@ TEST(SeqDBReaderCompressed, JumpToByName)
 
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
-    const std::vector<PacBio::BAM::FastaSequence> expected = {
-        fastaSeqs[3], fastaSeqs[2], fastaSeqs[4], fastaSeqs[0], fastaSeqs[1]};
+    const std::vector<PacBio::Pancake::FastaSequenceId> expected = {
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3},
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2},
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4},
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0},
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1}};
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -438,8 +468,8 @@ TEST(SeqDBReaderCompressed, JumpToByName)
 
     // Set the positon to the next sequence in the order specified by testNames.
     // The GetNext should then load that particular sequence.
-    std::vector<PacBio::BAM::FastaSequence> results;
-    PacBio::BAM::FastaSequence record;
+    std::vector<PacBio::Pancake::FastaSequenceId> results;
+    PacBio::Pancake::FastaSequenceId record;
     for (const auto& name : testNames) {
         reader.JumpTo(name);
         reader.GetNext(record);
@@ -458,8 +488,12 @@ TEST(SeqDBReaderCompressed, JumpToById)
 
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
-    const std::vector<PacBio::BAM::FastaSequence> expected = {
-        fastaSeqs[3], fastaSeqs[2], fastaSeqs[4], fastaSeqs[0], fastaSeqs[1]};
+    const std::vector<PacBio::Pancake::FastaSequenceId> expected = {
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3},
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2},
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4},
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0},
+        PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1}};
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -470,8 +504,8 @@ TEST(SeqDBReaderCompressed, JumpToById)
 
     // Set the positon to the next sequence in the order specified by testNames.
     // The GetNext should then load that particular sequence.
-    std::vector<PacBio::BAM::FastaSequence> results;
-    PacBio::BAM::FastaSequence record;
+    std::vector<PacBio::Pancake::FastaSequenceId> results;
+    PacBio::Pancake::FastaSequenceId record;
     for (const auto& id : testIds) {
         reader.JumpTo(id);
         reader.GetNext(record);
@@ -507,7 +541,7 @@ TEST(SeqDBReaderUncompressed, GetNext)
 
     // Collect all sequences as a single string for comparison.
     std::vector<PacBio::BAM::FastaSequence> result;
-    PacBio::BAM::FastaSequence record;
+    PacBio::Pancake::FastaSequenceId record;
     while (reader.GetNext(record)) {
         result.emplace_back(record);
     }
@@ -542,7 +576,7 @@ TEST(SeqDBReader, MalformedBytes)
         PacBio::Pancake::SeqDBReader reader(seqDBCache);
 
         // Collect all sequences as a single string for comparison.
-        PacBio::BAM::FastaSequence record;
+        PacBio::Pancake::FastaSequenceId record;
         while (true) {
             bool rv = false;
             try {
