@@ -47,6 +47,7 @@ Write the SeqDB like before, but store all sequences into the same single 2-bit 
   S	2	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292	0	4459	6073	24292	1	0	24292
   S	3	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105	0	10532	1277	5105	1	0	5105
   S	4	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001	0	11809	4751	19001	1	0	19001
+  B	0	0	5	16560	66233
   out.seqdb
   out.seqdb.0.seq
 
@@ -65,6 +66,7 @@ Using any size buffer should not impact the results, only perhaps the speed of w
   S	2	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292	0	4459	6073	24292	1	0	24292
   S	3	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105	0	10532	1277	5105	1	0	5105
   S	4	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001	0	11809	4751	19001	1	0	19001
+  B	0	0	5	16560	66233
   out.seqdb
   out.seqdb.0.seq
 
@@ -100,5 +102,15 @@ Uncompressed SeqDB construction, single block.
   S	2	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292	0	17835	24292	24292	1	0	24292
   S	3	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105	0	42127	5105	5105	1	0	5105
   S	4	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001	0	47232	19001	19001	1	0	19001
+  B	0	0	5	66233	66233
   out.seqdb
   out.seqdb.0.seq
+
+Create only one sequence file because all sequences fit into one block.
+  $ rm -f test-6.seqdb*
+  > ${BIN_DIR}/pancake seqdb test-6 ${PROJECT_DIR}/test-data/seqdb-writer/in.fasta --split-blocks
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-6.seqdb.0.seq test-6.seqdb.0.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-6.seqdb test-6.seqdb
+  > ls -1 test-6.seqdb*
+  test-6.seqdb
+  test-6.seqdb.0.seq
