@@ -41,6 +41,18 @@ public:
     std::vector<PacBio::Pancake::Range> ranges;
 };
 
+class SeqDBBlockLine
+{
+public:
+    int32_t blockId = 0;
+    int32_t startSeqId = -1;
+    int32_t endSeqId = -1;
+    int64_t numBytes = 0;
+    int64_t numBases = 0;
+
+    int32_t Span() const { return endSeqId - startSeqId; }
+};
+
 /// \brief      Container used to store all the indexing information from the DB.
 ///
 class SeqDBIndexCache
@@ -53,13 +65,13 @@ public:
     int32_t compressionLevel = 0;
     std::vector<SeqDBFileLine> fileLines;
     std::vector<SeqDBSequenceLine> seqLines;
+    std::vector<SeqDBBlockLine> blockLines;
     // Header to ordinal ID in the seqLines;
     std::unordered_map<std::string, int32_t> headerToOrdinalId;
     // In case the cache represents a sliced portion of the index, the
     // sequence ID can be different than the order of appearance in the seqLines
     // vector. This lookup relates the seqID to the ordinal ID.
     std::unordered_map<int32_t, int32_t> seqIdToOrdinalId;
-    std::vector<PacBio::Pancake::Range> blocks;
 
     SeqDBIndexCache() = default;
     ~SeqDBIndexCache() = default;
@@ -78,10 +90,10 @@ public:
 /// \returns Pointer to the parsed index.
 ///
 std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
-    const std::string& indexFilename, int64_t blockSizeInBytes = -1);
+    const std::string& indexFilename);
 
 std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
-    std::istream& is, const std::string& indexFilename, int64_t blockSizeInBytes = -1);
+    std::istream& is, const std::string& indexFilename);
 
 }  // namespace Pancake
 }  // namespace PacBio

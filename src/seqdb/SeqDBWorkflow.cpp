@@ -17,8 +17,9 @@ int SeqDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 {
     SeqDBSettings settings{options};
 
-    auto writer = PacBio::Pancake::CreateSeqDBWriter(
-        settings.OutputPrefix, settings.CompressionLevel, settings.BufferSize, settings.BlockSize);
+    auto writer = PacBio::Pancake::CreateSeqDBWriter(settings.OutputPrefix,
+                                                     settings.CompressionLevel, settings.BufferSize,
+                                                     settings.BlockSize, settings.SplitBlocks);
 
     for (const auto& inFile : settings.InputFiles) {
         BAM::FastaReader inReader{inFile};

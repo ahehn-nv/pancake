@@ -9,28 +9,22 @@ namespace PacBio {
 namespace Pancake {
 
 std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
-    const std::string& indexFilename, int64_t blockSizeInBytes)
+    const std::string& indexFilename)
 {
     std::ifstream ifs(indexFilename);
-    return LoadSeqDBIndexCache(ifs, indexFilename, blockSizeInBytes);
+    return LoadSeqDBIndexCache(ifs, indexFilename);
 }
 
 std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
-    std::istream& is, const std::string& indexFilename, int64_t blockSizeInBytes)
+    std::istream& is, const std::string& indexFilename)
 {
     auto cache = std::make_unique<PacBio::Pancake::SeqDBIndexCache>();
 
     cache->indexFilename = indexFilename;
     SplitPath(indexFilename, cache->indexParentFolder, cache->indexBasename);
 
-    // If the blockSizeInBytes is < 0, then all sequences should be in the same block.
-    blockSizeInBytes =
-        (blockSizeInBytes < 0) ? std::numeric_limits<int64_t>::max() : blockSizeInBytes;
-
     std::string line;
     char token;
-    PacBio::Pancake::Range range;
-    int64_t currBlockBytes = 0;
     while (std::getline(is, line)) {
         if (line.empty()) continue;
 
@@ -39,6 +33,7 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
 
         SeqDBFileLine fl;
         SeqDBSequenceLine sl;
+        SeqDBBlockLine bl;
         int32_t numRanges = 0;
         int32_t ordinalId = 0;
 
@@ -70,15 +65,10 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
                 // Add the new sequence to the lookups.
                 cache->headerToOrdinalId[sl.header] = ordinalId;
                 cache->seqIdToOrdinalId[sl.seqId] = ordinalId;
-                // Extend the block reach.
-                range.end = sl.seqId + 1;
-                currBlockBytes += sl.numBytes;
-                // Start a new block.
-                if (currBlockBytes >= blockSizeInBytes) {
-                    cache->blocks.emplace_back(range);
-                    range.start = sl.seqId + 1;
-                    currBlockBytes = 0;
-                }
+                break;
+            case 'B':
+                iss >> bl.blockId >> bl.startSeqId >> bl.endSeqId >> bl.numBytes >> bl.numBases;
+                cache->blockLines.emplace_back(bl);
                 break;
             default:
                 std::ostringstream oss;
@@ -91,9 +81,6 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
     if (cache->seqLines.empty())
         throw std::runtime_error("There are no sequences in the input index file: " +
                                  indexFilename);
-
-    range.end = static_cast<int32_t>(cache->seqLines.size());
-    if (range.Span() > 0) cache->blocks.emplace_back(range);
 
     return cache;
 }
@@ -115,6 +102,11 @@ std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeqDBIndexCach
             os << "\t" << r.start << "\t" << r.end;
         }
         os << "\n";
+    }
+    for (const auto& bl : r.blockLines) {
+        os << "B"
+           << "\t" << bl.blockId << "\t" << bl.startSeqId << "\t" << bl.endSeqId << "\t"
+           << bl.numBytes << "\t" << bl.numBases << "\n";
     }
     return os;
 }

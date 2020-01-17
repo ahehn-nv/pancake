@@ -49,6 +49,12 @@ R"({
     "type" : "float"
 })", SeqDBSettings::Defaults::BlockSize};
 
+const CLI_v2::Option SplitBlocks{
+R"({
+    "names" : ["split-blocks"],
+    "description" : "Write seeds for each block into a separate file."
+})", SeqDBSettings::Defaults::SplitBlocks};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -63,6 +69,7 @@ SeqDBSettings::SeqDBSettings(const PacBio::CLI_v2::Results& options)
     , CompressionLevel{options[OptionNames::CompressionLevel]}
     , BufferSize{options[OptionNames::BufferSize]}
     , BlockSize{options[OptionNames::BlockSize]}
+    , SplitBlocks{options[OptionNames::SplitBlocks]}
 {
     // Allow multiple positional input arguments.
     const auto& files = options.PositionalArguments();
@@ -95,6 +102,7 @@ PacBio::CLI_v2::Interface SeqDBSettings::CreateCLI()
         OptionNames::CompressionLevel,
         OptionNames::BufferSize,
         OptionNames::BlockSize,
+        OptionNames::SplitBlocks,
     });
     i.AddPositionalArguments({
         OptionNames::OutputPrefix,

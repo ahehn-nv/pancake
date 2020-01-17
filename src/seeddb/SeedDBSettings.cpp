@@ -23,13 +23,6 @@ R"({
     "description" : "The prefix of the output SeedDB files."
 })"};
 
-const CLI_v2::Option BufferSize{
-R"({
-    "names" : ["buffer-size"],
-    "description" : "Sequence buffer size in MB. Has to be >= 0.0.",
-    "type" : "float"
-})", SeedDBSettings::Defaults::BufferSize};
-
 const CLI_v2::Option SplitBlocks{
 R"({
     "names" : ["split-blocks"],
@@ -76,20 +69,12 @@ SeedDBSettings::SeedDBSettings(const PacBio::CLI_v2::Results& options)
     : InputFile{options[OptionNames::InputFile]}
     , OutputPrefix{options[OptionNames::OutputPrefix]}
     , NumThreads{options.NumThreads()}
-    , BufferSize{options[OptionNames::BufferSize]}
     , SplitBlocks{options[OptionNames::SplitBlocks]}
     , KmerSize{options[OptionNames::KmerSize]}
     , MinimizerWindow{options[OptionNames::MinimizerWindow]}
     , UseHPC{options[OptionNames::UseHPC]}
     , MaxHPCLen{options[OptionNames::MaxHPCLen]}
 {
-    // OutputPrefix = files[0];
-
-    // Convert buffer size from MB to bytes.
-    BufferSize *= (1024 * 1024);
-
-    // Buffer size can be zero, but not negative.
-    if (BufferSize < 0.0f) throw std::runtime_error("Buffer size cannot be a negative value.");
 }
 
 PacBio::CLI_v2::Interface SeedDBSettings::CreateCLI()
@@ -99,7 +84,6 @@ PacBio::CLI_v2::Interface SeedDBSettings::CreateCLI()
 
     // clang-format off
     i.AddOptionGroup("Algorithm Options", {
-        OptionNames::BufferSize,
         OptionNames::SplitBlocks,
         OptionNames::KmerSize,
         OptionNames::MinimizerWindow,

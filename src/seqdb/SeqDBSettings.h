@@ -20,6 +20,7 @@ struct SeqDBSettings
         static const int32_t CompressionLevel = 1;
         static constexpr float BufferSize = 1000.0f;
         static constexpr float BlockSize = 1000.0f;
+        static const bool SplitBlocks = false;
     };
 
     std::string OutputPrefix;
@@ -29,6 +30,7 @@ struct SeqDBSettings
     int32_t CompressionLevel = Defaults::CompressionLevel;
     float BufferSize = Defaults::BufferSize;
     float BlockSize = Defaults::BlockSize;
+    bool SplitBlocks = Defaults::SplitBlocks;
 
     SeqDBSettings();
     SeqDBSettings(const PacBio::CLI_v2::Results& options);

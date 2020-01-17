@@ -114,7 +114,7 @@ void SeedDBWriter::MarkBlockEnd()
 {
     if (currentBlock_.endSeqId > currentBlock_.startSeqId) {
         blockLines_.emplace_back(currentBlock_);
-        openNewSeedsFileUponNextWrite_ = true;
+        openNewSeedsFileUponNextWrite_ = false;
         if (splitBlocks_) {
             openNewSeedsFileUponNextWrite_ = true;
         }
