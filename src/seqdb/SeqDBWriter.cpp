@@ -12,17 +12,19 @@ namespace Pancake {
 
 std::unique_ptr<SeqDBWriter> CreateSeqDBWriter(const std::string& filenamePrefix,
                                                bool useCompression, int64_t flushSize,
-                                               int64_t fileBlockSize)
+                                               int64_t blockSize, bool splitBlocks)
 {
-    return std::make_unique<SeqDBWriter>(filenamePrefix, useCompression, flushSize, fileBlockSize);
+    return std::make_unique<SeqDBWriter>(filenamePrefix, useCompression, flushSize, blockSize,
+                                         splitBlocks);
 }
 
 SeqDBWriter::SeqDBWriter(const std::string& filenamePrefix, bool useCompression, int64_t flushSize,
-                         int64_t fileBlockSize)
+                         int64_t blockSize, bool splitBlocks)
     : filenamePrefix_(filenamePrefix)
     , useCompression_(useCompression)
     , flushSizeBytes_(flushSize)
-    , fileBlockSize_(fileBlockSize)
+    , blockSize_(blockSize)
+    , splitBlocks_(splitBlocks)
 {
     // Perform the actuall throwable work here, so that the constructor doesn't throw.
     SplitPath(filenamePrefix_, parentFolder_, basenamePrefix_);
@@ -33,6 +35,9 @@ SeqDBWriter::SeqDBWriter(const std::string& filenamePrefix, bool useCompression,
 
 SeqDBWriter::~SeqDBWriter()
 {
+    if (currentBlock_.Span() > 0) {
+        blockLines_.emplace_back(currentBlock_);
+    }
     FlushSequenceBuffer();
     WriteIndex();
 }
@@ -44,11 +49,9 @@ void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
         throw std::runtime_error("There are no output sequence files open.");
     }
 
-    // Check if we found the file boundary. If so, flush the current buffer,
-    // and open a new file. This has to be done upfront, because otherwise
-    // we will end up with a single empty file for the last block.
-    if (fileLines_.back().numBytes >= fileBlockSize_ && fileLines_.back().numBytes > 0) {
-        FlushSequenceBuffer();
+    // Only open a new file before writing to it. Otherwise, we'll always end up
+    // with an extra empty file at the end of each block.
+    if (openNewSequenceFileUponNextWrite_) {
         OpenNewSequenceFile_();
     }
 
@@ -94,6 +97,12 @@ void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
     sl.ranges = ranges;
     seqLines_.emplace_back(sl);
 
+    // Extend the current block.
+    currentBlock_.startSeqId = (currentBlock_.startSeqId < 0) ? sl.seqId : currentBlock_.startSeqId;
+    currentBlock_.endSeqId = sl.seqId + 1;
+    currentBlock_.numBytes += sl.numBytes;
+    currentBlock_.numBases += sl.numBases;
+
     // Increase counts for the current file.
     fileLines_.back().numBytes += numBytes;
     ++fileLines_.back().numSequences;
@@ -107,6 +116,17 @@ void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
     // Flush the sequences if we reached the buffer size.
     if (static_cast<int64_t>(seqBuffer_.size()) > flushSizeBytes_) {
         FlushSequenceBuffer();
+    }
+
+    if (currentBlock_.numBytes >= blockSize_ && currentBlock_.Span() > 0) {
+        FlushSequenceBuffer();
+        blockLines_.emplace_back(currentBlock_);
+        currentBlock_ = SeqDBBlockLine();
+        currentBlock_.blockId = static_cast<int32_t>(blockLines_.size());
+        openNewSequenceFileUponNextWrite_ = false;
+        if (splitBlocks_) {
+            openNewSequenceFileUponNextWrite_ = true;
+        }
     }
 }
 
@@ -175,6 +195,13 @@ void SeqDBWriter::WriteIndex()
             fprintf(fpOutIndex_.get(), "\t%d\t%d", r.start, r.end);
         }
         fprintf(fpOutIndex_.get(), "\n");
+    }
+
+    // Write the blocks of all sequences.
+    for (size_t i = 0; i < blockLines_.size(); ++i) {
+        fprintf(fpOutIndex_.get(), "B\t%d\t%d\t%d\t%lld\t%lld\n", blockLines_[i].blockId,
+                blockLines_[i].startSeqId, blockLines_[i].endSeqId, blockLines_[i].numBytes,
+                blockLines_[i].numBases);
     }
 }
 

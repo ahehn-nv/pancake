@@ -43,12 +43,12 @@ int SeedDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
-        PacBio::Pancake::LoadSeqDBIndexCache(settings.InputFile, settings.BufferSize);
+        PacBio::Pancake::LoadSeqDBIndexCache(settings.InputFile);
 
     // Create a reader.
     PacBio::Pancake::SeqDBReader reader(seqDBCache);
 
-    int32_t numBlocks = seqDBCache->blocks.size();
+    int32_t numBlocks = seqDBCache->blockLines.size();
     int32_t absOffset = 0;
 
     auto writer = PacBio::Pancake::CreateSeedDBWriter(settings.OutputPrefix, settings.SplitBlocks);

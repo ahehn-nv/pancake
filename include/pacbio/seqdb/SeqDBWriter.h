@@ -37,7 +37,7 @@ class SeqDBWriter : SeqDBWriterBase
 {
 public:
     SeqDBWriter(const std::string& filenamePrefix, bool useCompression, int64_t flushSize,
-                int64_t fileBlockSize);
+                int64_t blockSize, bool splitBlocks);
     ~SeqDBWriter() override;
 
     void AddSequence(const std::string& header, const std::string& seq) override;
@@ -57,10 +57,14 @@ private:
     std::string basenamePrefix_;
     bool useCompression_ = true;
     int64_t flushSizeBytes_ = 1024 * 1024 * 1024;  // 1GB
-    int64_t fileBlockSize_ = 0;
+    int64_t blockSize_ = 0;
+    bool splitBlocks_ = false;
     std::vector<uint8_t> seqBuffer_;
     std::vector<SeqDBSequenceLine> seqLines_;
     std::vector<SeqDBFileLine> fileLines_;
+    std::vector<SeqDBBlockLine> blockLines_;
+    SeqDBBlockLine currentBlock_;
+    bool openNewSequenceFileUponNextWrite_ = false;
     int64_t totalOutBytes_ = 0;
     int32_t totalOutSeqs_ = 0;
     // Output file handlers.
@@ -71,7 +75,7 @@ private:
 
 std::unique_ptr<SeqDBWriter> CreateSeqDBWriter(const std::string& filenamePrefix,
                                                bool useCompression, int64_t flushSize,
-                                               int64_t fileBlockSize);
+                                               int64_t blockSize, bool splitBlocks);
 
 }  // namespace Pancake
 }  // namespace PacBio

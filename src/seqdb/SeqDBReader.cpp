@@ -179,28 +179,28 @@ bool SeqDBReader::GetBlock(std::vector<Pancake::FastaSequenceId>& records, int32
     records.clear();
 
     // Sanity check for the sequence ID.
-    if (blockId < 0 || blockId >= static_cast<int32_t>(seqDBIndexCache_->blocks.size())) {
+    if (blockId < 0 || blockId >= static_cast<int32_t>(seqDBIndexCache_->blockLines.size())) {
         std::ostringstream oss;
         oss << "Invalid blockId. blockId = " << blockId
-            << ", blocks.size() = " << seqDBIndexCache_->blocks.size();
+            << ", blocks.size() = " << seqDBIndexCache_->blockLines.size();
         throw std::runtime_error(oss.str());
     }
 
-    const auto& block = seqDBIndexCache_->blocks[blockId];
+    const auto& block = seqDBIndexCache_->blockLines[blockId];
 
     // Sanity check that the block's range is good.
     int32_t numSeqLines = seqDBIndexCache_->seqLines.size();
-    if (block.start < 0 || block.end <= block.start || block.start >= numSeqLines ||
-        block.end > numSeqLines) {
+    if (block.startSeqId < 0 || block.endSeqId <= block.startSeqId ||
+        block.startSeqId >= numSeqLines || block.endSeqId > numSeqLines) {
         std::ostringstream oss;
-        oss << "Invalid block values: start = " << block.start << ", end = " << block.end
+        oss << "Invalid block values: start = " << block.startSeqId << ", end = " << block.endSeqId
             << ", numSeqLines = " << numSeqLines << ".";
         throw std::runtime_error(oss.str());
     }
 
-    fileHandler_.nextOrdinalId = block.start;
+    fileHandler_.nextOrdinalId = block.startSeqId;
 
-    while (fileHandler_.nextOrdinalId < block.end) {
+    while (fileHandler_.nextOrdinalId < block.endSeqId) {
         // Access the SequenceLine object.
         const auto& sl = seqDBIndexCache_->seqLines[fileHandler_.nextOrdinalId];
 

@@ -303,125 +303,16 @@ TEST(SeqDBReaderCompressed, GetNextBatch10kbp)
     EXPECT_EQ(expected, results);
 }
 
-TEST(SeqDBReaderCompressed, GetBlockAllSeqsOneBlock)
-{
-    // Input values;
-    const int32_t blockSize = -1;  // All sequences are in the same block.
-    const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
-    const std::vector<int32_t> testBlocks = {0};
-
-    // Load the expected sequences.
-    const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
-    // Expect 3 blocks of sequences.
-    const std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> expected = {
-        {PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0},
-         PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1},
-         PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2},
-         PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3},
-         PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4}}};
-
-    // Load the DB.
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
-        PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB, blockSize);
-
-    // Create a reader.
-    PacBio::Pancake::SeqDBReader reader(seqDBCache);
-
-    // Load sequences in batches of ~10kbp.
-    std::vector<PacBio::Pancake::FastaSequenceId> records;
-    std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> results;
-    for (const auto& blockId : testBlocks) {
-        reader.GetBlock(records, blockId);
-        results.emplace_back(records);
-    }
-
-    EXPECT_EQ(expected, results);
-}
-
-TEST(SeqDBReaderCompressed, GetBlockEachSeqSeparateBlock)
-{
-    // Input values;
-    const int32_t blockSize = 0;  // All sequences are in the same block.
-    const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
-    const std::vector<int32_t> testBlocks = {0, 1, 2, 3, 4};
-
-    // Load the expected sequences.
-    const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
-    // Expect 3 blocks of sequences.
-    const std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> expected = {
-        {PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0}},
-        {PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1}},
-        {PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2}},
-        {PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3}},
-        {PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4}}};
-
-    // Load the DB.
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
-        PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB, blockSize);
-
-    // Create a reader.
-    PacBio::Pancake::SeqDBReader reader(seqDBCache);
-
-    // Load sequences in batches of ~10kbp.
-    std::vector<PacBio::Pancake::FastaSequenceId> records;
-    std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> results;
-    for (const auto& blockId : testBlocks) {
-        reader.GetBlock(records, blockId);
-        results.emplace_back(records);
-    }
-
-    EXPECT_EQ(expected, results);
-}
-
-TEST(SeqDBReaderCompressed, GetBlock10kbp)
-{
-    // Input values;
-    const int32_t blockSize = 10000;  // 10kbp of compressed sequences.
-    const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
-    const std::vector<int32_t> testBlocks = {0, 1};
-
-    // Load the expected sequences.
-    const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
-    // Expect 3 blocks of sequences.
-    const std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> expected = {
-        {PacBio::Pancake::FastaSequenceId{fastaSeqs[0], 0},
-         PacBio::Pancake::FastaSequenceId{fastaSeqs[1], 1},
-         PacBio::Pancake::FastaSequenceId{fastaSeqs[2], 2}},
-        {PacBio::Pancake::FastaSequenceId{fastaSeqs[3], 3},
-         PacBio::Pancake::FastaSequenceId{fastaSeqs[4], 4}}};
-
-    // Load the DB.
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
-        PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB, blockSize);
-
-    // Create a reader.
-    PacBio::Pancake::SeqDBReader reader(seqDBCache);
-
-    // Load sequences in batches of ~10kbp.
-    std::vector<PacBio::Pancake::FastaSequenceId> records;
-    std::vector<std::vector<PacBio::Pancake::FastaSequenceId>> results;
-    for (const auto& blockId : testBlocks) {
-        reader.GetBlock(records, blockId);
-        results.emplace_back(records);
-    }
-
-    EXPECT_EQ(expected, results);
-}
-
 TEST(SeqDBReaderCompressed, GetBlockOutOfBounds)
 {
     // Input values;
-    int32_t blockSize = 10000;  // 10kbp of compressed sequences.
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
     const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
     const std::vector<int32_t> testBlocks = {-1, 10};
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
-        PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB, blockSize);
+        PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
 
     // Create a reader.
     PacBio::Pancake::SeqDBReader reader(seqDBCache);
