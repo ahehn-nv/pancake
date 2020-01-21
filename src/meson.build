@@ -37,6 +37,7 @@ pancake_cpp_sources = files([
     'seeddb/SeedDBSettings.cpp',
     'seeddb/SeedDBWorkflow.cpp',
     'seeddb/SeedDBWriter.cpp',
+    'seeddb/SequenceSeeds.cpp',
     'seqdb/SeqDBIndexCache.cpp',
     'seqdb/FastaSequenceId.cpp',
     'seqdb/SeqDBReader.cpp',
