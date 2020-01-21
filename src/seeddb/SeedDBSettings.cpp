@@ -59,6 +59,12 @@ R"({
     "description" : "Maximum length of a homopolymer to compress."
 })", SeedDBSettings::Defaults::MaxHPCLen};
 
+const CLI_v2::Option NoRevCmp{
+R"({
+    "names" : ["no-rc"],
+    "description" : "Do not produce seeds from the reverse complement strand."
+})", SeedDBSettings::Defaults::NoRevCmp};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -70,10 +76,9 @@ SeedDBSettings::SeedDBSettings(const PacBio::CLI_v2::Results& options)
     , OutputPrefix{options[OptionNames::OutputPrefix]}
     , NumThreads{options.NumThreads()}
     , SplitBlocks{options[OptionNames::SplitBlocks]}
-    , KmerSize{options[OptionNames::KmerSize]}
-    , MinimizerWindow{options[OptionNames::MinimizerWindow]}
-    , UseHPC{options[OptionNames::UseHPC]}
-    , MaxHPCLen{options[OptionNames::MaxHPCLen]}
+    , SeedParameters{options[OptionNames::KmerSize], options[OptionNames::MinimizerWindow],
+                     options[OptionNames::UseHPC], options[OptionNames::MaxHPCLen],
+                     !options[OptionNames::NoRevCmp]}
 {
 }
 
@@ -89,6 +94,7 @@ PacBio::CLI_v2::Interface SeedDBSettings::CreateCLI()
         OptionNames::MinimizerWindow,
         OptionNames::UseHPC,
         OptionNames::MaxHPCLen,
+        OptionNames::NoRevCmp,
     });
     i.AddPositionalArguments({
         OptionNames::InputFile,

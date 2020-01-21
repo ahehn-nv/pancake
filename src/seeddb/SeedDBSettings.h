@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string>
 
+#include <pacbio/seeddb/SeedDBParameters.h>
 #include <pbcopper/cli2/CLI.h>
 
 namespace PacBio {
@@ -22,16 +23,15 @@ struct SeedDBSettings
         static const int32_t MinimizerWindow = 80;
         static const bool UseHPC = false;
         static const int32_t MaxHPCLen = 10;
+        static const bool NoRevCmp = false;
     };
 
     std::string InputFile;
     std::string OutputPrefix;
     size_t NumThreads = Defaults::NumThreads;
     bool SplitBlocks = Defaults::SplitBlocks;
-    int32_t KmerSize = Defaults::KmerSize;
-    int32_t MinimizerWindow = Defaults::MinimizerWindow;
-    bool UseHPC = Defaults::UseHPC;
-    int32_t MaxHPCLen = Defaults::MaxHPCLen;
+    SeedDBParameters SeedParameters{Defaults::KmerSize, Defaults::MinimizerWindow, Defaults::UseHPC,
+                                    Defaults::MaxHPCLen, !Defaults::NoRevCmp};
 
     SeedDBSettings();
     SeedDBSettings(const PacBio::CLI_v2::Results& options);
