@@ -82,8 +82,8 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
             case 'S':
                 iss >> sl.seqId >> sl.header >> sl.fileId >> sl.fileOffset >> sl.numBytes >>
                     sl.numBases >> sl.numSeeds;
-                ordinalId = cache->seqLines.size();
-                cache->seqLines.emplace_back(sl);
+                ordinalId = cache->seedLines.size();
+                cache->seedLines.emplace_back(sl);
                 // Add the new sequence to the lookups.
                 cache->headerToOrdinalId[sl.header] = ordinalId;
                 cache->seqIdToOrdinalId[sl.seqId] = ordinalId;
@@ -100,7 +100,7 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
         }
     }
 
-    if (cache->seqLines.empty())
+    if (cache->seedLines.empty())
         throw std::runtime_error("There are no sequences in the input index file: " +
                                  indexFilename);
 
@@ -118,7 +118,7 @@ std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeedDBIndexCac
            << "\t" << fl.fileId << "\t" << fl.filename << "\t" << fl.numSequences << "\t"
            << fl.numBytes << "\n";
     }
-    for (const auto& sl : r.seqLines) {
+    for (const auto& sl : r.seedLines) {
         os << "S"
            << "\t" << sl.seqId << "\t" << sl.header << "\t" << sl.fileId << "\t" << sl.fileOffset
            << "\t" << sl.numBytes << "\t" << sl.numBases << "\t" << sl.numSeeds << "\n";

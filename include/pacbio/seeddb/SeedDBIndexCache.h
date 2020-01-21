@@ -64,12 +64,12 @@ public:
     std::string version{"unknown"};
     PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
     std::vector<SeedDBFileLine> fileLines;
-    std::vector<SeedDBSeedsLine> seqLines;
+    std::vector<SeedDBSeedsLine> seedLines;
     std::vector<SeedDBBlockLine> blockLines;
-    // Header to ordinal ID in the seqLines;
+    // Header to ordinal ID in the seedLines;
     std::unordered_map<std::string, int32_t> headerToOrdinalId;
     // In case the cache represents a sliced portion of the index, the
-    // sequence ID can be different than the order of appearance in the seqLines
+    // sequence ID can be different than the order of appearance in the seedLines
     // vector. This lookup relates the seqID to the ordinal ID.
     std::unordered_map<int32_t, int32_t> seqIdToOrdinalId;
 

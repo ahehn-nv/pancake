@@ -16,7 +16,7 @@ SeedDBReader::SeedDBReader(std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& s
     // Sanity check.
     if (seedDBIndexCache_->fileLines.empty())
         throw std::runtime_error("There are no file specifications in the input index file.");
-    if (seedDBIndexCache_->seqLines.empty())
+    if (seedDBIndexCache_->seedLines.empty())
         throw std::runtime_error("There are no sequences in the input index file.");
 }
 
@@ -30,7 +30,7 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, int64_t seqId)
     record.Id(-1);
 
     // Sanity check for the sequence ID.
-    if (seqId < 0 || seqId >= static_cast<int32_t>(seedDBIndexCache_->seqLines.size()))
+    if (seqId < 0 || seqId >= static_cast<int32_t>(seedDBIndexCache_->seedLines.size()))
         throw std::runtime_error("Invalid seqId out of bounds (SeedDBReader). seqId = " +
                                  std::to_string(seqId));
 
@@ -42,7 +42,7 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, int64_t seqId)
     int32_t ordinalId = it->second;
 
     // Access the SequenceLine object.
-    const auto& sl = seedDBIndexCache_->seqLines[ordinalId];
+    const auto& sl = seedDBIndexCache_->seedLines[ordinalId];
 
     // Load the data and update fileHandler_->nextOrdinalId.
     LoadSeedsForSequence_(record, fileHandler_, seedDBIndexCache_->fileLines,
@@ -50,6 +50,7 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, int64_t seqId)
 
     return true;
 }
+
 bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, const std::string& seqName)
 {
     // Clear the output.
@@ -66,7 +67,7 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, const std::string&
     int32_t ordinalId = it->second;
 
     // Access the SequenceLine object.
-    const auto& sl = seedDBIndexCache_->seqLines[ordinalId];
+    const auto& sl = seedDBIndexCache_->seedLines[ordinalId];
 
     // Load the data and update fileHandler_->nextOrdinalId.
     LoadSeedsForSequence_(record, fileHandler_, seedDBIndexCache_->fileLines,
@@ -74,6 +75,7 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, const std::string&
 
     return true;
 }
+
 bool SeedDBReader::GetNext(SequenceSeeds& record)
 {
     // Clear the output.
@@ -85,11 +87,11 @@ bool SeedDBReader::GetNext(SequenceSeeds& record)
     if (fileHandler_.nextOrdinalId < 0) throw std::runtime_error("Invalid nextSeqId < 0.");
 
     // Can't go to the next sequence, we loaded all of them.
-    if (fileHandler_.nextOrdinalId >= static_cast<int32_t>(seedDBIndexCache_->seqLines.size()))
+    if (fileHandler_.nextOrdinalId >= static_cast<int32_t>(seedDBIndexCache_->seedLines.size()))
         return false;
 
     // Access the SequenceLine object.
-    const auto& sl = seedDBIndexCache_->seqLines[fileHandler_.nextOrdinalId];
+    const auto& sl = seedDBIndexCache_->seedLines[fileHandler_.nextOrdinalId];
 
     // Load the data and update fileHandler_->nextOrdinalId.
     LoadSeedsForSequence_(record, fileHandler_, seedDBIndexCache_->fileLines,
@@ -97,6 +99,7 @@ bool SeedDBReader::GetNext(SequenceSeeds& record)
 
     return true;
 }
+
 bool SeedDBReader::GetNextBatch(std::vector<SequenceSeeds>& records, int64_t batchSize)
 {
     records.clear();
@@ -108,11 +111,11 @@ bool SeedDBReader::GetNextBatch(std::vector<SequenceSeeds>& records, int64_t bat
     // Batch size < 0 loads everything as one batch.
     batchSize = (batchSize < 0) ? std::numeric_limits<int64_t>::max() : batchSize;
 
-    int32_t numSeqLines = seedDBIndexCache_->seqLines.size();
+    int32_t numSeqLines = seedDBIndexCache_->seedLines.size();
     int64_t loadedBytes = 0;
     while (fileHandler_.nextOrdinalId < numSeqLines) {
         // Access the SequenceLine object.
-        const auto& sl = seedDBIndexCache_->seqLines[fileHandler_.nextOrdinalId];
+        const auto& sl = seedDBIndexCache_->seedLines[fileHandler_.nextOrdinalId];
 
         // Load the data and decompress if required.
         Pancake::SequenceSeeds record;
@@ -132,6 +135,7 @@ bool SeedDBReader::GetNextBatch(std::vector<SequenceSeeds>& records, int64_t bat
 
     return true;
 }
+
 bool SeedDBReader::GetBlock(std::vector<SequenceSeeds>& records, int32_t blockId)
 {
     records.clear();
@@ -147,7 +151,7 @@ bool SeedDBReader::GetBlock(std::vector<SequenceSeeds>& records, int32_t blockId
     const auto& block = seedDBIndexCache_->blockLines[blockId];
 
     // Sanity check that the block's range is good.
-    int32_t numSeedLines = seedDBIndexCache_->seqLines.size();
+    int32_t numSeedLines = seedDBIndexCache_->seedLines.size();
     if (block.startSeqId < 0 || block.endSeqId <= block.startSeqId ||
         block.startSeqId >= numSeedLines || block.endSeqId > numSeedLines) {
         std::ostringstream oss;
@@ -160,7 +164,7 @@ bool SeedDBReader::GetBlock(std::vector<SequenceSeeds>& records, int32_t blockId
 
     while (fileHandler_.nextOrdinalId < block.endSeqId) {
         // Access the SequenceLine object.
-        const auto& sl = seedDBIndexCache_->seqLines[fileHandler_.nextOrdinalId];
+        const auto& sl = seedDBIndexCache_->seedLines[fileHandler_.nextOrdinalId];
 
         // Load the data and decompress if required.
         Pancake::SequenceSeeds record;
@@ -176,10 +180,11 @@ bool SeedDBReader::GetBlock(std::vector<SequenceSeeds>& records, int32_t blockId
 
     return true;
 }
+
 bool SeedDBReader::JumpTo(int64_t seqId)
 {
     // Sanity check for the sequence ID.
-    if (seqId < 0 || seqId >= static_cast<int32_t>(seedDBIndexCache_->seqLines.size()))
+    if (seqId < 0 || seqId >= static_cast<int32_t>(seedDBIndexCache_->seedLines.size()))
         throw std::runtime_error(
             "Cannot JumpTo, invalid seqId out of bounds (SeedDBReader). seqId = " +
             std::to_string(seqId));
@@ -192,7 +197,7 @@ bool SeedDBReader::JumpTo(int64_t seqId)
     int32_t ordinalId = it->second;
 
     // Access the SequenceLine object.
-    const auto& sl = seedDBIndexCache_->seqLines[ordinalId];
+    const auto& sl = seedDBIndexCache_->seedLines[ordinalId];
 
     // Jump to the correct file and offset, and update the fileHandler_->nextOrdinalId.
     AccessLocation_(fileHandler_, seedDBIndexCache_->fileLines,
@@ -200,6 +205,7 @@ bool SeedDBReader::JumpTo(int64_t seqId)
 
     return true;
 }
+
 bool SeedDBReader::JumpTo(const std::string& seqName)
 {
     // Find the sequence.
@@ -210,7 +216,7 @@ bool SeedDBReader::JumpTo(const std::string& seqName)
     int32_t ordinalId = it->second;
 
     // Access the SequenceLine object.
-    const auto& sl = seedDBIndexCache_->seqLines[ordinalId];
+    const auto& sl = seedDBIndexCache_->seedLines[ordinalId];
 
     // Jump to the correct file and offset, and update the fileHandler_->nextOrdinalId.
     AccessLocation_(fileHandler_, seedDBIndexCache_->fileLines,
