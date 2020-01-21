@@ -22,15 +22,14 @@ void Worker(const std::vector<PacBio::Pancake::FastaSequenceId>& records,
             const SeedDBSettings& settings, int32_t start, int32_t end, int32_t startAbs,
             std::vector<std::vector<__int128>>& seeds)
 {
-    const bool useRC = true;
+    const auto& sp = settings.SeedParameters;
 
     for (int32_t i = start; i < end; ++i) {
         const auto& record = records[i];
         const uint8_t* seq = reinterpret_cast<const uint8_t*>(record.Bases().data());
         int32_t seqLen = record.Bases().size();
-        int rv = GenerateMinimizers(seeds[i], seq, seqLen, 0, record.Id(), settings.KmerSize,
-                                    settings.MinimizerWindow, useRC, settings.UseHPC,
-                                    settings.MaxHPCLen);
+        int rv = GenerateMinimizers(seeds[i], seq, seqLen, 0, record.Id(), sp.KmerSize,
+                                    sp.MinimizerWindow, sp.UseRC, sp.UseHPC, sp.MaxHPCLen);
         if (rv)
             throw std::runtime_error("Generating minimizers failed, startAbs = " +
                                      std::to_string(startAbs));
@@ -51,7 +50,8 @@ int SeedDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     int32_t numBlocks = seqDBCache->blockLines.size();
     int32_t absOffset = 0;
 
-    auto writer = PacBio::Pancake::CreateSeedDBWriter(settings.OutputPrefix, settings.SplitBlocks);
+    auto writer = PacBio::Pancake::CreateSeedDBWriter(settings.OutputPrefix, settings.SplitBlocks,
+                                                      settings.SeedParameters);
 
     for (int32_t blockId = 0; blockId < numBlocks; ++blockId) {
         // Load a block of records.

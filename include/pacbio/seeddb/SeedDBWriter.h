@@ -3,6 +3,7 @@
 #ifndef PANCAKE_SEEDDB_WRITER_COMPRESSED_H
 #define PANCAKE_SEEDDB_WRITER_COMPRESSED_H
 
+#include <pacbio/seeddb/SeedDBParameters.h>
 #include <pacbio/seqdb/Util.h>
 #include <seqdb/FastaSequenceId.h>
 #include <cstdint>
@@ -19,6 +20,7 @@
     Text file containing the following fields:
     ```
     V <string:semantic_version>
+    P <param1=val1,param2=val2,...>
     F <int32_t:file_id> <string:filename> <int32_t:num_seqs> <int64_t:file_size_in_bytes>
     S <int32_t:seq_id> <string:header> <int32_t:file_id> <int64_t:file_offset> <int64_t:byte_size> <int32_t:num_bases> <int32_t:num_seeds>
     B <int32_t:block_id> <int32_t:start_seq_id> <int32_t:end_seq_id> <int64_t:byte_size>
@@ -70,7 +72,8 @@ namespace Pancake {
 class SeedDBWriter
 {
 public:
-    SeedDBWriter(const std::string& filenamePrefix, bool splitBlocks);
+    SeedDBWriter(const std::string& filenamePrefix, bool splitBlocks,
+                 const PacBio::Pancake::SeedDB::SeedDBParameters& params);
     ~SeedDBWriter();
 
     void WriteSeeds(const std::string& seqName, int32_t seqId, int32_t seqLen,
@@ -86,6 +89,7 @@ private:
     void OpenNewIndexFile_();
 
     const std::string version_{"0.1.0"};
+    PacBio::Pancake::SeedDB::SeedDBParameters params_;
     std::string filenamePrefix_;
     std::string parentFolder_;
     std::string basenamePrefix_;
@@ -101,8 +105,9 @@ private:
     std::unique_ptr<FILE, FileDeleter> fpOutSeeds_{nullptr};
 };
 
-std::unique_ptr<SeedDBWriter> CreateSeedDBWriter(const std::string& filenamePrefix,
-                                                 bool splitBlocks);
+std::unique_ptr<SeedDBWriter> CreateSeedDBWriter(
+    const std::string& filenamePrefix, bool splitBlocks,
+    const PacBio::Pancake::SeedDB::SeedDBParameters& params);
 
 }  // namespace Pancake
 }  // namespace PacBio

@@ -9,14 +9,17 @@
 namespace PacBio {
 namespace Pancake {
 
-std::unique_ptr<SeedDBWriter> CreateSeedDBWriter(const std::string& filenamePrefix,
-                                                 bool splitBlocks)
+std::unique_ptr<SeedDBWriter> CreateSeedDBWriter(
+    const std::string& filenamePrefix, bool splitBlocks,
+    const PacBio::Pancake::SeedDB::SeedDBParameters& params)
 {
-    return std::make_unique<SeedDBWriter>(filenamePrefix, splitBlocks);
+    return std::make_unique<SeedDBWriter>(filenamePrefix, splitBlocks, params);
 }
 
-SeedDBWriter::SeedDBWriter(const std::string& filenamePrefix, bool splitBlocks)
-    : filenamePrefix_(filenamePrefix)
+SeedDBWriter::SeedDBWriter(const std::string& filenamePrefix, bool splitBlocks,
+                           const PacBio::Pancake::SeedDB::SeedDBParameters& params)
+    : params_(params)
+    , filenamePrefix_(filenamePrefix)
     , splitBlocks_(splitBlocks)
     , openNewSeedsFileUponNextWrite_(false)
 {
@@ -132,6 +135,10 @@ void SeedDBWriter::WriteIndex()
 
     // Write the version and compression information.
     fprintf(fpOutIndex_.get(), "V\t%s\n", version_.c_str());
+
+    // Write the parameters used to compute the seeds.
+    fprintf(fpOutIndex_.get(), "P\tk=%d,w=%d,hpc=%d,hpc_len=%d,rc=%d\n", params_.KmerSize,
+            params_.MinimizerWindow, params_.UseHPC, params_.MaxHPCLen, params_.UseRC);
 
     // Write all the files and their sizes.
     for (const auto& f : fileLines_) {
