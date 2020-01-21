@@ -5,6 +5,7 @@
 
 #include <pacbio/seeddb/SeedDBParameters.h>
 #include <pacbio/seqdb/Util.h>
+#include <seeddb/SeedDBIndexCache.h>
 #include <seqdb/FastaSequenceId.h>
 #include <cstdint>
 #include <memory>
@@ -29,42 +30,6 @@
     ## Seed file:
     Binary file. Contains all bytes concatenated together, no headers, no new line chars.
 */
-
-/// \brief      Container, describes a seeds file which accompanies the SeedDB index.
-///
-class SeedDBFileLine
-{
-public:
-    int32_t fileId = 0;
-    std::string filename;
-    int32_t numSequences = 0;
-    int64_t numBytes = 0;
-};
-
-/// \brief      Container, index information for a particular sequence's set of seeds.
-///
-class SeedDBSeedsLine
-{
-public:
-    int32_t seqId = 0;
-    std::string header;
-    int32_t fileId = 0;
-    int64_t fileOffset = 0;
-    int64_t numBytes = 0;
-    int32_t numBases = 0;
-    int32_t numSeeds = 0;
-};
-
-class SeedDBBlockLine
-{
-public:
-    int32_t blockId = 0;
-    int32_t startSeqId = -1;
-    int32_t endSeqId = -1;
-    int64_t numBytes = 0;
-
-    int32_t Span() const { return endSeqId - startSeqId; }
-};
 
 namespace PacBio {
 namespace Pancake {

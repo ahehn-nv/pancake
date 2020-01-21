@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <memory>
 #include <sstream>
+#include <vector>
 
 namespace PacBio {
 namespace Pancake {

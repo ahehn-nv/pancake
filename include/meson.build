@@ -9,6 +9,7 @@ if not meson.is_subproject()
     files([
       'pacbio/Version.h',
       'pacbio/seeddb/Minimizers.h',
+      'pacbio/seeddb/SeedDBIndexCache.h',
       'pacbio/seeddb/Seed.h',
       'pacbio/seeddb/SeedDBWriter.h',
       'pacbio/seqdb/Lookups.h',
