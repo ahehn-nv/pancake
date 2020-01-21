@@ -50,7 +50,8 @@ int SeedDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     int32_t numBlocks = seqDBCache->blockLines.size();
     int32_t absOffset = 0;
 
-    auto writer = PacBio::Pancake::CreateSeedDBWriter(settings.OutputPrefix, settings.SplitBlocks);
+    auto writer = PacBio::Pancake::CreateSeedDBWriter(settings.OutputPrefix, settings.SplitBlocks,
+                                                      settings.SeedParameters);
 
     for (int32_t blockId = 0; blockId < numBlocks; ++blockId) {
         // Load a block of records.
