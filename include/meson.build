@@ -11,6 +11,7 @@ if not meson.is_subproject()
       'pacbio/seeddb/Minimizers.h',
       'pacbio/seeddb/SeedDBIndexCache.h',
       'pacbio/seeddb/Seed.h',
+      'pacbio/seeddb/SeedDBReaderCached.h',
       'pacbio/seeddb/SeedDBWriter.h',
       'pacbio/seqdb/Lookups.h',
       'pacbio/seqdb/Range.h',

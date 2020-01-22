@@ -18,6 +18,8 @@ SeedDBReader::SeedDBReader(std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& s
         throw std::runtime_error("There are no file specifications in the input index file.");
     if (seedDBIndexCache_->seedLines.empty())
         throw std::runtime_error("There are no sequences in the input index file.");
+    if (seedDBIndexCache_->blockLines.empty())
+        throw std::runtime_error("There are no blocks in the input index file.");
 }
 
 SeedDBReader::~SeedDBReader() = default;
@@ -28,11 +30,6 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, int64_t seqId)
     record.Seeds(std::vector<__int128>());
     record.Name("");
     record.Id(-1);
-
-    // Sanity check for the sequence ID.
-    if (seqId < 0 || seqId >= static_cast<int32_t>(seedDBIndexCache_->seedLines.size()))
-        throw std::runtime_error("Invalid seqId out of bounds (SeedDBReader). seqId = " +
-                                 std::to_string(seqId));
 
     // Find the sequence.
     auto it = seedDBIndexCache_->seqIdToOrdinalId.find(seqId);
