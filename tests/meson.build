@@ -3,6 +3,7 @@ pancake_test_cpp_sources = files([
   'src/test_Pancake.cpp',
   'src/test_SeedDBReader.cpp',
   'src/test_SeedDBReaderCached.cpp',
+  'src/test_SeedDBReaderRawBlock.cpp',
   'src/test_SeqDBReader.cpp',
   'src/test_SeqDBReaderCached.cpp',
   'src/test_Twobit.cpp',
