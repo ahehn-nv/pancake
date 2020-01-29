@@ -48,6 +48,7 @@ pancake_cpp_sources = files([
     'seqdb/SeqDBWorkflow.cpp',
     'seqdb/SeqDBWriter.cpp',
     'seqdb/Twobit.cpp',
+    'util/TicToc.cpp',
 ])
 
 pancake_cpp_sources += pancake_version_sources
