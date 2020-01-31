@@ -11,6 +11,7 @@
 #ifndef SRC_MINIMIZER_INDEX2_MINIMIZER_H_
 #define SRC_MINIMIZER_INDEX2_MINIMIZER_H_
 
+#include <cstdint>
 #include <sstream>
 
 namespace PacBio {
@@ -24,6 +25,8 @@ static const __int128 MINIMIZER_CODED_REV_BIT = (((__int128)1) << 32);
 static const __int128 MINIMIZER_64bit_MASK = (((__int128)0x0FFFFFFFFFFFFFFFF));
 static const __int128 MINIMIZER_32bit_MASK = (((__int128)0x0000000007FFFFFFF));
 static const __int128 MINIMIZER_32bit_MASK_FULL = (((__int128)0x000000000FFFFFFFF));
+
+using SeedRaw = __int128;
 
 class Seed
 {

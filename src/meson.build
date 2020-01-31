@@ -36,6 +36,7 @@ pancake_cpp_sources = files([
     'seeddb/SeedDBIndexCache.cpp',
     'seeddb/SeedDBReader.cpp',
     'seeddb/SeedDBReaderCached.cpp',
+    'seeddb/SeedDBReaderRawBlock.cpp',
     'seeddb/SeedDBSettings.cpp',
     'seeddb/SeedDBWorkflow.cpp',
     'seeddb/SeedDBWriter.cpp',
