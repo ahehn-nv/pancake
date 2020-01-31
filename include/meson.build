@@ -26,4 +26,4 @@ if not meson.is_subproject()
 
 endif
 
-pancake_include_directories = include_directories(['.', 'pacbio'])
+pancake_include_directories = include_directories(['.', 'pacbio', 'lib/sparsehash'])
