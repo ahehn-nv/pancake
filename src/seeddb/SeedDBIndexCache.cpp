@@ -107,6 +107,49 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
     return cache;
 }
 
+const SeedDBSeedsLine& SeedDBIndexCache::GetSeedsLine(int32_t seqId) const
+{
+    // Find the seeds line.
+    const auto it = seqIdToOrdinalId.find(seqId);
+    if (it == seqIdToOrdinalId.end())
+        throw std::runtime_error("Could not find seqId in the index. seqId = " +
+                                 std::to_string(seqId));
+    return seedLines[it->second];
+}
+
+const SeedDBSeedsLine& SeedDBIndexCache::GetSeedsLine(const std::string& seqName) const
+{
+    // Find the seeds line.
+    const auto it = headerToOrdinalId.find(seqName);
+    if (it == headerToOrdinalId.end())
+        throw std::runtime_error(
+            "Invalid sequence name, it does not exist in the SeedDB. seqName = " + seqName);
+    return seedLines[it->second];
+}
+
+const SeedDBBlockLine& SeedDBIndexCache::GetBlockLine(int32_t blockId) const
+{
+    // Sanity check for the sequence ID.
+    if (blockId < 0 || blockId >= static_cast<int32_t>(blockLines.size())) {
+        std::ostringstream oss;
+        oss << "Invalid blockId. blockId = " << blockId
+            << ", blockLines.size() = " << blockLines.size();
+        throw std::runtime_error(oss.str());
+    }
+    return blockLines[blockId];
+}
+
+const SeedDBFileLine& SeedDBIndexCache::GetFileLine(int32_t fileId) const
+{
+    // Sanity check.
+    if (fileId < 0 || fileId >= static_cast<int32_t>(fileLines.size())) {
+        std::ostringstream oss;
+        oss << "Invalid fileId. fileId = " << fileId << ", fileLines.size() = " << fileLines.size();
+        throw std::runtime_error(oss.str());
+    }
+    return fileLines[fileId];
+}
+
 std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeedDBIndexCache& r)
 {
     os << "V\t" << r.version << "\n";

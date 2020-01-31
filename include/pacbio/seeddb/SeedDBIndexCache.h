@@ -76,6 +76,11 @@ public:
     SeedDBIndexCache() = default;
     ~SeedDBIndexCache() = default;
     friend std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeedDBIndexCache& r);
+
+    const SeedDBFileLine& GetFileLine(int32_t fileId) const;
+    const SeedDBBlockLine& GetBlockLine(int32_t blockId) const;
+    const SeedDBSeedsLine& GetSeedsLine(int32_t seqId) const;
+    const SeedDBSeedsLine& GetSeedsLine(const std::string& seqName) const;
 };
 
 /// \brief Loads the SeedDB index from file.
