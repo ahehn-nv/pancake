@@ -31,6 +31,7 @@ pancake_version_sources = [
 pancake_cpp_sources = files([
     'overlaphifi/OverlapHifiSettings.cpp',
     'overlaphifi/OverlapHifiWorkflow.cpp',
+    'overlaphifi/SeedIndex.cpp',
     'seqdb/CompressedSequence.cpp',
     'seeddb/Minimizers.cpp',
     'seeddb/SeedDBIndexCache.cpp',
