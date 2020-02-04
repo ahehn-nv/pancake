@@ -8,6 +8,7 @@ if not meson.is_subproject()
   install_headers(
     files([
       'pacbio/Version.h',
+      'pacbio/overlaphifi/Mapper.h',
       'pacbio/overlaphifi/SeedIndex.h',
       'pacbio/seeddb/Minimizers.h',
       'pacbio/seeddb/SeedDBIndexCache.h',

@@ -8,7 +8,7 @@
 
 #include <pacbio/Version.h>
 
-#include "overlaphifi/OverlapHifiSettings.h"
+#include <pacbio/overlaphifi/OverlapHifiSettings.h>
 #include "overlaphifi/OverlapHifiWorkflow.h"
 #include "seeddb/SeedDBSettings.h"
 #include "seeddb/SeedDBWorkflow.h"
