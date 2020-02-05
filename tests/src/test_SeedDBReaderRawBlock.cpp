@@ -7,7 +7,7 @@
 #include <pacbio/seeddb/SequenceSeeds.h>
 #include <sstream>
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts1)
+TEST(SeedDBReaderRawBlock, GetContiguousParts_NormalSingleBlock)
 {
     /*
      * Fetch the byte span of a single small block of 1 sequence.
@@ -48,7 +48,7 @@ B	4	4	5	10304
     EXPECT_EQ(results, expected);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts2)
+TEST(SeedDBReaderRawBlock, GetContiguousParts_NormalMultipleFiles)
 {
     /*
      * Fetch the byte span of a block of 4 sequences, where each sequence is
@@ -91,7 +91,7 @@ B	1	1	5	32960
     EXPECT_EQ(results, expected);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts3)
+TEST(SeedDBReaderRawBlock, GetContiguousParts_NormalTwoBlocksWithGap)
 {
     /*
      * Fetch the byte span of a block of 4 sequences, where the first two and last
@@ -128,7 +128,7 @@ B	0	0	4	23552
     EXPECT_EQ(results, expected);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts4)
+TEST(SeedDBReaderRawBlock, GetContiguousParts_BlockOutOfBoundsThrows)
 {
     /*
      * Block is out of bounds, it should throw.
@@ -153,7 +153,7 @@ B	0	0	1	2976
                  std::runtime_error);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts5)
+TEST(SeedDBReaderRawBlock, GetContiguousParts_MalformedBlockThrows)
 {
     /*
      * Block is malformed, referencing sequences which do not exist in the index.
@@ -179,7 +179,72 @@ B	0	1	5	2976
                  std::runtime_error);
 }
 
-TEST(SeedDBReaderRawBlock, GetBlock1)
+TEST(SeedDBReaderRawBlock, GetContiguousParts_OverlappingBytesThrows)
+{
+    /*
+     * One 'S' line is malformed (S3), it begins and overlaps S2. This should throw
+     * in the GetContiguousParts becauss seeds should be distinct byte blocks for each sequence.
+    */
+
+    const std::string inSeedDB =
+        R"(V	0.1.0
+P	k=30,w=80,hpc=0,hpc_len=10,rc=1
+F	0	test-1a.seeddb.0.seeds	4	23552
+S	0	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3005/0_5852	0	0	2976	5852	186
+S	1	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3414/0_11983	0	2976	7664	11983	479
+S	2	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105	0	23024	2608	5105	163
+S	3	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001	0	20000	10304	19001	644
+B	0	0	4	23552
+    )";
+    const int32_t blockId = 0;
+
+    // Load the SeedDB.
+    std::istringstream is(inSeedDB);
+    std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> seedDBCache =
+        PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
+
+    // Run and evaluate.
+    EXPECT_THROW({ auto results = PacBio::Pancake::GetContiguousParts(seedDBCache, blockId); },
+                 std::runtime_error);
+}
+
+TEST(SeedDBReaderRawBlock, GetContiguousParts_OutOfOrder)
+{
+    /*
+     * This is a valid case, where the order of sequences permuted in the SeedDB. This
+     * should not throw.
+    */
+
+    const std::string inSeedDB =
+        R"(V	0.1.0
+P	k=30,w=80,hpc=0,hpc_len=10,rc=1
+F	0	test-1a.seeddb.0.seeds	4	23552
+S	0	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3005/0_5852	0	0	2976	5852	186
+S	1	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3414/0_11983	0	2976	7664	11983	479
+S	2	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001	0	25632	10304	19001	644
+S	3	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105	0	23024	2608	5105	163
+B	0	0	4	23552
+    )";
+    const int32_t blockId = 0;
+
+    // Expected.
+    // Tuple: (file_id, file_offset_start, file_offset_end)
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
+        {0, 0, 10640}, {0, 25632, 35936}, {0, 23024, 25632}};
+
+    // Load the SeedDB.
+    std::istringstream is(inSeedDB);
+    std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> seedDBCache =
+        PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
+
+    // Run.
+    const auto results = PacBio::Pancake::GetContiguousParts(seedDBCache, blockId);
+
+    // Evaluate.
+    EXPECT_EQ(results, expected);
+}
+
+TEST(SeedDBReaderRawBlock, GetBlock_NormalWithMultipleFiles)
 {
     /*
      * This will load a block with the new function and return a set of seeds.
@@ -232,7 +297,7 @@ B	1	1	5	32960
     EXPECT_EQ(results, expected);
 }
 
-TEST(SeedDBReaderRawBlock, GetBlock2)
+TEST(SeedDBReaderRawBlock, GetBlock_NormalWithSingleFileAndAGap)
 {
     /*
      * This will load a block with the new function and return a set of seeds.
