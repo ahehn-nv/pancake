@@ -2,9 +2,9 @@
 
 #include <pacbio/seeddb/SeedDBReader.h>
 #include <pacbio/seeddb/SeedDBReaderRawBlock.h>
-#include <sstream>
-
+#include <functional>
 #include <iostream>
+#include <sstream>
 
 namespace PacBio {
 namespace Pancake {
@@ -131,21 +131,39 @@ std::vector<ContiguousFilePart> GetContiguousParts(
     // fetch those parts later.
     std::vector<ContiguousFilePart> contiguousParts;
 
+    auto AddContiguousPart = [&](const SeedDBSeedsLine& sl) {
+        contiguousParts.emplace_back(
+            ContiguousFilePart{sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes});
+    };
+
     for (int32_t ordId = ordStart; ordId <= ordEnd; ++ordId) {
-        // Access the SequenceLine object.
         const auto& sl = seedDBIndexCache->seedLines[ordId];
 
         if (contiguousParts.empty()) {
-            contiguousParts.emplace_back(
-                ContiguousFilePart{sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes});
+            AddContiguousPart(sl);
+
+        } else if (sl.fileId != contiguousParts.back().fileId) {
+            AddContiguousPart(sl);
+
+        } else if (sl.fileOffset == contiguousParts.back().endOffset) {
+            contiguousParts.back().endOffset += sl.numBytes;
+
+        } else if (sl.fileOffset > contiguousParts.back().endOffset ||
+                   (sl.fileOffset + sl.numBytes) <= contiguousParts.back().startOffset) {
+            // Allow out of order byte spans, as long as there is no overlap.
+            AddContiguousPart(sl);
+
         } else {
-            auto& last = contiguousParts.back();
-            if (sl.fileId != last.fileId || sl.fileOffset != last.endOffset) {
-                contiguousParts.emplace_back(
-                    ContiguousFilePart{sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes});
-            } else {
-                last.endOffset = sl.fileOffset + sl.numBytes;
-            }
+            // An overlap occurred.
+            const auto& last = contiguousParts.back();
+            std::ostringstream oss;
+            oss << "Invalid SeedsLine object in the block, overlapping other SeedsLine objects in "
+                   "terms of the file offset. Last ContiguousFilePart span: {"
+                << last.fileId << ", " << last.startOffset << ", " << last.endOffset
+                << "}, last SeedsLine: {" << sl.seqId << ", " << sl.header << ", " << sl.fileId
+                << ", " << sl.fileOffset << ", " << sl.numBytes << ", " << sl.numBases << ", "
+                << sl.numSeeds << "}.";
+            throw std::runtime_error(oss.str());
         }
     }
 
