@@ -13,6 +13,7 @@ pancake_test_cpp_sources = files([
 ])
 
 pancake_test_cram_sources = files([
+  'cram/test_hifi_ovl.t',
   'cram/test_seqdb_writer.t',
   'cram/test_seeddb_writer.t',
 ])
