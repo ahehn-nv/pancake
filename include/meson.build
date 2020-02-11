@@ -11,6 +11,7 @@ if not meson.is_subproject()
       'pacbio/alignment/SesDistanceBanded.h',
       'pacbio/overlaphifi/Mapper.h',
       'pacbio/overlaphifi/Overlap.h',
+      'pacbio/overlaphifi/OverlapWriter.h',
       'pacbio/overlaphifi/SeedIndex.h',
       'pacbio/seeddb/Minimizers.h',
       'pacbio/seeddb/SeedDBIndexCache.h',
