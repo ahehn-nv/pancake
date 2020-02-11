@@ -69,6 +69,11 @@ public:
     bool CollectHits(const std::vector<PacBio::Pancake::SeedDB::SeedRaw>& querySeeds,
                      std::vector<SeedHit>& hits, int64_t freqCutoff) const;
 
+    const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& GetCache() const
+    {
+        return seedDBCache_;
+    }
+
 private:
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> seedDBCache_;
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> seeds_;

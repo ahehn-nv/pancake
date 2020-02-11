@@ -7,11 +7,13 @@ pancake_test_cpp_sources = files([
   'src/test_SeedDBReaderRawBlock.cpp',
   'src/test_SeqDBReader.cpp',
   'src/test_SeqDBReaderCached.cpp',
+  'src/test_SesDistanceBanded.cpp',
   'src/test_Twobit.cpp',
   'src/test_Util.cpp',
 ])
 
 pancake_test_cram_sources = files([
+  'cram/test_hifi_ovl.t',
   'cram/test_seqdb_writer.t',
   'cram/test_seeddb_writer.t',
 ])

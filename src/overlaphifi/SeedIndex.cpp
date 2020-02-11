@@ -172,7 +172,7 @@ bool SeedIndex::CollectHits(const std::vector<PacBio::Pancake::SeedDB::SeedRaw>&
                     isRev = true;
                     // targetPos = seq->len() - (decodedTarget.pos + 1);
                     const auto& sl = seedDBCache_->GetSeedsLine(decodedTarget.seqID);
-                    targetPos = sl.numBases - (decodedTarget.pos + kmerSize - 1);
+                    targetPos = sl.numBases - (decodedTarget.pos + kmerSize);
                     // TODO: This will be off if the homopolymer compression is used.
                     // In that case, the seed span is not the same as t he kmerSize.
                 }

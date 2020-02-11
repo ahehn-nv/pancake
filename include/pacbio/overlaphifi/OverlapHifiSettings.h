@@ -22,6 +22,7 @@ struct OverlapHifiSettings
 
         static constexpr double FreqPercentile = 0.0002;
         static const int64_t MinQueryLen = 50;
+        static const int64_t MinTargetLen = 50;
         static const int64_t MaxSeedDistance = 5000;
         static const int64_t MinNumSeeds = 3;
         static const int64_t MinCoveredBases = 30;
@@ -31,8 +32,10 @@ struct OverlapHifiSettings
         static constexpr double AlignmentMaxD = 0.03;
         static constexpr double MinIdentity = 98.0;
         static const int64_t MinMappedLength = 1000;
-        static const bool AddSymmetricOverlaps = true;
-        static const bool OneHitPerTarget = true;
+        static const bool SkipSymmetricOverlaps = false;
+        static const bool OneHitPerTarget = false;
+        static const bool WriteReverseOverlaps = false;
+        static const bool WriteIds = false;
     };
 
     std::string TargetDBPrefix;
@@ -45,6 +48,7 @@ struct OverlapHifiSettings
 
     double FreqPercentile = Defaults::FreqPercentile;
     int64_t MinQueryLen = Defaults::MinQueryLen;
+    int64_t MinTargetLen = Defaults::MinTargetLen;
     int64_t MaxSeedDistance = Defaults::MaxSeedDistance;
     int64_t MinNumSeeds = Defaults::MinNumSeeds;
     int64_t MinCoveredBases = Defaults::MinCoveredBases;
@@ -54,8 +58,10 @@ struct OverlapHifiSettings
     double AlignmentMaxD = Defaults::AlignmentMaxD;
     double MinIdentity = Defaults::MinIdentity;
     int64_t MinMappedLength = Defaults::MinMappedLength;
-    bool AddSymmetricOverlaps = Defaults::AddSymmetricOverlaps;
+    bool SkipSymmetricOverlaps = Defaults::SkipSymmetricOverlaps;
     bool OneHitPerTarget = Defaults::OneHitPerTarget;
+    bool WriteReverseOverlaps = Defaults::WriteReverseOverlaps;
+    bool WriteIds = Defaults::WriteIds;
 
     OverlapHifiSettings();
     OverlapHifiSettings(const PacBio::CLI_v2::Results& options);

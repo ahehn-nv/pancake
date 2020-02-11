@@ -478,19 +478,19 @@ B	0	0	1	96
         {targetId, 0, 0, 0, 0},
         {targetId, 0, 5, 0, 0},
         // 123
-        {targetId, 1, 8, 0, 1},
-        {targetId, 1, 3, 0, 1},
-        {targetId, 1, 1, 0, 1},
+        {targetId, 1, 7, 0, 1},
+        {targetId, 1, 2, 0, 1},
+        {targetId, 1, 0, 0, 1},
         /// 5
-        {targetId, 1, 7, 0, 2},
-        {targetId, 1, 2, 0, 2},
+        {targetId, 1, 6, 0, 2},
+        {targetId, 1, 1, 0, 2},
         {targetId, 0, 4, 0, 2},
         /// 7
-        {targetId, 1, 6, 0, 3},
+        {targetId, 1, 5, 0, 3},
         // 5
         {targetId, 0, 2, 0, 4},
         {targetId, 0, 7, 0, 4},
-        {targetId, 1, 5, 0, 4},
+        {targetId, 1, 4, 0, 4},
         // 0
         {targetId, 0, 0, 0, 5},
         {targetId, 0, 5, 0, 5},
@@ -501,7 +501,7 @@ B	0	0	1	96
         // 5
         {targetId, 0, 2, 0, 7},
         {targetId, 0, 7, 0, 7},
-        {targetId, 1, 5, 0, 7},
+        {targetId, 1, 4, 0, 7},
         // 123
         {targetId, 0, 1, 0, 8},
         {targetId, 0, 6, 0, 8},

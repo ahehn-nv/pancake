@@ -39,7 +39,7 @@ const CLI_v2::PositionalArgument QueryBlockEndId {
 R"({
     "name" : "query_block_end",
     "type" : "int",
-    "description" : "Start block ID for a range of blocks to map. Zero based, non-inclusive."
+    "description" : "Start block ID for a range of blocks to map. Zero based, non-inclusive. Value == 0 runs until the end block."
 })"};
 
 
@@ -57,6 +57,13 @@ R"({
     "description" : "Ignore queries shorter than this.",
     "type" : "int"
 })", OverlapHifiSettings::Defaults::MinQueryLen};
+
+const CLI_v2::Option MinTargetLen{
+R"({
+    "names" : ["min-tlen"],
+    "description" : "Ignore targets shorter than this.",
+    "type" : "int"
+})", OverlapHifiSettings::Defaults::MinTargetLen};
 
 const CLI_v2::Option MaxSeedDistance{
 R"({
@@ -121,12 +128,12 @@ R"({
     "type" : "int"
 })", OverlapHifiSettings::Defaults::MinMappedLength};
 
-const CLI_v2::Option AddSymmetricOverlaps{
+const CLI_v2::Option SkipSymmetricOverlaps{
 R"({
-    "names" : ["add-sym-arcs"],
-    "description" : "For every overlap, it's reverse complement is also written.",
+    "names" : ["skip-sym"],
+    "description" : "If Aid < Bid, only compute overlap Aid->Bid and skip computing overlap for Bid->Aid.",
     "type" : "bool"
-})", OverlapHifiSettings::Defaults::AddSymmetricOverlaps};
+})", OverlapHifiSettings::Defaults::SkipSymmetricOverlaps};
 
 const CLI_v2::Option OneHitPerTarget{
 R"({
@@ -134,6 +141,19 @@ R"({
     "description" : "Allow only one alignment per query/target pair.",
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::OneHitPerTarget};
+
+const CLI_v2::Option WriteReverseOverlaps{
+R"({
+    "names" : ["write-rev"],
+    "description" : "For eveery overlap, write out it's reverse complement too.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::WriteReverseOverlaps};
+const CLI_v2::Option WriteIds{
+R"({
+    "names" : ["write-ids"],
+    "description" : "Output overlaps will contain numeric IDs for the A and B reads (instead of names).",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::WriteIds};
 
 // clang-format on
 
@@ -151,6 +171,7 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
 
     , FreqPercentile{options[OptionNames::FreqPercentile]}
     , MinQueryLen{options[OptionNames::MinQueryLen]}
+    , MinTargetLen{options[OptionNames::MinTargetLen]}
     , MaxSeedDistance{options[OptionNames::MaxSeedDistance]}
     , MinNumSeeds{options[OptionNames::MinNumSeeds]}
     , MinCoveredBases{options[OptionNames::MinCoveredBases]}
@@ -160,8 +181,10 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , AlignmentMaxD{options[OptionNames::AlignmentMaxD]}
     , MinIdentity{options[OptionNames::MinIdentity]}
     , MinMappedLength{options[OptionNames::MinMappedLength]}
-    , AddSymmetricOverlaps{options[OptionNames::AddSymmetricOverlaps]}
+    , SkipSymmetricOverlaps{options[OptionNames::SkipSymmetricOverlaps]}
     , OneHitPerTarget{options[OptionNames::OneHitPerTarget]}
+    , WriteReverseOverlaps{options[OptionNames::WriteReverseOverlaps]}
+    , WriteIds{options[OptionNames::WriteIds]}
 {
 }
 
@@ -174,6 +197,7 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
     i.AddOptionGroup("Algorithm Options", {
         OptionNames::FreqPercentile,
         OptionNames::MinQueryLen,
+        OptionNames::MinTargetLen,
         OptionNames::MaxSeedDistance,
         OptionNames::MinNumSeeds,
         OptionNames::MinCoveredBases,
@@ -183,8 +207,10 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::AlignmentMaxD,
         OptionNames::MinIdentity,
         OptionNames::MinMappedLength,
-        OptionNames::AddSymmetricOverlaps,
-        OptionNames::OneHitPerTarget
+        OptionNames::SkipSymmetricOverlaps,
+        OptionNames::OneHitPerTarget,
+        OptionNames::WriteReverseOverlaps,
+        OptionNames::WriteIds,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,
