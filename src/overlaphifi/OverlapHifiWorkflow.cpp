@@ -3,6 +3,7 @@
 #include "overlaphifi/OverlapHifiWorkflow.h"
 #include <pacbio/overlaphifi/Mapper.h>
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
+#include <pacbio/overlaphifi/OverlapWriter.h>
 #include <pacbio/overlaphifi/SeedIndex.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
@@ -19,17 +20,13 @@
 namespace PacBio {
 namespace Pancake {
 
-class OverlapResult
-{
-public:
-};
-
 void Worker(const PacBio::Pancake::SeqDBReaderCached& targetSeqDBReader,
             const PacBio::Pancake::SeedIndex& index,
             const PacBio::Pancake::SeqDBReaderCached& querySeqDBReader,
             const PacBio::Pancake::SeedDBReaderCached& querySeedDBReader,
             const OverlapHifiSettings& /*settings*/, const PacBio::Pancake::Mapper& mapper,
-            int64_t freqCutoff, int32_t start, int32_t end, std::vector<OverlapResult>& /*results*/)
+            int64_t freqCutoff, int32_t start, int32_t end,
+            std::vector<PacBio::Pancake::MapperResult>& results)
 {
     int32_t numRecords = querySeqDBReader.records().size();
     if (start < 0 || end < 0 || start > end || start > numRecords || end > numRecords) {
@@ -43,7 +40,7 @@ void Worker(const PacBio::Pancake::SeqDBReaderCached& targetSeqDBReader,
     for (int32_t i = start; i < end; ++i) {
         const auto& querySeq = querySeqDBReader.records()[i];
         const auto& querySeeds = querySeedDBReader.GetSeedsForSequence(querySeq.Id());
-        mapper.Map(targetSeqDBReader, index, querySeq, querySeeds, freqCutoff);
+        results[i] = mapper.Map(targetSeqDBReader, index, querySeq, querySeeds, freqCutoff);
     }
 }
 
@@ -104,12 +101,16 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     PBLOG_INFO << "Beginning to map the sequences.";
     PBLOG_INFO << "Using " << settings.NumThreads << " threads.";
-    std::vector<OverlapResult> results;
     Mapper mapper(settings);
     TicToc ttMap;
 
+    PacBio::Pancake::OverlapWriter writer(stdout, settings.WriteReverseOverlaps, settings.WriteIds);
+
+    const int32_t endBlockId = (settings.QueryBlockEndId <= 0) ? querySeqDBCache->blockLines.size()
+                                                               : settings.QueryBlockEndId;
+
     // Process all blocks.
-    for (int32_t queryBlockId = settings.QueryBlockStartId; queryBlockId < settings.QueryBlockEndId;
+    for (int32_t queryBlockId = settings.QueryBlockStartId; queryBlockId < endBlockId;
          ++queryBlockId) {
         PBLOG_INFO << "Loading the query block " << queryBlockId << ".";
         // Create the query readers for the current block.
@@ -125,8 +126,11 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         // Parallel processing.
         {
             TicToc ttQueryBlockMapping;
+            const int32_t numRecords = static_cast<int32_t>(querySeqDBReader.records().size());
+            std::vector<PacBio::Pancake::MapperResult> results(numRecords);
+
+            // Run the mapping in parallel.
             PacBio::Parallel::FireAndForget faf(settings.NumThreads);
-            int32_t numRecords = static_cast<int32_t>(querySeqDBReader.records().size());
             for (int32_t i = 0; i < numRecords; ++i) {
                 faf.ProduceWith(Worker, std::cref(targetSeqDBReader), std::cref(index),
                                 std::cref(querySeqDBReader), std::cref(querySeedDBReader),
@@ -134,7 +138,16 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                                 std::ref(results));
             }
             faf.Finalize();
+
+            // Write the results.
+            for (size_t i = 0; i < querySeqDBReader.records().size(); ++i) {
+                const auto& result = results[i];
+                const auto& querySeq = querySeqDBReader.records()[i];
+                writer.Write(result.overlaps, targetSeqDBReader, querySeq);
+            }
+
             ttQueryBlockMapping.Stop();
+
             PBLOG_INFO << "Mapped query block in " << ttQueryBlockMapping.GetSecs() << " sec / "
                        << ttQueryBlockMapping.GetCpuSecs() << " CPU sec.";
         }
