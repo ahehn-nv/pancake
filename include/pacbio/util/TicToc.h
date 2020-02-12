@@ -13,6 +13,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <string>
 
 class TicToc
 {
@@ -31,6 +32,8 @@ public:
     double GetCpuMillisecs(bool current = false) const;
     double GetCpuMicrosecs(bool current = false) const;
     double GetCpuNanosecs(bool current = false) const;
+
+    std::string VerboseSecs(bool current = false) const;
 
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> start_;
