@@ -95,6 +95,9 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
 std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
     std::istream& is, const std::string& indexFilename);
 
+std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
+    FILE* fpIn, const std::string& indexFilename);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
