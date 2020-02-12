@@ -95,6 +95,9 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
 std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
     std::istream& is, const std::string& indexFilename);
 
+std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
+    FILE* fpIn, const std::string& indexFilename);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
