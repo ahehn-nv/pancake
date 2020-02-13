@@ -216,7 +216,7 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
 
     std::vector<OverlapPtr> ret;
     for (const auto& ovl : overlaps) {
-        if (ovl->Identity < minIdentity || ovl->ASpan() < minMappedSpan ||
+        if (100 * ovl->Identity < minIdentity || ovl->ASpan() < minMappedSpan ||
             ovl->BSpan() < minMappedSpan || ovl->NumSeeds < minNumSeeds ||
             ovl->Alen < minQueryLen || ovl->Blen < minTargetLen) {
             continue;
@@ -366,7 +366,6 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceId& targetS
         ret->Score = -std::max(ret->ASpan(), ret->BSpan());
         const float span = std::max(ret->ASpan(), ret->BSpan());
         ret->Identity =
-            100.0f *
             ((span != 0) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -2.0f);
     }
 
