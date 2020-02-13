@@ -162,6 +162,13 @@ R"({
     "type" : "int"
 })", OverlapHifiSettings::Defaults::AllowedDovetailDist};
 
+const CLI_v2::Option AllowedHeuristicExtendDist{
+R"({
+    "names" : ["ext-dist"],
+    "description" : "Heuristically modify the coordinats of an overlap into a dovetail overlap if are within this distance from the edges of the reads.",
+    "type" : "int"
+})", OverlapHifiSettings::Defaults::AllowedHeuristicExtendDist};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -193,6 +200,7 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , WriteReverseOverlaps{options[OptionNames::WriteReverseOverlaps]}
     , WriteIds{options[OptionNames::WriteIds]}
     , AllowedDovetailDist{options[OptionNames::AllowedDovetailDist]}
+    , AllowedHeuristicExtendDist{options[OptionNames::AllowedHeuristicExtendDist]}
 {
 }
 
@@ -220,6 +228,7 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::WriteReverseOverlaps,
         OptionNames::WriteIds,
         OptionNames::AllowedDovetailDist,
+        OptionNames::AllowedHeuristicExtendDist
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

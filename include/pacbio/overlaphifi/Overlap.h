@@ -74,6 +74,15 @@ public:
     int32_t AendFwd() const { return (Arev ? (Alen - Astart) : Aend); }
     int32_t BstartFwd() const { return (Brev ? (Blen - Bend) : Bstart); }
     int32_t BendFwd() const { return (Brev ? (Blen - Bstart) : Bend); }
+
+public:
+    bool operator==(const Overlap& rhs) const
+    {
+        return Aid == rhs.Aid && Bid == rhs.Bid && Score == rhs.Score && Identity == rhs.Identity &&
+               EditDistance == rhs.EditDistance && NumSeeds == rhs.NumSeeds && Type == rhs.Type &&
+               Arev == rhs.Arev && Astart == rhs.Astart && Aend == rhs.Aend && Alen == rhs.Aend &&
+               Brev == rhs.Brev && Bstart == rhs.Bstart && Bend == rhs.Bend && Blen == rhs.Bend;
+    }
 };
 
 using OverlapPtr = std::unique_ptr<Overlap>;
@@ -99,6 +108,10 @@ inline std::unique_ptr<Overlap> createOverlap(const std::unique_ptr<Overlap>& ov
 }
 
 OverlapType DetermineOverlapType(const OverlapPtr& ovl, int32_t allowedDovetailDist);
+
+void HeuristicExtendOverlapFlanks(OverlapPtr& ovl, int32_t allowedDist);
+
+OverlapPtr HeuristicExtendOverlapFlanks(const OverlapPtr& ovl, int32_t allowedDist);
 
 std::string OverlapTypeToString(const OverlapType& type);
 

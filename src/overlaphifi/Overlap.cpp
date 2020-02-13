@@ -70,6 +70,35 @@ OverlapType DetermineOverlapType(const OverlapPtr& ovl, int32_t allowedDovetailD
     return ovlType;
 }
 
+void HeuristicExtendOverlapFlanks(OverlapPtr& ovl, int32_t allowedDist)
+{
+    /// Note: The Overlap coordinates are internally represented in the strand
+    /// of the overlap.
+
+    int32_t leftHangA = ovl->Astart;
+    int32_t rightHangA = ovl->Alen - ovl->Aend;
+    int32_t leftHangB = ovl->Bstart;
+    int32_t rightHangB = ovl->Blen - ovl->Bend;
+
+    int32_t minLeft = std::min(leftHangA, leftHangB);
+    int32_t minRight = std::min(rightHangA, rightHangB);
+
+    int32_t leftFix = (minLeft > allowedDist) ? 0 : minLeft;
+    int32_t rightFix = (minRight > allowedDist) ? 0 : minRight;
+
+    ovl->Astart -= leftFix;
+    ovl->Bstart -= leftFix;
+    ovl->Aend += rightFix;
+    ovl->Bend += rightFix;
+}
+
+OverlapPtr HeuristicExtendOverlapFlanks(const OverlapPtr& ovl, int32_t allowedDist)
+{
+    auto newOvl = createOverlap(ovl);
+    HeuristicExtendOverlapFlanks(newOvl, allowedDist);
+    return newOvl;
+}
+
 std::string OverlapTypeToString(const OverlapType& type)
 {
     std::string ret = "x";
