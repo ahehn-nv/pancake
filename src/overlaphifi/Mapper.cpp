@@ -62,7 +62,8 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
     TicToc ttFilter;
     overlaps =
         FilterOverlaps_(overlaps, settings_.MinNumSeeds, settings_.MinIdentity,
-                        settings_.MinMappedLength, settings_.MinQueryLen, settings_.MinTargetLen);
+                        settings_.MinMappedLength, settings_.MinQueryLen, settings_.MinTargetLen,
+                        settings_.AllowedDovetailDist, settings_.AllowedHeuristicExtendDist);
     ttFilter.Stop();
 
 #ifdef PANCAKE_DEBUG
@@ -124,7 +125,8 @@ OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
 
     return createOverlap(querySeq.Id(), targetId, score, identity, 0, beginHit.queryPos,
                          endHit.queryPos, querySeq.Bases().size(), beginHit.targetRev,
-                         beginHit.targetPos, endHit.targetPos, targetLen, editDist, numSeeds);
+                         beginHit.targetPos, endHit.targetPos, targetLen, editDist, numSeeds,
+                         OverlapType::Unknown);
 }
 
 std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
@@ -208,17 +210,21 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
 std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& overlaps,
                                                 int32_t minNumSeeds, float minIdentity,
                                                 int32_t minMappedSpan, int32_t minQueryLen,
-                                                int32_t minTargetLen)
+                                                int32_t minTargetLen, int32_t allowedDovetailDist,
+                                                int32_t allowedExtendDist)
 {
 
     std::vector<OverlapPtr> ret;
     for (const auto& ovl : overlaps) {
-        if (ovl->Identity < minIdentity || ovl->ASpan() < minMappedSpan ||
+        if (100 * ovl->Identity < minIdentity || ovl->ASpan() < minMappedSpan ||
             ovl->BSpan() < minMappedSpan || ovl->NumSeeds < minNumSeeds ||
             ovl->Alen < minQueryLen || ovl->Blen < minTargetLen) {
             continue;
         }
-        ret.emplace_back(createOverlap(ovl));
+        auto newOvl = createOverlap(ovl);
+        newOvl->Type = DetermineOverlapType(ovl, allowedDovetailDist);
+        HeuristicExtendOverlapFlanks(newOvl, allowedExtendDist);
+        ret.emplace_back(std::move(newOvl));
     }
 
     return ret;
@@ -360,7 +366,6 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceId& targetS
         ret->Score = -std::max(ret->ASpan(), ret->BSpan());
         const float span = std::max(ret->ASpan(), ret->BSpan());
         ret->Identity =
-            100.0f *
             ((span != 0) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -2.0f);
     }
 

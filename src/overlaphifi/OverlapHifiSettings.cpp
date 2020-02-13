@@ -145,7 +145,7 @@ R"({
 const CLI_v2::Option WriteReverseOverlaps{
 R"({
     "names" : ["write-rev"],
-    "description" : "For eveery overlap, write out it's reverse complement too.",
+    "description" : "For eveery overlap, write out its reverse complement too.",
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::WriteReverseOverlaps};
 const CLI_v2::Option WriteIds{
@@ -154,6 +154,20 @@ R"({
     "description" : "Output overlaps will contain numeric IDs for the A and B reads (instead of names).",
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::WriteIds};
+
+const CLI_v2::Option AllowedDovetailDist{
+R"({
+    "names" : ["dt-dist"],
+    "description" : "Allowed distance of an overlap from the beginning of the sequences to call the overlap a dovetail.",
+    "type" : "int"
+})", OverlapHifiSettings::Defaults::AllowedDovetailDist};
+
+const CLI_v2::Option AllowedHeuristicExtendDist{
+R"({
+    "names" : ["ext-dist"],
+    "description" : "Heuristically modify the coordinats of an overlap into a dovetail overlap if are within this distance from the edges of the reads.",
+    "type" : "int"
+})", OverlapHifiSettings::Defaults::AllowedHeuristicExtendDist};
 
 // clang-format on
 
@@ -185,6 +199,8 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , OneHitPerTarget{options[OptionNames::OneHitPerTarget]}
     , WriteReverseOverlaps{options[OptionNames::WriteReverseOverlaps]}
     , WriteIds{options[OptionNames::WriteIds]}
+    , AllowedDovetailDist{options[OptionNames::AllowedDovetailDist]}
+    , AllowedHeuristicExtendDist{options[OptionNames::AllowedHeuristicExtendDist]}
 {
 }
 
@@ -211,6 +227,8 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::OneHitPerTarget,
         OptionNames::WriteReverseOverlaps,
         OptionNames::WriteIds,
+        OptionNames::AllowedDovetailDist,
+        OptionNames::AllowedHeuristicExtendDist
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

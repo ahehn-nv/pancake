@@ -1,5 +1,6 @@
 pancake_test_cpp_sources = files([
   'src/test_Minimizers.cpp',
+  'src/test_Overlap.cpp',
   'src/test_Pancake.cpp',
   'src/test_SeedIndex.cpp',
   'src/test_SeedDBReader.cpp',
