@@ -31,6 +31,7 @@ pancake_version_sources = [
 pancake_cpp_sources = files([
     'alignment/SesDistanceBanded.cpp',
     'overlaphifi/Mapper.cpp',
+    'overlaphifi/Overlap.cpp',
     'overlaphifi/OverlapHifiSettings.cpp',
     'overlaphifi/OverlapHifiWorkflow.cpp',
     'overlaphifi/OverlapWriter.cpp',

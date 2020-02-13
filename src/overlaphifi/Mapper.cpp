@@ -60,9 +60,9 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
     ttAlign.Stop();
 
     TicToc ttFilter;
-    overlaps =
-        FilterOverlaps_(overlaps, settings_.MinNumSeeds, settings_.MinIdentity,
-                        settings_.MinMappedLength, settings_.MinQueryLen, settings_.MinTargetLen);
+    overlaps = FilterOverlaps_(overlaps, settings_.MinNumSeeds, settings_.MinIdentity,
+                               settings_.MinMappedLength, settings_.MinQueryLen,
+                               settings_.MinTargetLen, settings_.AllowedDovetailDist);
     ttFilter.Stop();
 
 #ifdef PANCAKE_DEBUG
@@ -124,7 +124,8 @@ OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
 
     return createOverlap(querySeq.Id(), targetId, score, identity, 0, beginHit.queryPos,
                          endHit.queryPos, querySeq.Bases().size(), beginHit.targetRev,
-                         beginHit.targetPos, endHit.targetPos, targetLen, editDist, numSeeds);
+                         beginHit.targetPos, endHit.targetPos, targetLen, editDist, numSeeds,
+                         OverlapType::Unknown);
 }
 
 std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
@@ -208,7 +209,7 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
 std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& overlaps,
                                                 int32_t minNumSeeds, float minIdentity,
                                                 int32_t minMappedSpan, int32_t minQueryLen,
-                                                int32_t minTargetLen)
+                                                int32_t minTargetLen, int32_t allowedDovetailDist)
 {
 
     std::vector<OverlapPtr> ret;
@@ -218,7 +219,9 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
             ovl->Alen < minQueryLen || ovl->Blen < minTargetLen) {
             continue;
         }
-        ret.emplace_back(createOverlap(ovl));
+        auto newOvl = createOverlap(ovl);
+        newOvl->Type = DetermineOverlapType(ovl, allowedDovetailDist);
+        ret.emplace_back(std::move(newOvl));
     }
 
     return ret;

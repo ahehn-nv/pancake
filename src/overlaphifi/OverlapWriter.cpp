@@ -55,17 +55,12 @@ void OverlapWriter::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const s
         identity = std::min(identityQ, identityT);
     }
 
-    int32_t tStart = ovl->Bstart;
-    int32_t tEnd = ovl->Bend;
+    // The format specifies coordinates always in the FWD strand.
+    int32_t tStart = ovl->BstartFwd();
+    int32_t tEnd = ovl->BendFwd();
     const int32_t tIsRev = ovl->Brev;
     const int32_t tLen = ovl->Blen;
-
-    // Convert the coordinates to always be in the FWD strand.
-    if (tIsRev) {
-        std::swap(tStart, tEnd);
-        tStart = tLen - tStart;
-        tEnd = tLen - tEnd;
-    }
+    std::string typeStr = OverlapTypeToString(ovl->Type);
 
     if (writeIds) {
         fprintf(fpOut, "%09d %09d", ovl->Aid, ovl->Bid);
@@ -73,9 +68,9 @@ void OverlapWriter::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const s
         fprintf(fpOut, "%s %s", Aname.c_str(), Bname.c_str());
     }
 
-    fprintf(fpOut, " %d %.2lf %d %d %d %d %d %d %d %d\n", static_cast<int32_t>(ovl->Score),
+    fprintf(fpOut, " %d %.2lf %d %d %d %d %d %d %d %d %s\n", static_cast<int32_t>(ovl->Score),
             100.0 * identity, static_cast<int32_t>(ovl->Arev), ovl->Astart, ovl->Aend, ovl->Alen,
-            static_cast<int32_t>(tIsRev), tStart, tEnd, tLen);
+            static_cast<int32_t>(tIsRev), tStart, tEnd, tLen, typeStr.c_str());
 
     if (writeReverseOverlap) {
         // The reverse overlap has the same coordinates as the normal orientation,
@@ -87,9 +82,20 @@ void OverlapWriter::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const s
         } else {
             fprintf(fpOut, "%s %s", Bname.c_str(), Aname.c_str());
         }
-        fprintf(fpOut, " %d %.2lf %d %d %d %d %d %d %d %d\n", static_cast<int32_t>(ovl->Score),
+        OverlapType revType = (ovl->Type == OverlapType::FivePrime)
+                                  ? OverlapType::ThreePrime
+                                  : (ovl->Type == OverlapType::ThreePrime)
+                                        ? OverlapType::FivePrime
+                                        : (ovl->Type == OverlapType::Contained)
+                                              ? OverlapType::Contains
+                                              : (ovl->Type == OverlapType::Contains)
+                                                    ? OverlapType::Contained
+                                                    : ovl->Type;
+        std::string revTypeStr = OverlapTypeToString(revType);
+        fprintf(fpOut, " %d %.2lf %d %d %d %d %d %d %d %d %s\n", static_cast<int32_t>(ovl->Score),
                 100.0 * identity, static_cast<int32_t>(ovl->Arev), tStart, tEnd, tLen,
-                static_cast<int32_t>(tIsRev), ovl->Astart, ovl->Aend, ovl->Alen);
+                static_cast<int32_t>(tIsRev), ovl->Astart, ovl->Aend, ovl->Alen,
+                revTypeStr.c_str());
     }
 }
 

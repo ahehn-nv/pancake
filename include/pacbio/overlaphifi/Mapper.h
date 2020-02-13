@@ -147,12 +147,15 @@ private:
     /// \param minMappedSpan Minimum allowed span of the overlap, in either query or target coordinats.
     /// \param minQueryLen Minimum allowed query length.
     /// \param minTargetLen Minimum allowed target length.
+    /// \param allowedDovetailDist Used to determine the type of the overlap (5', 3', contained/contains, internal).
+    ///                            For accurate data, this should be 0 (or a value close to 0).
     /// \returns A new vector of overlaps without the overlaps which didn't satisfy provided values.
     ///
     static std::vector<OverlapPtr> FilterOverlaps_(const std::vector<OverlapPtr>& overlaps,
                                                    int32_t minNumSeeds, float minIdentity,
                                                    int32_t minMappedSpan, int32_t minQueryLen,
-                                                   int32_t minTargetLen);
+                                                   int32_t minTargetLen,
+                                                   int32_t allowedDovetailDist);
     /// \brief  Filters multiple overlaps for the same query-target pair, for example tandem repeats,
     ///         and keeps only the longest spanning overlap. The maximum of (querySpan, targetSpan)
     ///         is taken for a particular query-target pair for comparison.
