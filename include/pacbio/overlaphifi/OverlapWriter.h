@@ -28,6 +28,9 @@ public:
 
     static void PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
                                  const std::string& Bname, bool writeReverseOverlap, bool writeIds);
+    static std::string PrintOverlapAsM4(const OverlapPtr& ovl, const std::string& Aname,
+                                        const std::string& Bname, bool writeReverseOverlap,
+                                        bool writeIds);
 
 private:
     std::string outFile_;

@@ -45,8 +45,8 @@ void OverlapWriter::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const s
                                      const std::string& Bname, bool writeReverseOverlap,
                                      bool writeIds)
 {
-    double identity = 0.0;
-    if (ovl->EditDistance >= 0.0) {
+    double identity = static_cast<double>(ovl->Identity);
+    if (identity == 0.0 && ovl->EditDistance >= 0.0) {
         const double editDist = ovl->EditDistance;
         const double qSpan = ovl->ASpan();
         const double tSpan = ovl->BSpan();
@@ -97,6 +97,74 @@ void OverlapWriter::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const s
                 static_cast<int32_t>(tIsRev), ovl->Astart, ovl->Aend, ovl->Alen,
                 revTypeStr.c_str());
     }
+}
+
+std::string OverlapWriter::PrintOverlapAsM4(const OverlapPtr& ovl, const std::string& Aname,
+                                            const std::string& Bname, bool writeReverseOverlap,
+                                            bool writeIds)
+{
+    double identity = static_cast<double>(ovl->Identity);
+    if (identity == 0.0 && ovl->EditDistance >= 0.0) {
+        const double editDist = ovl->EditDistance;
+        const double qSpan = ovl->ASpan();
+        const double tSpan = ovl->BSpan();
+        const double identityQ = (qSpan != 0) ? ((qSpan - editDist) / qSpan) : -2.0;
+        const double identityT = (tSpan != 0) ? ((tSpan - editDist) / tSpan) : -2.0;
+        identity = std::min(identityQ, identityT);
+    }
+
+    // The format specifies coordinates always in the FWD strand.
+    int32_t tStart = ovl->BstartFwd();
+    int32_t tEnd = ovl->BendFwd();
+    const int32_t tIsRev = ovl->Brev;
+    const int32_t tLen = ovl->Blen;
+    std::string typeStr = OverlapTypeToString(ovl->Type);
+
+    std::ostringstream oss;
+    char buffA[100], buffB[100];
+    char idtBuff[100];
+    sprintf(buffA, "%09d", ovl->Aid);
+    sprintf(buffB, "%09d", ovl->Bid);
+    sprintf(idtBuff, "%.2lf", 100.0 * identity);
+
+    if (writeIds) {
+        oss << buffA << " " << buffB;
+    } else {
+        oss << Aname << " " << Bname;
+    }
+
+    oss << " " << static_cast<int32_t>(ovl->Score) << " " << idtBuff << " "
+        << static_cast<int32_t>(ovl->Arev) << " " << ovl->Astart << " " << ovl->Aend << " "
+        << ovl->Alen << " " << static_cast<int32_t>(tIsRev) << " " << tStart << " " << tEnd << " "
+        << tLen << " " << typeStr.c_str();
+
+    if (writeReverseOverlap) {
+        // The reverse overlap has the same coordinates as the normal orientation,
+        // because all coordinates are in the FWD strand.
+        // The Arev and Brev are intentionally kept in the normal orientation,
+        // it's expected that the A-read is always fwd oriented.
+        if (writeIds) {
+            oss << buffB << " " << buffA;
+        } else {
+            oss << Bname << " " << Aname;
+        }
+        OverlapType revType = (ovl->Type == OverlapType::FivePrime)
+                                  ? OverlapType::ThreePrime
+                                  : (ovl->Type == OverlapType::ThreePrime)
+                                        ? OverlapType::FivePrime
+                                        : (ovl->Type == OverlapType::Contained)
+                                              ? OverlapType::Contains
+                                              : (ovl->Type == OverlapType::Contains)
+                                                    ? OverlapType::Contained
+                                                    : ovl->Type;
+        std::string revTypeStr = OverlapTypeToString(revType);
+        oss << " " << static_cast<int32_t>(ovl->Score) << " " << 100.0 * identity << " "
+            << static_cast<int32_t>(ovl->Arev) << " " << tStart << " " << tEnd << " " << tLen << " "
+            << static_cast<int32_t>(tIsRev) << " " << ovl->Astart << " " << ovl->Aend << " "
+            << ovl->Alen << " " << typeStr.c_str();
+    }
+
+    return oss.str();
 }
 
 }  // namespace Pancake
