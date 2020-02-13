@@ -99,6 +99,45 @@ OverlapPtr HeuristicExtendOverlapFlanks(const OverlapPtr& ovl, int32_t allowedDi
     return newOvl;
 }
 
+OverlapPtr ParseOverlapFromString(const std::string& line)
+{
+    auto ovl = createOverlap();
+    char type[500];
+    int32_t Arev = 0;
+    int32_t Brev = 0;
+    int32_t n =
+        sscanf(line.c_str(),
+               "%d %d %f %f "
+               "%d %d %d %d "
+               "%d %d %d %d "
+               "%s",
+               &(ovl->Aid), &(ovl->Bid), &(ovl->Score), &(ovl->Identity), &Arev, &(ovl->Astart),
+               &(ovl->Aend), &(ovl->Alen), &Brev, &(ovl->Bstart), &(ovl->Bend), &(ovl->Blen), type);
+
+    ovl->Arev = Arev;
+    ovl->Brev = Brev;
+    ovl->Identity /= 100.0;
+
+    // Internally we represent the overlap in the strand of the overlap.
+    // (The format specifies it always in the FWD strand.)
+    if (ovl->Arev) {
+        std::swap(ovl->Astart, ovl->Aend);
+        ovl->Astart = ovl->Alen - ovl->Astart;
+        ovl->Aend = ovl->Alen - ovl->Aend;
+    }
+    if (ovl->Brev) {
+        std::swap(ovl->Bstart, ovl->Bend);
+        ovl->Bstart = ovl->Blen - ovl->Bstart;
+        ovl->Bend = ovl->Blen - ovl->Bend;
+    }
+
+    // If the type is specified in the line, parse it.
+    if (n >= 13) {
+        ovl->Type = OverlapTypeFromString(type);
+    }
+    return ovl;
+}
+
 std::string OverlapTypeToString(const OverlapType& type)
 {
     std::string ret = "x";
@@ -125,6 +164,23 @@ std::string OverlapTypeToString(const OverlapType& type)
             ret = "x";
     }
     return ret;
+}
+
+OverlapType OverlapTypeFromString(const std::string& typeStr)
+{
+    OverlapType type = OverlapType::Unknown;
+    if (typeStr == "5") {
+        type = OverlapType::FivePrime;
+    } else if (typeStr == "3") {
+        type = OverlapType::ThreePrime;
+    } else if (typeStr == "contained") {
+        type = OverlapType::Contained;
+    } else if (typeStr == "contains") {
+        type = OverlapType::Contains;
+    } else if (typeStr == "u") {
+        type = OverlapType::Internal;
+    }
+    return type;
 }
 
 }  // namespace Pancake

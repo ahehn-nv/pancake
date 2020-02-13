@@ -113,7 +113,11 @@ void HeuristicExtendOverlapFlanks(OverlapPtr& ovl, int32_t allowedDist);
 
 OverlapPtr HeuristicExtendOverlapFlanks(const OverlapPtr& ovl, int32_t allowedDist);
 
+OverlapPtr ParseOverlapFromString(const std::string& line);
+
 std::string OverlapTypeToString(const OverlapType& type);
+
+OverlapType OverlapTypeFromString(const std::string& typeStr);
 
 }  // namespace Pancake
 }  // namespace PacBio
