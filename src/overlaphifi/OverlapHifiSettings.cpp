@@ -145,7 +145,7 @@ R"({
 const CLI_v2::Option WriteReverseOverlaps{
 R"({
     "names" : ["write-rev"],
-    "description" : "For eveery overlap, write out it's reverse complement too.",
+    "description" : "For eveery overlap, write out its reverse complement too.",
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::WriteReverseOverlaps};
 const CLI_v2::Option WriteIds{
