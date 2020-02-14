@@ -46,52 +46,59 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
         }
     };
 
+    SeqDBFileLine fl;
+    SeqDBSequenceLine sl;
+    SeqDBBlockLine bl;
+    int32_t numRanges = 0;
+    int32_t ordinalId = 0;
+    int32_t readOffset = 0;
+    int32_t offset = 0;
+    int32_t numReadItems = 0;
+    int32_t totalNumSeqs = 0;
+
     while ((numRead = getline(&line, &lineLen, fpIn)) != -1) {
         if (lineLen <= 0) {
             Cleanup();
             continue;
         }
-        SeqDBFileLine fl;
-        SeqDBSequenceLine sl;
-        SeqDBBlockLine bl;
-        int32_t numRanges = 0;
-        int32_t ordinalId = 0;
-        int32_t n = 0;
-        int32_t readOffset = 0;
-        int32_t offset = 0;
         const char token = line[0];
         switch (token) {
             case 'V':
-                n = sscanf(&line[1], "%s", buff);
+                numReadItems = sscanf(&line[1], "%s", buff);
                 cache->version = buff;
-                if (n != 1)
+                if (numReadItems != 1)
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 break;
             case 'C':
-                n = sscanf(&line[1], "%d", &(cache->compressionLevel));
-                if (n != 1)
+                numReadItems = sscanf(&line[1], "%d", &(cache->compressionLevel));
+                if (numReadItems != 1)
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 break;
             case 'F':
-                n = sscanf(&line[1], "%d %s %d %lld %lld", &(fl.fileId), buff, &(fl.numSequences),
-                           &(fl.numBytes), &(fl.numCompressedBases));
-                if (n != 5)
+                numReadItems = sscanf(&line[1], "%d %s %d %lld %lld", &(fl.fileId), buff,
+                                      &(fl.numSequences), &(fl.numBytes), &(fl.numCompressedBases));
+                if (numReadItems != 5)
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 fl.filename = buff;
                 cache->fileLines.emplace_back(fl);
+                totalNumSeqs += fl.numSequences;
+                cache->seqLines.reserve(totalNumSeqs);
+                cache->headerToOrdinalId.reserve(totalNumSeqs);
+                cache->seqIdToOrdinalId.reserve(totalNumSeqs);
                 break;
             case 'S':
-                n = sscanf(&line[1], "%d %s %d %lld %d %d %d%n", &(sl.seqId), buff, &(sl.fileId),
-                           &(sl.fileOffset), &(sl.numBytes), &(sl.numBases), &(numRanges),
-                           &readOffset);
-                if (n != 7)
+                numReadItems = sscanf(&line[1], "%d %s %d %lld %d %d %d%n", &(sl.seqId), buff,
+                                      &(sl.fileId), &(sl.fileOffset), &(sl.numBytes),
+                                      &(sl.numBases), &(numRanges), &readOffset);
+                if (numReadItems != 7)
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 sl.header = buff;
+                sl.ranges.clear();
                 offset = readOffset + 1;
                 for (int32_t i = 0; i < numRanges; ++i) {
                     Range r;
-                    n = sscanf(&line[offset], "%d %d%n", &r.start, &r.end, &readOffset);
-                    if (n != 2)
+                    numReadItems = sscanf(&line[offset], "%d %d%n", &r.start, &r.end, &readOffset);
+                    if (numReadItems != 2)
                         throw std::runtime_error("Problem parsing line: '" + std::string(line) +
                                                  "'.");
                     offset += readOffset + 1;
@@ -103,9 +110,10 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
                 cache->seqIdToOrdinalId[sl.seqId] = ordinalId;
                 break;
             case 'B':
-                n = sscanf(&line[1], "%d %d %d %lld %lld", &(bl.blockId), &(bl.startSeqId),
+                numReadItems =
+                    sscanf(&line[1], "%d %d %d %lld %lld", &(bl.blockId), &(bl.startSeqId),
                            &(bl.endSeqId), &(bl.numBytes), &(bl.numBases));
-                if (n != 5)
+                if (numReadItems != 5)
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 cache->blockLines.emplace_back(bl);
                 break;
