@@ -128,14 +128,17 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
             TicToc ttQueryBlockMapping;
             const int32_t numRecords = static_cast<int32_t>(querySeqDBReader.records().size());
             std::vector<PacBio::Pancake::MapperResult> results(numRecords);
+            int32_t recordsPerThread =
+                std::ceil(static_cast<float>(numRecords) / static_cast<float>(settings.NumThreads));
 
             // Run the mapping in parallel.
             PacBio::Parallel::FireAndForget faf(settings.NumThreads);
-            for (int32_t i = 0; i < numRecords; ++i) {
-                faf.ProduceWith(Worker, std::cref(targetSeqDBReader), std::cref(index),
-                                std::cref(querySeqDBReader), std::cref(querySeedDBReader),
-                                std::cref(settings), std::cref(mapper), freqCutoff, i, i + 1,
-                                std::ref(results));
+            for (int32_t i = 0; i < static_cast<int32_t>(settings.NumThreads); ++i) {
+                faf.ProduceWith(
+                    Worker, std::cref(targetSeqDBReader), std::cref(index),
+                    std::cref(querySeqDBReader), std::cref(querySeedDBReader), std::cref(settings),
+                    std::cref(mapper), freqCutoff, i * recordsPerThread,
+                    std::min((i + 1) * recordsPerThread, numRecords), std::ref(results));
             }
             faf.Finalize();
 
