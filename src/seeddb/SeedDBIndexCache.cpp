@@ -77,7 +77,6 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
     SeedDBFileLine fl;
     SeedDBSeedsLine sl;
     SeedDBBlockLine bl;
-    int32_t ordinalId = 0;
     int32_t numReadItems = 0;
     size_t offset = 0;
     int32_t totalNumSeqs = 0;
@@ -110,8 +109,6 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
                 cache->fileLines.emplace_back(fl);
                 totalNumSeqs += fl.numSequences;
                 cache->seedLines.reserve(totalNumSeqs);
-                cache->headerToOrdinalId.reserve(totalNumSeqs);
-                cache->seqIdToOrdinalId.reserve(totalNumSeqs);
                 break;
             case 'S':
                 numReadItems =
@@ -119,11 +116,15 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
                            &(sl.fileOffset), &(sl.numBytes), &(sl.numBases), &(sl.numSeeds));
                 if (numReadItems != 7)
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                if (sl.seqId != static_cast<int32_t>(cache->seedLines.size())) {
+                    std::ostringstream oss;
+                    oss << "Invalid seqId for line: '" << line
+                        << "'. The actual ordinal ID of the seeds line is "
+                        << cache->seedLines.size();
+                    throw std::runtime_error(oss.str());
+                }
                 sl.header = buff;
-                ordinalId = cache->seedLines.size();
                 cache->seedLines.emplace_back(sl);
-                cache->headerToOrdinalId[sl.header] = ordinalId;
-                cache->seqIdToOrdinalId[sl.seqId] = ordinalId;
                 break;
             case 'B':
                 numReadItems = sscanf(&line[1], "%d %d %d %lld", &(bl.blockId), &(bl.startSeqId),
@@ -164,7 +165,6 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
         SeedDBSeedsLine sl;
         SeedDBBlockLine bl;
         std::string paramsStr;
-        int32_t ordinalId = 0;
 
         switch (token) {
             case 'V':
@@ -181,11 +181,14 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
             case 'S':
                 iss >> sl.seqId >> sl.header >> sl.fileId >> sl.fileOffset >> sl.numBytes >>
                     sl.numBases >> sl.numSeeds;
-                ordinalId = cache->seedLines.size();
+                if (sl.seqId != static_cast<int32_t>(cache->seedLines.size())) {
+                    std::ostringstream oss;
+                    oss << "Invalid seqId for line: '" << line
+                        << "'. The actual ordinal ID of the seeds line is "
+                        << cache->seedLines.size();
+                    throw std::runtime_error(oss.str());
+                }
                 cache->seedLines.emplace_back(sl);
-                // Add the new sequence to the lookups.
-                cache->headerToOrdinalId[sl.header] = ordinalId;
-                cache->seqIdToOrdinalId[sl.seqId] = ordinalId;
                 break;
             case 'B':
                 iss >> bl.blockId >> bl.startSeqId >> bl.endSeqId >> bl.numBytes;
@@ -208,22 +211,13 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
 
 const SeedDBSeedsLine& SeedDBIndexCache::GetSeedsLine(int32_t seqId) const
 {
-    // Find the seeds line.
-    const auto it = seqIdToOrdinalId.find(seqId);
-    if (it == seqIdToOrdinalId.end())
-        throw std::runtime_error("Could not find seqId in the index. seqId = " +
-                                 std::to_string(seqId));
-    return seedLines[it->second];
-}
-
-const SeedDBSeedsLine& SeedDBIndexCache::GetSeedsLine(const std::string& seqName) const
-{
-    // Find the seeds line.
-    const auto it = headerToOrdinalId.find(seqName);
-    if (it == headerToOrdinalId.end())
-        throw std::runtime_error(
-            "Invalid sequence name, it does not exist in the SeedDB. seqName = " + seqName);
-    return seedLines[it->second];
+    // Sanity check for the sequence ID.
+    if (seqId < 0 || seqId >= static_cast<int32_t>(seedLines.size())) {
+        std::ostringstream oss;
+        oss << "Invalid seqId. seqId = " << seqId << ", seedLines.size() = " << seedLines.size();
+        throw std::runtime_error(oss.str());
+    }
+    return seedLines[seqId];
 }
 
 const SeedDBBlockLine& SeedDBIndexCache::GetBlockLine(int32_t blockId) const
@@ -247,6 +241,18 @@ const SeedDBFileLine& SeedDBIndexCache::GetFileLine(int32_t fileId) const
         throw std::runtime_error(oss.str());
     }
     return fileLines[fileId];
+}
+
+void ComputeSeedDBIndexHeaderLookup(const PacBio::Pancake::SeedDBIndexCache& dbCache,
+                                    HeaderLookupType& headerToOrdinalId)
+{
+    headerToOrdinalId.clear();
+    headerToOrdinalId.reserve(dbCache.seedLines.size());
+    int32_t numRecords = dbCache.seedLines.size();
+    for (int32_t i = 0; i < numRecords; ++i) {
+        const auto& sl = dbCache.seedLines[i];
+        headerToOrdinalId[sl.header] = i;
+    }
 }
 
 std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeedDBIndexCache& r)

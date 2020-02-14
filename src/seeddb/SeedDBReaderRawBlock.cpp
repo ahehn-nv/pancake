@@ -94,36 +94,18 @@ std::vector<SeedDB::SeedRaw> SeedDBReaderRawBlock::GetBlock(int32_t blockId) con
 std::vector<ContiguousFilePart> GetContiguousParts(
     const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBIndexCache, int32_t blockId)
 {
-    // Sanity check for the sequence ID.
-    if (blockId < 0 || blockId >= static_cast<int32_t>(seedDBIndexCache->blockLines.size())) {
+    const auto& block = seedDBIndexCache->GetBlockLine(blockId);
+
+    if (block.startSeqId < 0 || block.endSeqId < 0 || block.endSeqId < block.startSeqId ||
+        block.startSeqId >= static_cast<int32_t>(seedDBIndexCache->seedLines.size()) ||
+        block.endSeqId > static_cast<int32_t>(seedDBIndexCache->seedLines.size())) {
         std::ostringstream oss;
-        oss << "Invalid blockId (SeedDBReader). blockId = " << blockId
-            << ", blocks.size() = " << seedDBIndexCache->blockLines.size();
+        oss << "The SeedDB index cache is corrupt. The block's startSeqId or endSeqId "
+            << "are not valid in SeedDBIndexCache. "
+            << "blockId = " << blockId << ", startSeqId = " << block.startSeqId
+            << ", endSeqId = " << block.endSeqId;
         throw std::runtime_error(oss.str());
     }
-
-    const auto& block = seedDBIndexCache->blockLines[blockId];
-
-    // Find the start and end ordinal IDs.
-    const auto ordStartIt = seedDBIndexCache->seqIdToOrdinalId.find(block.startSeqId);
-    const auto ordEndIt = seedDBIndexCache->seqIdToOrdinalId.find(block.endSeqId - 1);
-
-    // Sanity check.
-    if (ordStartIt == seedDBIndexCache->seqIdToOrdinalId.end()) {
-        std::ostringstream oss;
-        oss << "The block's startSeqId does not exist in the SeedDBIndexCache. "
-            << "blockId = " << blockId << ", startSeqId = " << block.startSeqId;
-        throw std::runtime_error(oss.str());
-    }
-    if (ordEndIt == seedDBIndexCache->seqIdToOrdinalId.end()) {
-        std::ostringstream oss;
-        oss << "The block's endSeqId does not exist in the SeedDBIndexCache. "
-            << "blockId = " << blockId << ", endSeqId = " << block.endSeqId;
-        throw std::runtime_error(oss.str());
-    }
-
-    const int32_t ordStart = ordStartIt->second;
-    const int32_t ordEnd = ordEndIt->second;
 
     // Sequences in the block might not be stored contiguously in the file,
     // for example if a user has permuted or filtered the DB.
@@ -136,7 +118,7 @@ std::vector<ContiguousFilePart> GetContiguousParts(
             ContiguousFilePart{sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes});
     };
 
-    for (int32_t ordId = ordStart; ordId <= ordEnd; ++ordId) {
+    for (int32_t ordId = block.startSeqId; ordId < block.endSeqId; ++ordId) {
         const auto& sl = seedDBIndexCache->seedLines[ordId];
 
         if (contiguousParts.empty()) {
