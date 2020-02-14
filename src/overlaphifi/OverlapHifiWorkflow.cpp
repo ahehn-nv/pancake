@@ -131,18 +131,28 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         {
             TicToc ttQueryBlockMapping;
             const int32_t numRecords = static_cast<int32_t>(querySeqDBReader.records().size());
+            // Storage for the results of the batch run.
             std::vector<PacBio::Pancake::MapperResult> results(numRecords);
-            int32_t recordsPerThread =
-                std::ceil(static_cast<float>(numRecords) / static_cast<float>(settings.NumThreads));
+            // No empty threads (e.g. reduce the requested number, if small record input)
+            const int32_t actualThreadCount =
+                std::min(static_cast<int32_t>(settings.NumThreads), numRecords);
+
+            // Determine how many records should land in each thread, spread roughly evenly.
+            const int32_t minimumRecordsPerThreads = (numRecords / actualThreadCount);
+            const int32_t remainingRecords = (numRecords % actualThreadCount);
+            std::vector<int32_t> recordsPerThread(actualThreadCount, minimumRecordsPerThreads);
+            for (int i = 0; i < remainingRecords; ++i)
+                ++recordsPerThread[i];
 
             // Run the mapping in parallel.
             PacBio::Parallel::FireAndForget faf(settings.NumThreads);
-            for (int32_t i = 0; i < static_cast<int32_t>(settings.NumThreads); ++i) {
-                faf.ProduceWith(
-                    Worker, std::cref(targetSeqDBReader), std::cref(index),
-                    std::cref(querySeqDBReader), std::cref(querySeedDBReader), std::cref(settings),
-                    std::cref(mapper), freqCutoff, i * recordsPerThread,
-                    std::min((i + 1) * recordsPerThread, numRecords), std::ref(results));
+            int32_t submittedCount = 0;
+            for (int32_t i = 0; i < actualThreadCount; ++i) {
+                faf.ProduceWith(Worker, std::cref(targetSeqDBReader), std::cref(index),
+                                std::cref(querySeqDBReader), std::cref(querySeedDBReader),
+                                std::cref(settings), std::cref(mapper), freqCutoff, submittedCount,
+                                submittedCount + recordsPerThread[i], std::ref(results));
+                submittedCount += recordsPerThread[i];
             }
             faf.Finalize();
 
