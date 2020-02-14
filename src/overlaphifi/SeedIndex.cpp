@@ -5,6 +5,8 @@
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/util/TicToc.h>
 #include <pbcopper/logging/Logging.h>
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <sstream>
 
@@ -121,7 +123,7 @@ void SeedIndex::ComputeFrequencyStats(double percentileCutoff, int64_t& retFreqM
 
     // Find the percentile cutoff ID.
     double numKeys = numValidKeys;
-    int64_t cutoffId = floor(numKeys * (1.0 - percentileCutoff));
+    int64_t cutoffId = std::floor(numKeys * (1.0 - percentileCutoff));
 
     // Return values.
     retFreqMax = freqs.back();
