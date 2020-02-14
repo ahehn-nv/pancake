@@ -47,16 +47,16 @@ TEST(SeqDBReaderCached, IterateThroughALargerBlock)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-2.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-6.seqdb";
     const int32_t blockId = 0;
 
     // Expected values.
     std::vector<std::pair<int64_t, std::string>> expected = {
-        {3, "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105"},
         {0, "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3005/0_5852"},
-        {4, "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001"},
-        {2, "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292"},
         {1, "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3414/0_11983"},
+        {2, "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292"},
+        {3, "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105"},
+        {4, "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001"},
     };
 
     // Load the SeedDB.
@@ -85,7 +85,7 @@ TEST(SeqDBReaderCached, GetSequenceRandomAccess)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-2.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-6.seqdb";
     const int32_t blockId = 0;
 
     // Load the SeedDB.

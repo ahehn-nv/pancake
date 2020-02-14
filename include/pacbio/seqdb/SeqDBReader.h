@@ -40,6 +40,7 @@ private:
     };
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBIndexCache_;
     OpenFileHandler fileHandler_;
+    HeaderLookupType headerToOrdinalId_;
 
     void AccessLocation_(OpenFileHandler& fileHandler,
                          const std::vector<PacBio::Pancake::SeqDBFileLine>& fileLines,

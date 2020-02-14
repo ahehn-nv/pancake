@@ -91,36 +91,20 @@ TEST(SeqDBReaderCompressed, GetSequenceByID2)
      * sequence with seqId = 3 appears as the first sequence in the file,
      * record with seqId = 0 is the second one, record with seqId = 4 is the third
      * one, and so on.
-     * This tests random access via the sequence ID, which is not the same as the
-     * ordinal ID.
+     *
+     * We enforce that the sequences have IDs in the order of appearance in the file.
     */
 
     // Input values;
-    const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
     const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-2.seqdb";
-    std::vector<int32_t> testSeqIds = {3, 0, 4, 2, 1};
 
-    // Load the expected sequences.
-    const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
-    std::vector<PacBio::BAM::FastaSequence> expected = {fastaSeqs[3], fastaSeqs[0], fastaSeqs[4],
-                                                        fastaSeqs[2], fastaSeqs[1]};
-
-    // Load the DB.
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
-        PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
-
-    // Create a reader.
-    PacBio::Pancake::SeqDBReader reader(seqDBCache);
-
-    // Run the test.
-    std::vector<PacBio::BAM::FastaSequence> results;
-    for (const auto& seqId : testSeqIds) {
-        PacBio::Pancake::FastaSequenceId record;
-        reader.GetSequence(record, seqId);
-        // Cast it to BAM::FastaSequence during emplacement.
-        results.emplace_back(record);
-    }
-    EXPECT_EQ(expected, results);
+    EXPECT_THROW(
+        {
+            // Load the DB.
+            std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
+                PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
+        },
+        std::runtime_error);
 }
 
 TEST(SeqDBReaderCompressed, GetSequenceByName)

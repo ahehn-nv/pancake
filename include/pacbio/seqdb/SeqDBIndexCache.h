@@ -4,6 +4,7 @@
 #define PANCAKE_SEQDB_INDEX_CACHE_H
 
 #include <pacbio/seqdb/Range.h>
+#include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <fstream>
 #include <lib/flat_hash_map/flat_hash_map.hpp>
@@ -67,17 +68,18 @@ public:
     std::vector<SeqDBFileLine> fileLines;
     std::vector<SeqDBSequenceLine> seqLines;
     std::vector<SeqDBBlockLine> blockLines;
-    // Header to ordinal ID in the seqLines;
-    ska::flat_hash_map<std::string, int32_t> headerToOrdinalId;
-    // In case the cache represents a sliced portion of the index, the
-    // sequence ID can be different than the order of appearance in the seqLines
-    // vector. This lookup relates the seqID to the ordinal ID.
-    ska::flat_hash_map<int32_t, int32_t> seqIdToOrdinalId;
 
     SeqDBIndexCache() = default;
     ~SeqDBIndexCache() = default;
     friend std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeqDBIndexCache& r);
+
+    const SeqDBSequenceLine& GetSeqLine(int32_t seqId) const;
+    const SeqDBBlockLine& GetBlockLine(int32_t blockId) const;
+    const SeqDBFileLine& GetFileLine(int32_t fileId) const;
 };
+
+void ComputeSeqDBIndexHeaderLookup(const PacBio::Pancake::SeqDBIndexCache& dbCache,
+                                   HeaderLookupType& headerToOrdinalId);
 
 /// \brief Loads the SeqDB index from file.
 ///
