@@ -58,13 +58,17 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     // Load the target DB caches.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> targetSeqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(targetSeqDBFile);
+    PBLOG_INFO << "After loading target seq cache: " << ttInit.VerboseSecs(true);
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(targetSeedDBFile);
+    PBLOG_INFO << "After loading target seed cache: " << ttInit.VerboseSecs(true);
     // Load the query DB caches.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> querySeqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(querySeqDBFile);
+    PBLOG_INFO << "After loading query seq cache: " << ttInit.VerboseSecs(true);
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> querySeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(querySeedDBFile);
+    PBLOG_INFO << "After loading query seed cache: " << ttInit.VerboseSecs(true);
     // Create the target readers.
     PacBio::Pancake::SeqDBReaderCached targetSeqDBReader(targetSeqDBCache, settings.TargetBlockId);
     PacBio::Pancake::SeedDBReaderRawBlock targetSeedDBReader(targetSeedDBCache);

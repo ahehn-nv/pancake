@@ -9,6 +9,7 @@
  */
 
 #include <pacbio/util/TicToc.h>
+#include <sstream>
 
 TicToc::TicToc() : start_(), end_()
 {
@@ -72,3 +73,10 @@ double TicToc::GetCpuMillisecs(bool current) const { return GetCpuDuration_(curr
 double TicToc::GetCpuMicrosecs(bool current) const { return GetCpuDuration_(current, 1000000.0); }
 
 double TicToc::GetCpuNanosecs(bool current) const { return GetCpuDuration_(current, 1000000000.0); }
+
+std::string TicToc::VerboseSecs(bool current) const
+{
+    std::ostringstream oss;
+    oss << "Real: " << GetSecs(current) << " sec / CPU: " << GetCpuSecs(current) << " sec";
+    return oss.str();
+}

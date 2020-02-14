@@ -7,3 +7,5 @@
 /subprojects/*
 !/subprojects/*.wrap
 temp/
+
+tests/*/*.t.err
