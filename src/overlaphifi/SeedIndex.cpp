@@ -153,7 +153,11 @@ bool SeedIndex::CollectHits(const std::vector<PacBio::Pancake::SeedDB::SeedRaw>&
 {
     hits.clear();
 
-    const int32_t kmerSize = seedDBCache_->seedParams.KmerSize;
+    // The +1 is because for every seed base there are Spacing spaces, and the subtraction
+    // is because after the last seed base the spaces shouldn't be counted.
+    const int32_t seedSize =
+        seedDBCache_->seedParams.KmerSize * (seedDBCache_->seedParams.Spacing + 1) -
+        seedDBCache_->seedParams.Spacing;
 
     for (const auto& querySeed : querySeeds) {
         auto decodedQuery = PacBio::Pancake::SeedDB::Seed(querySeed);
@@ -174,7 +178,7 @@ bool SeedIndex::CollectHits(const std::vector<PacBio::Pancake::SeedDB::SeedRaw>&
                     isRev = true;
                     // targetPos = seq->len() - (decodedTarget.pos + 1);
                     const auto& sl = seedDBCache_->GetSeedsLine(decodedTarget.seqID);
-                    targetPos = sl.numBases - (decodedTarget.pos + kmerSize);
+                    targetPos = sl.numBases - (decodedTarget.pos + seedSize);
                     // TODO: This will be off if the homopolymer compression is used.
                     // In that case, the seed span is not the same as t he kmerSize.
                 }

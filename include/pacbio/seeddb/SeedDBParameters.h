@@ -14,6 +14,7 @@ class SeedDBParameters
 public:
     int32_t KmerSize = 30;
     int32_t MinimizerWindow = 80;
+    int32_t Spacing = 0;
     bool UseHPC = false;
     int32_t MaxHPCLen = 10;
     bool UseRC = true;

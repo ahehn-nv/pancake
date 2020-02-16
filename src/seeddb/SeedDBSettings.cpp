@@ -45,6 +45,14 @@ R"({
     "description" : "Minimizer window size for indexing."
 })", SeedDBSettings::Defaults::MinimizerWindow};
 
+const CLI_v2::Option Spacing{
+R"({
+    "names" : ["s", "space"],
+    "type" : "int",
+    "default" : 0,
+    "description" : "Seed spacing."
+})", SeedDBSettings::Defaults::Spacing};
+
 const CLI_v2::Option UseHPC{
 R"({
     "names" : ["use-hpc"],
@@ -76,9 +84,9 @@ SeedDBSettings::SeedDBSettings(const PacBio::CLI_v2::Results& options)
     , OutputPrefix{options[OptionNames::OutputPrefix]}
     , NumThreads{options.NumThreads()}
     , SplitBlocks{options[OptionNames::SplitBlocks]}
-    , SeedParameters{options[OptionNames::KmerSize], options[OptionNames::MinimizerWindow],
-                     options[OptionNames::UseHPC], options[OptionNames::MaxHPCLen],
-                     !options[OptionNames::NoRevCmp]}
+    , SeedParameters{options[OptionNames::KmerSize],  options[OptionNames::MinimizerWindow],
+                     options[OptionNames::Spacing],   options[OptionNames::UseHPC],
+                     options[OptionNames::MaxHPCLen], !options[OptionNames::NoRevCmp]}
 {
 }
 
@@ -92,6 +100,7 @@ PacBio::CLI_v2::Interface SeedDBSettings::CreateCLI()
         OptionNames::SplitBlocks,
         OptionNames::KmerSize,
         OptionNames::MinimizerWindow,
+        OptionNames::Spacing,
         OptionNames::UseHPC,
         OptionNames::MaxHPCLen,
         OptionNames::NoRevCmp,
