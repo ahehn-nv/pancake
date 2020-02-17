@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <pacbio/seeddb/Minimizers.h>
 #include <pacbio/seeddb/Seed.h>
+// #include <iostream>
 
 void HelperTestGenerateMinimizers(const std::string& seq, int32_t seqId, int32_t k, int32_t w,
                                   int32_t space, bool useHPC, int32_t maxHPCLen, bool useRC,
@@ -12,6 +13,11 @@ void HelperTestGenerateMinimizers(const std::string& seq, int32_t seqId, int32_t
     std::vector<__int128> seeds;
     int rv = PacBio::Pancake::SeedDB::GenerateMinimizers(seeds, seqData, seqLen, 0, seqId, k, w,
                                                          space, useRC, useHPC, maxHPCLen);
+
+    // for (const auto& val : seeds) {
+    //     auto s = PacBio::Pancake::SeedDB::Seed(val);
+    //     std::cerr << s.Verbose() << "\n";
+    // }
 
     // Compare the results.
     EXPECT_EQ(expectedRv, rv);
@@ -245,6 +251,7 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyA)
     const int32_t seqId = 0;
     const int32_t k = 32;
     const int32_t w = 1;
+    const int32_t space = 0;
     const bool useHPC = false;
     const int32_t maxHPCLen = 10;
     const bool useRC = true;
@@ -255,7 +262,7 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyA)
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, useHPC, maxHPCLen, useRC, expectedRv,
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
                                  expectedSeeds);
 }
 
@@ -266,6 +273,7 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyT_WithRC)
     const int32_t seqId = 0;
     const int32_t k = 32;
     const int32_t w = 1;
+    const int32_t space = 0;
     const bool useHPC = false;
     const int32_t maxHPCLen = 10;
     const bool useRC = true;
@@ -276,7 +284,7 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyT_WithRC)
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, true),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, useHPC, maxHPCLen, useRC, expectedRv,
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
                                  expectedSeeds);
 }
 
@@ -287,6 +295,7 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyT_OnlyFWD)
     const int32_t seqId = 0;
     const int32_t k = 32;
     const int32_t w = 1;
+    const int32_t space = 0;
     const bool useHPC = false;
     const int32_t maxHPCLen = 10;
     const bool useRC = false;
@@ -297,7 +306,7 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyT_OnlyFWD)
         PacBio::Pancake::SeedDB::Seed::Encode(0xFFFFFFFFFFFFFFFF, seqId, 0, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, useHPC, maxHPCLen, useRC, expectedRv,
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
                                  expectedSeeds);
 }
 
@@ -378,4 +387,88 @@ TEST(GenerateMinimizers, HPC2)
         EXPECT_EQ(seedWithHP.key, seedNoHP.key);
         EXPECT_EQ(seedWithHP.flag, seedNoHP.flag);
     }
+}
+
+TEST(GenerateMinimizers, SpacedSeed_Space1_31bp_JustOneSeed)
+{
+    /*
+     * Here we test the spaced seed construction, with 1 skipped base
+     * in between every 2 inclusive bases (i.e. space = 1).
+     * This should skip every 'T' base and leave only 'A' bases in the test.
+    */
+    // Inputs.
+    const std::string seq = "ATATATATATATATATATATATATATATATA";
+    const int32_t seqId = 0;
+    const int32_t k = 16;
+    const int32_t w = 1;
+    const int32_t space = 1;
+    const bool useHPC = false;
+    const int32_t maxHPCLen = 10;
+    const bool useRC = false;
+
+    // Expected results.
+    const int32_t expectedRv = 0;
+    const std::vector<__int128> expectedSeeds = {
+        PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
+    };
+
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
+                                 expectedSeeds);
+}
+
+TEST(GenerateMinimizers, SpacedSeed_Space1_32bp_TwoSeeds)
+{
+    /*
+     * Here we test the spaced seed construction, with 1 skipped base
+     * in between every 2 inclusive bases (i.e. space = 1).
+     * This should skip every 'T' base and leave only 'A' bases in the test.
+    */
+    // Inputs.
+    const std::string seq = "ATATATATATATATATATATATATATATATAT";
+    const int32_t seqId = 0;
+    const int32_t k = 16;
+    const int32_t w = 1;
+    const int32_t space = 1;
+    const bool useHPC = false;
+    const int32_t maxHPCLen = 10;
+    const bool useRC = false;
+
+    // Expected results.
+    const int32_t expectedRv = 0;
+    const std::vector<__int128> expectedSeeds = {
+        PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0x0FFFFFFFF, seqId, 1, false),  // 16 bases of 'T's.
+    };
+
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
+                                 expectedSeeds);
+}
+
+TEST(GenerateMinimizers, SpacedSeed_Space1_33bp_ThreeSeeds)
+{
+    /*
+     * Here we test the spaced seed construction, with 1 skipped base
+     * in between every 2 inclusive bases (i.e. space = 1).
+     * This should skip every 'T' base and leave only 'A' bases in the test.
+    */
+    // Inputs.
+    const std::string seq = "ATATATATATATATATATATATATATATATATG";
+    const int32_t seqId = 0;
+    const int32_t k = 16;
+    const int32_t w = 1;
+    const int32_t space = 1;
+    const bool useHPC = false;
+    const int32_t maxHPCLen = 10;
+    const bool useRC = false;
+
+    // Expected results.
+    const int32_t expectedRv = 0;
+    const std::vector<__int128> expectedSeeds = {
+        PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0x0FFFFFFFF, seqId, 1, false),  // 16 bases of 'T's.
+        PacBio::Pancake::SeedDB::Seed::Encode(0x000000002, seqId, 2, false),
+    };
+
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
+                                 expectedSeeds);
 }
