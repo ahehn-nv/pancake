@@ -8,7 +8,7 @@
 namespace PacBio {
 namespace Pancake {
 
-static const __int128 MASK_32bit = 0x000000000FFFFFFFF;
+static const __int128 MASK128_LOW32bit = 0x000000000FFFFFFFF;
 
 class SeedHit
 {
@@ -18,11 +18,11 @@ public:
     __int128 PackTo128() const
     {
         __int128 ret = 0;
-        ret = ((static_cast<__int128>(targetId) & MASK_32bit) << 97) |
-              ((static_cast<__int128>(targetRev) & MASK_32bit) << 96) |
-              ((static_cast<__int128>(targetPos) & MASK_32bit) << 64) |
-              ((static_cast<__int128>(flags) & MASK_32bit) << 32) |
-              (static_cast<__int128>(queryPos) & MASK_32bit);
+        ret = ((static_cast<__int128>(targetId) & MASK128_LOW32bit) << 97) |
+              ((static_cast<__int128>(targetRev) & MASK128_LOW32bit) << 96) |
+              ((static_cast<__int128>(targetPos) & MASK128_LOW32bit) << 64) |
+              ((static_cast<__int128>(flags) & MASK128_LOW32bit) << 32) |
+              (static_cast<__int128>(queryPos) & MASK128_LOW32bit);
         return ret;
     }
     bool operator<(const SeedHit& b) const { return this->PackTo128() < b.PackTo128(); }

@@ -397,11 +397,11 @@ __int128 Mapper::PackSeedHitWithDiagonalTo128_(const SeedHit& sh)
 {
     __int128 ret = 0;
     const int32_t diag = (sh.targetPos - sh.queryPos);
-    ret = ((static_cast<__int128>(sh.targetId) & MASK_32bit) << 97) |
-          ((static_cast<__int128>(sh.targetRev) & MASK_32bit) << 96) |
-          ((static_cast<__int128>(diag) & MASK_32bit) << 64) |
-          ((static_cast<__int128>(sh.targetPos) & MASK_32bit) << 32) |
-          (static_cast<__int128>(sh.queryPos) & MASK_32bit);
+    ret = ((static_cast<__int128>(sh.targetId) & MASK128_LOW32bit) << 97) |
+          ((static_cast<__int128>(sh.targetRev) & MASK128_LOW32bit) << 96) |
+          ((static_cast<__int128>(diag) & MASK128_LOW32bit) << 64) |
+          ((static_cast<__int128>(sh.targetPos) & MASK128_LOW32bit) << 32) |
+          (static_cast<__int128>(sh.queryPos) & MASK128_LOW32bit);
     return ret;
 }
 

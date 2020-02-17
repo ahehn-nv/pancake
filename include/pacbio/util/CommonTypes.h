@@ -13,6 +13,8 @@ namespace Pancake {
 using HeaderLookupType = ska::flat_hash_map<std::string, int32_t>;
 using IdLookupType = ska::flat_hash_map<int32_t, int32_t>;
 
+static const __int128 MASK_U64_LOW_2BIT = 0x0000000000000003;
+
 }  // namespace Pancake
 }  // namespace PacBio
 
