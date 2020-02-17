@@ -128,6 +128,26 @@ TEST(SeedDBIndexCache, NonexistentDB)
         std::runtime_error);
 }
 
+TEST(SeedDBIndexCache, SeqIdsOutOfOrder)
+{
+    /*
+     * Same as RoundTrip1 but on a different input DB.
+     * This test parses the SeedDB index and dumps it into a string.
+     * The string shuld match the exact text of the SeedDB index file.
+    */
+
+    // Input values.
+    const std::string inSeedDB = PacBio::PancakeTestsConfig::Data_Dir + "/test-1d.seeddb";
+
+    EXPECT_THROW(
+        {
+            // Load the DB.
+            std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> seedDBCache =
+                PacBio::Pancake::LoadSeedDBIndexCache(inSeedDB);
+        },
+        std::runtime_error);
+}
+
 TEST(SeedDBReader, GetNext1)
 {
     /*

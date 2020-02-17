@@ -6,6 +6,7 @@
 #include <pacbio/seeddb/SeedDBIndexCache.h>
 #include <pacbio/seeddb/SequenceSeeds.h>
 #include <pacbio/seqdb/Util.h>
+#include <pacbio/util/CommonTypes.h>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -41,6 +42,7 @@ private:
     };
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> seedDBIndexCache_;
     OpenFileHandler fileHandler_;
+    HeaderLookupType headerToOrdinalId_;
 
     void AccessLocation_(OpenFileHandler& fileHandler,
                          const std::vector<PacBio::Pancake::SeedDBFileLine>& fileLines,

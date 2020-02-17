@@ -20,6 +20,8 @@ SeqDBReader::SeqDBReader(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqD
         throw std::runtime_error("There are no file specifications in the input index file.");
     if (seqDBIndexCache_->seqLines.empty())
         throw std::runtime_error("There are no sequences in the input index file.");
+
+    ComputeSeqDBIndexHeaderLookup(*seqDBIndexCache_, headerToOrdinalId_);
 }
 
 SeqDBReader::~SeqDBReader() = default;
@@ -30,19 +32,9 @@ bool SeqDBReader::GetSequence(Pancake::FastaSequenceId& record, int64_t seqId)
     record.Bases("");
     record.Name("");
 
-    // Sanity check for the sequence ID.
-    if (seqId < 0 || seqId >= static_cast<int32_t>(seqDBIndexCache_->seqLines.size()))
-        throw std::runtime_error("Invalid seqId out of bounds. seqId = " + std::to_string(seqId));
-
-    // Find the sequence.
-    auto it = seqDBIndexCache_->seqIdToOrdinalId.find(seqId);
-    if (it == seqDBIndexCache_->seqIdToOrdinalId.end())
-        throw std::runtime_error("Could not find seqId in the index. seqId = " +
-                                 std::to_string(seqId));
-    int32_t ordinalId = it->second;
-
     // Access the SequenceLine object.
-    const auto& sl = seqDBIndexCache_->seqLines[ordinalId];
+    const int32_t ordinalId = seqId;
+    const auto& sl = seqDBIndexCache_->GetSeqLine(ordinalId);
 
     // Load the data and decompress if required, and update fileHandler_->nextOrdinalId.
     LoadAndUnpackSequence_(record, fileHandler_, seqDBIndexCache_->fileLines,
@@ -59,8 +51,8 @@ bool SeqDBReader::GetSequence(Pancake::FastaSequenceId& record, const std::strin
     record.Name("");
 
     // Find the sequence.
-    auto it = seqDBIndexCache_->headerToOrdinalId.find(seqName);
-    if (it == seqDBIndexCache_->headerToOrdinalId.end()) return false;
+    auto it = headerToOrdinalId_.find(seqName);
+    if (it == headerToOrdinalId_.end()) return false;
     int32_t ordinalId = it->second;
 
     // Access the SequenceLine object.
@@ -76,20 +68,9 @@ bool SeqDBReader::GetSequence(Pancake::FastaSequenceId& record, const std::strin
 
 bool SeqDBReader::JumpTo(int64_t seqId)
 {
-    // Sanity check for the sequence ID.
-    if (seqId < 0 || seqId >= static_cast<int32_t>(seqDBIndexCache_->seqLines.size()))
-        throw std::runtime_error("Cannot JumpTo, invalid seqId out of bounds. seqId = " +
-                                 std::to_string(seqId));
-
-    // Find the sequence.
-    auto it = seqDBIndexCache_->seqIdToOrdinalId.find(seqId);
-    if (it == seqDBIndexCache_->seqIdToOrdinalId.end())
-        throw std::runtime_error("Could not find seqId in the index. seqId = " +
-                                 std::to_string(seqId));
-    int32_t ordinalId = it->second;
-
     // Access the SequenceLine object.
-    const auto& sl = seqDBIndexCache_->seqLines[ordinalId];
+    const int32_t ordinalId = seqId;
+    const auto& sl = seqDBIndexCache_->GetSeqLine(ordinalId);
 
     // Jump to the correct file and offset, and update the fileHandler_->nextOrdinalId.
     AccessLocation_(fileHandler_, seqDBIndexCache_->fileLines, seqDBIndexCache_->indexParentFolder,
@@ -101,8 +82,10 @@ bool SeqDBReader::JumpTo(int64_t seqId)
 bool SeqDBReader::JumpTo(const std::string& seqName)
 {
     // Find the sequence.
-    auto it = seqDBIndexCache_->headerToOrdinalId.find(seqName);
-    if (it == seqDBIndexCache_->headerToOrdinalId.end()) return false;
+    auto it = headerToOrdinalId_.find(seqName);
+    if (it == headerToOrdinalId_.end())
+        throw std::runtime_error(
+            "Invalid sequence name, it does not exist in the SeqDB. seqName = " + seqName);
     int32_t ordinalId = it->second;
 
     // Access the SequenceLine object.

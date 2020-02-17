@@ -137,7 +137,7 @@ TEST(SeedIndex, CollectHitsEmptyQueryNonemptyTarget)
      * Query seed set is empty.
      * There should be no hits.
     */
-    const int32_t targetId = 123;
+    const int32_t targetId = 0;
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, targetId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 1, false),
@@ -157,7 +157,7 @@ TEST(SeedIndex, CollectHitsEmptyQueryNonemptyTarget)
         R"(V	0.1.0
 P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
-S	123	targetSeq0	0	0	96	38	6
+S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
     )";
     std::istringstream is(targetSeedDBString);
@@ -192,7 +192,7 @@ TEST(SeedIndex, CollectHitsNonemptyQueryEmptyTarget)
      * There should be no hits.
     */
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds = {};
-    const int32_t queryId = 123;
+    const int32_t queryId = 0;
     const std::vector<PacBio::Pancake::SeedDB::SeedRaw> querySeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, queryId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, queryId, 1, false),
@@ -211,7 +211,7 @@ TEST(SeedIndex, CollectHitsNonemptyQueryEmptyTarget)
         R"(V	0.1.0
 P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
-S	123	targetSeq0	0	0	96	38	6
+S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
     )";
     std::istringstream is(targetSeedDBString);
@@ -245,7 +245,7 @@ TEST(SeedIndex, CollectHitsNonemptyQueryNonemptyTargetNoHits)
      * Query seed set contains seeds which should not match anything in the target set.
      * There should be no hits.
     */
-    const int32_t targetId = 123;
+    const int32_t targetId = 0;
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, targetId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(7, targetId, 3, false),
@@ -265,7 +265,7 @@ TEST(SeedIndex, CollectHitsNonemptyQueryNonemptyTargetNoHits)
         R"(V	0.1.0
 P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
-S	123	targetSeq0	0	0	96	38	6
+S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
     )";
     std::istringstream is(targetSeedDBString);
@@ -295,7 +295,7 @@ TEST(SeedIndex, CollectHitsPerfectMatch)
      * It uses the same set of seeds for the input to CollectHits.
      * For every input seed, we should get all other positions in the target.
     */
-    const int32_t targetId = 123;
+    const int32_t targetId = 0;
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, targetId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 1, false),
@@ -315,7 +315,7 @@ TEST(SeedIndex, CollectHitsPerfectMatch)
         R"(V	0.1.0
 P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
-S	123	targetSeq0	0	0	96	38	6
+S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
     )";
     std::istringstream is(targetSeedDBString);
@@ -376,7 +376,7 @@ TEST(SeedIndex, CollectHitsFrequencyThreshold)
      * Same as before, but test frequency cutoff.
      * Do not fetch hith with frequency > 2.
     */
-    const int32_t targetId = 123;
+    const int32_t targetId = 0;
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, targetId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 1, false),
@@ -397,7 +397,7 @@ TEST(SeedIndex, CollectHitsFrequencyThreshold)
         R"(V	0.1.0
 P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
-S	123	targetSeq0	0	0	96	38	6
+S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
     )";
     std::istringstream is(targetSeedDBString);
@@ -433,7 +433,7 @@ TEST(SeedIndex, CollectHitsReverseStrand)
      *
      * Some of the hits are on the reverse strand of the query.
     */
-    const int32_t targetId = 123;
+    const int32_t targetId = 0;
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, targetId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 1, false),
@@ -445,7 +445,7 @@ TEST(SeedIndex, CollectHitsReverseStrand)
         PacBio::Pancake::SeedDB::Seed::Encode(5, targetId, 7, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 8, false),
     };
-    const int32_t queryId = 123;
+    const int32_t queryId = 0;
     const std::vector<PacBio::Pancake::SeedDB::SeedRaw> querySeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, queryId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, queryId, 1, true),
@@ -465,7 +465,7 @@ TEST(SeedIndex, CollectHitsReverseStrand)
         R"(V	0.1.0
 P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
-S	123	targetSeq0	0	0	96	38	6
+S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
     )";
     std::istringstream is(targetSeedDBString);

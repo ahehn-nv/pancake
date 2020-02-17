@@ -20,6 +20,8 @@ SeedDBReader::SeedDBReader(std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& s
         throw std::runtime_error("There are no sequences in the input index file.");
     if (seedDBIndexCache_->blockLines.empty())
         throw std::runtime_error("There are no blocks in the input index file.");
+
+    ComputeSeedDBIndexHeaderLookup(*seedDBIndexCache_, headerToOrdinalId_);
 }
 
 SeedDBReader::~SeedDBReader() = default;
@@ -31,15 +33,9 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, int64_t seqId)
     record.Name("");
     record.Id(-1);
 
-    // Find the sequence.
-    auto it = seedDBIndexCache_->seqIdToOrdinalId.find(seqId);
-    if (it == seedDBIndexCache_->seqIdToOrdinalId.end())
-        throw std::runtime_error("Could not find seqId in the index (SeedDBReader). seqId = " +
-                                 std::to_string(seqId));
-    int32_t ordinalId = it->second;
-
-    // Access the SequenceLine object.
-    const auto& sl = seedDBIndexCache_->seedLines[ordinalId];
+    // Access the SeedsLine object.
+    const int32_t ordinalId = seqId;
+    const auto& sl = seedDBIndexCache_->GetSeedsLine(ordinalId);
 
     // Load the data and update fileHandler_->nextOrdinalId.
     LoadSeedsForSequence_(record, fileHandler_, seedDBIndexCache_->fileLines,
@@ -56,14 +52,14 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, const std::string&
     record.Id(-1);
 
     // Find the sequence.
-    auto it = seedDBIndexCache_->headerToOrdinalId.find(seqName);
-    if (it == seedDBIndexCache_->headerToOrdinalId.end())
+    auto it = headerToOrdinalId_.find(seqName);
+    if (it == headerToOrdinalId_.end())
         throw std::runtime_error(
             "Invalid sequence name, it does not exist in the SeedDB. seqName = " + seqName);
 
-    int32_t ordinalId = it->second;
+    const int32_t ordinalId = it->second;
 
-    // Access the SequenceLine object.
+    // Access the SeedsLine object.
     const auto& sl = seedDBIndexCache_->seedLines[ordinalId];
 
     // Load the data and update fileHandler_->nextOrdinalId.
@@ -87,7 +83,7 @@ bool SeedDBReader::GetNext(SequenceSeeds& record)
     if (fileHandler_.nextOrdinalId >= static_cast<int32_t>(seedDBIndexCache_->seedLines.size()))
         return false;
 
-    // Access the SequenceLine object.
+    // Access the SeedsLine object.
     const auto& sl = seedDBIndexCache_->seedLines[fileHandler_.nextOrdinalId];
 
     // Load the data and update fileHandler_->nextOrdinalId.
@@ -111,8 +107,8 @@ bool SeedDBReader::GetNextBatch(std::vector<SequenceSeeds>& records, int64_t bat
     int32_t numSeqLines = seedDBIndexCache_->seedLines.size();
     int64_t loadedBytes = 0;
     while (fileHandler_.nextOrdinalId < numSeqLines) {
-        // Access the SequenceLine object.
-        const auto& sl = seedDBIndexCache_->seedLines[fileHandler_.nextOrdinalId];
+        // Access the SeedsLine object.
+        const auto& sl = seedDBIndexCache_->GetSeedsLine(fileHandler_.nextOrdinalId);
 
         // Load the data and decompress if required.
         Pancake::SequenceSeeds record;
@@ -137,15 +133,7 @@ bool SeedDBReader::GetBlock(std::vector<SequenceSeeds>& records, int32_t blockId
 {
     records.clear();
 
-    // Sanity check for the sequence ID.
-    if (blockId < 0 || blockId >= static_cast<int32_t>(seedDBIndexCache_->blockLines.size())) {
-        std::ostringstream oss;
-        oss << "Invalid blockId (SeedDBReader). blockId = " << blockId
-            << ", blocks.size() = " << seedDBIndexCache_->blockLines.size();
-        throw std::runtime_error(oss.str());
-    }
-
-    const auto& block = seedDBIndexCache_->blockLines[blockId];
+    const auto& block = seedDBIndexCache_->GetBlockLine(blockId);
 
     // Sanity check that the block's range is good.
     int32_t numSeedLines = seedDBIndexCache_->seedLines.size();
@@ -160,8 +148,8 @@ bool SeedDBReader::GetBlock(std::vector<SequenceSeeds>& records, int32_t blockId
     fileHandler_.nextOrdinalId = block.startSeqId;
 
     while (fileHandler_.nextOrdinalId < block.endSeqId) {
-        // Access the SequenceLine object.
-        const auto& sl = seedDBIndexCache_->seedLines[fileHandler_.nextOrdinalId];
+        // Access the SeedsLine object.
+        const auto& sl = seedDBIndexCache_->GetSeedsLine(fileHandler_.nextOrdinalId);
 
         // Load the data and decompress if required.
         Pancake::SequenceSeeds record;
@@ -180,21 +168,9 @@ bool SeedDBReader::GetBlock(std::vector<SequenceSeeds>& records, int32_t blockId
 
 bool SeedDBReader::JumpTo(int64_t seqId)
 {
-    // Sanity check for the sequence ID.
-    if (seqId < 0 || seqId >= static_cast<int32_t>(seedDBIndexCache_->seedLines.size()))
-        throw std::runtime_error(
-            "Cannot JumpTo, invalid seqId out of bounds (SeedDBReader). seqId = " +
-            std::to_string(seqId));
-
-    // Find the sequence.
-    auto it = seedDBIndexCache_->seqIdToOrdinalId.find(seqId);
-    if (it == seedDBIndexCache_->seqIdToOrdinalId.end())
-        throw std::runtime_error("Could not find seqId in the index. seqId = " +
-                                 std::to_string(seqId));
-    int32_t ordinalId = it->second;
-
-    // Access the SequenceLine object.
-    const auto& sl = seedDBIndexCache_->seedLines[ordinalId];
+    // Access the SeedsLine object.
+    const int32_t ordinalId = seqId;
+    const auto& sl = seedDBIndexCache_->GetSeedsLine(ordinalId);
 
     // Jump to the correct file and offset, and update the fileHandler_->nextOrdinalId.
     AccessLocation_(fileHandler_, seedDBIndexCache_->fileLines,
@@ -206,14 +182,14 @@ bool SeedDBReader::JumpTo(int64_t seqId)
 bool SeedDBReader::JumpTo(const std::string& seqName)
 {
     // Find the sequence.
-    auto it = seedDBIndexCache_->headerToOrdinalId.find(seqName);
-    if (it == seedDBIndexCache_->headerToOrdinalId.end())
+    auto it = headerToOrdinalId_.find(seqName);
+    if (it == headerToOrdinalId_.end())
         throw std::runtime_error(
             "Invalid sequence name, it does not exist in the SeedDB. seqName = " + seqName);
-    int32_t ordinalId = it->second;
+    const int32_t ordinalId = it->second;
 
-    // Access the SequenceLine object.
-    const auto& sl = seedDBIndexCache_->seedLines[ordinalId];
+    // Access the SeedsLine object.
+    const auto& sl = seedDBIndexCache_->GetSeedsLine(ordinalId);
 
     // Jump to the correct file and offset, and update the fileHandler_->nextOrdinalId.
     AccessLocation_(fileHandler_, seedDBIndexCache_->fileLines,
