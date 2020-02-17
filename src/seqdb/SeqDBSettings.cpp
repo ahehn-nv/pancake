@@ -38,14 +38,14 @@ R"({
 const CLI_v2::Option BufferSize{
 R"({
     "names" : ["buffer-size"],
-    "description" : "Sequence buffer size in MB. Has to be >= 0.0.",
+    "description" : "Sequence buffer size in megabytes. Has to be >= 0.0.",
     "type" : "float"
 })", SeqDBSettings::Defaults::BufferSize};
 
 const CLI_v2::Option BlockSize{
 R"({
     "names" : ["block-size"],
-    "description" : "Block size in MB. Value 0 means one sequnece per block, value < 0 all sequences in one block.",
+    "description" : "Block size in megabases. Value 0 means one sequnece per block, value < 0 all sequences in one block.",
     "type" : "float"
 })", SeqDBSettings::Defaults::BlockSize};
 
@@ -81,7 +81,7 @@ SeqDBSettings::SeqDBSettings(const PacBio::CLI_v2::Results& options)
         InputFiles.push_back(files[i]);
 
     // Convert block and buffer sizes from MB to bytes.
-    BlockSize *= (1024 * 1024);
+    BlockSize *= (1000 * 1000);
     BufferSize *= (1024 * 1024);
 
     // Negative block size indicates that everything should be in one block.

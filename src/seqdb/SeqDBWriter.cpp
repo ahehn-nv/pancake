@@ -118,7 +118,7 @@ void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
         FlushSequenceBuffer();
     }
 
-    if (currentBlock_.numBytes >= blockSize_ && currentBlock_.Span() > 0) {
+    if (currentBlock_.numBases >= blockSize_ && currentBlock_.Span() > 0) {
         FlushSequenceBuffer();
         blockLines_.emplace_back(currentBlock_);
         currentBlock_ = SeqDBBlockLine();
