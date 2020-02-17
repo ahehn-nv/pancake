@@ -11,6 +11,7 @@
 #include <pacbio/seeddb/Minimizers.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/seqdb/Lookups.h>
+#include <pacbio/util/CommonTypes.h>
 #include <deque>
 
 namespace PacBio {
@@ -30,7 +31,7 @@ int GenerateMinimizers(std::vector<__int128>& minimizers, const uint8_t* seq, in
     }
     // Sanity check for the size of k. It can't
     // be too large, or it won't fit the uint64_t buffer.
-    if (k <= 0 || k >= 31) {
+    if (k <= 0 || k > 32) {
         return 2;
     }
     // Not technically an error if the seqLen is 0,
@@ -40,8 +41,9 @@ int GenerateMinimizers(std::vector<__int128>& minimizers, const uint8_t* seq, in
     }
 
     const minkey_t mask =
-        (((uint64_t)1) << (2 * k)) - 1;  // Mask the number of required bits for the k-mer.
-    minkey_t buffer = 0x0;               // Holds the current 2-bit seed representation.
+        (k < 32) ? ((((uint64_t)1) << (2 * k)) - 1)
+                 : 0xFFFFFFFFFFFFFFFF;  // Mask the number of required bits for the k-mer.
+    minkey_t buffer = 0x0;              // Holds the current 2-bit seed representation.
     minkey_t buffer_rc = 0x0;  // Holds the reverse complement 2-bit seed at the same position.
     int32_t num_bases_in = 0;  // Number of bases added to the buffer.
     Seed win_buff[512];        // Define the new circular buffer for the window.
@@ -90,8 +92,10 @@ int GenerateMinimizers(std::vector<__int128>& minimizers, const uint8_t* seq, in
             }
 
             // Add the base to the buffer.
-            buffer = ((buffer << 2) | ((((uint64_t)BaseToTwobit[b]))));
-            buffer_rc = (buffer_rc >> 2) | ((((uint64_t)BaseToTwobitComplement[b])) << (k * 2 - 2));
+            buffer = ((buffer << 2) | ((((uint64_t)BaseToTwobit[b]) & MASK_U64_LOW_2BIT)));
+            buffer_rc =
+                (buffer_rc >> 2) |
+                ((((uint64_t)BaseToTwobitComplement[b]) & MASK_U64_LOW_2BIT) << (k * 2 - 2));
             // Calculate the seed key.
             minkey_t key = buffer & mask;
             minkey_t rev_key = buffer_rc & mask;
