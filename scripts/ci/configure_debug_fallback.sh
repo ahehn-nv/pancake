@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -vex
 
+BUILD_DIR=$1
+
 # configure
 # '--wrap-mode nofallback' prevents meson from downloading
 # stuff from the internet or using subprojects.
@@ -12,4 +14,4 @@ meson \
   --buildtype=debugoptimized \
   -Dtests="${ENABLED_TESTS:-false}" \
   -Dtests-internal="${ENABLED_INTERNAL_TESTS:-false}" \
-  "${CURRENT_BUILD_DIR:-build}" .
+  "${BUILD_DIR}" .
