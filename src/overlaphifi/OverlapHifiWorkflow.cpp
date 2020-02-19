@@ -120,9 +120,13 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         // Create the query readers for the current block.
         TicToc ttQueryLoad;
         PacBio::Pancake::SeqDBReaderCached querySeqDBReader(querySeqDBCache, queryBlockId);
+        PBLOG_INFO << "Loaded the query SeqDB cache block after " << ttQueryLoad.GetSecs(true)
+                   << " sec / " << ttQueryLoad.GetCpuSecs(true) << " CPU sec";
         PacBio::Pancake::SeedDBReaderCached querySeedDBReader(querySeedDBCache, queryBlockId);
         ttQueryLoad.Stop();
-        PBLOG_INFO << "Loaded the query block in " << ttQueryLoad.GetSecs() << " sec / "
+        PBLOG_INFO << "Loaded the query SeedDB cache block after " << ttQueryLoad.GetSecs()
+                   << " sec / " << ttQueryLoad.GetCpuSecs() << " CPU sec";
+        PBLOG_INFO << "Loaded all query block in " << ttQueryLoad.GetSecs() << " sec / "
                    << ttQueryLoad.GetCpuSecs() << " CPU sec";
 
         PBLOG_INFO << "About to map query block " << queryBlockId
