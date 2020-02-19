@@ -51,6 +51,7 @@ pancake_cpp_sources = files([
     'seqdb/FastaSequenceId.cpp',
     'seqdb/SeqDBReader.cpp',
     'seqdb/SeqDBReaderCached.cpp',
+    'seqdb/SeqDBReaderCachedBlock.cpp',
     'seqdb/SeqDBSettings.cpp',
     'seqdb/SeqDBWorkflow.cpp',
     'seqdb/SeqDBWriter.cpp',
