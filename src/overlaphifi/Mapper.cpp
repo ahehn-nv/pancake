@@ -16,22 +16,23 @@ namespace Pancake {
 
 // #define PANCAKE_DEBUG
 
-MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
+MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                          const PacBio::Pancake::SeedIndex& index,
-                         const PacBio::Pancake::FastaSequenceId& querySeq,
-                         const PacBio::Pancake::SequenceSeeds& querySeeds, int64_t freqCutoff) const
+                         const PacBio::Pancake::FastaSequenceCached& querySeq,
+                         const PacBio::Pancake::SequenceSeedsCached& querySeeds,
+                         int64_t freqCutoff) const
 {
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Mapping query ID = " << querySeq.Id() << ", header = " << querySeq.Name();
 #endif
 
-    if (static_cast<int64_t>(querySeq.Bases().size()) < settings_.MinQueryLen) {
+    if (static_cast<int64_t>(querySeq.Size()) < settings_.MinQueryLen) {
         return {};
     }
 
     TicToc ttCollectHits;
     std::vector<SeedHit> hits;
-    index.CollectHits(querySeeds.Seeds(), hits, freqCutoff);
+    index.CollectHits(querySeeds.Seeds(), querySeeds.Size(), hits, freqCutoff);
     ttCollectHits.Stop();
 
     TicToc ttSortHits;
@@ -87,7 +88,7 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
     PBLOG_INFO << "Time - filter: " << ttFilter.GetMillisecs() << " ms / "
                << ttFilter.GetCpuMillisecs() << " CPU ms";
     DebugWriteSeedHits_("temp/debug/mapper-0-seed_hits.csv", hits, 30, querySeq.Name(),
-                        querySeq.Bases().size(), "target", 0);
+                        querySeq.Size(), "target", 0);
 #endif
 
     MapperResult result;
@@ -96,7 +97,7 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
 }
 
 OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
-                                const PacBio::Pancake::FastaSequenceId& querySeq,
+                                const PacBio::Pancake::FastaSequenceCached& querySeq,
                                 const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache,
                                 int32_t beginId, int32_t endId, int32_t minTargetPosId,
                                 int32_t maxTargetPosId)
@@ -124,13 +125,12 @@ OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
     const int32_t targetLen = sl.numBases;
 
     return createOverlap(querySeq.Id(), targetId, score, identity, 0, beginHit.queryPos,
-                         endHit.queryPos, querySeq.Bases().size(), beginHit.targetRev,
-                         beginHit.targetPos, endHit.targetPos, targetLen, editDist, numSeeds,
-                         OverlapType::Unknown);
+                         endHit.queryPos, querySeq.Size(), beginHit.targetRev, beginHit.targetPos,
+                         endHit.targetPos, targetLen, editDist, numSeeds, OverlapType::Unknown);
 }
 
 std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
-    const std::vector<SeedHit>& sortedHits, const PacBio::Pancake::FastaSequenceId& querySeq,
+    const std::vector<SeedHit>& sortedHits, const PacBio::Pancake::FastaSequenceCached& querySeq,
     const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t chainBandwidth,
     int32_t minNumSeeds, int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps)
 {
@@ -262,14 +262,14 @@ std::vector<OverlapPtr> Mapper::FilterTandemOverlaps_(const std::vector<OverlapP
     return ret;
 }
 
-std::vector<OverlapPtr> Mapper::AlignOverlaps_(const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
-                                               const PacBio::Pancake::FastaSequenceId& querySeq,
-                                               const std::vector<OverlapPtr>& overlaps,
-                                               double alignBandwidth, double alignMaxDiff)
+std::vector<OverlapPtr> Mapper::AlignOverlaps_(
+    const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
+    const PacBio::Pancake::FastaSequenceCached& querySeq, const std::vector<OverlapPtr>& overlaps,
+    double alignBandwidth, double alignMaxDiff)
 {
     std::vector<OverlapPtr> ret;
     const std::string reverseQuerySeq =
-        PacBio::Pancake::ReverseComplement(querySeq.Bases(), 0, querySeq.Bases().size());
+        PacBio::Pancake::ReverseComplement(querySeq.Bases(), querySeq.Size(), 0, querySeq.Size());
 
     for (size_t i = 0; i < overlaps.size(); ++i) {
         const auto& targetSeq = targetSeqs.GetSequence(overlaps[i]->Bid);
@@ -280,10 +280,10 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(const PacBio::Pancake::SeqDBReade
     return ret;
 }
 
-std::string Mapper::FetchTargetSubsequence_(const PacBio::Pancake::FastaSequenceId& targetSeq,
+std::string Mapper::FetchTargetSubsequence_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
                                             int32_t seqStart, int32_t seqEnd, bool revCmp)
 {
-    const int32_t seqLen = targetSeq.Bases().size();
+    const int32_t seqLen = targetSeq.Size();
     if (seqEnd == seqStart) {
         return {};
     }
@@ -296,15 +296,15 @@ std::string Mapper::FetchTargetSubsequence_(const PacBio::Pancake::FastaSequence
         throw std::runtime_error(oss.str());
     }
     seqEnd = (seqEnd == 0) ? seqLen : seqEnd;
+    std::string ret(targetSeq.Bases() + seqStart, seqEnd - seqStart);
     if (revCmp) {
-        return PacBio::Pancake::ReverseComplement(targetSeq.Bases(), seqStart, seqEnd);
+        ret = PacBio::Pancake::ReverseComplement(ret, 0, ret.size());
     }
-    // No need to reverse complement.
-    return targetSeq.Bases().substr(seqStart, seqEnd - seqStart);
+    return ret;
 }
 
-OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceId& targetSeq,
-                                 const PacBio::Pancake::FastaSequenceId& querySeq,
+OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
+                                 const PacBio::Pancake::FastaSequenceCached& querySeq,
                                  const std::string reverseQuerySeq, const OverlapPtr& ovl,
                                  double alignBandwidth, double alignMaxDiff)
 {
@@ -332,7 +332,7 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceId& targetS
         const int32_t dMax = ovl->Alen * alignMaxDiff;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
         const auto sesResult = PacBio::Pancake::Alignment::SESDistanceBanded(
-            querySeq.Bases().c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
+            querySeq.Bases() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
         ret->Aend = sesResult.lastQueryPos;
         ret->Bend = sesResult.lastTargetPos;
         ret->Aend += ovl->Astart;
