@@ -7,7 +7,7 @@
 #include <pacbio/seeddb/SequenceSeeds.h>
 #include <sstream>
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts_NormalSingleBlock)
+TEST(SeedDBReaderRawBlock, GetSeedDBContiguousParts_NormalSingleBlock)
 {
     /*
      * Fetch the byte span of a single small block of 1 sequence.
@@ -34,7 +34,7 @@ B	4	4	5	10304
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
     const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
-        PacBio::Pancake::ContiguousFilePart{0, 0, 2976}};
+        PacBio::Pancake::ContiguousFilePart{0, 0, 2976, 0, 1}};
 
     // Load the SeedDB.
     std::istringstream is(inSeedDB);
@@ -42,13 +42,13 @@ B	4	4	5	10304
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
 
     // Run.
-    const auto results = PacBio::Pancake::GetContiguousParts(seedDBCache, blockId);
+    const auto results = PacBio::Pancake::GetSeedDBContiguousParts(seedDBCache, blockId);
 
     // Evaluate.
     EXPECT_EQ(results, expected);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts_NormalMultipleFiles)
+TEST(SeedDBReaderRawBlock, GetSeedDBContiguousParts_NormalMultipleFiles)
 {
     /*
      * Fetch the byte span of a block of 4 sequences, where each sequence is
@@ -76,7 +76,7 @@ B	1	1	5	32960
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
     const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
-        {1, 0, 7664}, {2, 0, 12384}, {3, 0, 2608}, {4, 0, 10304},
+        {1, 0, 7664, 1, 2}, {2, 0, 12384, 2, 3}, {3, 0, 2608, 3, 4}, {4, 0, 10304, 4, 5},
     };
 
     // Load the SeedDB.
@@ -85,13 +85,13 @@ B	1	1	5	32960
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
 
     // Run.
-    const auto results = PacBio::Pancake::GetContiguousParts(seedDBCache, blockId);
+    const auto results = PacBio::Pancake::GetSeedDBContiguousParts(seedDBCache, blockId);
 
     // Evaluate.
     EXPECT_EQ(results, expected);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts_NormalTwoBlocksWithGap)
+TEST(SeedDBReaderRawBlock, GetSeedDBContiguousParts_NormalTwoBlocksWithGap)
 {
     /*
      * Fetch the byte span of a block of 4 sequences, where the first two and last
@@ -113,8 +113,8 @@ B	0	0	4	23552
 
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
-    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 0, 10640},
-                                                                       {0, 23024, 35936}};
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 0, 10640, 0, 2},
+                                                                       {0, 23024, 35936, 2, 4}};
 
     // Load the SeedDB.
     std::istringstream is(inSeedDB);
@@ -122,13 +122,13 @@ B	0	0	4	23552
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
 
     // Run.
-    const auto results = PacBio::Pancake::GetContiguousParts(seedDBCache, blockId);
+    const auto results = PacBio::Pancake::GetSeedDBContiguousParts(seedDBCache, blockId);
 
     // Evaluate.
     EXPECT_EQ(results, expected);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts_BlockOutOfBoundsThrows)
+TEST(SeedDBReaderRawBlock, GetSeedDBContiguousParts_BlockOutOfBoundsThrows)
 {
     /*
      * Block is out of bounds, it should throw.
@@ -149,11 +149,12 @@ B	0	0	1	2976
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
 
     // Run and evaluate.
-    EXPECT_THROW({ auto results = PacBio::Pancake::GetContiguousParts(seedDBCache, blockId); },
-                 std::runtime_error);
+    EXPECT_THROW(
+        { auto results = PacBio::Pancake::GetSeedDBContiguousParts(seedDBCache, blockId); },
+        std::runtime_error);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts_MalformedBlockThrows)
+TEST(SeedDBReaderRawBlock, GetSeedDBContiguousParts_MalformedBlockThrows)
 {
     /*
      * Block is malformed, referencing sequences which do not exist in the index.
@@ -175,15 +176,16 @@ B	0	1	5	2976
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
 
     // Run and evaluate.
-    EXPECT_THROW({ auto results = PacBio::Pancake::GetContiguousParts(seedDBCache, blockId); },
-                 std::runtime_error);
+    EXPECT_THROW(
+        { auto results = PacBio::Pancake::GetSeedDBContiguousParts(seedDBCache, blockId); },
+        std::runtime_error);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts_OverlappingBytesThrows)
+TEST(SeedDBReaderRawBlock, GetSeedDBContiguousParts_OverlappingBytesThrows)
 {
     /*
      * One 'S' line is malformed (S3), it begins and overlaps S2. This should throw
-     * in the GetContiguousParts becauss seeds should be distinct byte blocks for each sequence.
+     * in the GetSeedDBContiguousParts becauss seeds should be distinct byte blocks for each sequence.
     */
 
     const std::string inSeedDB =
@@ -204,11 +206,12 @@ B	0	0	4	23552
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
 
     // Run and evaluate.
-    EXPECT_THROW({ auto results = PacBio::Pancake::GetContiguousParts(seedDBCache, blockId); },
-                 std::runtime_error);
+    EXPECT_THROW(
+        { auto results = PacBio::Pancake::GetSeedDBContiguousParts(seedDBCache, blockId); },
+        std::runtime_error);
 }
 
-TEST(SeedDBReaderRawBlock, GetContiguousParts_OutOfOrder)
+TEST(SeedDBReaderRawBlock, GetSeedDBContiguousParts_OutOfOrder)
 {
     /*
      * This is a valid case, where the order of sequences permuted in the SeedDB. This
@@ -230,7 +233,7 @@ B	0	0	4	23552
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
     const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
-        {0, 0, 10640}, {0, 25632, 35936}, {0, 23024, 25632}};
+        {0, 0, 10640, 0, 2}, {0, 25632, 35936, 2, 3}, {0, 23024, 25632, 3, 4}};
 
     // Load the SeedDB.
     std::istringstream is(inSeedDB);
@@ -238,7 +241,7 @@ B	0	0	4	23552
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
 
     // Run.
-    const auto results = PacBio::Pancake::GetContiguousParts(seedDBCache, blockId);
+    const auto results = PacBio::Pancake::GetSeedDBContiguousParts(seedDBCache, blockId);
 
     // Evaluate.
     EXPECT_EQ(results, expected);

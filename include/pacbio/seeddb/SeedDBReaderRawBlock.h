@@ -3,6 +3,7 @@
 #ifndef PANCAKE_SEEDDB_READER_RAW_BLOCK_H
 #define PANCAKE_SEEDDB_READER_RAW_BLOCK_H
 
+#include <pacbio/pancake/ContiguousFilePart.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
 #include <pacbio/seqdb/Util.h>
@@ -33,21 +34,6 @@ private:
 
     const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> seedDBIndexCache_;
 };
-
-class ContiguousFilePart
-{
-public:
-    int32_t fileId = 0;
-    int64_t startOffset = 0;
-    int64_t endOffset = 0;
-
-    bool operator==(const ContiguousFilePart& b) const
-    {
-        return fileId == b.fileId && startOffset == b.startOffset && endOffset == b.endOffset;
-    }
-};
-std::vector<ContiguousFilePart> GetContiguousParts(
-    const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBIndexCache, int32_t blockId);
 
 }  // namespace Pancake
 }  // namespace PacBio

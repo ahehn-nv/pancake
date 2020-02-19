@@ -37,7 +37,7 @@ std::vector<SeedDB::SeedRaw> SeedDBReaderRawBlock::GetBlock(int32_t blockId) con
     // We will collect all contiguous stretches of bytes here, and then
     // fetch those parts later.
     std::vector<PacBio::Pancake::ContiguousFilePart> contiguousParts =
-        GetContiguousParts(seedDBIndexCache_, blockId);
+        GetSeedDBContiguousParts(seedDBIndexCache_, blockId);
 
     int64_t totalBytes = 0;
     for (const auto& part : contiguousParts) {
@@ -89,67 +89,6 @@ std::vector<SeedDB::SeedRaw> SeedDBReaderRawBlock::GetBlock(int32_t blockId) con
     }
 
     return ret;
-}
-
-std::vector<ContiguousFilePart> GetContiguousParts(
-    const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBIndexCache, int32_t blockId)
-{
-    const auto& block = seedDBIndexCache->GetBlockLine(blockId);
-
-    if (block.startSeqId < 0 || block.endSeqId < 0 || block.endSeqId < block.startSeqId ||
-        block.startSeqId >= static_cast<int32_t>(seedDBIndexCache->seedLines.size()) ||
-        block.endSeqId > static_cast<int32_t>(seedDBIndexCache->seedLines.size())) {
-        std::ostringstream oss;
-        oss << "The SeedDB index cache is corrupt. The block's startSeqId or endSeqId "
-            << "are not valid in SeedDBIndexCache. "
-            << "blockId = " << blockId << ", startSeqId = " << block.startSeqId
-            << ", endSeqId = " << block.endSeqId;
-        throw std::runtime_error(oss.str());
-    }
-
-    // Sequences in the block might not be stored contiguously in the file,
-    // for example if a user has permuted or filtered the DB.
-    // We will collect all contiguous stretches of bytes here, and then
-    // fetch those parts later.
-    std::vector<ContiguousFilePart> contiguousParts;
-
-    auto AddContiguousPart = [&](const SeedDBSeedsLine& sl) {
-        contiguousParts.emplace_back(
-            ContiguousFilePart{sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes});
-    };
-
-    for (int32_t ordId = block.startSeqId; ordId < block.endSeqId; ++ordId) {
-        const auto& sl = seedDBIndexCache->seedLines[ordId];
-
-        if (contiguousParts.empty()) {
-            AddContiguousPart(sl);
-
-        } else if (sl.fileId != contiguousParts.back().fileId) {
-            AddContiguousPart(sl);
-
-        } else if (sl.fileOffset == contiguousParts.back().endOffset) {
-            contiguousParts.back().endOffset += sl.numBytes;
-
-        } else if (sl.fileOffset > contiguousParts.back().endOffset ||
-                   (sl.fileOffset + sl.numBytes) <= contiguousParts.back().startOffset) {
-            // Allow out of order byte spans, as long as there is no overlap.
-            AddContiguousPart(sl);
-
-        } else {
-            // An overlap occurred.
-            const auto& last = contiguousParts.back();
-            std::ostringstream oss;
-            oss << "Invalid SeedsLine object in the block, overlapping other SeedsLine objects in "
-                   "terms of the file offset. Last ContiguousFilePart span: {"
-                << last.fileId << ", " << last.startOffset << ", " << last.endOffset
-                << "}, last SeedsLine: {" << sl.seqId << ", " << sl.header << ", " << sl.fileId
-                << ", " << sl.fileOffset << ", " << sl.numBytes << ", " << sl.numBases << ", "
-                << sl.numSeeds << "}.";
-            throw std::runtime_error(oss.str());
-        }
-    }
-
-    return contiguousParts;
 }
 
 }  // namespace Pancake

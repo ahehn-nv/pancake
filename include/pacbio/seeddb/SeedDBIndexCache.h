@@ -3,6 +3,7 @@
 #ifndef PANCAKE_SEEDDB_INDEX_CACHE_H
 #define PANCAKE_SEEDDB_INDEX_CACHE_H
 
+#include <pacbio/pancake/ContiguousFilePart.h>
 #include <pacbio/seeddb/SeedDBParameters.h>
 #include <pacbio/seqdb/Range.h>
 #include <pacbio/util/CommonTypes.h>
@@ -95,6 +96,9 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
 
 std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
     FILE* fpIn, const std::string& indexFilename);
+
+std::vector<ContiguousFilePart> GetSeedDBContiguousParts(
+    const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBIndexCache, int32_t blockId);
 
 }  // namespace Pancake
 }  // namespace PacBio
