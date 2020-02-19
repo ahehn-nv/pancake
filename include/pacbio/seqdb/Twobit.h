@@ -60,6 +60,21 @@ int32_t CompressSequence(const std::string& bases, std::vector<uint8_t>& twobit,
 void DecompressSequence(const std::vector<uint8_t>& twobit, int32_t numBases,
                         const std::vector<PacBio::Pancake::Range>& ranges, std::string& bases);
 
+/// \brief Decompresses a 2-bit compressed sequence into a string.
+///        Same as the previous overloaded function, but the difference is that
+///        this provides C-type interface, and does not perform internal
+///        allocation for the return bases.
+///
+///        The space for outBases needs to be allocated prior to calling this function!
+///
+///        This is a specialized function, intended for use in e.g. fast loading
+///        of compressed sequences, without having to pay for the high overhead
+///        of std::string in cases when we actually want to store the data
+///        into a preallocated vector of uint8_t.
+///
+void DecompressSequence(const uint8_t* twobit, int64_t twobitLen, int32_t numBases,
+                        const std::vector<PacBio::Pancake::Range>& ranges, uint8_t* outBases);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
