@@ -15,6 +15,27 @@ Test construction of the DB from a small test FASTA file. Store each sequence in
   test-1.seqdb.3.seq
   test-1.seqdb.4.seq
 
+FASTQ input.
+Test construction of the DB from a small test FASTQ file. Store each sequence into a separate 2-bit compressed file.
+This test is exactly the same as the previous one, the only difference is that the input is in the FASTQ format instead of FASTA.
+That is why we can reuse the output files from the previous test, even though the input is now "in.fastq" instead of "in.fasta".
+Note: the FASTQ here contains identical sequences to the "in.fasta", and the quality values are just dummy values added to create a FASTQ.
+  $ rm -f test-1.seqdb*
+  > ${BIN_DIR}/pancake seqdb test-1 ${PROJECT_DIR}/test-data/seqdb-writer/in.fastq --block-size 0 --buffer-size 1024 --split-blocks
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.0.seq test-1.seqdb.0.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.1.seq test-1.seqdb.1.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.2.seq test-1.seqdb.2.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.3.seq test-1.seqdb.3.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.4.seq test-1.seqdb.4.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb test-1.seqdb
+  > ls -1 test-1.seqdb*
+  test-1.seqdb
+  test-1.seqdb.0.seq
+  test-1.seqdb.1.seq
+  test-1.seqdb.2.seq
+  test-1.seqdb.3.seq
+  test-1.seqdb.4.seq
+
 Same as before, but test writing to a different folder. The file paths should be local.
   $ mkdir -p out
   > ${BIN_DIR}/pancake seqdb out/test-1 ${PROJECT_DIR}/test-data/seqdb-writer/in.fasta --block-size 0 --buffer-size 1024 --split-blocks
@@ -114,3 +135,8 @@ Create only one sequence file because all sequences fit into one block.
   > ls -1 test-6.seqdb*
   test-6.seqdb
   test-6.seqdb.0.seq
+
+Test an unsupported input format.
+  $ rm -f test-1.seqdb*
+  > ${BIN_DIR}/pancake seqdb test-1 ${PROJECT_DIR}/test-data/seqdb-writer/README.md --block-size 0 --buffer-size 1024 --split-blocks 2>&1 | grep "Unknown input file extension for file" | wc -l | awk '{ print $1 }'
+  1
