@@ -4,7 +4,6 @@
 #define PANCAKE_SEEDDB_READER_CACHED_H
 
 #include <pacbio/seeddb/SeedDBIndexCache.h>
-#include <pacbio/seeddb/SeedDBReaderCached.h>
 #include <pacbio/seeddb/SequenceSeeds.h>
 #include <pacbio/seqdb/Util.h>
 #include <memory>

@@ -19,6 +19,7 @@ if not meson.is_subproject()
       'pacbio/seeddb/Seed.h',
       'pacbio/seeddb/SeedDBReader.h',
       'pacbio/seeddb/SeedDBReaderCached.h',
+      'pacbio/seeddb/SeedDBReaderCachedBlock.h',
       'pacbio/seeddb/SeedDBReaderRawBlock.h',
       'pacbio/seeddb/SeedDBWriter.h',
       'pacbio/seeddb/SequenceSeeds.h',
