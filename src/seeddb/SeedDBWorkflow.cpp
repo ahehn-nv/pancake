@@ -28,8 +28,9 @@ void Worker(const std::vector<PacBio::Pancake::FastaSequenceId>& records,
         const auto& record = records[i];
         const uint8_t* seq = reinterpret_cast<const uint8_t*>(record.Bases().data());
         int32_t seqLen = record.Bases().size();
-        int rv = GenerateMinimizers(seeds[i], seq, seqLen, 0, record.Id(), sp.KmerSize,
-                                    sp.MinimizerWindow, sp.UseRC, sp.UseHPC, sp.MaxHPCLen);
+        int rv =
+            GenerateMinimizers(seeds[i], seq, seqLen, 0, record.Id(), sp.KmerSize,
+                               sp.MinimizerWindow, sp.Spacing, sp.UseRC, sp.UseHPC, sp.MaxHPCLen);
         if (rv)
             throw std::runtime_error("Generating minimizers failed, startAbs = " +
                                      std::to_string(startAbs));

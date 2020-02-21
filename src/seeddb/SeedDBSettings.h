@@ -21,6 +21,7 @@ struct SeedDBSettings
         static const bool SplitBlocks = false;
         static const int32_t KmerSize = 30;
         static const int32_t MinimizerWindow = 80;
+        static const int32_t Spacing = 0;
         static const bool UseHPC = false;
         static const int32_t MaxHPCLen = 10;
         static const bool NoRevCmp = false;
@@ -30,7 +31,8 @@ struct SeedDBSettings
     std::string OutputPrefix;
     size_t NumThreads = Defaults::NumThreads;
     bool SplitBlocks = Defaults::SplitBlocks;
-    SeedDBParameters SeedParameters{Defaults::KmerSize, Defaults::MinimizerWindow, Defaults::UseHPC,
+    SeedDBParameters SeedParameters{Defaults::KmerSize,  Defaults::MinimizerWindow,
+                                    Defaults::Spacing,   Defaults::UseHPC,
                                     Defaults::MaxHPCLen, !Defaults::NoRevCmp};
 
     SeedDBSettings();
