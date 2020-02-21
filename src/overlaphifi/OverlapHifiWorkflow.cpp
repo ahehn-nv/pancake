@@ -7,7 +7,7 @@
 #include <pacbio/overlaphifi/SeedIndex.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
-#include <pacbio/seeddb/SeedDBReaderCached.h>
+#include <pacbio/seeddb/SeedDBReaderCachedBlock.h>
 #include <pacbio/seeddb/SeedDBReaderRawBlock.h>
 #include <pacbio/seqdb/SeqDBIndexCache.h>
 #include <pacbio/seqdb/SeqDBReaderCached.h>
@@ -20,10 +20,10 @@
 namespace PacBio {
 namespace Pancake {
 
-void Worker(const PacBio::Pancake::SeqDBReaderCached& targetSeqDBReader,
+void Worker(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqDBReader,
             const PacBio::Pancake::SeedIndex& index,
-            const PacBio::Pancake::SeqDBReaderCached& querySeqDBReader,
-            const PacBio::Pancake::SeedDBReaderCached& querySeedDBReader,
+            const PacBio::Pancake::SeqDBReaderCachedBlock& querySeqDBReader,
+            const PacBio::Pancake::SeedDBReaderCachedBlock& querySeedDBReader,
             const OverlapHifiSettings& /*settings*/, const PacBio::Pancake::Mapper& mapper,
             int64_t freqCutoff, int32_t start, int32_t end,
             std::vector<PacBio::Pancake::MapperResult>& results)
@@ -70,7 +70,8 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         PacBio::Pancake::LoadSeedDBIndexCache(querySeedDBFile);
     PBLOG_INFO << "After loading query seed cache: " << ttInit.VerboseSecs(true);
     // Create the target readers.
-    PacBio::Pancake::SeqDBReaderCached targetSeqDBReader(targetSeqDBCache, settings.TargetBlockId);
+    PacBio::Pancake::SeqDBReaderCachedBlock targetSeqDBReader(targetSeqDBCache,
+                                                              settings.TargetBlockId);
     PacBio::Pancake::SeedDBReaderRawBlock targetSeedDBReader(targetSeedDBCache);
     // Read the seeds for the target block.
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds =
@@ -114,15 +115,22 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                                                                : settings.QueryBlockEndId;
 
     // Process all blocks.
+    PacBio::Pancake::SeqDBReaderCachedBlock querySeqDBReader(querySeqDBCache);
+    PacBio::Pancake::SeedDBReaderCachedBlock querySeedDBReader(querySeedDBCache);
     for (int32_t queryBlockId = settings.QueryBlockStartId; queryBlockId < endBlockId;
          ++queryBlockId) {
         PBLOG_INFO << "Loading the query block " << queryBlockId << ".";
         // Create the query readers for the current block.
         TicToc ttQueryLoad;
-        PacBio::Pancake::SeqDBReaderCached querySeqDBReader(querySeqDBCache, queryBlockId);
-        PacBio::Pancake::SeedDBReaderCached querySeedDBReader(querySeedDBCache, queryBlockId);
+        // PacBio::Pancake::SeqDBReaderCached querySeqDBReader(querySeqDBCache, queryBlockId);
+        querySeqDBReader.LoadBlock(queryBlockId);
+        PBLOG_INFO << "Loaded the query SeqDB cache block after " << ttQueryLoad.GetSecs(true)
+                   << " sec / " << ttQueryLoad.GetCpuSecs(true) << " CPU sec";
+        querySeedDBReader.LoadBlock(queryBlockId);
         ttQueryLoad.Stop();
-        PBLOG_INFO << "Loaded the query block in " << ttQueryLoad.GetSecs() << " sec / "
+        PBLOG_INFO << "Loaded the query SeedDB cache block after " << ttQueryLoad.GetSecs()
+                   << " sec / " << ttQueryLoad.GetCpuSecs() << " CPU sec";
+        PBLOG_INFO << "Loaded all query block in " << ttQueryLoad.GetSecs() << " sec / "
                    << ttQueryLoad.GetCpuSecs() << " CPU sec";
 
         PBLOG_INFO << "About to map query block " << queryBlockId

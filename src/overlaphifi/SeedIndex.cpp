@@ -151,6 +151,13 @@ int64_t SeedIndex::GetSeeds(uint64_t key,
 bool SeedIndex::CollectHits(const std::vector<PacBio::Pancake::SeedDB::SeedRaw>& querySeeds,
                             std::vector<SeedHit>& hits, int64_t freqCutoff) const
 {
+    return CollectHits(&querySeeds[0], querySeeds.size(), hits, freqCutoff);
+}
+
+bool SeedIndex::CollectHits(const PacBio::Pancake::SeedDB::SeedRaw* querySeeds,
+                            int64_t querySeedsSize, std::vector<SeedHit>& hits,
+                            int64_t freqCutoff) const
+{
     hits.clear();
 
     // The +1 is because for every seed base there are Spacing spaces, and the subtraction
@@ -159,7 +166,8 @@ bool SeedIndex::CollectHits(const std::vector<PacBio::Pancake::SeedDB::SeedRaw>&
         seedDBCache_->seedParams.KmerSize * (seedDBCache_->seedParams.Spacing + 1) -
         seedDBCache_->seedParams.Spacing;
 
-    for (const auto& querySeed : querySeeds) {
+    for (int64_t seedId = 0; seedId < querySeedsSize; ++seedId) {
+        const auto& querySeed = querySeeds[seedId];
         auto decodedQuery = PacBio::Pancake::SeedDB::Seed(querySeed);
         auto it = hash_.find(decodedQuery.key);
         if (it != hash_.end()) {

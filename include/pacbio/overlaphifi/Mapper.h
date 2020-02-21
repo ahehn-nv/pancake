@@ -8,9 +8,9 @@
 #include <pacbio/overlaphifi/SeedIndex.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
-#include <pacbio/seeddb/SequenceSeeds.h>
-#include <pacbio/seqdb/FastaSequenceId.h>
-#include <pacbio/seqdb/SeqDBReaderCached.h>
+#include <pacbio/seeddb/SequenceSeedsCached.h>
+#include <pacbio/seqdb/FastaSequenceCached.h>
+#include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -42,10 +42,11 @@ public:
     /// \param freqCutoff Maximum allowed frequency of any particular seed to retain it.
     /// \returns An object which contains a vector of all found overlaps.
     ///
-    MapperResult Map(const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
+    MapperResult Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                      const PacBio::Pancake::SeedIndex& index,
-                     const PacBio::Pancake::FastaSequenceId& querySeq,
-                     const PacBio::Pancake::SequenceSeeds& querySeeds, int64_t freqCutoff) const;
+                     const PacBio::Pancake::FastaSequenceCached& querySeq,
+                     const PacBio::Pancake::SequenceSeedsCached& querySeeds,
+                     int64_t freqCutoff) const;
 
 private:
     OverlapHifiSettings settings_;
@@ -82,7 +83,8 @@ private:
     /// \param skipSymmetricOverlaps Do not produce an anchor if Aid > Bid.
     ///
     static std::vector<OverlapPtr> FormDiagonalAnchors_(
-        const std::vector<SeedHit>& sortedHits, const PacBio::Pancake::FastaSequenceId& querySeq,
+        const std::vector<SeedHit>& sortedHits,
+        const PacBio::Pancake::FastaSequenceCached& querySeq,
         const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t chainBandwidth,
         int32_t minNumSeeds, int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps);
 
@@ -101,7 +103,8 @@ private:
     /// \param maxTargetPosID The ID of the hit within the diagonal bin with the largest target pos.
     ///
     static OverlapPtr MakeOverlap_(
-        const std::vector<SeedHit>& sortedHits, const PacBio::Pancake::FastaSequenceId& querySeq,
+        const std::vector<SeedHit>& sortedHits,
+        const PacBio::Pancake::FastaSequenceCached& querySeq,
         const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t beginId,
         int32_t endId, int32_t minTargetPosId, int32_t maxTargetPosId);
 
@@ -117,9 +120,9 @@ private:
     /// \returns A new vector of overlaps with alignment information and modified coordinates.
     ///
     static std::vector<OverlapPtr> AlignOverlaps_(
-        const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
-        const PacBio::Pancake::FastaSequenceId& querySeq, const std::vector<OverlapPtr>& overlaps,
-        double alignBandwidth, double alignMaxDiff);
+        const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
+        const PacBio::Pancake::FastaSequenceCached& querySeq,
+        const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff);
 
     /// \brief Performs alignment and alignment extension of a single overlap. Uses the
     ///        banded O(nd) algorithm to align the overlap. The edit distance is
@@ -134,8 +137,8 @@ private:
     ///                     This is a parameter of the O(nd) algorithm.
     /// \returns A new vector overlap with alignment information and modified coordinates.
     ///
-    static OverlapPtr AlignOverlap_(const PacBio::Pancake::FastaSequenceId& targetSeq,
-                                    const PacBio::Pancake::FastaSequenceId& querySeq,
+    static OverlapPtr AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
+                                    const PacBio::Pancake::FastaSequenceCached& querySeq,
                                     const std::string reverseQuerySeq, const OverlapPtr& ovl,
                                     double alignBandwidth, double alignMaxDiff);
 
@@ -186,8 +189,9 @@ private:
     /// \param revCmp True if the sequence should be reverse complemented.
     /// \return Returns the requested bases as a string.
     ///
-    static std::string FetchTargetSubsequence_(const PacBio::Pancake::FastaSequenceId& targetSeq,
-                                               int32_t seqStart, int32_t seqEnd, bool revCmp);
+    static std::string FetchTargetSubsequence_(
+        const PacBio::Pancake::FastaSequenceCached& targetSeq, int32_t seqStart, int32_t seqEnd,
+        bool revCmp);
 };
 
 }  // namespace Pancake

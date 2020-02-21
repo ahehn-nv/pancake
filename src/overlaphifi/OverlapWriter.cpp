@@ -41,6 +41,16 @@ void OverlapWriter::Write(const std::vector<OverlapPtr>& overlaps,
     }
 }
 
+void OverlapWriter::Write(const std::vector<OverlapPtr>& overlaps,
+                          const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
+                          const PacBio::Pancake::FastaSequenceCached& querySeq)
+{
+    for (const auto& ovl : overlaps) {
+        PrintOverlapAsM4(fpOut_, ovl, querySeq.Name(), targetSeqs.GetSequence(ovl->Bid).Name(),
+                         writeReverseOverlaps_, writeIds_);
+    }
+}
+
 void OverlapWriter::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
                                      const std::string& Bname, bool writeReverseOverlap,
                                      bool writeIds)
