@@ -39,7 +39,7 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_UncompressedInput)
 
             // Create a SeedDB reader under test.
             // Convert all FastaSequenceCached to FastaSequenceId for easier comparison.
-            PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, blockId);
+            PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, {blockId});
             std::vector<PacBio::Pancake::FastaSequenceId> results;
             for (const auto& record : readerTest.records()) {
                 results.emplace_back(PacBio::Pancake::FastaSequenceId(
@@ -82,7 +82,7 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_CompressedInput)
 
             // Create a SeedDB reader under test.
             // Convert all FastaSequenceCached to FastaSequenceId for easier comparison.
-            PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, blockId);
+            PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, {blockId});
             std::vector<PacBio::Pancake::FastaSequenceId> results;
             for (const auto& record : readerTest.records()) {
                 results.emplace_back(PacBio::Pancake::FastaSequenceId(

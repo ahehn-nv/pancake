@@ -23,8 +23,9 @@ SeqDBReaderCachedBlock::SeqDBReaderCachedBlock(
 }
 
 SeqDBReaderCachedBlock::SeqDBReaderCachedBlock(
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBCache, int32_t blockId)
-    : seqDBIndexCache_(seqDBCache), blockId_(blockId)
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBCache,
+    const std::vector<int32_t>& blockIds)
+    : seqDBIndexCache_(seqDBCache), blockIds_(blockIds)
 {
     // Sanity check.
     if (seqDBIndexCache_->fileLines.empty())
@@ -34,35 +35,67 @@ SeqDBReaderCachedBlock::SeqDBReaderCachedBlock(
     if (seqDBIndexCache_->blockLines.empty())
         throw std::runtime_error("There are no blocks in the input index file.");
 
-    LoadBlock(blockId_);
+    LoadBlocks(blockIds_);
 }
 
 SeqDBReaderCachedBlock::~SeqDBReaderCachedBlock() = default;
 
-void SeqDBReaderCachedBlock::LoadBlock(int32_t blockId)
+void SeqDBReaderCachedBlock::LoadBlocks(const std::vector<int32_t>& blockIds)
 {
-    if (seqDBIndexCache_->compressionLevel == 0) {
-        return LoadBlockUncompressed_(blockId);
-    }
-    return LoadBlockCompressed_(blockId);
-}
-
-void SeqDBReaderCachedBlock::LoadBlockCompressed_(int32_t blockId)
-{
-    blockId_ = blockId;
+    blockIds_ = blockIds;
 
     // Form the contiguous blocks for loading.
-    std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, blockId_);
-    const auto& bl = seqDBIndexCache_->GetBlockLine(blockId_);
+    // First, get all the spans for the first block. These will be stored directly in the
+    // accumulator called 'parts'.
+    std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, blockIds_[0]);
+    if (parts.empty()) {
+        std::runtime_error(
+            "Unknown error occurred, the GetSeqDBContiguousParts returned empty in "
+            "LoadBlockUncompressed_.");
+    }
+    // Next, get all other parts for all other blocks. If possible, extend
+    // the previously added parts, otherwise just append.
+    for (size_t i = 1; i < blockIds_.size(); ++i) {
+        std::vector<ContiguousFilePart> newParts =
+            GetSeqDBContiguousParts(seqDBIndexCache_, blockIds_[i]);
+
+        for (const auto& newPart : newParts) {
+            if (newPart.CanAppendTo(parts.back())) {
+                parts.back().ExtendWith(newPart);
+            } else {
+                parts.emplace_back(newPart);
+            }
+        }
+    }
 
     // Preallocate the data size.
     int64_t totalSize = 0;
-    for (int32_t sId = bl.startSeqId; sId < bl.endSeqId; ++sId) {
-        const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
-        totalSize += sl.numBases;
+    for (const auto& blockId : blockIds_) {
+        const auto& bl = seqDBIndexCache_->GetBlockLine(blockId);
+        for (int32_t sId = bl.startSeqId; sId < bl.endSeqId; ++sId) {
+            const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
+            totalSize += sl.numBases;
+        }
     }
     data_.resize(totalSize);
-    records_.resize(bl.endSeqId - bl.startSeqId);
+
+    // Preallocate the space for all the records.
+    const auto& blFirst = seqDBIndexCache_->GetBlockLine(blockIds_.front());
+    const auto& blLast = seqDBIndexCache_->GetBlockLine(blockIds_.back());
+    records_.resize(blLast.endSeqId - blFirst.startSeqId);
+
+    // Actually load the data.
+    if (seqDBIndexCache_->compressionLevel == 0) {
+        return LoadBlockUncompressed_(parts);
+    }
+    return LoadBlockCompressed_(parts);
+}
+
+void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFilePart>& parts)
+{
+    if (blockIds_.empty()) {
+        throw std::runtime_error("There are no block IDs specified to LoadBlockUncompressed_.");
+    }
 
     int64_t currDataPos = 0;
     int64_t currRecord = 0;
@@ -116,26 +149,11 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(int32_t blockId)
     }
 }
 
-void SeqDBReaderCachedBlock::LoadBlockUncompressed_(int32_t blockId)
+void SeqDBReaderCachedBlock::LoadBlockUncompressed_(const std::vector<ContiguousFilePart>& parts)
 {
-    blockId_ = blockId;
-
-    // Form the contiguous blocks for loading.
-    std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, blockId_);
-    const auto& bl = seqDBIndexCache_->GetBlockLine(blockId_);
-
-    // Preallocate the data size.
-    // int64_t totalSize = 0;
-    // for (const auto& part : parts) {
-    //     totalSize += (part.endOffset - part.startOffset);
-    // }
-    int64_t totalSize = 0;
-    for (int32_t sId = bl.startSeqId; sId < bl.endSeqId; ++sId) {
-        const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
-        totalSize += sl.numBases;
+    if (blockIds_.empty()) {
+        throw std::runtime_error("There are no block IDs specified to LoadBlockUncompressed_.");
     }
-    data_.resize(totalSize);
-    records_.resize(bl.endSeqId - bl.startSeqId);
 
     int64_t currDataPos = 0;
     int64_t currRecord = 0;
@@ -184,8 +202,11 @@ const FastaSequenceCached& SeqDBReaderCachedBlock::GetSequence(int32_t seqId) co
     auto it = seqIdToOrdinalId_.find(seqId);
     if (it == seqIdToOrdinalId_.end()) {
         std::ostringstream oss;
-        oss << "(SeqDBReaderCachedBlock) Invalid seqId, not found in block " << blockId_
-            << ". seqId = " << seqId << ", records_.size() = " << records_.size();
+        oss << "(SeqDBReaderCachedBlock) Invalid seqId, not found in blocks: {";
+        for (const auto& blockId : blockIds_) {
+            oss << blockId << ", ";
+        }
+        oss << "}. seqId = " << seqId << ", records_.size() = " << records_.size();
         throw std::runtime_error(oss.str());
     }
     int32_t ordinalId = it->second;
@@ -197,8 +218,11 @@ const FastaSequenceCached& SeqDBReaderCachedBlock::GetSequence(const std::string
     auto it = headerToOrdinalId_.find(seqName);
     if (it == headerToOrdinalId_.end()) {
         std::ostringstream oss;
-        oss << "(SeqDBReaderCachedBlock) Invalid seqName, not found in block " << blockId_
-            << ". seqName = '" << seqName << ".";
+        oss << "(SeqDBReaderCachedBlock) Invalid seqName, not found in blocks: {";
+        for (const auto& blockId : blockIds_) {
+            oss << blockId << ", ";
+        }
+        oss << "}. seqName = '" << seqName << ".";
         throw std::runtime_error(oss.str());
     }
     int32_t ordinalId = it->second;
