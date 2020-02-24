@@ -122,15 +122,25 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
          queryBlockId += settings.CombineBlocks) {
 
         std::vector<int32_t> blocksToLoad;
-        for (int32_t blockId = queryBlockId; blockId < (queryBlockId + settings.CombineBlocks);
-             ++blockId) {
+        for (int32_t blockId = queryBlockId;
+             blockId < std::min(endBlockId, (queryBlockId + settings.CombineBlocks)); ++blockId) {
             blocksToLoad.emplace_back(blockId);
         }
         if (blocksToLoad.empty()) {
             throw std::runtime_error("There are zero blocks to load!");
         }
+        std::string blocksToLoadStr;
+        {
+            std::ostringstream oss;
+            oss << "{" << blocksToLoad[0];
+            for (size_t i = 1; i < blocksToLoad.size(); ++i) {
+                oss << ", " << blocksToLoad[i];
+            }
+            oss << "}";
+            blocksToLoadStr = oss.str();
+        }
 
-        PBLOG_INFO << "Loading the query block " << queryBlockId << ".";
+        PBLOG_INFO << "Loading the query blocks: " << blocksToLoadStr << ".";
         // Create the query readers for the current block.
         TicToc ttQueryLoad;
         // PacBio::Pancake::SeqDBReaderCached querySeqDBReader(querySeqDBCache, queryBlockId);
@@ -141,15 +151,12 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         ttQueryLoad.Stop();
         PBLOG_INFO << "Loaded the query SeedDB cache block after " << ttQueryLoad.GetSecs()
                    << " sec / " << ttQueryLoad.GetCpuSecs() << " CPU sec";
-        PBLOG_INFO << "Loaded all query block in " << ttQueryLoad.GetSecs() << " sec / "
+        PBLOG_INFO << "Loaded all query blocks in " << ttQueryLoad.GetSecs() << " sec / "
                    << ttQueryLoad.GetCpuSecs() << " CPU sec";
 
         std::ostringstream oss;
-        oss << "About to map query blocks: {" << blocksToLoad[0];
-        for (size_t i = 1; i < blocksToLoad.size(); ++i) {
-            oss << ", " << blocksToLoad[i];
-        }
-        oss << "}: num_seqs = " << querySeqDBReader.records().size();
+        oss << "About to map query blocks: " << blocksToLoadStr
+            << ": num_seqs = " << querySeqDBReader.records().size();
         PBLOG_INFO << oss.str();
 
         // Parallel processing.
