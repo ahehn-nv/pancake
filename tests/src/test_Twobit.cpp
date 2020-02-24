@@ -2,10 +2,10 @@
 #include <pacbio/seqdb/Twobit.h>
 #include <tuple>
 
-void HelperRoundTrip(const std::string& inBases, int32_t numBases,
-                     const std::vector<uint8_t>& expectedTwobit,
-                     const std::vector<PacBio::Pancake::Range>& expectedRanges,
-                     int32_t expectedCompressedBases, bool expectedException)
+void HelperRoundTrip_DecompressCPPStyle(const std::string& inBases, int32_t numBases,
+                                        const std::vector<uint8_t>& expectedTwobit,
+                                        const std::vector<PacBio::Pancake::Range>& expectedRanges,
+                                        int32_t expectedCompressedBases, bool expectedException)
 {
     // Compress the input sequence.
     std::vector<uint8_t> twobit;
@@ -98,10 +98,10 @@ TEST(Twobit_RoundTrip, Decompress)
     };
 
     for (const auto& testData : inputs) {
-        std::cerr << "Test: '" << testData.testName << "'.\n";
-        HelperRoundTrip(testData.inBases, testData.numBases, testData.expectedTwobit,
-                        testData.expectedRanges, testData.expectedComprBases,
-                        testData.expectedThrow);
+        SCOPED_TRACE(testData.testName);
+        HelperRoundTrip_DecompressCPPStyle(testData.inBases, testData.numBases,
+                                           testData.expectedTwobit, testData.expectedRanges,
+                                           testData.expectedComprBases, testData.expectedThrow);
     }
 }
 
@@ -124,7 +124,7 @@ TEST(Twobit_RoundTrip, DecompressCStyle_MultipleTests)
     };
 
     for (const auto& testData : inputs) {
-        std::cerr << "Test: '" << testData.testName << "'.\n";
+        SCOPED_TRACE(testData.testName);
         HelperRoundTrip_DecompressCStyle(
             testData.inBases, testData.numBases, testData.numBasesToAlloc, testData.expectedTwobit,
             testData.expectedRanges, testData.expectedComprBases, testData.expectedThrow);
