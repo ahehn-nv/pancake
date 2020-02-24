@@ -126,7 +126,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         querySeqDBReader.LoadBlocks({queryBlockId});
         PBLOG_INFO << "Loaded the query SeqDB cache block after " << ttQueryLoad.GetSecs(true)
                    << " sec / " << ttQueryLoad.GetCpuSecs(true) << " CPU sec";
-        querySeedDBReader.LoadBlock(queryBlockId);
+        querySeedDBReader.LoadBlock({queryBlockId});
         ttQueryLoad.Stop();
         PBLOG_INFO << "Loaded the query SeedDB cache block after " << ttQueryLoad.GetSecs()
                    << " sec / " << ttQueryLoad.GetCpuSecs() << " CPU sec";

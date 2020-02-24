@@ -10,7 +10,7 @@ namespace Pancake {
 
 SeedDBReaderCachedBlock::SeedDBReaderCachedBlock(
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBCache)
-    : indexCache_(seedDBCache), blockId_(-1)
+    : indexCache_(seedDBCache)
 {
     // Sanity check.
     if (indexCache_->fileLines.empty())
@@ -22,8 +22,9 @@ SeedDBReaderCachedBlock::SeedDBReaderCachedBlock(
 }
 
 SeedDBReaderCachedBlock::SeedDBReaderCachedBlock(
-    std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBCache, int32_t blockId)
-    : indexCache_(seedDBCache), blockId_(blockId)
+    std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBCache,
+    const std::vector<int32_t>& blockIds)
+    : indexCache_(seedDBCache), blockIds_(blockIds)
 {
     // Sanity check.
     if (indexCache_->fileLines.empty())
@@ -33,27 +34,51 @@ SeedDBReaderCachedBlock::SeedDBReaderCachedBlock(
     if (indexCache_->blockLines.empty())
         throw std::runtime_error("There are no blocks in the input index file.");
 
-    LoadBlock(blockId);
+    LoadBlock(blockIds);
 }
 
 SeedDBReaderCachedBlock::~SeedDBReaderCachedBlock() = default;
 
-void SeedDBReaderCachedBlock::LoadBlock(int32_t blockId)
+void SeedDBReaderCachedBlock::LoadBlock(const std::vector<int32_t>& blockIds)
 {
-    blockId_ = blockId;
+    blockIds_ = blockIds;
 
     // Form the contiguous blocks for loading.
-    std::vector<ContiguousFilePart> parts = GetSeedDBContiguousParts(indexCache_, blockId_);
-    const auto& bl = indexCache_->GetBlockLine(blockId_);
+    // First, get all the spans for the first block. These will be stored directly in the
+    // accumulator called 'parts'.
+    std::vector<ContiguousFilePart> parts = GetSeedDBContiguousParts(indexCache_, blockIds_[0]);
+    if (parts.empty()) {
+        std::runtime_error(
+            "Unknown error occurred, the GetSeqDBContiguousParts returned empty in "
+            "LoadBlockUncompressed_.");
+    }
+    // Next, get all other parts for all other blocks. If possible, extend
+    // the previously added parts, otherwise just append.
+    for (size_t i = 1; i < blockIds_.size(); ++i) {
+        std::vector<ContiguousFilePart> newParts =
+            GetSeedDBContiguousParts(indexCache_, blockIds_[i]);
+        for (const auto& newPart : newParts) {
+            if (newPart.CanAppendTo(parts.back())) {
+                parts.back().ExtendWith(newPart);
+            } else {
+                parts.emplace_back(newPart);
+            }
+        }
+    }
 
     // Preallocate the data size.
     int64_t totalSize = 0;
-    for (int32_t sId = bl.startSeqId; sId < bl.endSeqId; ++sId) {
-        const auto& sl = indexCache_->GetSeedsLine(sId);
-        totalSize += sl.numSeeds;
+    for (const auto& blockId : blockIds_) {
+        const auto& bl = indexCache_->GetBlockLine(blockId);
+        totalSize += bl.numBytes;
     }
+    totalSize /= 16;
     data_.resize(totalSize);
-    records_.resize(bl.endSeqId - bl.startSeqId);
+
+    // Preallocate the space for all the records.
+    const auto& blFirst = indexCache_->GetBlockLine(blockIds_.front());
+    const auto& blLast = indexCache_->GetBlockLine(blockIds_.back());
+    records_.resize(blLast.endSeqId - blFirst.startSeqId);
 
     int64_t currDataPos = 0;
     int64_t currRecord = 0;
@@ -102,8 +127,11 @@ const SequenceSeedsCached& SeedDBReaderCachedBlock::GetSeedsForSequence(int32_t 
     auto it = seqIdToOrdinalId_.find(seqId);
     if (it == seqIdToOrdinalId_.end()) {
         std::ostringstream oss;
-        oss << "(SeedDBReaderCachedBlock) Invalid seqId, not found in block " << blockId_
-            << ". seqId = " << seqId << ", records_.size() = " << records_.size();
+        oss << "(SeedDBReaderCachedBlock) Invalid seqId, not found in blocks: {";
+        for (const auto& blockId : blockIds_) {
+            oss << blockId << ", ";
+        }
+        oss << "}. seqId = " << seqId << ", records_.size() = " << records_.size();
         throw std::runtime_error(oss.str());
     }
     int32_t ordinalId = it->second;
@@ -116,8 +144,11 @@ const SequenceSeedsCached& SeedDBReaderCachedBlock::GetSeedsForSequence(
     auto it = headerToOrdinalId_.find(seqName);
     if (it == headerToOrdinalId_.end()) {
         std::ostringstream oss;
-        oss << "(SeedDBReaderCachedBlock) Invalid seqName, not found in block " << blockId_
-            << ". seqName = '" << seqName << ".";
+        oss << "(SeedDBReaderCachedBlock) Invalid seqName, not found in blocks: {";
+        for (const auto& blockId : blockIds_) {
+            oss << blockId << ", ";
+        }
+        oss << "}. seqName = '" << seqName << ".";
         throw std::runtime_error(oss.str());
     }
     int32_t ordinalId = it->second;
