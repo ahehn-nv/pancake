@@ -4,6 +4,7 @@
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
 #include <pacbio/seqdb/Twobit.h>
 #include <pacbio/seqdb/Util.h>
+#include <iostream>
 #include <sstream>
 
 namespace PacBio {
@@ -97,7 +98,8 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
         throw std::runtime_error("There are no block IDs specified to LoadBlockUncompressed_.");
     }
 
-    int64_t currDataPos = 0;
+    // Position of a current record in the data_ vector.
+    int64_t seqStart = 0;
     int64_t currRecord = 0;
     for (const auto& part : parts) {
         // Open the file and position to the correct offset.
@@ -124,9 +126,6 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
             throw std::runtime_error(oss.str());
         }
 
-        // Position of a current record in the data_ vector.
-        int64_t seqStart = currDataPos;
-
         // File offset of the first record in the part. Needed to normalize
         // the access to the tempData vector.
         int64_t startByteOffset = part.startOffset;
@@ -135,7 +134,7 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
         for (int32_t id = part.startId; id < part.endId; ++id, ++currRecord) {
             const auto& sl = seqDBIndexCache_->GetSeqLine(id);
             const int64_t firstByte = sl.fileOffset - startByteOffset;
-            DecompressSequence(&tempData[firstByte], tempData.size(), sl.numBases, sl.ranges,
+            DecompressSequence(&tempData[firstByte], sl.numBytes, sl.numBases, sl.ranges,
                                &data_[seqStart]);
             records_[currRecord] = FastaSequenceCached{
                 sl.header, reinterpret_cast<const char*>(&data_[seqStart]), sl.numBases, sl.seqId};
@@ -143,9 +142,6 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
             seqIdToOrdinalId_[sl.seqId] = currRecord;
             seqStart += sl.numBases;
         }
-
-        // Increment the storage location for the next part.
-        currDataPos += numItemsRead;
     }
 }
 
