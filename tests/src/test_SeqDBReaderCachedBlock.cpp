@@ -22,8 +22,6 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_UncompressedInput)
     };
 
     for (const auto& inSeqDB : inDBs) {
-        std::cerr << "Testing DB: '" << inSeqDB << "'.\n";
-
         // Load the SeedDB.
         std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
             PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
@@ -31,7 +29,7 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_UncompressedInput)
         const int32_t numBlocks = seqDBCache->blockLines.size();
 
         for (int32_t blockId = 0; blockId < numBlocks; ++blockId) {
-            std::cerr << "  Evaluating block " << blockId << ".\n";
+            SCOPED_TRACE(inSeqDB + ", blockId = " + std::to_string(blockId));
 
             // "Reference" (or "truth") reader. This was tested earlier, thoroughly.
             // Collect the expected results for this block using a trusty reader.
@@ -67,8 +65,6 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_CompressedInput)
     };
 
     for (const auto& inSeqDB : inDBs) {
-        std::cerr << "Testing DB: '" << inSeqDB << "'.\n";
-
         // Load the SeedDB.
         std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
             PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
@@ -76,7 +72,7 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_CompressedInput)
         const int32_t numBlocks = seqDBCache->blockLines.size();
 
         for (int32_t blockId = 0; blockId < numBlocks; ++blockId) {
-            std::cerr << "  Evaluating block " << blockId << ".\n";
+            SCOPED_TRACE(inSeqDB + ", blockId = " + std::to_string(blockId));
 
             // "Reference" (or "truth") reader. This was tested earlier, thoroughly.
             // Collect the expected results for this block using a trusty reader.
