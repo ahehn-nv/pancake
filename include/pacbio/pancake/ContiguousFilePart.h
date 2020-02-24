@@ -4,6 +4,7 @@
 #define PANCAKE_CONTIGUOUS_FILE_PART_H
 
 #include <cstdint>
+#include <stdexcept>
 
 namespace PacBio {
 namespace Pancake {
@@ -21,6 +22,23 @@ public:
     {
         return fileId == b.fileId && startOffset == b.startOffset && endOffset == b.endOffset &&
                startId == b.startId && endId == b.endId;
+    }
+
+    bool CanAppendTo(const ContiguousFilePart& b) const
+    {
+        if (fileId == b.fileId && startOffset == b.endOffset && startId == b.endId) return true;
+        return false;
+    }
+
+    void ExtendWith(const ContiguousFilePart& b)
+    {
+        if (b.CanAppendTo(*this) == false) {
+            throw std::runtime_error(
+                "Attempted to extend a ContiguousFilePart with another part, but they are not "
+                "sequential.");
+        }
+        endOffset = b.endOffset;
+        endId = b.endId;
     }
 };
 
