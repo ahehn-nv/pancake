@@ -36,6 +36,27 @@ Note: the FASTQ here contains identical sequences to the "in.fasta", and the qua
   test-1.seqdb.3.seq
   test-1.seqdb.4.seq
 
+FOFN input.
+Test construction of the DB from a small test FASTQ file. Store each sequence into a separate 2-bit compressed file.
+This test is exactly the same as the previous one, the only difference is that the input is in the FOFN format instead of FASTA.
+That is why we can reuse the output files from the previous test, even though the input is now "in.fofn" instead of "in.fasta".
+  $ rm -f test-1.seqdb*
+  > echo "${PROJECT_DIR}/test-data/seqdb-writer/in.fasta" > in.fofn
+  > ${BIN_DIR}/pancake seqdb test-1 in.fofn --block-size 0 --buffer-size 1024 --split-blocks
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.0.seq test-1.seqdb.0.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.1.seq test-1.seqdb.1.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.2.seq test-1.seqdb.2.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.3.seq test-1.seqdb.3.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.4.seq test-1.seqdb.4.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb test-1.seqdb
+  > ls -1 test-1.seqdb*
+  test-1.seqdb
+  test-1.seqdb.0.seq
+  test-1.seqdb.1.seq
+  test-1.seqdb.2.seq
+  test-1.seqdb.3.seq
+  test-1.seqdb.4.seq
+
 Same as before, but test writing to a different folder. The file paths should be local.
   $ mkdir -p out
   > ${BIN_DIR}/pancake seqdb out/test-1 ${PROJECT_DIR}/test-data/seqdb-writer/in.fasta --block-size 0 --buffer-size 1024 --split-blocks

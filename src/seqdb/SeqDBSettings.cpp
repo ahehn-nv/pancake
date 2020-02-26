@@ -19,14 +19,8 @@ R"({
 const CLI_v2::PositionalArgument Input {
 R"({
     "name" : "<input.fasta> [...]",
-    "description" : "One or more input sequence files, in FASTA or FASTQ formats."
+    "description" : "One or more input sequence files, in FASTA, FASTQ or FOFN formats."
 })"};
-
-const CLI_v2::Option IsFofn {
-R"({
-    "names" : ["fofn"],
-    "description" : "Input is a FOFN file."
-})", SeqDBSettings::Defaults::IsFofn};
 
 const CLI_v2::Option CompressionLevel {
 R"({
@@ -64,7 +58,6 @@ SeqDBSettings::SeqDBSettings() = default;
 SeqDBSettings::SeqDBSettings(const PacBio::CLI_v2::Results& options)
     : OutputPrefix{options[OptionNames::OutputPrefix]}
     , InputFiles{options[OptionNames::Input]}
-    , IsFofn{options[OptionNames::IsFofn]}
     , NumThreads{options.NumThreads()}
     , CompressionLevel{options[OptionNames::CompressionLevel]}
     , BufferSize{options[OptionNames::BufferSize]}
@@ -98,7 +91,6 @@ PacBio::CLI_v2::Interface SeqDBSettings::CreateCLI()
 
     // clang-format off
     i.AddOptionGroup("Algorithm Options", {
-        OptionNames::IsFofn,
         OptionNames::CompressionLevel,
         OptionNames::BufferSize,
         OptionNames::BlockSize,

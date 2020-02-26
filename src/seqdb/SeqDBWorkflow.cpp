@@ -15,6 +15,17 @@
 namespace PacBio {
 namespace Pancake {
 
+std::vector<std::string> ParseFofn(const std::string& inPath)
+{
+    std::vector<std::string> ret;
+    std::ifstream ifs(inPath);
+    std::string line;
+    while (std::getline(ifs, line)) {
+        ret.emplace_back(line);
+    }
+    return ret;
+}
+
 int SeqDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 {
     SeqDBSettings settings{options};
@@ -36,8 +47,20 @@ int SeqDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                boost::algorithm::iends_with(fn, ".fq") ||
                boost::algorithm::iends_with(fn, ".fq.gz");
     };
+    auto isFofn = [](const std::string& fn) { return boost::algorithm::iends_with(fn, ".fofn"); };
 
+    // Create the expanded list with loaded FOFNs.
+    std::vector<std::string> inputFiles;
     for (const auto& inFile : settings.InputFiles) {
+        if (isFofn(inFile)) {
+            std::vector<std::string> files = ParseFofn(inFile);
+            inputFiles.insert(inputFiles.end(), files.begin(), files.end());
+        } else {
+            inputFiles.emplace_back(inFile);
+        }
+    }
+
+    for (const auto& inFile : inputFiles) {
         if (isFasta(inFile)) {
             BAM::FastaReader inReader{inFile};
             BAM::FastaSequence record;
