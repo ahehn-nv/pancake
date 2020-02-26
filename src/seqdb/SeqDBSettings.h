@@ -15,7 +15,6 @@ struct SeqDBSettings
 {
     struct Defaults
     {
-        static const bool IsFofn = false;
         static const size_t NumThreads = 1;
         static const int32_t CompressionLevel = 1;
         static constexpr float BufferSize = 1000.0f;
@@ -25,7 +24,6 @@ struct SeqDBSettings
 
     std::string OutputPrefix;
     std::vector<std::string> InputFiles;
-    bool IsFofn = Defaults::IsFofn;
     size_t NumThreads = Defaults::NumThreads;
     int32_t CompressionLevel = Defaults::CompressionLevel;
     float BufferSize = Defaults::BufferSize;
