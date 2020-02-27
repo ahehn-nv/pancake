@@ -2,6 +2,7 @@
 
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
+#include <pacbio/seeddb/SeedDBReader.h>
 #include <pacbio/seeddb/SeedDBReaderCachedBlock.h>
 #include <pacbio/seeddb/SequenceSeeds.h>
 #include <sstream>
@@ -30,7 +31,7 @@ TEST(SeedDBReaderCachedBlock, IterateThroughFirstBlock)
         PacBio::Pancake::LoadSeedDBIndexCache(inSeedDB);
 
     // Create a SeedDB reader.
-    PacBio::Pancake::SeedDBReaderCachedBlock reader(seedDBCache, blockId);
+    PacBio::Pancake::SeedDBReaderCachedBlock reader(seedDBCache, {blockId});
 
     // Iterate through all records in the cache and accumulate just the ID and the header.
     // We want to check whether all sequences are fetched properly.
@@ -65,7 +66,7 @@ TEST(SeedDBReaderCachedBlock, IterateThroughSecondBlock)
         PacBio::Pancake::LoadSeedDBIndexCache(inSeedDB);
 
     // Create a SeedDB reader.
-    PacBio::Pancake::SeedDBReaderCachedBlock reader(seedDBCache, blockId);
+    PacBio::Pancake::SeedDBReaderCachedBlock reader(seedDBCache, {blockId});
 
     // Iterate through all records in the cache and accumulate just the ID and the header.
     // We want to check whether all sequences are fetched properly.
@@ -95,7 +96,7 @@ TEST(SeedDBReaderCachedBlock, GetSeedsForSequenceRandomAccess)
         PacBio::Pancake::LoadSeedDBIndexCache(inSeedDB);
 
     // Create a SeedDB reader.
-    PacBio::Pancake::SeedDBReaderCachedBlock reader(seedDBCache, blockId);
+    PacBio::Pancake::SeedDBReaderCachedBlock reader(seedDBCache, {blockId});
 
     // Access each one of the loaded records by it's ID. The records are iterated one
     // by one in reverse order.
@@ -131,7 +132,7 @@ TEST(SeedDBReaderCachedBlock, GetSeedsForSequenceWhichDontExist)
         PacBio::Pancake::LoadSeedDBIndexCache(inSeedDB);
 
     // Create a SeedDB reader.
-    PacBio::Pancake::SeedDBReaderCachedBlock reader(seedDBCache, blockId);
+    PacBio::Pancake::SeedDBReaderCachedBlock reader(seedDBCache, {blockId});
 
     // Evaluate.
     EXPECT_THROW({ reader.GetSeedsForSequence(12345); }, std::runtime_error);
@@ -154,8 +155,46 @@ TEST(SeedDBReaderCachedBlock, ConstructFromNonexistentBlock)
         PacBio::Pancake::LoadSeedDBIndexCache(inSeedDB);
 
     // Evaluate.
-    EXPECT_THROW({ PacBio::Pancake::SeedDBReaderCachedBlock(seedDBCache, -1); },
+    EXPECT_THROW({ PacBio::Pancake::SeedDBReaderCachedBlock(seedDBCache, {-1}); },
                  std::runtime_error);
-    EXPECT_THROW({ PacBio::Pancake::SeedDBReaderCachedBlock(seedDBCache, 123); },
+    EXPECT_THROW({ PacBio::Pancake::SeedDBReaderCachedBlock(seedDBCache, {123}); },
                  std::runtime_error);
+}
+
+TEST(SeedDBReaderCachedBlock, MultipleInputBlocks)
+{
+    /*
+     * Test loading of multiple blocks at once.
+    */
+
+    const std::string inSeqDB =
+        PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
+    const std::vector<int32_t> inBlocks = {1, 2, 3};
+
+    // Load the SeedDB.
+    std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache =
+        PacBio::Pancake::LoadSeedDBIndexCache(inSeqDB);
+
+    // Collect all expected seeds lines for the specified input blocks
+    // using an orthogonal reader. These are treated as the truth data.
+    std::vector<PacBio::Pancake::SequenceSeeds> expected;
+    for (const auto& blockId : inBlocks) {
+        PacBio::Pancake::SeedDBReader reader(indexCache);
+        std::vector<PacBio::Pancake::SequenceSeeds> blockRecords;
+        reader.GetBlock(blockRecords, blockId);
+        expected.insert(expected.end(), blockRecords.begin(), blockRecords.end());
+    }
+
+    // Create a unit under test.
+    // Read the sequences for the specified blocks, and convert all
+    // FastaSequenceCached to FastaSequenceId for easier comparison.
+    PacBio::Pancake::SeedDBReaderCachedBlock readerTest(indexCache, {inBlocks});
+    std::vector<PacBio::Pancake::SequenceSeeds> results;
+    for (const auto& record : readerTest.records()) {
+        std::vector<__int128> seeds(record.Seeds(), record.Seeds() + record.Size());
+        results.emplace_back(PacBio::Pancake::SequenceSeeds(record.Name(), seeds, record.Id()));
+    }
+
+    // Evaluate the current block.
+    EXPECT_EQ(expected, results);
 }

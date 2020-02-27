@@ -169,6 +169,13 @@ R"({
     "type" : "int"
 })", OverlapHifiSettings::Defaults::AllowedHeuristicExtendDist};
 
+const CLI_v2::Option CombineBlocks{
+R"({
+    "names" : ["combine"],
+    "description" : "Combines this many query blocks into one larger block for processing.",
+    "type" : "int"
+})", OverlapHifiSettings::Defaults::CombineBlocks};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -201,6 +208,7 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , WriteIds{options[OptionNames::WriteIds]}
     , AllowedDovetailDist{options[OptionNames::AllowedDovetailDist]}
     , AllowedHeuristicExtendDist{options[OptionNames::AllowedHeuristicExtendDist]}
+    , CombineBlocks{options[OptionNames::CombineBlocks]}
 {
 }
 
@@ -228,7 +236,8 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::WriteReverseOverlaps,
         OptionNames::WriteIds,
         OptionNames::AllowedDovetailDist,
-        OptionNames::AllowedHeuristicExtendDist
+        OptionNames::AllowedHeuristicExtendDist,
+        OptionNames::CombineBlocks,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

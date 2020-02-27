@@ -19,17 +19,17 @@ class SeedDBReaderCachedBlock
 public:
     SeedDBReaderCachedBlock(std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBCache);
     SeedDBReaderCachedBlock(std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBCache,
-                            int32_t blockId);
+                            const std::vector<int32_t>& blockIds);
     ~SeedDBReaderCachedBlock();
 
-    void LoadBlock(int32_t blockId);
+    void LoadBlock(const std::vector<int32_t>& blockIds);
     const SequenceSeedsCached& GetSeedsForSequence(int32_t seqId) const;
     const SequenceSeedsCached& GetSeedsForSequence(const std::string& seqName) const;
     const std::vector<PacBio::Pancake::SequenceSeedsCached>& records() const { return records_; }
 
 private:
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache_;
-    int32_t blockId_;
+    std::vector<int32_t> blockIds_;
     std::vector<__int128> data_;
     std::vector<PacBio::Pancake::SequenceSeedsCached> records_;
 

@@ -26,17 +26,17 @@ class SeqDBReaderCachedBlock
 public:
     SeqDBReaderCachedBlock(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seedDBCache);
     SeqDBReaderCachedBlock(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seedDBCache,
-                           int32_t blockId);
+                           const std::vector<int32_t>& blockIds);
     ~SeqDBReaderCachedBlock();
 
-    void LoadBlock(int32_t blockId);
+    void LoadBlocks(const std::vector<int32_t>& blockIds);
     const FastaSequenceCached& GetSequence(int32_t seqId) const;
     const FastaSequenceCached& GetSequence(const std::string& seqName) const;
     const std::vector<FastaSequenceCached>& records() const { return records_; }
 
 private:
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBIndexCache_;
-    int32_t blockId_;
+    std::vector<int32_t> blockIds_;
     std::vector<uint8_t> data_;
     std::vector<FastaSequenceCached> records_;
 
@@ -44,8 +44,8 @@ private:
     std::unordered_map<std::string, int32_t> headerToOrdinalId_;
     std::unordered_map<int32_t, int32_t> seqIdToOrdinalId_;
 
-    void LoadBlockUncompressed_(int32_t blockId);
-    void LoadBlockCompressed_(int32_t blockId);
+    void LoadBlockUncompressed_(const std::vector<ContiguousFilePart>& parts);
+    void LoadBlockCompressed_(const std::vector<ContiguousFilePart>& parts);
 };
 
 }  // namespace Pancake

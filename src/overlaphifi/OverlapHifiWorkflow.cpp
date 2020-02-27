@@ -16,6 +16,7 @@
 #include <pbcopper/logging/Logging.h>
 #include <pbcopper/parallel/FireAndForget.h>
 #include <pbcopper/parallel/WorkQueue.h>
+#include <sstream>
 
 namespace PacBio {
 namespace Pancake {
@@ -71,7 +72,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     PBLOG_INFO << "After loading query seed cache: " << ttInit.VerboseSecs(true);
     // Create the target readers.
     PacBio::Pancake::SeqDBReaderCachedBlock targetSeqDBReader(targetSeqDBCache,
-                                                              settings.TargetBlockId);
+                                                              {settings.TargetBlockId});
     PacBio::Pancake::SeedDBReaderRawBlock targetSeedDBReader(targetSeedDBCache);
     // Read the seeds for the target block.
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds =
@@ -118,23 +119,46 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     PacBio::Pancake::SeqDBReaderCachedBlock querySeqDBReader(querySeqDBCache);
     PacBio::Pancake::SeedDBReaderCachedBlock querySeedDBReader(querySeedDBCache);
     for (int32_t queryBlockId = settings.QueryBlockStartId; queryBlockId < endBlockId;
-         ++queryBlockId) {
-        PBLOG_INFO << "Loading the query block " << queryBlockId << ".";
+         queryBlockId += settings.CombineBlocks) {
+
+        std::vector<int32_t> blocksToLoad;
+        for (int32_t blockId = queryBlockId;
+             blockId < std::min(endBlockId, (queryBlockId + settings.CombineBlocks)); ++blockId) {
+            blocksToLoad.emplace_back(blockId);
+        }
+        if (blocksToLoad.empty()) {
+            throw std::runtime_error("There are zero blocks to load!");
+        }
+        std::string blocksToLoadStr;
+        {
+            std::ostringstream oss;
+            oss << "{" << blocksToLoad[0];
+            for (size_t i = 1; i < blocksToLoad.size(); ++i) {
+                oss << ", " << blocksToLoad[i];
+            }
+            oss << "}";
+            blocksToLoadStr = oss.str();
+        }
+
+        PBLOG_INFO << "Loading the query blocks: " << blocksToLoadStr << ".";
         // Create the query readers for the current block.
         TicToc ttQueryLoad;
         // PacBio::Pancake::SeqDBReaderCached querySeqDBReader(querySeqDBCache, queryBlockId);
-        querySeqDBReader.LoadBlock(queryBlockId);
+        querySeqDBReader.LoadBlocks(blocksToLoad);
         PBLOG_INFO << "Loaded the query SeqDB cache block after " << ttQueryLoad.GetSecs(true)
                    << " sec / " << ttQueryLoad.GetCpuSecs(true) << " CPU sec";
-        querySeedDBReader.LoadBlock(queryBlockId);
+        querySeedDBReader.LoadBlock(blocksToLoad);
         ttQueryLoad.Stop();
         PBLOG_INFO << "Loaded the query SeedDB cache block after " << ttQueryLoad.GetSecs()
                    << " sec / " << ttQueryLoad.GetCpuSecs() << " CPU sec";
-        PBLOG_INFO << "Loaded all query block in " << ttQueryLoad.GetSecs() << " sec / "
+        PBLOG_INFO << "Loaded all query blocks in " << ttQueryLoad.GetSecs() << " sec / "
                    << ttQueryLoad.GetCpuSecs() << " CPU sec";
 
-        PBLOG_INFO << "About to map query block " << queryBlockId
-                   << ": num_seqs = " << querySeqDBReader.records().size();
+        std::ostringstream oss;
+        oss << "About to map query blocks: " << blocksToLoadStr
+            << ": num_seqs = " << querySeqDBReader.records().size();
+        PBLOG_INFO << oss.str();
+
         // Parallel processing.
         {
             TicToc ttQueryBlockMapping;
