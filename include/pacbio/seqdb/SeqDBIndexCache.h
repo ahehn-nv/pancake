@@ -79,8 +79,22 @@ public:
     const SeqDBFileLine& GetFileLine(int32_t fileId) const;
 };
 
+/// \brief Writes the .seqdb file to disk.
+void WriteSeqDBIndexCache(FILE* fpOut, const SeqDBIndexCache& cache);
+
 void ComputeSeqDBIndexHeaderLookup(const PacBio::Pancake::SeqDBIndexCache& dbCache,
                                    HeaderLookupType& headerToOrdinalId);
+
+/// \brief Given a vector of SeqDBSequenceLine objects, this function groups them in
+///        creates blocks of given block size.
+std::vector<SeqDBBlockLine> CreateSeqDBBlocks(const std::vector<SeqDBSequenceLine>& seqLines,
+                                              int64_t blockSize);
+
+/// \brief When a SeqDBIndexCache is subsampled or manually constructed, the seqID of each sequence
+///        might not correspond to the sequence's ordinal ID. This function updates the seqID to
+///        match, and also constructs the blocks of given block size.
+///        It modifies the cache object in place.
+void NormalizeSeqDBIndexCache(SeqDBIndexCache& cache, int64_t blockSize);
 
 /// \brief Loads the SeqDB index from file.
 ///
