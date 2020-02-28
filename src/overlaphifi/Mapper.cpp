@@ -325,9 +325,31 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const int32_t qSpan = qEnd - qStart;
         const int32_t tStartFwd = ovl->Brev ? (ovl->Blen - ovl->Bend) : ovl->Bstart;
         const int32_t tEndFwd = ovl->Brev ? (ovl->Blen - ovl->Bstart) : ovl->Bend;
-        const std::string tseq =
-            (ovl->Brev) ? FetchTargetSubsequence_(targetSeq, 0, tEndFwd, ovl->Brev)
-                        : FetchTargetSubsequence_(targetSeq, tStartFwd, ovl->Blen, ovl->Brev);
+        // const std::string tseq =
+        //     (ovl->Brev) ? FetchTargetSubsequence_(targetSeq, 0, tEndFwd, ovl->Brev)
+        //                 : FetchTargetSubsequence_(targetSeq, tStartFwd, ovl->Blen, ovl->Brev);
+        // int32_t leftHang = std::min(qStart, tStartFwd);
+        // int32_t rightHang = std::min(ovl->Blen - tEndFwd, ovl->Alen - ovl->Aend);
+        // std::cerr << "(fwd)\n";
+        // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
+        // std::cerr << "qStart = " << qStart << ", qEnd = " << qEnd << ", qLen = " << ovl->Alen << ", tStartFwd = " << tStartFwd << ", tEndFwd = " << tEndFwd << ", tLen = " << ovl->Blen << "\n";
+        std::string tseq;
+        if (ovl->Brev) {
+            // Ove koordinate su krive, to moram popraviti.
+            // A isto tako i za sve druge slucaje.
+            // int32_t leftHang = std::min(qStart, ovl->Blen - tEndFwd);
+            int32_t rightHang = std::min(ovl->Alen - ovl->Aend, tStartFwd);
+            // std::cerr << "Extracted target: (" << (std::max(0, tStartFwd - leftHang * 2)) << ", " << tEndFwd << "\n";
+            tseq = FetchTargetSubsequence_(targetSeq, std::max(0, tStartFwd - rightHang * 2),
+                                           tEndFwd, ovl->Brev);
+            // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
+        } else {
+            // int32_t leftHang = std::min(qStart, tStartFwd);
+            int32_t rightHang = std::min(ovl->Blen - tEndFwd, ovl->Alen - ovl->Aend);
+            tseq = FetchTargetSubsequence_(targetSeq, tStartFwd,
+                                           std::min(ovl->Blen, tEndFwd + rightHang * 2), ovl->Brev);
+            // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
+        }
         const int32_t tSpan = tseq.size();
         const int32_t dMax = ovl->Alen * alignMaxDiff;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
@@ -352,14 +374,31 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const int32_t qSpan = qEnd - qStart;
         const int32_t tStartFwd = ret->Brev ? (ret->Blen - ret->Bend) : ret->Bstart;
         const int32_t tEndFwd = ret->Brev ? (ret->Blen - ret->Bstart) : ret->Bend;
-        const std::string tSeq =
-            (ovl->Brev) ? FetchTargetSubsequence_(targetSeq, tEndFwd, ret->Blen, !ret->Brev)
-                        : FetchTargetSubsequence_(targetSeq, 0, tStartFwd, !ret->Brev);
-        const int32_t tSpan = tSeq.size();
+        // const std::string tSeq =
+        //     (ovl->Brev) ? FetchTargetSubsequence_(targetSeq, tEndFwd, ret->Blen, !ret->Brev)
+        //                 : FetchTargetSubsequence_(targetSeq, 0, tStartFwd, !ret->Brev);
+        // int32_t leftHang = std::min(ovl->Alen - ovl->Aend, tStartFwd);
+        // int32_t rightHang = std::min(ovl->Blen - tEndFwd, qStart);
+        // std::cerr << "(rev)\n";
+        // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
+        // std::cerr << "qStart = " << qStart << ", qEnd = " << qEnd << ", qLen = " << ovl->Alen << ", tStartFwd = " << tStartFwd << ", tEndFwd = " << tEndFwd << ", tLen = " << ovl->Blen << "\n";
+        // std::cerr << "[before] " << OverlapWriter::PrintOverlapAsM4(ovl, "", "", false, true) << "\n";
+        std::string tseq;
+        if (ovl->Brev) {
+            // int32_t leftHang = std::min(ovl->Alen - ovl->Aend, tStartFwd);
+            int32_t rightHang = std::min(ovl->Blen - tEndFwd, qStart);
+            tseq = FetchTargetSubsequence_(
+                targetSeq, tEndFwd, std::min(ret->Blen, tEndFwd + rightHang * 2), !ret->Brev);
+        } else {
+            int32_t leftHang = std::min(ovl->Astart, tStartFwd);
+            tseq = FetchTargetSubsequence_(targetSeq, std::max(0, tStartFwd - leftHang * 2),
+                                           tStartFwd, !ret->Brev);
+        }
+        const int32_t tSpan = tseq.size();
         const int32_t dMax = ovl->Alen * alignMaxDiff - diffsRight;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
         const auto sesResult = PacBio::Pancake::Alignment::SESDistanceBanded(
-            reverseQuerySeq.c_str() + qStart, qSpan, tSeq.c_str(), tSpan, dMax, bandwidth);
+            reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
         ret->Astart = ovl->Astart - sesResult.lastQueryPos;
         ret->Bstart = ovl->Bstart - sesResult.lastTargetPos;
         ret->EditDistance = diffsRight + sesResult.diffs;
@@ -367,6 +406,8 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const float span = std::max(ret->ASpan(), ret->BSpan());
         ret->Identity =
             ((span != 0) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -2.0f);
+        // std::cerr << "[after] " << OverlapWriter::PrintOverlapAsM4(ret, "", "", false, true) << "\n";
+        // std::cerr << "\n";
     }
 
     return ret;
