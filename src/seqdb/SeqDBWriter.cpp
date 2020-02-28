@@ -21,12 +21,14 @@ std::unique_ptr<SeqDBWriter> CreateSeqDBWriter(const std::string& filenamePrefix
 SeqDBWriter::SeqDBWriter(const std::string& filenamePrefix, bool useCompression, int64_t flushSize,
                          int64_t blockSize, bool splitBlocks)
     : filenamePrefix_(filenamePrefix)
-    , useCompression_(useCompression)
     , flushSizeBytes_(flushSize)
     , blockSize_(blockSize)
     , splitBlocks_(splitBlocks)
 {
-    // Perform the actuall throwable work here, so that the constructor doesn't throw.
+    cache_.version = version_;
+    cache_.compressionLevel = useCompression;
+
+    // Perform the actual throwable work here, so that the constructor doesn't throw.
     SplitPath(filenamePrefix_, parentFolder_, basenamePrefix_);
     seqBuffer_.reserve(flushSizeBytes_);
     OpenNewSequenceFile_();
@@ -36,7 +38,7 @@ SeqDBWriter::SeqDBWriter(const std::string& filenamePrefix, bool useCompression,
 SeqDBWriter::~SeqDBWriter()
 {
     if (currentBlock_.Span() > 0) {
-        blockLines_.emplace_back(currentBlock_);
+        cache_.blockLines.emplace_back(currentBlock_);
     }
     FlushSequenceBuffer();
     WriteIndex();
@@ -45,7 +47,7 @@ SeqDBWriter::~SeqDBWriter()
 void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
 {
     // We need access to the open file to count the number of sequences, bases and bytes.
-    if (fileLines_.empty()) {
+    if (cache_.fileLines.empty()) {
         throw std::runtime_error("There are no output sequence files open.");
     }
 
@@ -62,7 +64,7 @@ void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
 
     // Add the bases (either compressed or uncompressed), and initialize the
     // byte and length values properly.
-    if (useCompression_) {
+    if (cache_.compressionLevel) {
         // Compress the sequence.
         PacBio::Pancake::CompressedSequence compressed = PacBio::Pancake::CompressedSequence(seq);
         const auto& bytes = compressed.GetTwobit();
@@ -88,14 +90,14 @@ void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
 
     // Create a new index registry object.
     SeqDBSequenceLine sl;
-    sl.seqId = static_cast<int32_t>(seqLines_.size());
+    sl.seqId = static_cast<int32_t>(cache_.seqLines.size());
     sl.header = header;
     sl.numBytes = numBytes;
     sl.numBases = static_cast<int32_t>(seq.size());
-    sl.fileId = fileLines_.back().fileId;
-    sl.fileOffset = fileLines_.back().numBytes;
+    sl.fileId = cache_.fileLines.back().fileId;
+    sl.fileOffset = cache_.fileLines.back().numBytes;
     sl.ranges = ranges;
-    seqLines_.emplace_back(sl);
+    cache_.seqLines.emplace_back(sl);
 
     // Extend the current block.
     currentBlock_.startSeqId = (currentBlock_.startSeqId < 0) ? sl.seqId : currentBlock_.startSeqId;
@@ -104,10 +106,10 @@ void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
     currentBlock_.numBases += sl.numBases;
 
     // Increase counts for the current file.
-    fileLines_.back().numBytes += numBytes;
-    ++fileLines_.back().numSequences;
-    fileLines_.back().numUncompressedBases += numUncompressedBases;
-    fileLines_.back().numCompressedBases += numCompressedBases;
+    cache_.fileLines.back().numBytes += numBytes;
+    ++cache_.fileLines.back().numSequences;
+    cache_.fileLines.back().numUncompressedBases += numUncompressedBases;
+    cache_.fileLines.back().numCompressedBases += numCompressedBases;
 
     // Increase the global counts.
     ++totalOutSeqs_;
@@ -120,9 +122,9 @@ void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
 
     if (currentBlock_.numBases >= blockSize_ && currentBlock_.Span() > 0) {
         FlushSequenceBuffer();
-        blockLines_.emplace_back(currentBlock_);
+        cache_.blockLines.emplace_back(currentBlock_);
         currentBlock_ = SeqDBBlockLine();
-        currentBlock_.blockId = static_cast<int32_t>(blockLines_.size());
+        currentBlock_.blockId = static_cast<int32_t>(cache_.blockLines.size());
         openNewSequenceFileUponNextWrite_ = false;
         if (splitBlocks_) {
             openNewSequenceFileUponNextWrite_ = true;
@@ -140,9 +142,10 @@ void SeqDBWriter::OpenNewSequenceFile_()
 {
     // Register a new file object.
     SeqDBFileLine fileLine;
-    fileLine.fileId = static_cast<int32_t>(fileLines_.size());
-    fileLine.filename = basenamePrefix_ + ".seqdb." + std::to_string(fileLines_.size()) + ".seq";
-    fileLines_.emplace_back(fileLine);
+    fileLine.fileId = static_cast<int32_t>(cache_.fileLines.size());
+    fileLine.filename =
+        basenamePrefix_ + ".seqdb." + std::to_string(cache_.fileLines.size()) + ".seq";
+    cache_.fileLines.emplace_back(fileLine);
 
     // Open the new file and return the pointer.
     fpOutSeqs_ =
@@ -167,43 +170,7 @@ bool SeqDBWriter::WriteSequences()
     return num == seqBuffer_.size();
 }
 
-void SeqDBWriter::WriteIndex()
-{
-    // An output index file should be open at all times, starting from construction.
-    if (fpOutIndex_ == nullptr) {
-        throw std::runtime_error("Cannot write the index because an output file is not open.");
-    }
-
-    // Write the version and compression information.
-    fprintf(fpOutIndex_.get(), "V\t%s\n", version_.c_str());
-    fprintf(fpOutIndex_.get(), "C\t%d\n",
-            static_cast<int32_t>(useCompression_));  // Compression is turned on.
-
-    // Write all the files and their sizes.
-    for (const auto& f : fileLines_) {
-        fprintf(fpOutIndex_.get(), "F\t%d\t%s\t%d\t%lld\t%lld\n", f.fileId, f.filename.c_str(),
-                f.numSequences, f.numBytes, f.numCompressedBases);
-    }
-
-    // Write the indexes of all sequences.
-    for (size_t i = 0; i < seqLines_.size(); ++i) {
-        fprintf(fpOutIndex_.get(), "S\t%d\t%s\t%d\t%lld\t%d\t%d", seqLines_[i].seqId,
-                seqLines_[i].header.c_str(), seqLines_[i].fileId, seqLines_[i].fileOffset,
-                seqLines_[i].numBytes, seqLines_[i].numBases);
-        fprintf(fpOutIndex_.get(), "\t%lu", seqLines_[i].ranges.size());
-        for (const auto& r : seqLines_[i].ranges) {
-            fprintf(fpOutIndex_.get(), "\t%d\t%d", r.start, r.end);
-        }
-        fprintf(fpOutIndex_.get(), "\n");
-    }
-
-    // Write the blocks of all sequences.
-    for (size_t i = 0; i < blockLines_.size(); ++i) {
-        fprintf(fpOutIndex_.get(), "B\t%d\t%d\t%d\t%lld\t%lld\n", blockLines_[i].blockId,
-                blockLines_[i].startSeqId, blockLines_[i].endSeqId, blockLines_[i].numBytes,
-                blockLines_[i].numBases);
-    }
-}
+void SeqDBWriter::WriteIndex() { WriteSeqDBIndexCache(fpOutIndex_.get(), cache_); }
 
 void SeqDBWriter::ClearSequenceBuffer() { seqBuffer_.clear(); }
 
