@@ -30,6 +30,8 @@ pancake_version_sources = [
 
 pancake_cpp_sources = files([
     'alignment/SesDistanceBanded.cpp',
+    'dbfilter/DBFilterSettings.cpp',
+    'dbfilter/DBFilterWorkflow.cpp',
     'overlaphifi/Mapper.cpp',
     'overlaphifi/Overlap.cpp',
     'overlaphifi/OverlapHifiSettings.cpp',

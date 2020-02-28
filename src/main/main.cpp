@@ -9,6 +9,8 @@
 #include <pacbio/Version.h>
 
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
+#include "dbfilter/DBFilterSettings.h"
+#include "dbfilter/DBFilterWorkflow.h"
 #include "overlaphifi/OverlapHifiWorkflow.h"
 #include "seeddb/SeedDBSettings.h"
 #include "seeddb/SeedDBWorkflow.h"
@@ -31,7 +33,10 @@ PacBio::CLI_v2::MultiToolInterface CreateMultiInterface()
            &PacBio::Pancake::SeedDB::SeedDBWorkflow::Runner},
         {"ovl-hifi",
             PacBio::Pancake::OverlapHifiSettings::CreateCLI(),
-           &PacBio::Pancake::OverlapHifiWorkflow::Runner}
+           &PacBio::Pancake::OverlapHifiWorkflow::Runner},
+        {"dbfilter",
+            PacBio::Pancake::DBFilterSettings::CreateCLI(),
+           &PacBio::Pancake::DBFilterWorkflow::Runner},
     });
 
     // clang-format on
