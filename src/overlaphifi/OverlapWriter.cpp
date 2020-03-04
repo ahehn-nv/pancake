@@ -5,21 +5,25 @@
 namespace PacBio {
 namespace Pancake {
 
-OverlapWriter::OverlapWriter(const std::string& outFile, bool writeReverseOverlaps, bool writeIds)
+OverlapWriter::OverlapWriter(const std::string& outFile, bool writeReverseOverlaps,
+                             int32_t allowedDovetailDist, bool writeIds)
     : outFile_(outFile)
     , fpOut_(NULL)
     , shouldClose_(true)
     , writeReverseOverlaps_(writeReverseOverlaps)
+    , allowedDovetailDist_(allowedDovetailDist)
     , writeIds_(writeIds)
 {
     fpOut_ = fopen(outFile_.c_str(), "w");
 }
 
-OverlapWriter::OverlapWriter(FILE* fpOut, bool writeReverseOverlaps, bool writeIds)
+OverlapWriter::OverlapWriter(FILE* fpOut, bool writeReverseOverlaps, int32_t allowedDovetailDist,
+                             bool writeIds)
     : outFile_("")
     , fpOut_(fpOut)
     , shouldClose_(false)
     , writeReverseOverlaps_(writeReverseOverlaps)
+    , allowedDovetailDist_(allowedDovetailDist)
     , writeIds_(writeIds)
 {
 }
@@ -36,8 +40,20 @@ void OverlapWriter::Write(const std::vector<OverlapPtr>& overlaps,
                           const PacBio::Pancake::FastaSequenceId& querySeq)
 {
     for (const auto& ovl : overlaps) {
-        PrintOverlapAsM4(fpOut_, ovl, querySeq.Name(), targetSeqs.GetSequence(ovl->Bid).Name(),
-                         writeReverseOverlaps_, writeIds_);
+        // Don't look for the actual headers unless required. Saves the cost of a search.
+        const auto& qName = writeIds_ ? "" : querySeq.Name();
+        const auto& tName = writeIds_ ? "" : targetSeqs.GetSequence(ovl->Bid).Name();
+
+        PrintOverlapAsM4(fpOut_, ovl, qName, tName, writeIds_);
+
+        if (writeReverseOverlaps_) {
+            // Reverse overlaps cannot be collected in the Mapper class, because
+            // the semantic of the Aread (which comes from the query DB) and the
+            // Bread (which comes from the target DB) gets lost and it's impossible
+            // to tell which DB Aread and Bread came from.
+            auto newOvl = CreateFlippedOverlap(ovl, allowedDovetailDist_);
+            PrintOverlapAsM4(fpOut_, newOvl, tName, qName, writeIds_);
+        }
     }
 }
 
@@ -46,14 +62,25 @@ void OverlapWriter::Write(const std::vector<OverlapPtr>& overlaps,
                           const PacBio::Pancake::FastaSequenceCached& querySeq)
 {
     for (const auto& ovl : overlaps) {
-        PrintOverlapAsM4(fpOut_, ovl, querySeq.Name(), targetSeqs.GetSequence(ovl->Bid).Name(),
-                         writeReverseOverlaps_, writeIds_);
+        // Don't look for the actual headers unless required. Saves the cost of a search.
+        const auto& qName = writeIds_ ? "" : querySeq.Name();
+        const auto& tName = writeIds_ ? "" : targetSeqs.GetSequence(ovl->Bid).Name();
+
+        PrintOverlapAsM4(fpOut_, ovl, qName, tName, writeIds_);
+
+        if (writeReverseOverlaps_) {
+            // Reverse overlaps cannot be collected in the Mapper class, because
+            // the semantic of the Aread (which comes from the query DB) and the
+            // Bread (which comes from the target DB) gets lost and it's impossible
+            // to tell which DB Aread and Bread came from.
+            auto newOvl = CreateFlippedOverlap(ovl, allowedDovetailDist_);
+            PrintOverlapAsM4(fpOut_, newOvl, tName, qName, writeIds_);
+        }
     }
 }
 
 void OverlapWriter::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
-                                     const std::string& Bname, bool writeReverseOverlap,
-                                     bool writeIds)
+                                     const std::string& Bname, bool writeIds)
 {
     double identity = static_cast<double>(ovl->Identity);
     if (identity == 0.0 && ovl->EditDistance >= 0.0) {
@@ -81,37 +108,10 @@ void OverlapWriter::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const s
     fprintf(fpOut, " %d %.2lf %d %d %d %d %d %d %d %d %s\n", static_cast<int32_t>(ovl->Score),
             100.0 * identity, static_cast<int32_t>(ovl->Arev), ovl->Astart, ovl->Aend, ovl->Alen,
             static_cast<int32_t>(tIsRev), tStart, tEnd, tLen, typeStr.c_str());
-
-    if (writeReverseOverlap) {
-        // The reverse overlap has the same coordinates as the normal orientation,
-        // because all coordinates are in the FWD strand.
-        // The Arev and Brev are intentionally kept in the normal orientation,
-        // it's expected that the A-read is always fwd oriented.
-        if (writeIds) {
-            fprintf(fpOut, "%09d %09d", ovl->Bid, ovl->Aid);
-        } else {
-            fprintf(fpOut, "%s %s", Bname.c_str(), Aname.c_str());
-        }
-        OverlapType revType = (ovl->Type == OverlapType::FivePrime)
-                                  ? OverlapType::ThreePrime
-                                  : (ovl->Type == OverlapType::ThreePrime)
-                                        ? OverlapType::FivePrime
-                                        : (ovl->Type == OverlapType::Contained)
-                                              ? OverlapType::Contains
-                                              : (ovl->Type == OverlapType::Contains)
-                                                    ? OverlapType::Contained
-                                                    : ovl->Type;
-        std::string revTypeStr = OverlapTypeToString(revType);
-        fprintf(fpOut, " %d %.2lf %d %d %d %d %d %d %d %d %s\n", static_cast<int32_t>(ovl->Score),
-                100.0 * identity, static_cast<int32_t>(ovl->Arev), tStart, tEnd, tLen,
-                static_cast<int32_t>(tIsRev), ovl->Astart, ovl->Aend, ovl->Alen,
-                revTypeStr.c_str());
-    }
 }
 
 std::string OverlapWriter::PrintOverlapAsM4(const OverlapPtr& ovl, const std::string& Aname,
-                                            const std::string& Bname, bool writeReverseOverlap,
-                                            bool writeIds)
+                                            const std::string& Bname, bool writeIds)
 {
     double identity = static_cast<double>(ovl->Identity);
     if (identity == 0.0 && ovl->EditDistance >= 0.0) {
@@ -147,32 +147,6 @@ std::string OverlapWriter::PrintOverlapAsM4(const OverlapPtr& ovl, const std::st
         << static_cast<int32_t>(ovl->Arev) << " " << ovl->Astart << " " << ovl->Aend << " "
         << ovl->Alen << " " << static_cast<int32_t>(tIsRev) << " " << tStart << " " << tEnd << " "
         << tLen << " " << typeStr.c_str();
-
-    if (writeReverseOverlap) {
-        // The reverse overlap has the same coordinates as the normal orientation,
-        // because all coordinates are in the FWD strand.
-        // The Arev and Brev are intentionally kept in the normal orientation,
-        // it's expected that the A-read is always fwd oriented.
-        if (writeIds) {
-            oss << buffB << " " << buffA;
-        } else {
-            oss << Bname << " " << Aname;
-        }
-        OverlapType revType = (ovl->Type == OverlapType::FivePrime)
-                                  ? OverlapType::ThreePrime
-                                  : (ovl->Type == OverlapType::ThreePrime)
-                                        ? OverlapType::FivePrime
-                                        : (ovl->Type == OverlapType::Contained)
-                                              ? OverlapType::Contains
-                                              : (ovl->Type == OverlapType::Contains)
-                                                    ? OverlapType::Contained
-                                                    : ovl->Type;
-        std::string revTypeStr = OverlapTypeToString(revType);
-        oss << " " << static_cast<int32_t>(ovl->Score) << " " << 100.0 * identity << " "
-            << static_cast<int32_t>(ovl->Arev) << " " << tStart << " " << tEnd << " " << tLen << " "
-            << static_cast<int32_t>(tIsRev) << " " << ovl->Astart << " " << ovl->Aend << " "
-            << ovl->Alen << " " << typeStr.c_str();
-    }
 
     return oss.str();
 }

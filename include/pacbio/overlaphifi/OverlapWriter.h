@@ -19,8 +19,10 @@ namespace Pancake {
 class OverlapWriter
 {
 public:
-    OverlapWriter(const std::string& outFile, bool writeReverseOverlaps, bool writeIds);
-    OverlapWriter(FILE* fpOut, bool writeReverseOverlaps, bool writeIds);
+    OverlapWriter(const std::string& outFile, bool writeReverseOverlaps,
+                  int32_t allowedDovetailDist, bool writeIds);
+    OverlapWriter(FILE* fpOut, bool writeReverseOverlaps, int32_t allowedDovetailDist,
+                  bool writeIds);
     ~OverlapWriter();
 
     void Write(const std::vector<OverlapPtr>& overlaps,
@@ -31,16 +33,16 @@ public:
                const PacBio::Pancake::FastaSequenceCached& querySeq);
 
     static void PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
-                                 const std::string& Bname, bool writeReverseOverlap, bool writeIds);
+                                 const std::string& Bname, bool writeIds);
     static std::string PrintOverlapAsM4(const OverlapPtr& ovl, const std::string& Aname,
-                                        const std::string& Bname, bool writeReverseOverlap,
-                                        bool writeIds);
+                                        const std::string& Bname, bool writeIds);
 
 private:
     std::string outFile_;
     FILE* fpOut_ = NULL;
     bool shouldClose_ = false;
     bool writeReverseOverlaps_ = false;
+    int32_t allowedDovetailDist_ = 0;
     bool writeIds_ = false;
 };
 

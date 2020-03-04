@@ -10,6 +10,10 @@
 namespace PacBio {
 namespace Pancake {
 
+class Overlap;
+
+using OverlapPtr = std::unique_ptr<Overlap>;
+
 enum class OverlapType
 {
     Unknown,
@@ -19,6 +23,13 @@ enum class OverlapType
     FivePrime,
     ThreePrime
 };
+
+OverlapType DetermineOverlapType(const Overlap& ovl, int32_t allowedDovetailDist);
+void HeuristicExtendOverlapFlanks(OverlapPtr& ovl, int32_t allowedDist);
+OverlapPtr HeuristicExtendOverlapFlanks(const OverlapPtr& ovl, int32_t allowedDist);
+OverlapPtr ParseOverlapFromString(const std::string& line);
+std::string OverlapTypeToString(const OverlapType& type);
+OverlapType OverlapTypeFromString(const std::string& typeStr);
 
 class Overlap
 {
@@ -75,6 +86,28 @@ public:
     int32_t BstartFwd() const { return (Brev ? (Blen - Bend) : Bstart); }
     int32_t BendFwd() const { return (Brev ? (Blen - Bstart) : Bend); }
 
+    void Flip(int32_t allowedDovetailDist)
+    {
+        std::swap(Aid, Bid);
+        std::swap(Arev, Brev);
+        std::swap(Alen, Blen);
+        // Keep the A sequence in the fwd direction at all times.
+        if (Arev) {
+            std::swap(Astart, Bend);
+            std::swap(Aend, Bstart);
+            Astart = Alen - Astart;
+            Aend = Alen - Aend;
+            Arev = !Arev;
+            Bstart = Blen - Bstart;
+            Bend = Blen - Bend;
+            Brev = !Brev;
+        } else {
+            std::swap(Astart, Bstart);
+            std::swap(Aend, Bend);
+        }
+        Type = DetermineOverlapType(*this, allowedDovetailDist);
+    }
+
 public:
     bool operator==(const Overlap& rhs) const
     {
@@ -84,8 +117,6 @@ public:
                Brev == rhs.Brev && Bstart == rhs.Bstart && Bend == rhs.Bend && Blen == rhs.Bend;
     }
 };
-
-using OverlapPtr = std::unique_ptr<Overlap>;
 
 inline std::unique_ptr<Overlap> createOverlap() { return std::unique_ptr<Overlap>(new Overlap()); }
 
@@ -107,17 +138,12 @@ inline std::unique_ptr<Overlap> createOverlap(const std::unique_ptr<Overlap>& ov
         ovl->Brev, ovl->Bstart, ovl->Bend, ovl->Blen, ovl->EditDistance, ovl->NumSeeds, ovl->Type));
 }
 
-OverlapType DetermineOverlapType(const OverlapPtr& ovl, int32_t allowedDovetailDist);
-
-void HeuristicExtendOverlapFlanks(OverlapPtr& ovl, int32_t allowedDist);
-
-OverlapPtr HeuristicExtendOverlapFlanks(const OverlapPtr& ovl, int32_t allowedDist);
-
-OverlapPtr ParseOverlapFromString(const std::string& line);
-
-std::string OverlapTypeToString(const OverlapType& type);
-
-OverlapType OverlapTypeFromString(const std::string& typeStr);
+inline OverlapPtr CreateFlippedOverlap(const OverlapPtr& ovl, int32_t allowedDovetailDist)
+{
+    auto newOvl = createOverlap(ovl);
+    newOvl->Flip(allowedDovetailDist);
+    return newOvl;
+}
 
 }  // namespace Pancake
 }  // namespace PacBio
