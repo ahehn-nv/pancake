@@ -222,7 +222,7 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
             continue;
         }
         auto newOvl = createOverlap(ovl);
-        newOvl->Type = DetermineOverlapType(ovl, allowedDovetailDist);
+        newOvl->Type = DetermineOverlapType(*ovl, allowedDovetailDist);
         HeuristicExtendOverlapFlanks(newOvl, allowedExtendDist);
         ret.emplace_back(std::move(newOvl));
     }

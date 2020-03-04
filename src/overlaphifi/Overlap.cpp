@@ -5,14 +5,14 @@
 namespace PacBio {
 namespace Pancake {
 
-OverlapType DetermineOverlapType(const OverlapPtr& ovl, int32_t allowedDovetailDist)
+OverlapType DetermineOverlapType(const Overlap& ovl, int32_t allowedDovetailDist)
 {
-    int32_t leftHangA = ovl->AstartFwd();
-    int32_t rightHangA = ovl->Alen - ovl->AendFwd();
-    int32_t leftHangB = ovl->BstartFwd();
-    int32_t rightHangB = ovl->Blen - ovl->BendFwd();
+    int32_t leftHangA = ovl.AstartFwd();
+    int32_t rightHangA = ovl.Alen - ovl.AendFwd();
+    int32_t leftHangB = ovl.BstartFwd();
+    int32_t rightHangB = ovl.Blen - ovl.BendFwd();
 
-    if (ovl->Brev) {
+    if (ovl.Brev) {
         std::swap(leftHangB, rightHangB);
     }
 
