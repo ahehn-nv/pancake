@@ -325,32 +325,28 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const int32_t qSpan = qEnd - qStart;
         const int32_t tStartFwd = ovl->Brev ? (ovl->Blen - ovl->Bend) : ovl->Bstart;
         const int32_t tEndFwd = ovl->Brev ? (ovl->Blen - ovl->Bstart) : ovl->Bend;
-        // const std::string tseq =
-        //     (ovl->Brev) ? FetchTargetSubsequence_(targetSeq, 0, tEndFwd, ovl->Brev)
-        //                 : FetchTargetSubsequence_(targetSeq, tStartFwd, ovl->Blen, ovl->Brev);
-        // int32_t leftHang = std::min(qStart, tStartFwd);
-        // int32_t rightHang = std::min(ovl->Blen - tEndFwd, ovl->Alen - ovl->Aend);
-        // std::cerr << "(fwd)\n";
-        // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
-        // std::cerr << "qStart = " << qStart << ", qEnd = " << qEnd << ", qLen = " << ovl->Alen << ", tStartFwd = " << tStartFwd << ", tEndFwd = " << tEndFwd << ", tLen = " << ovl->Blen << "\n";
         std::string tseq;
         if (ovl->Brev) {
-            // Ove koordinate su krive, to moram popraviti.
-            // A isto tako i za sve druge slucaje.
-            // int32_t leftHang = std::min(qStart, ovl->Blen - tEndFwd);
+            // Extract reverse complemented target sequence.
+            // The reverse complement begins at the last mapped position (tEndFwd),
+            // and ends at the the tStartFwd reduced by an allowed overhang.
+            // The allowed overhang is designed to absorb the entire unmapped end
+            // of the query, and at most 2x that length in the target. (The 2xhang
+            // is just to be safe, because no proper alignment should be 2x longer
+            // in one sequence than in the other).
             int32_t minHangLen = std::min(ovl->Alen - ovl->Aend, tStartFwd);
             int32_t extractBegin = std::max(0, tStartFwd - minHangLen * 2);
             int32_t extractEnd = tEndFwd;
-            // std::cerr << "Extracted target: (" << (std::max(0, tStartFwd - leftHang * 2)) << ", " << tEndFwd << "\n";
             tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, ovl->Brev);
-            // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
         } else {
-            // int32_t leftHang = std::min(qStart, tStartFwd);
+            // Take the sequence starting from the start position, and reaching
+            // until the end of the query (or target, which ever is the shorter).
+            // Extract 2x larger overhang to be safe - no proper alignment should be
+            // 2x longer in one sequence than the other.
             int32_t minHangLen = std::min(ovl->Blen - tEndFwd, ovl->Alen - ovl->Aend);
             int32_t extractBegin = tStartFwd;
             int32_t extractEnd = std::min(ovl->Blen, tEndFwd + minHangLen * 2);
             tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, ovl->Brev);
-            // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
         }
         const int32_t tSpan = tseq.size();
         const int32_t dMax = ovl->Alen * alignMaxDiff;
@@ -376,18 +372,8 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const int32_t qSpan = qEnd - qStart;
         const int32_t tStartFwd = ret->Brev ? (ret->Blen - ret->Bend) : ret->Bstart;
         const int32_t tEndFwd = ret->Brev ? (ret->Blen - ret->Bstart) : ret->Bend;
-        // const std::string tSeq =
-        //     (ovl->Brev) ? FetchTargetSubsequence_(targetSeq, tEndFwd, ret->Blen, !ret->Brev)
-        //                 : FetchTargetSubsequence_(targetSeq, 0, tStartFwd, !ret->Brev);
-        // int32_t leftHang = std::min(ovl->Alen - ovl->Aend, tStartFwd);
-        // int32_t rightHang = std::min(ovl->Blen - tEndFwd, qStart);
-        // std::cerr << "(rev)\n";
-        // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
-        // std::cerr << "qStart = " << qStart << ", qEnd = " << qEnd << ", qLen = " << ovl->Alen << ", tStartFwd = " << tStartFwd << ", tEndFwd = " << tEndFwd << ", tLen = " << ovl->Blen << "\n";
-        // std::cerr << "[before] " << OverlapWriter::PrintOverlapAsM4(ovl, "", "", false, true) << "\n";
         std::string tseq;
         if (ovl->Brev) {
-            // int32_t leftHang = std::min(ovl->Alen - ovl->Aend, tStartFwd);
             int32_t minHangLen = std::min(ovl->Blen - tEndFwd, qStart);
             int32_t extractBegin = tEndFwd;
             int32_t extractEnd = std::min(ret->Blen, tEndFwd + minHangLen * 2);
@@ -410,8 +396,6 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const float span = std::max(ret->ASpan(), ret->BSpan());
         ret->Identity =
             ((span != 0) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -2.0f);
-        // std::cerr << "[after] " << OverlapWriter::PrintOverlapAsM4(ret, "", "", false, true) << "\n";
-        // std::cerr << "\n";
     }
 
     return ret;
