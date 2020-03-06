@@ -325,9 +325,29 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const int32_t qSpan = qEnd - qStart;
         const int32_t tStartFwd = ovl->Brev ? (ovl->Blen - ovl->Bend) : ovl->Bstart;
         const int32_t tEndFwd = ovl->Brev ? (ovl->Blen - ovl->Bstart) : ovl->Bend;
-        const std::string tseq =
-            (ovl->Brev) ? FetchTargetSubsequence_(targetSeq, 0, tEndFwd, ovl->Brev)
-                        : FetchTargetSubsequence_(targetSeq, tStartFwd, ovl->Blen, ovl->Brev);
+        std::string tseq;
+        if (ovl->Brev) {
+            // Extract reverse complemented target sequence.
+            // The reverse complement begins at the last mapped position (tEndFwd),
+            // and ends at the the tStartFwd reduced by an allowed overhang.
+            // The allowed overhang is designed to absorb the entire unmapped end
+            // of the query, and at most 2x that length in the target. (The 2xhang
+            // is just to be safe, because no proper alignment should be 2x longer
+            // in one sequence than in the other).
+            int32_t minHangLen = std::min(ovl->Alen - ovl->Aend, tStartFwd);
+            int32_t extractBegin = std::max(0, tStartFwd - minHangLen * 2);
+            int32_t extractEnd = tEndFwd;
+            tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, ovl->Brev);
+        } else {
+            // Take the sequence starting from the start position, and reaching
+            // until the end of the query (or target, which ever is the shorter).
+            // Extract 2x larger overhang to be safe - no proper alignment should be
+            // 2x longer in one sequence than the other.
+            int32_t minHangLen = std::min(ovl->Blen - tEndFwd, ovl->Alen - ovl->Aend);
+            int32_t extractBegin = tStartFwd;
+            int32_t extractEnd = std::min(ovl->Blen, tEndFwd + minHangLen * 2);
+            tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, ovl->Brev);
+        }
         const int32_t tSpan = tseq.size();
         const int32_t dMax = ovl->Alen * alignMaxDiff;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
@@ -352,14 +372,23 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const int32_t qSpan = qEnd - qStart;
         const int32_t tStartFwd = ret->Brev ? (ret->Blen - ret->Bend) : ret->Bstart;
         const int32_t tEndFwd = ret->Brev ? (ret->Blen - ret->Bstart) : ret->Bend;
-        const std::string tSeq =
-            (ovl->Brev) ? FetchTargetSubsequence_(targetSeq, tEndFwd, ret->Blen, !ret->Brev)
-                        : FetchTargetSubsequence_(targetSeq, 0, tStartFwd, !ret->Brev);
-        const int32_t tSpan = tSeq.size();
+        std::string tseq;
+        if (ovl->Brev) {
+            int32_t minHangLen = std::min(ovl->Blen - tEndFwd, qStart);
+            int32_t extractBegin = tEndFwd;
+            int32_t extractEnd = std::min(ret->Blen, tEndFwd + minHangLen * 2);
+            tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, !ret->Brev);
+        } else {
+            int32_t minHangLen = std::min(ovl->Astart, tStartFwd);
+            int32_t extractBegin = std::max(0, tStartFwd - minHangLen * 2);
+            int32_t extractEnd = tStartFwd;
+            tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, !ret->Brev);
+        }
+        const int32_t tSpan = tseq.size();
         const int32_t dMax = ovl->Alen * alignMaxDiff - diffsRight;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
         const auto sesResult = PacBio::Pancake::Alignment::SESDistanceBanded(
-            reverseQuerySeq.c_str() + qStart, qSpan, tSeq.c_str(), tSpan, dMax, bandwidth);
+            reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
         ret->Astart = ovl->Astart - sesResult.lastQueryPos;
         ret->Bstart = ovl->Bstart - sesResult.lastTargetPos;
         ret->EditDistance = diffsRight + sesResult.diffs;
