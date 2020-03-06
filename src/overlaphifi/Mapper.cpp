@@ -61,10 +61,10 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
     ttAlign.Stop();
 
     TicToc ttFilter;
-    overlaps =
-        FilterOverlaps_(overlaps, settings_.MinNumSeeds, settings_.MinIdentity,
-                        settings_.MinMappedLength, settings_.MinQueryLen, settings_.MinTargetLen,
-                        settings_.AllowedDovetailDist, settings_.AllowedHeuristicExtendDist);
+    overlaps = FilterOverlaps_(overlaps, settings_.MinNumSeeds, settings_.MinIdentity,
+                               settings_.MinMappedLength, settings_.MinQueryLen,
+                               settings_.MinTargetLen, settings_.AllowedDovetailDist,
+                               settings_.AllowedHeuristicExtendDist, settings_.BestN);
     ttFilter.Stop();
 
 #ifdef PANCAKE_DEBUG
@@ -211,10 +211,11 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
                                                 int32_t minNumSeeds, float minIdentity,
                                                 int32_t minMappedSpan, int32_t minQueryLen,
                                                 int32_t minTargetLen, int32_t allowedDovetailDist,
-                                                int32_t allowedExtendDist)
+                                                int32_t allowedExtendDist, int32_t bestN)
 {
 
     std::vector<OverlapPtr> ret;
+
     for (const auto& ovl : overlaps) {
         if (100 * ovl->Identity < minIdentity || ovl->ASpan() < minMappedSpan ||
             ovl->BSpan() < minMappedSpan || ovl->NumSeeds < minNumSeeds ||
@@ -226,6 +227,12 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
         HeuristicExtendOverlapFlanks(newOvl, allowedExtendDist);
         ret.emplace_back(std::move(newOvl));
     }
+
+    std::stable_sort(ret.begin(), ret.end(),
+                     [](const auto& a, const auto& b) { return a->ASpan() > b->ASpan(); });
+
+    int32_t nToKeep = (bestN > 0) ? std::min(bestN, static_cast<int32_t>(ret.size())) : ret.size();
+    ret.resize(nToKeep);
 
     return ret;
 }

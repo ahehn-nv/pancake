@@ -154,14 +154,16 @@ private:
     ///                            For accurate data, this should be 0 (or a value close to 0).
     /// \param allowedExtendDist Heuristically extend the overlaps into a dovetail form by augmenting the
     ///                          coordinates, but only if the unaligned flank is < allowedExtendDist.
-    /// \returns A new vector of overlaps without the overlaps which didn't satisfy provided values.
+    /// \param bestN Keep only best N overlaps. If bestN <= 0, all overlaps are kept. This keeps overall best
+    ///               overlaps and it's not side specific (i.e. this bestN does not care about 5' or 3' ends).
+    /// \returns A new vector of remaining overlaps.
     ///
     static std::vector<OverlapPtr> FilterOverlaps_(const std::vector<OverlapPtr>& overlaps,
                                                    int32_t minNumSeeds, float minIdentity,
                                                    int32_t minMappedSpan, int32_t minQueryLen,
                                                    int32_t minTargetLen,
                                                    int32_t allowedDovetailDist,
-                                                   int32_t allowedExtendDist);
+                                                   int32_t allowedExtendDist, int32_t bestN);
     /// \brief  Filters multiple overlaps for the same query-target pair, for example tandem repeats,
     ///         and keeps only the longest spanning overlap. The maximum of (querySpan, targetSpan)
     ///         is taken for a particular query-target pair for comparison.
