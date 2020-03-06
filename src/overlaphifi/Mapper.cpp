@@ -338,16 +338,18 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
             // Ove koordinate su krive, to moram popraviti.
             // A isto tako i za sve druge slucaje.
             // int32_t leftHang = std::min(qStart, ovl->Blen - tEndFwd);
-            int32_t hangLen = std::min(ovl->Alen - ovl->Aend, tStartFwd);
+            int32_t minHangLen = std::min(ovl->Alen - ovl->Aend, tStartFwd);
+            int32_t extractBegin = std::max(0, tStartFwd - minHangLen * 2);
+            int32_t extractEnd = tEndFwd;
             // std::cerr << "Extracted target: (" << (std::max(0, tStartFwd - leftHang * 2)) << ", " << tEndFwd << "\n";
-            tseq = FetchTargetSubsequence_(targetSeq, std::max(0, tStartFwd - hangLen * 2), tEndFwd,
-                                           ovl->Brev);
+            tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, ovl->Brev);
             // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
         } else {
             // int32_t leftHang = std::min(qStart, tStartFwd);
-            int32_t hangLen = std::min(ovl->Blen - tEndFwd, ovl->Alen - ovl->Aend);
-            tseq = FetchTargetSubsequence_(targetSeq, tStartFwd,
-                                           std::min(ovl->Blen, tEndFwd + hangLen * 2), ovl->Brev);
+            int32_t minHangLen = std::min(ovl->Blen - tEndFwd, ovl->Alen - ovl->Aend);
+            int32_t extractBegin = tStartFwd;
+            int32_t extractEnd = std::min(ovl->Blen, tEndFwd + minHangLen * 2);
+            tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, ovl->Brev);
             // std::cerr << "leftHang = " << leftHang << ", rightHang = " << rightHang << "\n";
         }
         const int32_t tSpan = tseq.size();
@@ -386,13 +388,15 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         std::string tseq;
         if (ovl->Brev) {
             // int32_t leftHang = std::min(ovl->Alen - ovl->Aend, tStartFwd);
-            int32_t hangLen = std::min(ovl->Blen - tEndFwd, qStart);
-            tseq = FetchTargetSubsequence_(targetSeq, tEndFwd,
-                                           std::min(ret->Blen, tEndFwd + hangLen * 2), !ret->Brev);
+            int32_t minHangLen = std::min(ovl->Blen - tEndFwd, qStart);
+            int32_t extractBegin = tEndFwd;
+            int32_t extractEnd = std::min(ret->Blen, tEndFwd + minHangLen * 2);
+            tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, !ret->Brev);
         } else {
-            int32_t hangLen = std::min(ovl->Astart, tStartFwd);
-            tseq = FetchTargetSubsequence_(targetSeq, std::max(0, tStartFwd - hangLen * 2),
-                                           tStartFwd, !ret->Brev);
+            int32_t minHangLen = std::min(ovl->Astart, tStartFwd);
+            int32_t extractBegin = std::max(0, tStartFwd - minHangLen * 2);
+            int32_t extractEnd = tStartFwd;
+            tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, !ret->Brev);
         }
         const int32_t tSpan = tseq.size();
         const int32_t dMax = ovl->Alen * alignMaxDiff - diffsRight;
