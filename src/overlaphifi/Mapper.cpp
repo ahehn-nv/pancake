@@ -228,8 +228,9 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
         ret.emplace_back(std::move(newOvl));
     }
 
+    // Score is negative, as per legacy Falcon convention.
     std::stable_sort(ret.begin(), ret.end(),
-                     [](const auto& a, const auto& b) { return a->ASpan() > b->ASpan(); });
+                     [](const auto& a, const auto& b) { return a->Score < b->Score; });
 
     int32_t nToKeep = (bestN > 0) ? std::min(bestN, static_cast<int32_t>(ret.size())) : ret.size();
     ret.resize(nToKeep);
@@ -365,7 +366,7 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         ret->Aend += ovl->Astart;
         ret->Bend += ovl->Bstart;
         ret->EditDistance = sesResult.diffs;
-        ret->Score = -std::max(ret->ASpan(), ret->BSpan());
+        ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
         diffsRight = sesResult.diffs;
     }
 
@@ -399,7 +400,7 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         ret->Astart = ovl->Astart - sesResult.lastQueryPos;
         ret->Bstart = ovl->Bstart - sesResult.lastTargetPos;
         ret->EditDistance = diffsRight + sesResult.diffs;
-        ret->Score = -std::max(ret->ASpan(), ret->BSpan());
+        ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
         const float span = std::max(ret->ASpan(), ret->BSpan());
         ret->Identity =
             ((span != 0) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -2.0f);
