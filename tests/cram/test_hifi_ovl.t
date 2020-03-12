@@ -131,3 +131,47 @@ Test writing IDs instead of headers. Other than that, the same as the Perfect ma
   000000002 000000001 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
   000000002 000000000 -5000 100.00 0 0 5000 15000 1 0 5000 11811 5
 
+##############
+### Best N ###
+##############
+Bestn testing on a set of perfect matching overlaps. Value "0" should deactivate the filter.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn 0 reads reads 0 0 0
+  m64030_190330_071939/101844710/ccs fake_read/1/ccs -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
+  m64030_190330_071939/101844710/ccs fake_read/1/ccs-inverted_0-15000 -5000 100.00 0 0 5000 11811 1 0 5000 15000 5
+  fake_read/1/ccs fake_read/1/ccs-inverted_0-15000 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
+  fake_read/1/ccs m64030_190330_071939/101844710/ccs -5000 100.00 0 10000 15000 15000 0 0 5000 11811 3
+  fake_read/1/ccs-inverted_0-15000 fake_read/1/ccs -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
+  fake_read/1/ccs-inverted_0-15000 m64030_190330_071939/101844710/ccs -5000 100.00 0 0 5000 15000 1 0 5000 11811 5
+
+Bestn testing on a set of perfect matching overlaps. Value < "0" should deactivate the filter.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn -1 reads reads 0 0 0
+  m64030_190330_071939/101844710/ccs fake_read/1/ccs -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
+  m64030_190330_071939/101844710/ccs fake_read/1/ccs-inverted_0-15000 -5000 100.00 0 0 5000 11811 1 0 5000 15000 5
+  fake_read/1/ccs fake_read/1/ccs-inverted_0-15000 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
+  fake_read/1/ccs m64030_190330_071939/101844710/ccs -5000 100.00 0 10000 15000 15000 0 0 5000 11811 3
+  fake_read/1/ccs-inverted_0-15000 fake_read/1/ccs -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
+  fake_read/1/ccs-inverted_0-15000 m64030_190330_071939/101844710/ccs -5000 100.00 0 0 5000 15000 1 0 5000 11811 5
+
+Bestn testing on a set of perfect matching overlaps. Positive value should be applied normally.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn 1 reads reads 0 0 0
+  m64030_190330_071939/101844710/ccs fake_read/1/ccs -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
+  fake_read/1/ccs fake_read/1/ccs-inverted_0-15000 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
+  fake_read/1/ccs-inverted_0-15000 fake_read/1/ccs -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
+
+Bestn testing on a set of perfect matching overlaps. A large positive value, to test for potential edge cases.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn 10 reads reads 0 0 0
+  m64030_190330_071939/101844710/ccs fake_read/1/ccs -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
+  m64030_190330_071939/101844710/ccs fake_read/1/ccs-inverted_0-15000 -5000 100.00 0 0 5000 11811 1 0 5000 15000 5
+  fake_read/1/ccs fake_read/1/ccs-inverted_0-15000 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
+  fake_read/1/ccs m64030_190330_071939/101844710/ccs -5000 100.00 0 10000 15000 15000 0 0 5000 11811 3
+  fake_read/1/ccs-inverted_0-15000 fake_read/1/ccs -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
+  fake_read/1/ccs-inverted_0-15000 m64030_190330_071939/101844710/ccs -5000 100.00 0 0 5000 15000 1 0 5000 11811 5
+##############
