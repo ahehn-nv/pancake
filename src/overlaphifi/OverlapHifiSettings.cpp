@@ -176,6 +176,13 @@ R"({
     "type" : "int"
 })", OverlapHifiSettings::Defaults::CombineBlocks};
 
+const CLI_v2::Option BestN{
+R"({
+    "names" : ["bestn"],
+    "description" : "Output only best N alignments.",
+    "type" : "int"
+})", OverlapHifiSettings::Defaults::BestN};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -209,6 +216,7 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , AllowedDovetailDist{options[OptionNames::AllowedDovetailDist]}
     , AllowedHeuristicExtendDist{options[OptionNames::AllowedHeuristicExtendDist]}
     , CombineBlocks{options[OptionNames::CombineBlocks]}
+    , BestN{options[OptionNames::BestN]}
 {
 }
 
@@ -238,6 +246,7 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::AllowedDovetailDist,
         OptionNames::AllowedHeuristicExtendDist,
         OptionNames::CombineBlocks,
+        OptionNames::BestN,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

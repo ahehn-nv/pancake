@@ -39,6 +39,7 @@ struct OverlapHifiSettings
         static const int32_t AllowedDovetailDist = 0;
         static const int32_t AllowedHeuristicExtendDist = 0;
         static const int32_t CombineBlocks = 1;
+        static const int32_t BestN = 0;
     };
 
     std::string TargetDBPrefix;
@@ -68,6 +69,7 @@ struct OverlapHifiSettings
     int32_t AllowedDovetailDist = Defaults::AllowedDovetailDist;
     int32_t AllowedHeuristicExtendDist = Defaults::AllowedHeuristicExtendDist;
     int32_t CombineBlocks = Defaults::CombineBlocks;
+    int32_t BestN = Defaults::BestN;
 
     OverlapHifiSettings();
     OverlapHifiSettings(const PacBio::CLI_v2::Results& options);
