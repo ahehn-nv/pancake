@@ -202,6 +202,45 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
     return cache;
 }
 
+void WriteSeqDBIndexCache(FILE* fpOut, const SeqDBIndexCache& cache)
+{
+    // An output index file should be open at all times, starting from construction.
+    if (fpOut == nullptr) {
+        throw std::runtime_error("Cannot write the index because an output file is not open.");
+    }
+
+    // Write the version and compression information.
+    fprintf(fpOut, "V\t%s\n", cache.version.c_str());
+    fprintf(fpOut, "C\t%d\n",
+            static_cast<int32_t>(cache.compressionLevel));  // Compression is turned on.
+
+    // Write all the files and their sizes.
+    for (const auto& f : cache.fileLines) {
+        fprintf(fpOut, "F\t%d\t%s\t%d\t%lld\t%lld\n", f.fileId, f.filename.c_str(), f.numSequences,
+                f.numBytes, f.numCompressedBases);
+    }
+
+    // Write the indexes of all sequences.
+    for (size_t i = 0; i < cache.seqLines.size(); ++i) {
+        fprintf(fpOut, "S\t%d\t%s\t%d\t%lld\t%d\t%d", cache.seqLines[i].seqId,
+                cache.seqLines[i].header.c_str(), cache.seqLines[i].fileId,
+                cache.seqLines[i].fileOffset, cache.seqLines[i].numBytes,
+                cache.seqLines[i].numBases);
+        fprintf(fpOut, "\t%lu", cache.seqLines[i].ranges.size());
+        for (const auto& r : cache.seqLines[i].ranges) {
+            fprintf(fpOut, "\t%d\t%d", r.start, r.end);
+        }
+        fprintf(fpOut, "\n");
+    }
+
+    // Write the blocks of all sequences.
+    for (size_t i = 0; i < cache.blockLines.size(); ++i) {
+        fprintf(fpOut, "B\t%d\t%d\t%d\t%lld\t%lld\n", cache.blockLines[i].blockId,
+                cache.blockLines[i].startSeqId, cache.blockLines[i].endSeqId,
+                cache.blockLines[i].numBytes, cache.blockLines[i].numBases);
+    }
+}
+
 void ComputeSeqDBIndexHeaderLookup(const PacBio::Pancake::SeqDBIndexCache& dbCache,
                                    HeaderLookupType& headerToOrdinalId)
 {
@@ -212,6 +251,68 @@ void ComputeSeqDBIndexHeaderLookup(const PacBio::Pancake::SeqDBIndexCache& dbCac
         const auto& sl = dbCache.seqLines[i];
         headerToOrdinalId[sl.header] = i;
     }
+}
+
+std::vector<SeqDBBlockLine> CreateSeqDBBlocks(const std::vector<SeqDBSequenceLine>& seqLines,
+                                              int64_t blockSize)
+{
+    std::vector<SeqDBBlockLine> blocks;
+    int32_t numSeqLines = static_cast<int32_t>(seqLines.size());
+    int32_t startId = 0;
+    int64_t numBases = 0;
+    int64_t numBytes = 0;
+
+    for (int32_t i = 0; i < numSeqLines; ++i) {
+        const auto& sl = seqLines[i];
+
+        // Sanity check  that the DB index is valid.
+        if (sl.seqId != i) {
+            std::ostringstream oss;
+            oss << "Invalid SeqDB: sequence ID for '" << sl.header
+                << "' is not in line with it's order of appearance in the DB. seqId = " << sl.seqId
+                << ", i = " << i;
+            throw std::runtime_error(oss.str());
+        }
+
+        numBases += sl.numBases;
+        numBytes += sl.numBytes;
+
+        // Create a new block when the time is right.
+        if (numBases >= blockSize) {
+            SeqDBBlockLine bl;
+            bl.blockId = blocks.size();
+            bl.startSeqId = startId;
+            bl.endSeqId = sl.seqId + 1;
+            bl.numBytes = numBytes;
+            bl.numBases = numBases;
+            blocks.emplace_back(bl);
+            numBases = 0;
+            numBytes = 0;
+            startId = sl.seqId + 1;
+        }
+    }
+
+    // Last block.
+    if (startId < numSeqLines) {
+        SeqDBBlockLine bl;
+        bl.blockId = blocks.size();
+        bl.startSeqId = startId;
+        bl.endSeqId = numSeqLines;
+        bl.numBytes = numBytes;
+        bl.numBases = numBases;
+        blocks.emplace_back(bl);
+    }
+
+    return blocks;
+}
+
+void NormalizeSeqDBIndexCache(SeqDBIndexCache& cache, int64_t blockSize)
+{
+    for (int32_t i = 0; i < static_cast<int32_t>(cache.seqLines.size()); ++i) {
+        auto& sl = cache.seqLines[i];
+        sl.seqId = i;
+    }
+    cache.blockLines = CreateSeqDBBlocks(cache.seqLines, blockSize);
 }
 
 const SeqDBSequenceLine& SeqDBIndexCache::GetSeqLine(int32_t seqId) const

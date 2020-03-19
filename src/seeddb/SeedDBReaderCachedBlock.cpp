@@ -99,10 +99,11 @@ void SeedDBReaderCachedBlock::LoadBlock(const std::vector<int32_t>& blockIds)
             fread(&data_[currDataPos], sizeof(__int128), itemsToRead, fp.get());
         if (itemsToRead != numItemsRead) {
             std::ostringstream oss;
-            oss << "(SeqDBReaderCachedBlock) Could not read data for the following part: "
+            oss << "(SeedDBReaderCachedBlock) Could not read data for the following part: "
                 << "fileId = " << part.fileId << ", offsetStart = " << part.startOffset
                 << ", offsetEnd = " << part.endOffset << ", startId = " << part.startId
-                << ", endId = " << part.endId;
+                << ", endId = " << part.endId << ", itemsToRead = " << itemsToRead
+                << ", numItemsRead = " << numItemsRead;
             throw std::runtime_error(oss.str());
         }
 

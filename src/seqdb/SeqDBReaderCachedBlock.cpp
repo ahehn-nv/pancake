@@ -122,7 +122,8 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
             oss << "(SeqDBReaderCachedBlock) Could not read data for the following part: "
                 << "fileId = " << part.fileId << ", offsetStart = " << part.startOffset
                 << ", offsetEnd = " << part.endOffset << ", startId = " << part.startId
-                << ", endId = " << part.endId;
+                << ", endId = " << part.endId << ", itemsToRead = " << itemsToRead
+                << ", numItemsRead = " << numItemsRead;
             throw std::runtime_error(oss.str());
         }
 
@@ -173,7 +174,8 @@ void SeqDBReaderCachedBlock::LoadBlockUncompressed_(const std::vector<Contiguous
             oss << "(SeqDBReaderCachedBlock) Could not read data for the following part: "
                 << "fileId = " << part.fileId << ", offsetStart = " << part.startOffset
                 << ", offsetEnd = " << part.endOffset << ", startId = " << part.startId
-                << ", endId = " << part.endId;
+                << ", endId = " << part.endId << ", itemsToRead = " << itemsToRead
+                << ", numItemsRead = " << numItemsRead;
             throw std::runtime_error(oss.str());
         }
 
