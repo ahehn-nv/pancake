@@ -1,6 +1,8 @@
 // Authors: Ivan Sovic
 
 #include "seqdb/SeqDBWorkflow.h"
+#include <pbbam/BamReader.h>
+#include <pbbam/DataSet.h>
 #include <pbbam/FastaReader.h>
 #include <pbbam/FastqReader.h>
 #include <seqdb/SeqDBWriter.h>
@@ -48,13 +50,22 @@ int SeqDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                boost::algorithm::iends_with(fn, ".fq.gz");
     };
     auto isFofn = [](const std::string& fn) { return boost::algorithm::iends_with(fn, ".fofn"); };
+    auto isBam = [](const std::string& fn) { return boost::algorithm::iends_with(fn, ".bam"); };
+    auto isXml = [](const std::string& fn) { return boost::algorithm::iends_with(fn, ".xml"); };
 
-    // Create the expanded list with loaded FOFNs.
+    // Create the expanded list with loaded FOFNs, or BAM files from the XML.
     std::vector<std::string> inputFiles;
     for (const auto& inFile : settings.InputFiles) {
         if (isFofn(inFile)) {
             std::vector<std::string> files = ParseFofn(inFile);
             inputFiles.insert(inputFiles.end(), files.begin(), files.end());
+
+        } else if (isXml(inFile)) {
+            BAM::DataSet dataset{inFile};
+            const auto& bamFiles = dataset.BamFiles();
+            for (const auto& bamFile : bamFiles)
+                inputFiles.emplace_back(bamFile.Filename());
+
         } else {
             inputFiles.emplace_back(inFile);
         }
@@ -73,6 +84,10 @@ int SeqDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
             while (inReader.GetNext(record)) {
                 writer->AddSequence(record.Name(), record.Bases());
             }
+        } else if (isBam(inFile)) {
+            BAM::BamReader inputBamReader{inFile};
+            for (const auto& bam : inputBamReader)
+                writer->AddSequence(bam.FullName(), bam.Sequence());
         } else {
             throw std::runtime_error("Unknown input file extension for file: '" + inFile + "'.");
         }
