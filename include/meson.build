@@ -6,12 +6,59 @@ if not meson.is_subproject()
 
   #'pacbio/Version.h',
 
-  # pacbio/pancake
+  # lib/flat_hash_map
   install_headers(
     files([
-      'pacbio/pancake/ContiguousFilePart.h',
+      'lib/flat_hash_map/bytell_hash_map.hpp',
+      'lib/flat_hash_map/flat_hash_map.hpp',
+      'lib/flat_hash_map/unordered_map.hpp',
       ]),
-      subdir : 'pacbio/pancake')
+      subdir : 'include/lib/flat_hash_map')
+
+  # lib/kxsort
+  install_headers(
+    files([
+      'lib/kxsort/kxsort.h',
+      ]),
+      subdir : 'lib/kxsort')
+
+  # lib/sparsehash/internal
+  install_headers(
+    files([
+      'lib/sparsehash/internal/densehashtable.h',
+      'lib/sparsehash/internal/hashtable-common.h',
+      'lib/sparsehash/internal/libc_allocator_with_realloc.h',
+      'lib/sparsehash/internal/sparseconfig.h',
+      'lib/sparsehash/internal/sparsehashtable.h',
+      ]),
+      subdir : 'lib/sparsehash/internal/')
+
+  # lib/sparsehash/sparsehash/internal
+  install_headers(
+    files([
+      'lib/sparsehash/sparsehash/internal/densehashtable.h',
+      'lib/sparsehash/sparsehash/internal/hashtable-common.h',
+      'lib/sparsehash/sparsehash/internal/libc_allocator_with_realloc.h',
+      'lib/sparsehash/sparsehash/internal/sparseconfig.h',
+      'lib/sparsehash/sparsehash/internal/sparsehashtable.h',
+      ]),
+      subdir : 'lib/sparsehash/sparsehash/internal')
+
+  # lib/sparsehash/sparsehash
+  install_headers(
+    files([
+      'lib/sparsehash/sparsehash/template_util.h',
+      'lib/sparsehash/sparsehash/type_traits.h',
+      ]),
+      subdir : 'lib/sparsehash/sparsehash')
+
+  # lib/sparsehash
+  install_headers(
+    files([
+      'lib/sparsehash/template_util.h',
+      'lib/sparsehash/type_traits.h',
+      ]),
+      subdir : 'lib/sparsehash')
 
   # pacbio/alignment
   install_headers(
@@ -31,6 +78,13 @@ if not meson.is_subproject()
       'pacbio/overlaphifi/SeedIndex.h',
       ]),
       subdir : 'pacbio/overlaphifi')
+
+  # pacbio/pancake
+  install_headers(
+    files([
+      'pacbio/pancake/ContiguousFilePart.h',
+      ]),
+      subdir : 'pacbio/pancake')
 
   # pacbio/seeddb
   install_headers(
