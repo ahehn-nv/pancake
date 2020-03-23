@@ -4,16 +4,35 @@
 
 if not meson.is_subproject()
 
+  #'pacbio/Version.h',
+
   # pacbio/pancake
   install_headers(
     files([
-      'pacbio/Version.h',
       'pacbio/pancake/ContiguousFilePart.h',
+      ]),
+      subdir : 'pacbio/pancake')
+
+  # pacbio/alignment
+  install_headers(
+    files([
       'pacbio/alignment/SesDistanceBanded.h',
+      ]),
+      subdir : 'pacbio/alignment')
+
+  # pacbio/overlaphifi
+  install_headers(
+    files([
       'pacbio/overlaphifi/Mapper.h',
       'pacbio/overlaphifi/Overlap.h',
       'pacbio/overlaphifi/OverlapWriter.h',
       'pacbio/overlaphifi/SeedIndex.h',
+      ]),
+      subdir : 'pacbio/overlaphifi')
+
+  # pacbio/seqdb
+  install_headers(
+    files([
       'pacbio/seeddb/Minimizers.h',
       'pacbio/seeddb/SeedDBIndexCache.h',
       'pacbio/seeddb/Seed.h',
@@ -32,9 +51,8 @@ if not meson.is_subproject()
       'pacbio/seqdb/SeqDBWriterBase.h',
       'pacbio/seqdb/SeqDBWriter.h',
       'pacbio/seqdb/Twobit.h',
-    ])
-    # subdir : '')
-  )
+      ]),
+      subdir : 'pacbio/seqdb')
 
 endif
 
