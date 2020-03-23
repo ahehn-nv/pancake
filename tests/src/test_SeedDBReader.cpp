@@ -7,6 +7,7 @@
 #include <pacbio/seeddb/SequenceSeeds.h>
 #include <pacbio/seqdb/FastaSequenceId.h>
 #include <pacbio/seqdb/SeqDBReader.h>
+#include <pacbio/util/CommonTypes.h>
 #include <sstream>
 
 std::string HelperLoadFileAsString(const std::string& in_path)
@@ -41,7 +42,7 @@ PacBio::Pancake::SequenceSeeds HelperComputeSequenceSeeds(
 {
     const uint8_t* seqData = reinterpret_cast<const uint8_t*>(record.Bases().data());
     int32_t seqLen = record.Bases().size();
-    std::vector<__int128> seeds;
+    std::vector<PacBio::Pancake::Int128t> seeds;
     PacBio::Pancake::SeedDB::GenerateMinimizers(seeds, seqData, seqLen, 0, record.Id(), k, w, space,
                                                 useRC, useHPC, maxHPCLen);
     PacBio::Pancake::SequenceSeeds seqSeeds(record.Name(), std::move(seeds), record.Id());

@@ -96,7 +96,7 @@ void SeedDBReaderCachedBlock::LoadBlock(const std::vector<int32_t>& blockIds)
         // Load the bytes.
         const int64_t itemsToRead = (part.endOffset - part.startOffset) / 16;
         const int64_t numItemsRead =
-            fread(&data_[currDataPos], sizeof(__int128), itemsToRead, fp.get());
+            fread(&data_[currDataPos], sizeof(PacBio::Pancake::Int128t), itemsToRead, fp.get());
         if (itemsToRead != numItemsRead) {
             std::ostringstream oss;
             oss << "(SeedDBReaderCachedBlock) Could not read data for the following part: "

@@ -77,9 +77,10 @@ public:
     }
 };
 
-int GenerateMinimizers(std::vector<__int128>& minimizers, const uint8_t* seq, int32_t seqLen,
-                       int32_t seqOffset, int32_t seqId, int32_t kmerSize, int32_t winSize,
-                       int32_t spacing, bool useReverseComplement, bool useHPC, int32_t maxHPCLen)
+int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const uint8_t* seq,
+                       int32_t seqLen, int32_t seqOffset, int32_t seqId, int32_t kmerSize,
+                       int32_t winSize, int32_t spacing, bool useReverseComplement, bool useHPC,
+                       int32_t maxHPCLen)
 {
 
     // Sanity check that the seq is not NULL;

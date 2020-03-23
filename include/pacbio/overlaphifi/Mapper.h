@@ -11,6 +11,7 @@
 #include <pacbio/seeddb/SequenceSeedsCached.h>
 #include <pacbio/seqdb/FastaSequenceCached.h>
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
+#include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -181,7 +182,7 @@ private:
     /// \returns A packed 128-bit integer composed of:
     ///             targetId:31, targetRev:1, diag:32, targetPos:32, queryPos:32.
     ///
-    static __int128 PackSeedHitWithDiagonalTo128_(const SeedHit& sh);
+    static PacBio::Pancake::Int128t PackSeedHitWithDiagonalTo128_(const SeedHit& sh);
 
     /// \brief  Helper function which extracts a subsequence from a given sequence, and reverse
     ///         complements if needed.

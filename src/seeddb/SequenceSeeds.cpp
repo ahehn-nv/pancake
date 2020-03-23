@@ -9,7 +9,8 @@
 namespace PacBio {
 namespace Pancake {
 
-SequenceSeeds::SequenceSeeds(std::string name, std::vector<__int128> seeds, int64_t id)
+SequenceSeeds::SequenceSeeds(std::string name, std::vector<PacBio::Pancake::Int128t> seeds,
+                             int64_t id)
     : name_{std::move(name)}, seeds_{std::move(seeds)}, id_{id}
 {
 }
@@ -22,9 +23,9 @@ SequenceSeeds& SequenceSeeds::Name(std::string name)
     return *this;
 }
 
-const std::vector<__int128>& SequenceSeeds::Seeds() const { return seeds_; }
+const std::vector<PacBio::Pancake::Int128t>& SequenceSeeds::Seeds() const { return seeds_; }
 
-SequenceSeeds& SequenceSeeds::Seeds(std::vector<__int128> seeds)
+SequenceSeeds& SequenceSeeds::Seeds(std::vector<PacBio::Pancake::Int128t> seeds)
 {
     seeds_ = std::move(seeds);
     return *this;

@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include <pacbio/overlaphifi/SeedIndex.h>
 #include <pacbio/seeddb/Seed.h>
+#include <pacbio/util/CommonTypes.h>
 #include <sstream>
 #include <tuple>
 
@@ -15,7 +16,7 @@ TEST(SeedIndex, GetSeeds1)
     */
 
     int32_t seqId = 123;
-    std::vector<__int128> inSeeds = {
+    std::vector<PacBio::Pancake::Int128t> inSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 1, false),
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 2, false),
@@ -31,11 +32,11 @@ TEST(SeedIndex, GetSeeds1)
         new PacBio::Pancake::SeedDBIndexCache);
 
     // Expected results.
-    std::vector<__int128> expected = inSeeds;
+    std::vector<PacBio::Pancake::Int128t> expected = inSeeds;
 
     // Run the unit under test.
     PacBio::Pancake::SeedIndex si(dummySeedDBCache, std::move(inSeeds));
-    std::vector<__int128> results;
+    std::vector<PacBio::Pancake::Int128t> results;
     int64_t n = si.GetSeeds(inKey, results);
 
     EXPECT_EQ(expected, results);
@@ -50,7 +51,7 @@ TEST(SeedIndex, GetSeeds2)
     */
 
     int32_t seqId = 123;
-    std::vector<__int128> inSeeds = {
+    std::vector<PacBio::Pancake::Int128t> inSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, seqId, 1, false),
         PacBio::Pancake::SeedDB::Seed::Encode(5, seqId, 2, false),
@@ -69,7 +70,7 @@ TEST(SeedIndex, GetSeeds2)
         new PacBio::Pancake::SeedDBIndexCache);
 
     // Expected results.
-    std::vector<__int128> expected = {
+    std::vector<PacBio::Pancake::Int128t> expected = {
         PacBio::Pancake::SeedDB::Seed::Encode(5, seqId, 2, false),
         PacBio::Pancake::SeedDB::Seed::Encode(5, seqId, 4, false),
         PacBio::Pancake::SeedDB::Seed::Encode(5, seqId, 7, false),
@@ -77,7 +78,7 @@ TEST(SeedIndex, GetSeeds2)
 
     // Run the unit under test.
     PacBio::Pancake::SeedIndex si(dummySeedDBCache, std::move(inSeeds));
-    std::vector<__int128> results;
+    std::vector<PacBio::Pancake::Int128t> results;
     int64_t n = si.GetSeeds(inKey, results);
 
     EXPECT_EQ(expected, results);
@@ -92,7 +93,7 @@ TEST(SeedIndex, GetSeeds3NonexistentKey)
     */
 
     int32_t seqId = 123;
-    std::vector<__int128> inSeeds = {
+    std::vector<PacBio::Pancake::Int128t> inSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, seqId, 1, false),
         PacBio::Pancake::SeedDB::Seed::Encode(5, seqId, 2, false),
@@ -111,11 +112,11 @@ TEST(SeedIndex, GetSeeds3NonexistentKey)
         new PacBio::Pancake::SeedDBIndexCache);
 
     // Expected results.
-    std::vector<__int128> expected = {};
+    std::vector<PacBio::Pancake::Int128t> expected = {};
 
     // Run the unit under test.
     PacBio::Pancake::SeedIndex si(dummySeedDBCache, std::move(inSeeds));
-    std::vector<__int128> results;
+    std::vector<PacBio::Pancake::Int128t> results;
     int64_t n = si.GetSeeds(inKey, results);
 
     EXPECT_EQ(expected, results);
@@ -532,7 +533,7 @@ TEST(SeedIndex, ComputeFrequencyStatsEmptyIndex)
      * Initialize a SeedIndex, and compute the seed statistics.
     */
     // Input values.
-    std::vector<__int128> inSeeds = {};
+    std::vector<PacBio::Pancake::Int128t> inSeeds = {};
     double freqPercentile = 0.60;  // Large percentile, just because this is a small test.
 
     // Expected results.
@@ -568,7 +569,7 @@ TEST(SeedIndex, ComputeFrequencyStatsNormal)
     */
     // Input values.
     int32_t seqId = 123;
-    std::vector<__int128> inSeeds = {
+    std::vector<PacBio::Pancake::Int128t> inSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, seqId, 1, false),
         PacBio::Pancake::SeedDB::Seed::Encode(5, seqId, 2, false),
@@ -614,7 +615,7 @@ TEST(SeedIndex, ComputeFrequencyThresholdOutOfBounds)
     */
     // Input values.
     int32_t seqId = 123;
-    std::vector<__int128> inSeeds = {
+    std::vector<PacBio::Pancake::Int128t> inSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, seqId, 1, false),
         PacBio::Pancake::SeedDB::Seed::Encode(5, seqId, 2, false),

@@ -430,15 +430,15 @@ void Mapper::DebugWriteSeedHits_(const std::string& outPath, const std::vector<S
     }
 }
 
-__int128 Mapper::PackSeedHitWithDiagonalTo128_(const SeedHit& sh)
+PacBio::Pancake::Int128t Mapper::PackSeedHitWithDiagonalTo128_(const SeedHit& sh)
 {
-    __int128 ret = 0;
+    PacBio::Pancake::Int128t ret = 0;
     const int32_t diag = (sh.targetPos - sh.queryPos);
-    ret = ((static_cast<__int128>(sh.targetId) & MASK128_LOW32bit) << 97) |
-          ((static_cast<__int128>(sh.targetRev) & MASK128_LOW32bit) << 96) |
-          ((static_cast<__int128>(diag) & MASK128_LOW32bit) << 64) |
-          ((static_cast<__int128>(sh.targetPos) & MASK128_LOW32bit) << 32) |
-          (static_cast<__int128>(sh.queryPos) & MASK128_LOW32bit);
+    ret = ((static_cast<PacBio::Pancake::Int128t>(sh.targetId) & MASK128_LOW32bit) << 97) |
+          ((static_cast<PacBio::Pancake::Int128t>(sh.targetRev) & MASK128_LOW32bit) << 96) |
+          ((static_cast<PacBio::Pancake::Int128t>(diag) & MASK128_LOW32bit) << 64) |
+          ((static_cast<PacBio::Pancake::Int128t>(sh.targetPos) & MASK128_LOW32bit) << 32) |
+          (static_cast<PacBio::Pancake::Int128t>(sh.queryPos) & MASK128_LOW32bit);
     return ret;
 }
 

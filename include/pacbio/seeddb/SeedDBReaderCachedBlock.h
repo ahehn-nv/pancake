@@ -7,6 +7,7 @@
 #include <pacbio/seeddb/SeedDBReaderCachedBlock.h>
 #include <pacbio/seeddb/SequenceSeedsCached.h>
 #include <pacbio/seqdb/Util.h>
+#include <pacbio/util/CommonTypes.h>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -30,7 +31,7 @@ public:
 private:
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache_;
     std::vector<int32_t> blockIds_;
-    std::vector<__int128> data_;
+    std::vector<PacBio::Pancake::Int128t> data_;
     std::vector<PacBio::Pancake::SequenceSeedsCached> records_;
 
     // Info to allow random access.

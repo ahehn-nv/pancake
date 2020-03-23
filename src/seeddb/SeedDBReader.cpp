@@ -29,7 +29,7 @@ SeedDBReader::~SeedDBReader() = default;
 bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, int64_t seqId)
 {
     // Clear the output.
-    record.Seeds(std::vector<__int128>());
+    record.Seeds(std::vector<PacBio::Pancake::Int128t>());
     record.Name("");
     record.Id(-1);
 
@@ -47,7 +47,7 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, int64_t seqId)
 bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, const std::string& seqName)
 {
     // Clear the output.
-    record.Seeds(std::vector<__int128>());
+    record.Seeds(std::vector<PacBio::Pancake::Int128t>());
     record.Name("");
     record.Id(-1);
 
@@ -72,7 +72,7 @@ bool SeedDBReader::GetSeedsForSequence(SequenceSeeds& record, const std::string&
 bool SeedDBReader::GetNext(SequenceSeeds& record)
 {
     // Clear the output.
-    record.Seeds(std::vector<__int128>());
+    record.Seeds(std::vector<PacBio::Pancake::Int128t>());
     record.Name("");
     record.Id(-1);
 
@@ -237,13 +237,15 @@ void SeedDBReader::LoadSeedsForSequence_(
     AccessLocation_(fileHandler, fileLines, indexParentFolder, sl.fileId, ordinalId + 1,
                     sl.fileOffset);
 
-    std::vector<__int128> seeds(sl.numSeeds);
-    int64_t n = fread(&seeds[0], sizeof(__int128), sl.numSeeds, fileHandler.fp.get());
+    std::vector<PacBio::Pancake::Int128t> seeds(sl.numSeeds);
+    int64_t n =
+        fread(&seeds[0], sizeof(PacBio::Pancake::Int128t), sl.numSeeds, fileHandler.fp.get());
     if (n != sl.numSeeds || n * 16 != sl.numBytes) {
         std::ostringstream oss;
         oss << "Could not read seeds for sequence '" << sl.header
-            << "'. Num bytes read: " << n * sizeof(__int128) << ", expected: " << sl.numBytes
-            << "; num seeds read: " << n << ", expected: " << sl.numSeeds << ". (SeedDBReader)";
+            << "'. Num bytes read: " << n * sizeof(PacBio::Pancake::Int128t)
+            << ", expected: " << sl.numBytes << "; num seeds read: " << n
+            << ", expected: " << sl.numSeeds << ". (SeedDBReader)";
         throw std::runtime_error(oss.str());
     }
     record.Name(sl.header);

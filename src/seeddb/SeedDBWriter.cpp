@@ -55,7 +55,7 @@ void SeedDBWriter::OpenNewSeedsFile_()
 }
 
 void SeedDBWriter::WriteSeeds(const std::string& seqName, int32_t seqId, int32_t seqLen,
-                              const std::vector<__int128>& seeds)
+                              const std::vector<PacBio::Pancake::Int128t>& seeds)
 {
     int64_t numBytes = static_cast<int64_t>(seeds.size() * 16);
 
@@ -98,7 +98,7 @@ void SeedDBWriter::WriteSeeds(const std::string& seqName, int32_t seqId, int32_t
 }
 
 void SeedDBWriter::WriteSeeds(const std::vector<PacBio::Pancake::FastaSequenceId>& seqs,
-                              const std::vector<std::vector<__int128>>& seeds)
+                              const std::vector<std::vector<PacBio::Pancake::Int128t>>& seeds)
 {
     if (seqs.size() != seeds.size()) {
         std::ostringstream oss;

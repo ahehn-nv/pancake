@@ -5,6 +5,7 @@
 #include <pacbio/seeddb/SeedDBReader.h>
 #include <pacbio/seeddb/SeedDBReaderCachedBlock.h>
 #include <pacbio/seeddb/SequenceSeeds.h>
+#include <pacbio/util/CommonTypes.h>
 #include <sstream>
 
 TEST(SeedDBReaderCachedBlock, IterateThroughFirstBlock)
@@ -191,7 +192,7 @@ TEST(SeedDBReaderCachedBlock, MultipleInputBlocks)
     PacBio::Pancake::SeedDBReaderCachedBlock readerTest(indexCache, {inBlocks});
     std::vector<PacBio::Pancake::SequenceSeeds> results;
     for (const auto& record : readerTest.records()) {
-        std::vector<__int128> seeds(record.Seeds(), record.Seeds() + record.Size());
+        std::vector<PacBio::Pancake::Int128t> seeds(record.Seeds(), record.Seeds() + record.Size());
         results.emplace_back(PacBio::Pancake::SequenceSeeds(record.Name(), seeds, record.Id()));
     }
 
