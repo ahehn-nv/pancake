@@ -5,8 +5,8 @@
 #include <pacbio/seeddb/Minimizers.h>
 #include <pacbio/seeddb/SeedDBReader.h>
 #include <pacbio/seeddb/SequenceSeeds.h>
+#include <pacbio/seqdb/FastaSequenceId.h>
 #include <pacbio/seqdb/SeqDBReader.h>
-#include <seqdb/FastaSequenceId.h>
 #include <sstream>
 
 std::string HelperLoadFileAsString(const std::string& in_path)
