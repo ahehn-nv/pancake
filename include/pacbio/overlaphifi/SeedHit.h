@@ -3,26 +3,27 @@
 #ifndef PANCAKE_OVERLAPHIFI_SEEDHIT_H
 #define PANCAKE_OVERLAPHIFI_SEEDHIT_H
 
+#include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 
 namespace PacBio {
 namespace Pancake {
 
-static const __int128 MASK128_LOW32bit = 0x000000000FFFFFFFF;
+static const PacBio::Pancake::Int128t MASK128_LOW32bit = 0x000000000FFFFFFFF;
 
 class SeedHit
 {
 public:
     SeedHit() = default;
     ~SeedHit() = default;
-    __int128 PackTo128() const
+    PacBio::Pancake::Int128t PackTo128() const
     {
-        __int128 ret = 0;
-        ret = ((static_cast<__int128>(targetId) & MASK128_LOW32bit) << 97) |
-              ((static_cast<__int128>(targetRev) & MASK128_LOW32bit) << 96) |
-              ((static_cast<__int128>(targetPos) & MASK128_LOW32bit) << 64) |
-              ((static_cast<__int128>(flags) & MASK128_LOW32bit) << 32) |
-              (static_cast<__int128>(queryPos) & MASK128_LOW32bit);
+        PacBio::Pancake::Int128t ret = 0;
+        ret = ((static_cast<PacBio::Pancake::Int128t>(targetId) & MASK128_LOW32bit) << 97) |
+              ((static_cast<PacBio::Pancake::Int128t>(targetRev) & MASK128_LOW32bit) << 96) |
+              ((static_cast<PacBio::Pancake::Int128t>(targetPos) & MASK128_LOW32bit) << 64) |
+              ((static_cast<PacBio::Pancake::Int128t>(flags) & MASK128_LOW32bit) << 32) |
+              (static_cast<PacBio::Pancake::Int128t>(queryPos) & MASK128_LOW32bit);
         return ret;
     }
     bool operator<(const SeedHit& b) const { return this->PackTo128() < b.PackTo128(); }

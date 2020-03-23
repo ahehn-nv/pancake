@@ -8,6 +8,7 @@
 #ifndef PANCAKE_SEQUENCE_SEEDS_H
 #define PANCAKE_SEQUENCE_SEEDS_H
 
+#include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -30,7 +31,8 @@ public:
     /// \param seeds
     /// \param id
     ///
-    explicit SequenceSeeds(std::string name, std::vector<__int128> seeds, int64_t id);
+    explicit SequenceSeeds(std::string name, std::vector<PacBio::Pancake::Int128t> seeds,
+                           int64_t id);
 
     SequenceSeeds() = default;
 
@@ -58,7 +60,7 @@ public:
     /// \brief Seeds
     /// \return
     ///
-    const std::vector<__int128>& Seeds() const;
+    const std::vector<PacBio::Pancake::Int128t>& Seeds() const;
 
     ///
     /// \brief
@@ -66,7 +68,7 @@ public:
     /// \param seeds
     /// \return SequenceSeeds&
     ///
-    SequenceSeeds& Seeds(std::vector<__int128> seeds);
+    SequenceSeeds& Seeds(std::vector<PacBio::Pancake::Int128t> seeds);
 
     ///
     /// \brief
@@ -91,7 +93,7 @@ public:
 
 private:
     std::string name_;
-    std::vector<__int128> seeds_;
+    std::vector<PacBio::Pancake::Int128t> seeds_;
     int64_t id_;
 };
 

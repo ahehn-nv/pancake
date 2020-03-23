@@ -9,15 +9,15 @@
 namespace PacBio {
 namespace Pancake {
 
-SequenceSeedsCached::SequenceSeedsCached(std::string name, const __int128* seeds, int64_t seedsSize,
-                                         int64_t id)
+SequenceSeedsCached::SequenceSeedsCached(std::string name, const PacBio::Pancake::Int128t* seeds,
+                                         int64_t seedsSize, int64_t id)
     : name_{std::move(name)}, seeds_{seeds}, size_{seedsSize}, id_{id}
 {
 }
 
 const std::string& SequenceSeedsCached::Name() const { return name_; }
 
-const __int128* SequenceSeedsCached::Seeds() const { return seeds_; }
+const PacBio::Pancake::Int128t* SequenceSeedsCached::Seeds() const { return seeds_; }
 
 int64_t SequenceSeedsCached::Size() const { return size_; }
 
@@ -29,7 +29,7 @@ SequenceSeedsCached& SequenceSeedsCached::Name(std::string name)
     return *this;
 }
 
-SequenceSeedsCached& SequenceSeedsCached::Seeds(const __int128* seeds)
+SequenceSeedsCached& SequenceSeedsCached::Seeds(const PacBio::Pancake::Int128t* seeds)
 {
     seeds_ = seeds;
     return *this;

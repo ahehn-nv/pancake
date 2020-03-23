@@ -20,7 +20,7 @@ namespace SeedDB {
 
 void Worker(const std::vector<PacBio::Pancake::FastaSequenceId>& records,
             const SeedDBSettings& settings, int32_t start, int32_t end, int32_t startAbs,
-            std::vector<std::vector<__int128>>& seeds)
+            std::vector<std::vector<PacBio::Pancake::Int128t>>& seeds)
 {
     const auto& sp = settings.SeedParameters;
 
@@ -64,7 +64,7 @@ int SeedDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         int32_t numRecords = records.size();
 
         // Generate seeds in parallel.
-        std::vector<std::vector<__int128>> results(numRecords);
+        std::vector<std::vector<PacBio::Pancake::Int128t>> results(numRecords);
         PacBio::Parallel::FireAndForget faf(settings.NumThreads);
         for (int32_t i = 0; i < numRecords; ++i) {
             faf.ProduceWith(Worker, std::cref(records), std::cref(settings), i, i + 1,

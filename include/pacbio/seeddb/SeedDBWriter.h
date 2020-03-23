@@ -7,6 +7,7 @@
 #include <pacbio/seeddb/SeedDBParameters.h>
 #include <pacbio/seqdb/FastaSequenceId.h>
 #include <pacbio/seqdb/Util.h>
+#include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -42,9 +43,9 @@ public:
     ~SeedDBWriter();
 
     void WriteSeeds(const std::string& seqName, int32_t seqId, int32_t seqLen,
-                    const std::vector<__int128>& seeds);
+                    const std::vector<PacBio::Pancake::Int128t>& seeds);
     void WriteSeeds(const std::vector<PacBio::Pancake::FastaSequenceId>& seqs,
-                    const std::vector<std::vector<__int128>>& seeds);
+                    const std::vector<std::vector<PacBio::Pancake::Int128t>>& seeds);
     void MarkBlockEnd();
     void WriteIndex();
     void CloseFiles();

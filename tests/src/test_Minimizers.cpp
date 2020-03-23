@@ -1,16 +1,18 @@
 #include <gtest/gtest.h>
 #include <pacbio/seeddb/Minimizers.h>
 #include <pacbio/seeddb/Seed.h>
+#include <pacbio/util/CommonTypes.h>
 // #include <iostream>
 
 void HelperTestGenerateMinimizers(const std::string& seq, int32_t seqId, int32_t k, int32_t w,
                                   int32_t space, bool useHPC, int32_t maxHPCLen, bool useRC,
-                                  int32_t expectedRv, const std::vector<__int128>& expectedSeeds)
+                                  int32_t expectedRv,
+                                  const std::vector<PacBio::Pancake::Int128t>& expectedSeeds)
 {
     // Run the unit under test.
     const uint8_t* seqData = reinterpret_cast<const uint8_t*>(seq.data());
     int32_t seqLen = seq.size();
-    std::vector<__int128> seeds;
+    std::vector<PacBio::Pancake::Int128t> seeds;
     int rv = PacBio::Pancake::SeedDB::GenerateMinimizers(seeds, seqData, seqLen, 0, seqId, k, w,
                                                          space, useRC, useHPC, maxHPCLen);
 
@@ -38,7 +40,7 @@ TEST(GenerateMinimizers, SmallTest1)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 1, false),
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 2, false),
@@ -65,7 +67,7 @@ TEST(GenerateMinimizers, SmallTest2)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(256, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 1, false),
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 2, false),
@@ -92,7 +94,7 @@ TEST(GenerateMinimizers, SmallTest3)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(39, seqId, 0, true),
         PacBio::Pancake::SeedDB::Seed::Encode(9, seqId, 1, true),
         PacBio::Pancake::SeedDB::Seed::Encode(2, seqId, 2, true),
@@ -129,7 +131,7 @@ TEST(GenerateMinimizers, SmallTest4)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(840, seqId, 0, true),
         PacBio::Pancake::SeedDB::Seed::Encode(481, seqId, 1, false),
         PacBio::Pancake::SeedDB::Seed::Encode(180, seqId, 2, true),
@@ -157,7 +159,7 @@ TEST(GenerateMinimizers, SmallTest5)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(167726968, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(189282306, seqId, 2, true),
         PacBio::Pancake::SeedDB::Seed::Encode(315756032, seqId, 3, true),
@@ -201,7 +203,7 @@ TEST(GenerateMinimizers, SmallTest6)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(2, seqId, 2, true),
         PacBio::Pancake::SeedDB::Seed::Encode(56, seqId, 6, true),
         PacBio::Pancake::SeedDB::Seed::Encode(131, seqId, 8, true),
@@ -227,7 +229,7 @@ TEST(GenerateMinimizers, SmallTest7WithNBases)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(2, seqId, 2, true),
         PacBio::Pancake::SeedDB::Seed::Encode(56, seqId, 6, true),
         PacBio::Pancake::SeedDB::Seed::Encode(131, seqId, 8, true),
@@ -258,7 +260,7 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyA)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
     };
 
@@ -280,7 +282,7 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyT_WithRC)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, true),
     };
 
@@ -302,7 +304,7 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyT_OnlyFWD)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0xFFFFFFFFFFFFFFFF, seqId, 0, false),
     };
 
@@ -324,7 +326,7 @@ TEST(GenerateMinimizers, HPC1)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(110, seqId, 0, false),
     };
 
@@ -353,7 +355,7 @@ TEST(GenerateMinimizers, HPC2)
     const bool useRC = true;
 
     // Run the unit under test WITH homopolymer compression for the sequence with homopolymers.
-    std::vector<__int128> seedsWithHP;
+    std::vector<PacBio::Pancake::Int128t> seedsWithHP;
     int32_t rvWithHP = 0;
     {
         const uint8_t* seqData = reinterpret_cast<const uint8_t*>(seqWithHP.data());
@@ -363,7 +365,7 @@ TEST(GenerateMinimizers, HPC2)
     }
 
     // Run the unit under test WITHOUT homopolymer compression on the sequence with no homopolymers.
-    std::vector<__int128> seedsNoHP;
+    std::vector<PacBio::Pancake::Int128t> seedsNoHP;
     int32_t rvNoHP = 0;
     {
         const uint8_t* seqData = reinterpret_cast<const uint8_t*>(seqWithoutHP.data());
@@ -408,7 +410,7 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_31bp_JustOneSeed)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
     };
 
@@ -435,7 +437,7 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_32bp_TwoSeeds)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(0x0FFFFFFFF, seqId, 1, false),  // 16 bases of 'T's.
     };
@@ -463,7 +465,7 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_33bp_ThreeSeeds)
 
     // Expected results.
     const int32_t expectedRv = 0;
-    const std::vector<__int128> expectedSeeds = {
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
         PacBio::Pancake::SeedDB::Seed::Encode(0, seqId, 0, false),
         PacBio::Pancake::SeedDB::Seed::Encode(0x0FFFFFFFF, seqId, 1, false),  // 16 bases of 'T's.
         PacBio::Pancake::SeedDB::Seed::Encode(0x000000002, seqId, 2, false),

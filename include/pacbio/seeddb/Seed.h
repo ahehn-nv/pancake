@@ -11,6 +11,7 @@
 #ifndef SRC_MINIMIZER_INDEX2_MINIMIZER_H_
 #define SRC_MINIMIZER_INDEX2_MINIMIZER_H_
 
+#include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <sstream>
 
@@ -20,13 +21,17 @@ namespace SeedDB {
 
 static const int8_t MINIMIZER_FLAG_DEFAULT_FWD = 0x00;
 static const int8_t MINIMIZER_FLAG_IS_REV = 0x01;
-static const __int128 MINIMIZER_CODED_REV_BIT = (((__int128)1) << 32);
+static const PacBio::Pancake::Int128t MINIMIZER_CODED_REV_BIT =
+    (((PacBio::Pancake::Int128t)1) << 32);
 
-static const __int128 MINIMIZER_64bit_MASK = (((__int128)0x0FFFFFFFFFFFFFFFF));
-static const __int128 MINIMIZER_32bit_MASK = (((__int128)0x0000000007FFFFFFF));
-static const __int128 MINIMIZER_32bit_MASK_FULL = (((__int128)0x000000000FFFFFFFF));
+static const PacBio::Pancake::Int128t MINIMIZER_64bit_MASK =
+    (((PacBio::Pancake::Int128t)0x0FFFFFFFFFFFFFFFF));
+static const PacBio::Pancake::Int128t MINIMIZER_32bit_MASK =
+    (((PacBio::Pancake::Int128t)0x0000000007FFFFFFF));
+static const PacBio::Pancake::Int128t MINIMIZER_32bit_MASK_FULL =
+    (((PacBio::Pancake::Int128t)0x000000000FFFFFFFF));
 
-using SeedRaw = __int128;
+using SeedRaw = PacBio::Pancake::Int128t;
 
 class Seed
 {
@@ -40,7 +45,7 @@ public:
         , flag((_isRev) ? MINIMIZER_FLAG_IS_REV : MINIMIZER_FLAG_DEFAULT_FWD)
     {
     }
-    Seed(const __int128& codedKeypos)
+    Seed(const PacBio::Pancake::Int128t& codedKeypos)
         : key(DecodeKey(codedKeypos))
         , seqID(DecodeSeqId(codedKeypos))
         , pos(DecodePos(codedKeypos))
@@ -50,11 +55,11 @@ public:
 
     bool IsRev() { return (flag & MINIMIZER_FLAG_IS_REV); }
 
-    inline __int128 To128t()
+    inline PacBio::Pancake::Int128t To128t()
     {
-        __int128 ret = ((__int128)key) << 64;
-        ret |= ((((__int128)(seqID)) << 1) & MINIMIZER_32bit_MASK) << 32;
-        ret |= ((__int128)(pos)) & MINIMIZER_32bit_MASK;
+        PacBio::Pancake::Int128t ret = ((PacBio::Pancake::Int128t)key) << 64;
+        ret |= ((((PacBio::Pancake::Int128t)(seqID)) << 1) & MINIMIZER_32bit_MASK) << 32;
+        ret |= ((PacBio::Pancake::Int128t)(pos)) & MINIMIZER_32bit_MASK;
 
         if (flag & MINIMIZER_FLAG_IS_REV) {
             ret |= MINIMIZER_CODED_REV_BIT;
@@ -63,28 +68,29 @@ public:
         return ret;
     }
 
-    static inline __int128 Encode(uint64_t _key, int32_t _seqID, int32_t _pos, bool _isRev)
+    static inline PacBio::Pancake::Int128t Encode(uint64_t _key, int32_t _seqID, int32_t _pos,
+                                                  bool _isRev)
     {
-        __int128 ret = ((__int128)_key) << 64;
-        ret |= (((__int128)(_seqID & MINIMIZER_32bit_MASK)) << 33);
-        ret |= ((__int128)(_pos & MINIMIZER_32bit_MASK));
+        PacBio::Pancake::Int128t ret = ((PacBio::Pancake::Int128t)_key) << 64;
+        ret |= (((PacBio::Pancake::Int128t)(_seqID & MINIMIZER_32bit_MASK)) << 33);
+        ret |= ((PacBio::Pancake::Int128t)(_pos & MINIMIZER_32bit_MASK));
         if (_isRev) {
             ret |= MINIMIZER_CODED_REV_BIT;
         }
         return ret;
     }
 
-    static inline uint64_t DecodeKey(const __int128& seed)
+    static inline uint64_t DecodeKey(const PacBio::Pancake::Int128t& seed)
     {
         return (uint64_t)((seed >> 64) & MINIMIZER_64bit_MASK);
     }
 
-    static inline int32_t DecodePos(const __int128& seed)
+    static inline int32_t DecodePos(const PacBio::Pancake::Int128t& seed)
     {
         return ((int32_t)(seed & MINIMIZER_32bit_MASK));
     }
 
-    static inline int32_t DecodeSeqId(const __int128& seed)
+    static inline int32_t DecodeSeqId(const PacBio::Pancake::Int128t& seed)
     {
         return (int32_t)((seed >> 33) & MINIMIZER_32bit_MASK);
     }
@@ -94,12 +100,12 @@ public:
      * of the strand still encoded in the return value.
      * The LSB is 0 for fwd, and 1 for rev.
      */
-    static inline int32_t DecodeSeqIdWithRev(const __int128& seed)
+    static inline int32_t DecodeSeqIdWithRev(const PacBio::Pancake::Int128t& seed)
     {
         return (int32_t)((seed >> 32) & MINIMIZER_32bit_MASK);
     }
 
-    static inline bool DecodeIsRev(const __int128& seed)
+    static inline bool DecodeIsRev(const PacBio::Pancake::Int128t& seed)
     {
         return (seed & MINIMIZER_CODED_REV_BIT);
     }

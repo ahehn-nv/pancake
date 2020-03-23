@@ -8,6 +8,7 @@
 #ifndef PANCAKE_SEQUENCE_SEEDS_CACHED_H
 #define PANCAKE_SEQUENCE_SEEDS_CACHED_H
 
+#include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -22,23 +23,23 @@ namespace Pancake {
 class SequenceSeedsCached
 {
 public:
-    explicit SequenceSeedsCached(std::string name, const __int128* seeds, int64_t seedsSize,
-                                 int64_t id);
+    explicit SequenceSeedsCached(std::string name, const PacBio::Pancake::Int128t* seeds,
+                                 int64_t seedsSize, int64_t id);
     SequenceSeedsCached() = default;
 
     const std::string& Name() const;
-    const __int128* Seeds() const;
+    const PacBio::Pancake::Int128t* Seeds() const;
     int64_t Size() const;
     int64_t Id() const;
 
     SequenceSeedsCached& Name(std::string name);
-    SequenceSeedsCached& Seeds(const __int128* seeds);
+    SequenceSeedsCached& Seeds(const PacBio::Pancake::Int128t* seeds);
     SequenceSeedsCached& Size(int64_t size);
     SequenceSeedsCached& Id(int64_t id);
 
 private:
     std::string name_;
-    const __int128* seeds_;
+    const PacBio::Pancake::Int128t* seeds_;
     int64_t size_;
     int64_t id_;
 };
