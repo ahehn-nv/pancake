@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <seqdb/Util.h>
+#include <pacbio/seqdb/Util.h>
 #include <sstream>
 
 TEST(Util, ParentPathUnix)

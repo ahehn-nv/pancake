@@ -1,11 +1,11 @@
 // Authors: Ivan Sovic
 
 #include "seqdb/SeqDBWorkflow.h"
+#include <pacbio/seqdb/SeqDBWriter.h>
 #include <pbbam/BamReader.h>
 #include <pbbam/DataSet.h>
 #include <pbbam/FastaReader.h>
 #include <pbbam/FastqReader.h>
-#include <seqdb/SeqDBWriter.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include "seqdb/SeqDBSettings.h"
 

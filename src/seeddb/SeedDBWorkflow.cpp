@@ -1,12 +1,12 @@
 // Authors: Ivan Sovic
 
 #include "seeddb/SeedDBWorkflow.h"
-#include <seeddb/Minimizers.h>
-#include <seeddb/Seed.h>
-#include <seeddb/SeedDBWriter.h>
-#include <seqdb/FastaSequenceId.h>
-#include <seqdb/SeqDBIndexCache.h>
-#include <seqdb/SeqDBReader.h>
+#include <pacbio/seeddb/Minimizers.h>
+#include <pacbio/seeddb/Seed.h>
+#include <pacbio/seeddb/SeedDBWriter.h>
+#include <pacbio/seqdb/FastaSequenceId.h>
+#include <pacbio/seqdb/SeqDBIndexCache.h>
+#include <pacbio/seqdb/SeqDBReader.h>
 #include "seeddb/SeedDBSettings.h"
 
 #include <pbcopper/parallel/FireAndForget.h>
