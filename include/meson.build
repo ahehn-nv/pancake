@@ -13,7 +13,7 @@ if not meson.is_subproject()
       'lib/flat_hash_map/flat_hash_map.hpp',
       'lib/flat_hash_map/unordered_map.hpp',
       ]),
-      subdir : 'include/lib/flat_hash_map')
+      subdir : 'lib/flat_hash_map')
 
   # lib/kxsort
   install_headers(
