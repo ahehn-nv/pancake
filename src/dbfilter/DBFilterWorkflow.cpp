@@ -63,26 +63,17 @@ int DBFilterWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     // PBLOG_INFO << "After loading target seed cache: " << ttLoad.VerboseSecs(true);
     ttLoad.Stop();
 
-    std::unordered_set<std::string> blacklist;
+    std::unordered_set<std::string> filterList;
     if (settings.FilterListPath.empty() == false) {
-        blacklist = ParseFilterList(settings.FilterListPath);
+        filterList = ParseFilterList(settings.FilterListPath);
     }
-    PBLOG_INFO << "Filter list size: " << blacklist.size();
+    PBLOG_INFO << "Filter list size: " << filterList.size();
 
     // Construct a filtered SeqDB cache.
     // Do not normalize yet, we might need the original sequence IDs for fetching.
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> filteredSeqDBCache =
-        std::make_shared<PacBio::Pancake::SeqDBIndexCache>();
-    filteredSeqDBCache->indexFilename = outSeqDBFile;
-    SplitPath(filteredSeqDBCache->indexFilename, filteredSeqDBCache->indexParentFolder,
-              filteredSeqDBCache->indexBasename);
-    filteredSeqDBCache->version = inSeqDBCache->version;
-    filteredSeqDBCache->compressionLevel = inSeqDBCache->compressionLevel;
-    // The data will not be copied (only the index), so the file lines are the same.
-    filteredSeqDBCache->fileLines = inSeqDBCache->fileLines;
-    PerformSeqDBSequenceLineSampling(filteredSeqDBCache->seqLines, inSeqDBCache->seqLines,
-                                     settings.Sampling, settings.SampleBases, settings.RandomSeed,
-                                     blacklist, settings.FilterType);
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> filteredSeqDBCache = FilterSeqDBIndexCache(
+        *inSeqDBCache, settings.Sampling, settings.SampleBases, settings.RandomSeed,
+        settings.FilterType, filterList, false, 0, outSeqDBFile);
 
     PBLOG_INFO << "Original SeqDB sequences: " << inSeqDBCache->seqLines.size();
     PBLOG_INFO << "Filtered SeqDB sequences: " << filteredSeqDBCache->seqLines.size();

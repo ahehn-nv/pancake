@@ -524,5 +524,42 @@ void PerformSeqDBSequenceLineSampling(std::vector<SeqDBSequenceLine>& outSeqLine
     }
 }
 
+std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> FilterSeqDBIndexCache(
+    const SeqDBIndexCache& inSeqDBCache, const SamplingType& samplingType,
+    const int64_t sampledBases, const int64_t randomSeed, const FilterListType& filterType,
+    const std::unordered_set<std::string>& filterList, const bool doNormalization,
+    const int32_t normBlockSize, const std::string& outIndexFilename)
+{
+    std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> filteredSeqDBCache =
+        std::make_unique<PacBio::Pancake::SeqDBIndexCache>();
+
+    // Set the new filename to be the same as the old one.
+    if (outIndexFilename.empty()) {
+        filteredSeqDBCache->indexFilename = inSeqDBCache.indexFilename;
+    } else {
+        filteredSeqDBCache->indexFilename = outIndexFilename;
+    }
+
+    // Initialize the file information, version and compression level.
+    SplitPath(filteredSeqDBCache->indexFilename, filteredSeqDBCache->indexParentFolder,
+              filteredSeqDBCache->indexBasename);
+    filteredSeqDBCache->version = inSeqDBCache.version;
+    filteredSeqDBCache->compressionLevel = inSeqDBCache.compressionLevel;
+
+    // The data will not be copied (only the index), so the file lines are the same.
+    filteredSeqDBCache->fileLines = inSeqDBCache.fileLines;
+
+    // Filter the sequence lines.
+    PerformSeqDBSequenceLineSampling(filteredSeqDBCache->seqLines, inSeqDBCache.seqLines,
+                                     samplingType, sampledBases, randomSeed, filterList,
+                                     filterType);
+
+    if (doNormalization) {
+        NormalizeSeqDBIndexCache(*filteredSeqDBCache, normBlockSize);
+    }
+
+    return filteredSeqDBCache;
+}
+
 }  // namespace Pancake
 }  // namespace PacBio
