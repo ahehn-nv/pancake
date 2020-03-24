@@ -10,8 +10,10 @@
 #include <fstream>
 #include <lib/flat_hash_map/flat_hash_map.hpp>
 #include <memory>
+#include <random>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace PacBio {
@@ -118,6 +120,13 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
 
 std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache, int32_t blockId);
+
+void PerformSeqDBSequenceLineSampling(std::vector<SeqDBSequenceLine>& outSeqLines,
+                                      const std::vector<SeqDBSequenceLine>& inSeqLines,
+                                      const SamplingType& sampling, int64_t sampledBases,
+                                      const int64_t randomSeed,
+                                      const std::unordered_set<std::string>& filterList,
+                                      const FilterListType& filterType);
 
 }  // namespace Pancake
 }  // namespace PacBio
