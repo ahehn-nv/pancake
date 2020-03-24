@@ -10,8 +10,10 @@
 #include <fstream>
 #include <lib/flat_hash_map/flat_hash_map.hpp>
 #include <memory>
+#include <random>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace PacBio {
@@ -118,6 +120,46 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
 
 std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache, int32_t blockId);
+
+/// \brief Filters the list of sequence lines from a SeqDB index.
+///
+/// \param outSeqLines Resulting list of sequence lines.
+/// \param inSeqLines Input list of sequence lines.
+/// \param samplingType Optional sampling of the input DB: linear, random or none.
+/// \param sampledBases If sampling is not none, then this many bases will be sampled.
+/// \param randomSeed Seed for random sampling, if random sampling is applied.
+/// \param filterList A set of sequence names to keep/filter, depending on the filterType.
+/// \param filterType If specified, the filterList will be used. Can be: whitelist, blacklist or none.
+void PerformSeqDBSequenceLineSampling(std::vector<SeqDBSequenceLine>& outSeqLines,
+                                      const std::vector<SeqDBSequenceLine>& inSeqLines,
+                                      const SamplingType& sampling, int64_t sampledBases,
+                                      const int64_t randomSeed,
+                                      const std::unordered_set<std::string>& filterList,
+                                      const FilterListType& filterType);
+
+/// \brief Filters the SeqDB index and returns a filtered index.
+///
+/// \param inSeqDBCache Input SeqDB index for filtering.
+/// \param samplingType Optional sampling of the input DB: linear, random or none.
+/// \param sampledBases If sampling is not none, then this many bases will be sampled.
+/// \param randomSeed Seed for random sampling, if random sampling is applied.
+/// \param filterType If specified, the filterList will be used. Can be: whitelist, blacklist or none.
+/// \param filterList A set of sequence names to keep/filter, depending on the filterType.
+/// \param doNormalization If true, the sequence IDs and blocks will be reset. Otherwise, they
+///                        will remain the same as in the input DB. Normalization should not be
+///                        applied if the filtered DB will be used for random access by sequence ID of
+///                        the original input DB.
+/// \param normBlockSize Block size to be used during normalization.
+/// \param outIndexFilename The full path (relative or absolute) where the filtered DB
+///                         might be written. This function will not write the DB, but
+///                         this infor is stored internally in the DB to facilitate finding
+///                         of the .seq files.
+/// \returns Pointer to the newly constructed filtered DB.
+std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> FilterSeqDBIndexCache(
+    const SeqDBIndexCache& inSeqDBCache, const SamplingType& samplingType,
+    const int64_t sampledBases, const int64_t randomSeed, const FilterListType& filterType,
+    const std::unordered_set<std::string>& filterList, const bool doNormalization,
+    const int32_t normBlockSize, const std::string& outIndexFilename = "");
 
 }  // namespace Pancake
 }  // namespace PacBio

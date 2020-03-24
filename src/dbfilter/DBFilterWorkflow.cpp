@@ -26,94 +26,6 @@
 namespace PacBio {
 namespace Pancake {
 
-void PerformSeqDBSequenceLineSampling(std::vector<SeqDBSequenceLine>& outSeqLines,
-                                      const std::vector<SeqDBSequenceLine>& inSeqLines,
-                                      const SamplingType& sampling, int64_t sampledBases,
-                                      const int64_t randomSeed,
-                                      const std::unordered_set<std::string>& filterList,
-                                      const FilterListType& filterType)
-{
-    outSeqLines.size();
-
-    auto CheckFilterShouldKeep = [&](const std::string& header) {
-        if (filterType == FilterListType::Blacklist &&
-            filterList.find(header) != filterList.end()) {
-            return false;
-        }
-        if (filterType == FilterListType::Whitelist &&
-            filterList.find(header) == filterList.end()) {
-            return false;
-        }
-        return true;
-    };
-
-    if (sampling == SamplingType::Linear) {
-        int64_t totalBases = 0;
-        for (int32_t lastLine = 0;
-             lastLine < static_cast<int32_t>(inSeqLines.size()) && totalBases < sampledBases;
-             ++lastLine) {
-            const auto& sl = inSeqLines[lastLine];
-            // Filter sequences.
-            if (CheckFilterShouldKeep(sl.header) == false) {
-                continue;
-            }
-            totalBases += sl.numBases;
-            outSeqLines.emplace_back(sl);
-            if (totalBases >= sampledBases) {
-                break;
-            }
-        }
-
-    } else if (sampling == SamplingType::Random) {
-        std::random_device rd;
-        const uint64_t seed =
-            (randomSeed < 0) ? std::mt19937::default_seed : static_cast<uint64_t>(randomSeed);
-        std::mt19937 eng(seed);
-        if (randomSeed < 0) {
-            eng = std::mt19937(rd());
-        }
-
-        // Shuffle the permutation.
-        std::vector<int32_t> permutation(inSeqLines.size());
-        std::iota(permutation.begin(), permutation.end(), 0);
-        for (size_t i = 0; i < permutation.size(); ++i) {
-            size_t j = eng() % permutation.size();
-            std::swap(permutation[i], permutation[j]);
-        }
-
-        // The rest is similar to Linear sampling, but with an index redirection.
-        int64_t totalBases = 0;
-        for (size_t i = 0; i < permutation.size() && totalBases < sampledBases; ++i) {
-            const auto& sl = inSeqLines[permutation[i]];
-            // Filter sequences.
-            if (CheckFilterShouldKeep(sl.header) == false) {
-                continue;
-            }
-            totalBases += sl.numBases;
-            outSeqLines.emplace_back(sl);
-            if (totalBases >= sampledBases) {
-                break;
-            }
-        }
-        // Sort by sequence ID, to preserve the cache coherency if possible.
-        std::sort(outSeqLines.begin(), outSeqLines.end(),
-                  [](const auto& a, const auto& b) { return a.seqId < b.seqId; });
-
-    } else if (sampling == SamplingType::None) {
-        for (size_t i = 0; i < inSeqLines.size(); ++i) {
-            const auto& sl = inSeqLines[i];
-            // Filter sequences.
-            if (CheckFilterShouldKeep(sl.header) == false) {
-                continue;
-            }
-            outSeqLines.emplace_back(sl);
-        }
-
-    } else {
-        throw std::runtime_error("Unknown sampling method!");
-    }
-}
-
 std::unordered_set<std::string> ParseFilterList(const std::string& filterListPath)
 {
     std::unordered_set<std::string> filterList;
@@ -151,26 +63,17 @@ int DBFilterWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     // PBLOG_INFO << "After loading target seed cache: " << ttLoad.VerboseSecs(true);
     ttLoad.Stop();
 
-    std::unordered_set<std::string> blacklist;
+    std::unordered_set<std::string> filterList;
     if (settings.FilterListPath.empty() == false) {
-        blacklist = ParseFilterList(settings.FilterListPath);
+        filterList = ParseFilterList(settings.FilterListPath);
     }
-    PBLOG_INFO << "Filter list size: " << blacklist.size();
+    PBLOG_INFO << "Filter list size: " << filterList.size();
 
     // Construct a filtered SeqDB cache.
     // Do not normalize yet, we might need the original sequence IDs for fetching.
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> filteredSeqDBCache =
-        std::make_shared<PacBio::Pancake::SeqDBIndexCache>();
-    filteredSeqDBCache->indexFilename = outSeqDBFile;
-    SplitPath(filteredSeqDBCache->indexFilename, filteredSeqDBCache->indexParentFolder,
-              filteredSeqDBCache->indexBasename);
-    filteredSeqDBCache->version = inSeqDBCache->version;
-    filteredSeqDBCache->compressionLevel = inSeqDBCache->compressionLevel;
-    // The data will not be copied (only the index), so the file lines are the same.
-    filteredSeqDBCache->fileLines = inSeqDBCache->fileLines;
-    PerformSeqDBSequenceLineSampling(filteredSeqDBCache->seqLines, inSeqDBCache->seqLines,
-                                     settings.Sampling, settings.SampleBases, settings.RandomSeed,
-                                     blacklist, settings.FilterType);
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> filteredSeqDBCache = FilterSeqDBIndexCache(
+        *inSeqDBCache, settings.Sampling, settings.SampleBases, settings.RandomSeed,
+        settings.FilterType, filterList, false, 0, outSeqDBFile);
 
     PBLOG_INFO << "Original SeqDB sequences: " << inSeqDBCache->seqLines.size();
     PBLOG_INFO << "Filtered SeqDB sequences: " << filteredSeqDBCache->seqLines.size();

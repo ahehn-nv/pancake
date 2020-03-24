@@ -17,6 +17,22 @@ using IdLookupType = ska::flat_hash_map<int32_t, int32_t>;
 
 static const Int128t MASK_U64_LOW_2BIT = 0x0000000000000003;
 
+enum class SamplingType
+{
+    None,
+    Linear,
+    Random,
+    Unknown
+};
+
+enum class FilterListType
+{
+    Blacklist,
+    Whitelist,
+    None,
+    Unknown
+};
+
 }  // namespace Pancake
 }  // namespace PacBio
 

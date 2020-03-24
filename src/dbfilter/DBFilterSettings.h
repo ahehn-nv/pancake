@@ -3,6 +3,7 @@
 #ifndef PANCAKE_DBFILTER_SETTINGS_H
 #define PANCAKE_DBFILTER_SETTINGS_H
 
+#include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <string>
 
@@ -10,22 +11,6 @@
 
 namespace PacBio {
 namespace Pancake {
-
-enum class SamplingType
-{
-    None,
-    Linear,
-    Random,
-    Unknown
-};
-
-enum class FilterListType
-{
-    Blacklist,
-    Whitelist,
-    None,
-    Unknown
-};
 
 SamplingType ParseSamplingType(const std::string& val);
 
