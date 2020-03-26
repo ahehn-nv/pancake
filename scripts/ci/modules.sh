@@ -17,6 +17,8 @@ module load gtest
 module load htslib
 module load pbbam
 
+module load samtools
+
 case "${bamboo_planRepository_branchName}" in
   master)
     module load pbcopper/master
