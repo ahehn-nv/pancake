@@ -1,0 +1,133 @@
+// Author: Ivan Sovic
+
+#include "SeqFetchSettings.h"
+
+#include <limits>
+
+#include <pacbio/Version.h>
+
+namespace PacBio {
+namespace Pancake {
+namespace OptionNames {
+
+// clang-format off
+
+const CLI_v2::PositionalArgument OutputFile {
+R"({
+    "name" : "out_fn",
+    "description" : "Output file for the fetched sequences."
+})"};
+
+const CLI_v2::PositionalArgument InputFetchListFile {
+R"({
+    "name" : "fetch_list",
+    "description" : "List of sequences to fetch, one per line."
+})"};
+
+const CLI_v2::PositionalArgument InputFiles {
+R"({
+    "name" : "<input.fasta/fastq/bam/fofn> [...]",
+    "description" : "One or more input sequence files, in FASTA, FASTQ, BAM, SeqDB or FOFN formats."
+})"};
+
+const CLI_v2::Option OutputFormat{
+R"({
+    "names" : ["out-fmt"],
+    "choices" : ["fasta", "fastq"],
+    "type" : "string",
+    "default" : "fasta",
+    "description" : "Output format. If an input file is FASTA and out format is FASTQ, dummy QVs will be added."
+})", std::string("fasta")};
+
+const CLI_v2::Option DummyQV{
+R"({
+    "names" : ["dummy-qv"],
+    "type" : "string",
+    "default" : "!",
+    "description" : "Dummy QV to be added to sequences when input format is FASTA and output FASTQ."
+})", std::string("!")};
+
+const CLI_v2::Option AliasSeqDBFile{
+R"({
+    "names" : ["alias"],
+    "type" : "string",
+    "default" : "",
+    "description" : "SeqDB file path. If provided, the SeqDB will be used to look-up the provided sequences by their IDs."
+})", std::string("")};
+
+const CLI_v2::Option FailOnMissingQueries {
+R"({
+    "names" : ["fail"],
+    "description" : "Exit non-zero if not all seqs are found.",
+    "type" : "bool"
+})", SeqFetchSettings::Defaults::FailOnMissingQueries};
+
+// clang-format on
+
+}  // namespace OptionNames
+
+SeqFetchOutFormat ParseSeqFetchOutFormat(const std::string& val)
+{
+    if (val == "fasta") {
+        return SeqFetchOutFormat::Fasta;
+    } else if (val == "fastq") {
+        return SeqFetchOutFormat::Fastq;
+    } else {
+        throw std::runtime_error("Unknown output format '" + val + "'.");
+    }
+    return SeqFetchOutFormat::Fasta;
+}
+
+SeqFetchSettings::SeqFetchSettings() = default;
+
+SeqFetchSettings::SeqFetchSettings(const PacBio::CLI_v2::Results& options)
+    : OutputFile{options[OptionNames::OutputFile]}
+    , InputFetchListFile{options[OptionNames::InputFetchListFile]}
+    , InputFiles{options[OptionNames::InputFiles]}
+    , AliasSeqDBFile(options[OptionNames::AliasSeqDBFile])
+    , FailOnMissingQueries(options[OptionNames::FailOnMissingQueries])
+{
+    // Allow multiple positional input arguments.
+    const auto& files = options.PositionalArguments();
+    if (files.size() < 3) throw std::runtime_error{"Not enough positional arguments specified."};
+    OutputFile = files[0];
+    InputFiles.clear();
+    for (size_t i = 2; i < files.size(); ++i)
+        InputFiles.push_back(files[i]);
+
+    OutputFormat = ParseSeqFetchOutFormat(options[OptionNames::OutputFormat]);
+
+    std::string tempDummyQV = options[OptionNames::DummyQV];
+    if (tempDummyQV.size() != 1) {
+        throw std::runtime_error("The dummyQV needs to be exactly 1 character in size.");
+    }
+    DummyQV = tempDummyQV[0];
+}
+
+PacBio::CLI_v2::Interface SeqFetchSettings::CreateCLI()
+{
+    PacBio::CLI_v2::Interface i{"pancake seqfetch",
+                                "Fetches a set of sequences in random access from a list of "
+                                "specified indexed sequence files.",
+                                PacBio::Pancake::PancakeFormattedVersion()};
+
+    i.DisableNumThreadsOption();
+
+    // clang-format off
+    i.AddOptionGroup("Algorithm Options", {
+        OptionNames::OutputFormat,
+        OptionNames::DummyQV,
+        OptionNames::AliasSeqDBFile,
+        OptionNames::FailOnMissingQueries,
+    });
+    i.AddPositionalArguments({
+        OptionNames::OutputFile,
+        OptionNames::InputFetchListFile,
+        OptionNames::InputFiles,
+    });
+
+    // clang-format on
+    return i;
+}
+}  // namespace Pancake
+}  // namespace PacBio

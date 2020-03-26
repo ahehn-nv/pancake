@@ -21,6 +21,7 @@ pancake_test_cram_sources = files([
   'cram/test_seqdb_filter.t',
   'cram/test_seqdb_writer.t',
   'cram/test_seeddb_writer.t',
+  'cram/test_seqfetch.t',
 ])
 
 # find GoogleTest

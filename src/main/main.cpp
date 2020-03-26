@@ -16,6 +16,8 @@
 #include "seeddb/SeedDBWorkflow.h"
 #include "seqdb/SeqDBSettings.h"
 #include "seqdb/SeqDBWorkflow.h"
+#include "seqfetch/SeqFetchSettings.h"
+#include "seqfetch/SeqFetchWorkflow.h"
 
 PacBio::CLI_v2::MultiToolInterface CreateMultiInterface()
 {
@@ -37,6 +39,9 @@ PacBio::CLI_v2::MultiToolInterface CreateMultiInterface()
         {"dbfilter",
             PacBio::Pancake::DBFilterSettings::CreateCLI(),
            &PacBio::Pancake::DBFilterWorkflow::Runner},
+        {"seqfetch",
+            PacBio::Pancake::SeqFetchSettings::CreateCLI(),
+           &PacBio::Pancake::SeqFetchWorkflow::Runner},
     });
 
     // clang-format on
