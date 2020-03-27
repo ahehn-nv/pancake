@@ -63,6 +63,7 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_CompressedInput)
         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb",
         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-6.seqdb",
         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-8-compressed-2blocks.seqdb",
+        PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-9-reversed-offsets.seqdb",
     };
 
     for (const auto& inSeqDB : inDBs) {
