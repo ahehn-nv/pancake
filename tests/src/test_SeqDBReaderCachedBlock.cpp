@@ -216,11 +216,11 @@ B	4	4	5	4751	19001
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seedDBCache =
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
 
     // Run.
-    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seedDBCache, blockId);
+    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
 
     // Evaluate.
     EXPECT_EQ(results, expected);
@@ -259,11 +259,11 @@ B	1	4	5	4751	19001
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seedDBCache =
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
 
     // Run.
-    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seedDBCache, blockId);
+    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
 
     // Evaluate.
     EXPECT_EQ(results, expected);
@@ -301,11 +301,11 @@ B	1	4	5	4751	19001
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seedDBCache =
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
 
     // Run.
-    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seedDBCache, blockId);
+    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
 
     // Evaluate.
     EXPECT_EQ(results, expected);
@@ -338,11 +338,11 @@ B	0	0	4	10487	41941
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seedDBCache =
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
 
     // Run.
-    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seedDBCache, blockId);
+    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
 
     // Evaluate.
     EXPECT_EQ(results, expected);
@@ -368,11 +368,11 @@ B	0	0	4	10487	41941
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seedDBCache =
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
 
     // Run and evaluate.
-    EXPECT_THROW({ auto results = PacBio::Pancake::GetSeqDBContiguousParts(seedDBCache, blockId); },
+    EXPECT_THROW({ auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId); },
                  std::runtime_error);
 }
 
@@ -397,11 +397,11 @@ B	0	0	10	10487	41941
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seedDBCache =
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
 
     // Run and evaluate.
-    EXPECT_THROW({ auto results = PacBio::Pancake::GetSeqDBContiguousParts(seedDBCache, blockId); },
+    EXPECT_THROW({ auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId); },
                  std::runtime_error);
 }
 
@@ -426,11 +426,11 @@ B	0	0	4	10487	41941
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seedDBCache =
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
 
     // Run and evaluate.
-    EXPECT_THROW({ auto results = PacBio::Pancake::GetSeqDBContiguousParts(seedDBCache, blockId); },
+    EXPECT_THROW({ auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId); },
                  std::runtime_error);
 }
 
@@ -464,11 +464,88 @@ B	0	0	5	16560	66233
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seedDBCache =
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
 
     // Run.
-    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seedDBCache, blockId);
+    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
+
+    // Evaluate.
+    EXPECT_EQ(results, expected);
+}
+
+TEST(SeqDBReaderCachedBlock, GetSeqDBContiguousParts_InputIsAsListOfSeqIDs)
+{
+    /*
+     * Test construction of contiguous file parts but from a list of sequence IDs
+     * instead of a block ID.
+    */
+
+    const std::string inSeqDB =
+        R"(V	0.1.0
+C	1
+F	0	test-6.seqdb.0.seq	5	16560	66233
+S	0	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3005/0_5852	0	0	1463	5852	1	0	5852
+S	1	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3414/0_11983	0	1463	2996	11983	1	0	11983
+S	2	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292	0	4459	6073	24292	1	0	24292
+S	3	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105	0	10532	1277	5105	1	0	5105
+S	4	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001	0	11809	4751	19001	1	0	19001
+B	0	0	5	16560	66233
+    )";
+    const std::vector<int32_t> seqIds = {1, 2, 4};
+
+    // Expected.
+    // Tuple: (file_id, file_offset_start, file_offset_end)
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 1463, 10532, 1, 3},
+                                                                       {0, 11809, 16560, 4, 5}};
+
+    // Load the SeedDB.
+    std::istringstream is(inSeqDB);
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
+        PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
+
+    // Run.
+    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, seqIds);
+
+    // Evaluate.
+    EXPECT_EQ(results, expected);
+}
+
+TEST(SeqDBReaderCachedBlock, GetSeqDBContiguousParts_InputIsAsListOfSeqNames)
+{
+    /*
+     * Test construction of contiguous file parts but from a list of sequence IDs
+     * instead of a block ID.
+    */
+
+    const std::string inSeqDB =
+        R"(V	0.1.0
+C	1
+F	0	test-6.seqdb.0.seq	5	16560	66233
+S	0	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3005/0_5852	0	0	1463	5852	1	0	5852
+S	1	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3414/0_11983	0	1463	2996	11983	1	0	11983
+S	2	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292	0	4459	6073	24292	1	0	24292
+S	3	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105	0	10532	1277	5105	1	0	5105
+S	4	m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001	0	11809	4751	19001	1	0	19001
+B	0	0	5	16560	66233
+    )";
+    const std::vector<std::string> seqNames = {
+        "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3414/0_11983",
+        "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292",
+        "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/4028/0_19001"};
+
+    // Expected.
+    // Tuple: (file_id, file_offset_start, file_offset_end)
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 1463, 10532, 1, 3},
+                                                                       {0, 11809, 16560, 4, 5}};
+
+    // Load the SeedDB.
+    std::istringstream is(inSeqDB);
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
+        PacBio::Pancake::LoadSeqDBIndexCache(is, "filename.seqdb");
+
+    // Run.
+    const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, seqNames);
 
     // Evaluate.
     EXPECT_EQ(results, expected);

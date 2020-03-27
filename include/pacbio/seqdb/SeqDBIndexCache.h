@@ -128,6 +128,14 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
 std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache, int32_t blockId);
 
+std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
+    const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
+    const std::vector<int32_t>& seqIdsToFetch);
+
+std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
+    const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
+    const std::vector<std::string>& seqNamesToFetch);
+
 /// \brief Filters the list of sequence lines from a SeqDB index.
 ///
 /// \param outSeqLines Resulting list of sequence lines.

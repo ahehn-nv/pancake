@@ -5,6 +5,7 @@
 #include <array>
 #include <iostream>
 #include <limits>
+#include <numeric>
 #include <sstream>
 
 namespace PacBio {
@@ -382,6 +383,39 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
         throw std::runtime_error(oss.str());
     }
 
+    // Create a vector of sequence IDs which will be collected.
+    std::vector<int32_t> seqIdsToFetch(block.endSeqId - block.startSeqId);
+    std::iota(seqIdsToFetch.begin(), seqIdsToFetch.end(), block.startSeqId);
+
+    return GetSeqDBContiguousParts(seqDBIndexCache, seqIdsToFetch);
+}
+
+std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
+    const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
+    const std::vector<std::string>& seqNamesToFetch)
+{
+    HeaderLookupType headerToOrdinalId;
+    ComputeSeqDBIndexHeaderLookup(*seqDBIndexCache, headerToOrdinalId);
+
+    std::vector<std::int32_t> seqIdsToFetch;
+
+    for (const auto& seqName : seqNamesToFetch) {
+        auto it = headerToOrdinalId.find(seqName);
+        if (it == headerToOrdinalId.end()) {
+            throw std::runtime_error("(GetSeqDBContiguousParts) Cannot find seq name '" + seqName +
+                                     "' in the provided seqDBIndexCache.");
+        }
+        auto id = it->second;
+        seqIdsToFetch.emplace_back(id);
+    }
+
+    return GetSeqDBContiguousParts(seqDBIndexCache, seqIdsToFetch);
+}
+
+std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
+    const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
+    const std::vector<int32_t>& seqIdsToFetch)
+{
     // Sequences in the block might not be stored contiguously in the file,
     // for example if a user has permuted or filtered the DB.
     // We will collect all contiguous stretches of bytes here, and then
@@ -393,8 +427,8 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
             sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes, sl.seqId, sl.seqId + 1});
     };
 
-    for (int32_t ordId = block.startSeqId; ordId < block.endSeqId; ++ordId) {
-        const auto& sl = seqDBIndexCache->seqLines[ordId];
+    for (const auto& ordId : seqIdsToFetch) {
+        const auto& sl = seqDBIndexCache->GetSeqLine(ordId);
 
         if (contiguousParts.empty()) {
             AddContiguousPart(sl);
