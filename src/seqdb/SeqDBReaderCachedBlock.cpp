@@ -14,41 +14,17 @@ SeqDBReaderCachedBlock::SeqDBReaderCachedBlock(
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBCache)
     : seqDBIndexCache_(seqDBCache)
 {
-    // Sanity check.
-    if (seqDBIndexCache_->fileLines.empty())
-        throw std::runtime_error("There are no file specifications in the input index file.");
-    if (seqDBIndexCache_->seqLines.empty())
-        throw std::runtime_error("There are no sequences in the input index file.");
-    if (seqDBIndexCache_->blockLines.empty())
-        throw std::runtime_error("There are no blocks in the input index file.");
-}
-
-SeqDBReaderCachedBlock::SeqDBReaderCachedBlock(
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBCache,
-    const std::vector<int32_t>& blockIds)
-    : seqDBIndexCache_(seqDBCache), blockIds_(blockIds)
-{
-    // Sanity check.
-    if (seqDBIndexCache_->fileLines.empty())
-        throw std::runtime_error("There are no file specifications in the input index file.");
-    if (seqDBIndexCache_->seqLines.empty())
-        throw std::runtime_error("There are no sequences in the input index file.");
-    if (seqDBIndexCache_->blockLines.empty())
-        throw std::runtime_error("There are no blocks in the input index file.");
-
-    LoadBlocks(blockIds_);
+    ValidateSeqDBIndexCache(seqDBCache);
 }
 
 SeqDBReaderCachedBlock::~SeqDBReaderCachedBlock() = default;
 
 void SeqDBReaderCachedBlock::LoadBlocks(const std::vector<int32_t>& blockIds)
 {
-    blockIds_ = blockIds;
-
     // Form the contiguous blocks for loading.
     // First, get all the spans for the first block. These will be stored directly in the
     // accumulator called 'parts'.
-    std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, blockIds_[0]);
+    std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, blockIds[0]);
     if (parts.empty()) {
         std::runtime_error(
             "Unknown error occurred, the GetSeqDBContiguousParts returned empty in "
@@ -56,9 +32,9 @@ void SeqDBReaderCachedBlock::LoadBlocks(const std::vector<int32_t>& blockIds)
     }
     // Next, get all other parts for all other blocks. If possible, extend
     // the previously added parts, otherwise just append.
-    for (size_t i = 1; i < blockIds_.size(); ++i) {
+    for (size_t i = 1; i < blockIds.size(); ++i) {
         std::vector<ContiguousFilePart> newParts =
-            GetSeqDBContiguousParts(seqDBIndexCache_, blockIds_[i]);
+            GetSeqDBContiguousParts(seqDBIndexCache_, blockIds[i]);
 
         for (const auto& newPart : newParts) {
             if (newPart.CanAppendTo(parts.back())) {
@@ -71,7 +47,7 @@ void SeqDBReaderCachedBlock::LoadBlocks(const std::vector<int32_t>& blockIds)
 
     // Preallocate the data size.
     int64_t totalSize = 0;
-    for (const auto& blockId : blockIds_) {
+    for (const auto& blockId : blockIds) {
         const auto& bl = seqDBIndexCache_->GetBlockLine(blockId);
         for (int32_t sId = bl.startSeqId; sId < bl.endSeqId; ++sId) {
             const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
@@ -81,8 +57,8 @@ void SeqDBReaderCachedBlock::LoadBlocks(const std::vector<int32_t>& blockIds)
     data_.resize(totalSize);
 
     // Preallocate the space for all the records.
-    const auto& blFirst = seqDBIndexCache_->GetBlockLine(blockIds_.front());
-    const auto& blLast = seqDBIndexCache_->GetBlockLine(blockIds_.back());
+    const auto& blFirst = seqDBIndexCache_->GetBlockLine(blockIds.front());
+    const auto& blLast = seqDBIndexCache_->GetBlockLine(blockIds.back());
     records_.resize(blLast.endSeqId - blFirst.startSeqId);
 
     // Actually load the data.
@@ -94,10 +70,6 @@ void SeqDBReaderCachedBlock::LoadBlocks(const std::vector<int32_t>& blockIds)
 
 void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFilePart>& parts)
 {
-    if (blockIds_.empty()) {
-        throw std::runtime_error("There are no block IDs specified to LoadBlockUncompressed_.");
-    }
-
     // Position of a current record in the data_ vector.
     int64_t seqStart = 0;
     int64_t currRecord = 0;
@@ -148,10 +120,6 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
 
 void SeqDBReaderCachedBlock::LoadBlockUncompressed_(const std::vector<ContiguousFilePart>& parts)
 {
-    if (blockIds_.empty()) {
-        throw std::runtime_error("There are no block IDs specified to LoadBlockUncompressed_.");
-    }
-
     int64_t currDataPos = 0;
     int64_t currRecord = 0;
     for (const auto& part : parts) {
@@ -200,11 +168,8 @@ const FastaSequenceCached& SeqDBReaderCachedBlock::GetSequence(int32_t seqId) co
     auto it = seqIdToOrdinalId_.find(seqId);
     if (it == seqIdToOrdinalId_.end()) {
         std::ostringstream oss;
-        oss << "(SeqDBReaderCachedBlock) Invalid seqId, not found in blocks: {";
-        for (const auto& blockId : blockIds_) {
-            oss << blockId << ", ";
-        }
-        oss << "}. seqId = " << seqId << ", records_.size() = " << records_.size();
+        oss << "(SeqDBReaderCachedBlock) Invalid seqId, not found in the preloaded data. seqId = "
+            << seqId << ", records_.size() = " << records_.size();
         throw std::runtime_error(oss.str());
     }
     int32_t ordinalId = it->second;
@@ -216,11 +181,9 @@ const FastaSequenceCached& SeqDBReaderCachedBlock::GetSequence(const std::string
     auto it = headerToOrdinalId_.find(seqName);
     if (it == headerToOrdinalId_.end()) {
         std::ostringstream oss;
-        oss << "(SeqDBReaderCachedBlock) Invalid seqName, not found in blocks: {";
-        for (const auto& blockId : blockIds_) {
-            oss << blockId << ", ";
-        }
-        oss << "}. seqName = '" << seqName << ".";
+        oss << "(SeqDBReaderCachedBlock) Invalid seqName, not found in the preloaded data. seqName "
+               "= '"
+            << seqName << ".";
         throw std::runtime_error(oss.str());
     }
     int32_t ordinalId = it->second;

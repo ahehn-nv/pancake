@@ -25,8 +25,6 @@ class SeqDBReaderCachedBlock
 {
 public:
     SeqDBReaderCachedBlock(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seedDBCache);
-    SeqDBReaderCachedBlock(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seedDBCache,
-                           const std::vector<int32_t>& blockIds);
     ~SeqDBReaderCachedBlock();
 
     void LoadBlocks(const std::vector<int32_t>& blockIds);
@@ -36,7 +34,6 @@ public:
 
 private:
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBIndexCache_;
-    std::vector<int32_t> blockIds_;
     std::vector<uint8_t> data_;
     std::vector<FastaSequenceCached> records_;
 
