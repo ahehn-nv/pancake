@@ -19,6 +19,8 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_UncompressedInput)
     const std::vector<std::string> inDBs = {
         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-3.seqdb",
         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-7-uncompressed-2blocks.seqdb",
+        PacBio::PancakeTestsConfig::Data_Dir +
+            "/seqdb-writer/test-9b-uncompressed-reversed-offsets.seqdb",
     };
 
     for (const auto& inSeqDB : inDBs) {
@@ -67,7 +69,8 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_CompressedInput)
         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb",
         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-6.seqdb",
         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-8-compressed-2blocks.seqdb",
-        PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-9-reversed-offsets.seqdb",
+        PacBio::PancakeTestsConfig::Data_Dir +
+            "/seqdb-writer/test-9a-compressed-reversed-offsets.seqdb",
     };
 
     for (const auto& inSeqDB : inDBs) {
