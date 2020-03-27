@@ -31,7 +31,8 @@ TEST(SeqDBReaderCompressed, GetNext)
 {
     // Input values;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
 
     // Load the expected sequences.
     // const std::string expected = HelperLoadFastaAsString(inSeqFasta);
@@ -62,7 +63,8 @@ TEST(SeqDBReaderCompressed, GetSequenceByID1)
 
     // Input values;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
 
     // Load the expected sequences.
     const auto expected = HelperLoadFasta(inSeqFasta);
@@ -111,7 +113,8 @@ TEST(SeqDBReaderCompressed, GetSequenceByName)
 {
     // Input values;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
 
     // Load the expected sequences.
     const auto expected = HelperLoadFasta(inSeqFasta);
@@ -136,7 +139,8 @@ TEST(SeqDBReaderCompressed, GetSequenceByIdNotExisting)
 {
     // Input values;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -168,7 +172,8 @@ TEST(SeqDBReaderCompressed, GetSequenceByNameNotExisting)
 {
     // Input values;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
 
     // Load the DB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -192,7 +197,8 @@ TEST(SeqDBReaderCompressed, GetNextBatchAllAtOnce)
     // Input values;
     const int32_t batchSize = -1;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
 
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
@@ -225,7 +231,8 @@ TEST(SeqDBReaderCompressed, GetNextBatchEverySeqSeparately)
     // Input values;
     const int32_t batchSize = 0;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
 
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
@@ -258,7 +265,8 @@ TEST(SeqDBReaderCompressed, GetNextBatch10kbp)
     // Input values;
     const int32_t batchSize = 10000;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
 
     // Load the expected sequences.
     const auto fastaSeqs = HelperLoadFasta(inSeqFasta);
@@ -291,7 +299,8 @@ TEST(SeqDBReaderCompressed, GetBlockOutOfBounds)
 {
     // Input values;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::vector<int32_t> testBlocks = {-1, 10};
 
     // Load the DB.
@@ -316,7 +325,8 @@ TEST(SeqDBReaderCompressed, JumpToByName)
 {
     // Input values;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::vector<std::string> testNames = {
         "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/0_5105",   // 3
         "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292",  // 2
@@ -358,7 +368,8 @@ TEST(SeqDBReaderCompressed, JumpToById)
 {
     // Input values;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::vector<int32_t> testIds = {3, 2, 4, 0, 1};
 
     // Load the expected sequences.
@@ -401,7 +412,9 @@ TEST(SeqDBReaderUncompressed, GetNext)
 
     // Input values;
     const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-3.seqdb";
+    const std::string inSeqDB =
+        PacBio::PancakeTestsConfig::Data_Dir +
+        "/seqdb-writer/test-3-uncompressed-each-seq-one-block-and-file.seqdb";
 
     // Load the expected sequences.
     // const std::string expected = HelperLoadFastaAsString(inSeqFasta);

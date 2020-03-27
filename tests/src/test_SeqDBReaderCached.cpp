@@ -13,7 +13,8 @@ TEST(SeqDBReaderCached, IterateThroughSecondBlock)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const int32_t blockId = 2;
 
     // Expected values.
@@ -120,7 +121,8 @@ TEST(SeqDBReaderCached, GetSequenceWhichDoesntExist)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const int32_t blockId = 0;
 
     // Load the SeedDB.
@@ -143,7 +145,8 @@ TEST(SeqDBReaderCached, ConstructFromNonexistentBlock)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
 
     // Load the SeedDB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =

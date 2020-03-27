@@ -21,45 +21,86 @@ SeqDBReaderCachedBlock::~SeqDBReaderCachedBlock() = default;
 
 void SeqDBReaderCachedBlock::LoadBlocks(const std::vector<int32_t>& blockIds)
 {
-    // Form the contiguous blocks for loading.
-    // First, get all the spans for the first block. These will be stored directly in the
-    // accumulator called 'parts'.
-    std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, blockIds[0]);
-    if (parts.empty()) {
-        std::runtime_error(
-            "Unknown error occurred, the GetSeqDBContiguousParts returned empty in "
-            "LoadBlockUncompressed_.");
-    }
-    // Next, get all other parts for all other blocks. If possible, extend
-    // the previously added parts, otherwise just append.
-    for (size_t i = 1; i < blockIds.size(); ++i) {
-        std::vector<ContiguousFilePart> newParts =
-            GetSeqDBContiguousParts(seqDBIndexCache_, blockIds[i]);
-
-        for (const auto& newPart : newParts) {
-            if (newPart.CanAppendTo(parts.back())) {
-                parts.back().ExtendWith(newPart);
-            } else {
-                parts.emplace_back(newPart);
-            }
-        }
-    }
-
-    // Preallocate the data size.
-    int64_t totalSize = 0;
+    // Collect all sequence IDs for all blocks.
+    std::vector<int32_t> seqIds;
     for (const auto& blockId : blockIds) {
         const auto& bl = seqDBIndexCache_->GetBlockLine(blockId);
-        for (int32_t sId = bl.startSeqId; sId < bl.endSeqId; ++sId) {
-            const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
-            totalSize += sl.numBases;
-        }
+        std::vector<int32_t> newSpan(bl.endSeqId - bl.startSeqId);
+        std::iota(newSpan.begin(), newSpan.end(), bl.startSeqId);
+        seqIds.insert(seqIds.end(), newSpan.begin(), newSpan.end());
     }
-    data_.resize(totalSize);
+
+    // Get the contiguous file parts for loading.
+    std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, seqIds);
+
+    // Count the data size.
+    int64_t totalBases = 0;
+    int64_t totalRecords = 0;
+    for (const auto& part : parts) {
+        for (const auto& sId : part.seqIds) {
+            const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
+            totalBases += sl.numBases;
+        }
+        totalRecords += static_cast<int64_t>(part.seqIds.size());
+    }
 
     // Preallocate the space for all the records.
-    const auto& blFirst = seqDBIndexCache_->GetBlockLine(blockIds.front());
-    const auto& blLast = seqDBIndexCache_->GetBlockLine(blockIds.back());
-    records_.resize(blLast.endSeqId - blFirst.startSeqId);
+    data_.resize(totalBases);
+    records_.resize(totalRecords);
+
+    // Actually load the data.
+    if (seqDBIndexCache_->compressionLevel == 0) {
+        return LoadBlockUncompressed_(parts);
+    }
+    return LoadBlockCompressed_(parts);
+}
+
+void SeqDBReaderCachedBlock::LoadSequences(const std::vector<int32_t>& seqIds)
+{
+    // Get the contiguous file parts for loading.
+    std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, seqIds);
+
+    // Count the data size.
+    int64_t totalBases = 0;
+    int64_t totalRecords = 0;
+    for (const auto& part : parts) {
+        for (const auto& sId : part.seqIds) {
+            const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
+            totalBases += sl.numBases;
+        }
+        totalRecords += static_cast<int64_t>(part.seqIds.size());
+    }
+
+    // Preallocate the space for all the records.
+    data_.resize(totalBases);
+    records_.resize(totalRecords);
+
+    // Actually load the data.
+    if (seqDBIndexCache_->compressionLevel == 0) {
+        return LoadBlockUncompressed_(parts);
+    }
+    return LoadBlockCompressed_(parts);
+}
+
+void SeqDBReaderCachedBlock::LoadSequences(const std::vector<std::string>& seqNames)
+{
+    // Get the contiguous file parts for loading.
+    std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, seqNames);
+
+    // Count the data size.
+    int64_t totalBases = 0;
+    int64_t totalRecords = 0;
+    for (const auto& part : parts) {
+        for (const auto& sId : part.seqIds) {
+            const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
+            totalBases += sl.numBases;
+        }
+        totalRecords += static_cast<int64_t>(part.seqIds.size());
+    }
+
+    // Preallocate the space for all the records.
+    data_.resize(totalBases);
+    records_.resize(totalRecords);
 
     // Actually load the data.
     if (seqDBIndexCache_->compressionLevel == 0) {

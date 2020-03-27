@@ -6,7 +6,7 @@ Test construction of the DB from a small test FASTA file. Store each sequence in
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.2.seq test-1.seqdb.2.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.3.seq test-1.seqdb.3.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.4.seq test-1.seqdb.4.seq
-  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb test-1.seqdb
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb test-1.seqdb
   > ls -1 test-1.seqdb*
   test-1.seqdb
   test-1.seqdb.0.seq
@@ -27,7 +27,7 @@ Note: the FASTQ here contains identical sequences to the "in.fasta", and the qua
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.2.seq test-1.seqdb.2.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.3.seq test-1.seqdb.3.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.4.seq test-1.seqdb.4.seq
-  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb test-1.seqdb
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb test-1.seqdb
   > ls -1 test-1.seqdb*
   test-1.seqdb
   test-1.seqdb.0.seq
@@ -48,7 +48,7 @@ That is why we can reuse the output files from the previous test, even though th
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.2.seq test-1.seqdb.2.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.3.seq test-1.seqdb.3.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.4.seq test-1.seqdb.4.seq
-  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb test-1.seqdb
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb test-1.seqdb
   > ls -1 test-1.seqdb*
   test-1.seqdb
   test-1.seqdb.0.seq
@@ -65,7 +65,7 @@ Same as before, but test writing to a different folder. The file paths should be
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.2.seq out/test-1.seqdb.2.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.3.seq out/test-1.seqdb.3.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb.4.seq out/test-1.seqdb.4.seq
-  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1.seqdb test-1.seqdb
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb test-1.seqdb
   > ls -1 out/test-1.seqdb*
   out/test-1.seqdb
   out/test-1.seqdb.0.seq
@@ -120,7 +120,7 @@ Uncompressed SeqDB construction, each sequence in one block.
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-3.seqdb.2.seq test-3.seqdb.2.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-3.seqdb.3.seq test-3.seqdb.3.seq
   > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-3.seqdb.4.seq test-3.seqdb.4.seq
-  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-3.seqdb test-3.seqdb
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-3-uncompressed-each-seq-one-block-and-file.seqdb test-3.seqdb
   > ls -1 test-3.seqdb*
   test-3.seqdb
   test-3.seqdb.0.seq

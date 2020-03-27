@@ -164,7 +164,8 @@ TEST(SeedDBReader, GetNext1)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
 
@@ -210,7 +211,8 @@ TEST(SeedDBReader, GetNext2)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1b.seeddb";
 
@@ -254,7 +256,8 @@ TEST(SeedDBReader, GetSeedsByID1)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
 
@@ -301,7 +304,8 @@ TEST(SeedDBReader, GetSeedsByID2)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1b.seeddb";
 
@@ -346,7 +350,8 @@ TEST(SeedDBReader, GetSeedsByName1)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
 
@@ -393,7 +398,8 @@ TEST(SeedDBReader, GetSeedsByName2)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1b.seeddb";
 
@@ -481,7 +487,8 @@ TEST(SeedDBReader, GetNextBatch1)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
 
@@ -521,7 +528,8 @@ TEST(SeedDBReader, GetNextBatch2)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
     int64_t batchSize = 10000;
@@ -572,7 +580,8 @@ TEST(SeedDBReader, GetNextBatch3)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1b.seeddb";
     int64_t batchSize = 10000;
@@ -620,7 +629,8 @@ TEST(SeedDBReader, GetBlock1)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
 
@@ -671,7 +681,8 @@ TEST(SeedDBReader, GetBlock2)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1b.seeddb";
 
@@ -760,7 +771,8 @@ TEST(SeedDBReader, JumpTo1)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
 
@@ -809,7 +821,8 @@ TEST(SeedDBReader, JumpTo2)
     */
 
     // Input values.
-    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-1.seqdb";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
 

@@ -28,6 +28,8 @@ public:
     ~SeqDBReaderCachedBlock();
 
     void LoadBlocks(const std::vector<int32_t>& blockIds);
+    void LoadSequences(const std::vector<int32_t>& seqIds);
+    void LoadSequences(const std::vector<std::string>& seqNames);
     const FastaSequenceCached& GetSequence(int32_t seqId) const;
     const FastaSequenceCached& GetSequence(const std::string& seqName) const;
     const std::vector<FastaSequenceCached>& records() const { return records_; }
