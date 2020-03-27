@@ -17,6 +17,10 @@ class SeqDBReaderCached
 public:
     SeqDBReaderCached(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seedDBCache,
                       int32_t blockId);
+    SeqDBReaderCached(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seedDBCache,
+                      const std::vector<int32_t>& seqIds);
+    SeqDBReaderCached(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seedDBCache,
+                      const std::vector<std::string>& seqNames);
     ~SeqDBReaderCached();
 
     const FastaSequenceId& GetSequence(int32_t seqId) const;
@@ -25,12 +29,15 @@ public:
 
 private:
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBIndexCache_;
-    int32_t blockId_;
     std::vector<PacBio::Pancake::FastaSequenceId> records_;
 
     // Info to allow random access.
     std::unordered_map<std::string, int32_t> headerToOrdinalId_;
     std::unordered_map<int32_t, int32_t> seqIdToOrdinalId_;
+
+    void LoadData_(int32_t blockId_);
+    void LoadData_(const std::vector<int32_t>& seqIds);
+    void LoadData_(const std::vector<std::string>& seqNames);
 };
 
 }  // namespace Pancake

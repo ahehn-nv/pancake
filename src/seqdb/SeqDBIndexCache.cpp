@@ -315,6 +315,23 @@ void NormalizeSeqDBIndexCache(SeqDBIndexCache& cache, int64_t blockSize)
     cache.blockLines = CreateSeqDBBlocks(cache.seqLines, blockSize);
 }
 
+void SeqDBIndexCache::Validate() const
+{
+    if (fileLines.empty())
+        throw std::runtime_error("There are no file specifications in the input index file.");
+    if (seqLines.empty())
+        throw std::runtime_error("There are no sequences in the input index file.");
+    if (blockLines.empty())
+        throw std::runtime_error("There are no blocks in the input index file.");
+}
+
+void ValidateSeqDBIndexCache(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& indexCache)
+{
+    // Sanity checks.
+    if (indexCache == nullptr) throw std::runtime_error("Provided seqDBCache == nullptr!");
+    indexCache->Validate();
+}
+
 const SeqDBSequenceLine& SeqDBIndexCache::GetSeqLine(int32_t seqId) const
 {
     // Sanity check for the sequence ID.
