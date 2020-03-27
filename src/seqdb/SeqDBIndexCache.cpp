@@ -423,8 +423,8 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     std::vector<ContiguousFilePart> contiguousParts;
 
     auto AddContiguousPart = [&](const SeqDBSequenceLine& sl) {
-        contiguousParts.emplace_back(ContiguousFilePart{
-            sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes, sl.seqId, sl.seqId + 1});
+        contiguousParts.emplace_back(
+            ContiguousFilePart{sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes, {sl.seqId}});
     };
 
     for (const auto& ordId : seqIdsToFetch) {
@@ -438,7 +438,7 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
 
         } else if (sl.fileOffset == contiguousParts.back().endOffset) {
             contiguousParts.back().endOffset += sl.numBytes;
-            contiguousParts.back().endId = sl.seqId + 1;
+            contiguousParts.back().seqIds.emplace_back(sl.seqId);
 
         } else if (sl.fileOffset > contiguousParts.back().endOffset ||
                    (sl.fileOffset + sl.numBytes) <= contiguousParts.back().startOffset) {

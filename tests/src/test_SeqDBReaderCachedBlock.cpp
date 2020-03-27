@@ -213,7 +213,7 @@ B	4	4	5	4751	19001
     // Expected.
     // Tuple: (file_id, startOffset, endOffset, startId, endId, file_offset_end)
     const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
-        PacBio::Pancake::ContiguousFilePart{0, 0, 1463, 0, 1}};
+        PacBio::Pancake::ContiguousFilePart{0, 0, 1463, {0}}};
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
@@ -224,7 +224,7 @@ B	4	4	5	4751	19001
     const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
 
     // Evaluate.
-    EXPECT_EQ(results, expected);
+    EXPECT_EQ(expected, results);
 }
 
 TEST(SeqDBReaderCachedBlock, GetSeqDBContiguousParts_NormalMultipleFilesBlock0)
@@ -255,7 +255,7 @@ B	1	4	5	4751	19001
     // Expected.
     // Tuple: (file_id, startOffset, endOffset, startId, endId, file_offset_end)
     const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
-        {0, 0, 1463, 0, 1}, {1, 0, 2996, 1, 2}, {2, 0, 6073, 2, 3}, {3, 0, 1277, 3, 4},
+        {0, 0, 1463, {0}}, {1, 0, 2996, {1}}, {2, 0, 6073, {2}}, {3, 0, 1277, {3}},
     };
 
     // Load the SeedDB.
@@ -267,7 +267,7 @@ B	1	4	5	4751	19001
     const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
 
     // Evaluate.
-    EXPECT_EQ(results, expected);
+    EXPECT_EQ(expected, results);
 }
 TEST(SeqDBReaderCachedBlock, GetSeqDBContiguousParts_NormalMultipleFilesBlock1)
 {
@@ -297,7 +297,7 @@ B	1	4	5	4751	19001
     // Expected.
     // Tuple: (file_id, startOffset, endOffset, startId, endId, file_offset_end)
     const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
-        {4, 0, 4751, 4, 5},
+        {4, 0, 4751, {4}},
     };
 
     // Load the SeedDB.
@@ -309,7 +309,7 @@ B	1	4	5	4751	19001
     const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
 
     // Evaluate.
-    EXPECT_EQ(results, expected);
+    EXPECT_EQ(expected, results);
 }
 
 TEST(SeqDBReaderCachedBlock, GetSeqDBContiguousParts_NormalTwoBlocksWithGap)
@@ -334,8 +334,8 @@ B	0	0	4	10487	41941
 
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
-    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 0, 4459, 0, 2},
-                                                                       {0, 10532, 16560, 2, 4}};
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 0, 4459, {0, 1}},
+                                                                       {0, 10532, 16560, {2, 3}}};
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
@@ -346,7 +346,7 @@ B	0	0	4	10487	41941
     const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
 
     // Evaluate.
-    EXPECT_EQ(results, expected);
+    EXPECT_EQ(expected, results);
 }
 
 TEST(SeqDBReaderCachedBlock, GetSeqDBContiguousParts_BlockOutOfBoundsThrows)
@@ -457,12 +457,11 @@ B	0	0	5	16560	66233
 
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
-    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 11809, 16560, 0, 1},
-                                                                       {0, 10532, 11809, 1, 2},
-                                                                       {0, 4459, 10532, 2, 3},
-                                                                       {0, 1463, 4459, 3, 4},
-                                                                       {0, 0, 1463, 4, 5}};
-
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 11809, 16560, {0}},
+                                                                       {0, 10532, 11809, {1}},
+                                                                       {0, 4459, 10532, {2}},
+                                                                       {0, 1463, 4459, {3}},
+                                                                       {0, 0, 1463, {4}}};
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -472,7 +471,7 @@ B	0	0	5	16560	66233
     const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, blockId);
 
     // Evaluate.
-    EXPECT_EQ(results, expected);
+    EXPECT_EQ(expected, results);
 }
 
 TEST(SeqDBReaderCachedBlock, GetSeqDBContiguousParts_InputIsAsListOfSeqIDs)
@@ -497,8 +496,8 @@ B	0	0	5	16560	66233
 
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
-    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 1463, 10532, 1, 3},
-                                                                       {0, 11809, 16560, 4, 5}};
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 1463, 10532, {1, 2}},
+                                                                       {0, 11809, 16560, {4}}};
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
@@ -509,7 +508,7 @@ B	0	0	5	16560	66233
     const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, seqIds);
 
     // Evaluate.
-    EXPECT_EQ(results, expected);
+    EXPECT_EQ(expected, results);
 }
 
 TEST(SeqDBReaderCachedBlock, GetSeqDBContiguousParts_InputIsAsListOfSeqNames)
@@ -537,8 +536,8 @@ B	0	0	5	16560	66233
 
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
-    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 1463, 10532, 1, 3},
-                                                                       {0, 11809, 16560, 4, 5}};
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 1463, 10532, {1, 2}},
+                                                                       {0, 11809, 16560, {4}}};
 
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
@@ -549,5 +548,5 @@ B	0	0	5	16560	66233
     const auto results = PacBio::Pancake::GetSeqDBContiguousParts(seqDBCache, seqNames);
 
     // Evaluate.
-    EXPECT_EQ(results, expected);
+    EXPECT_EQ(expected, results);
 }

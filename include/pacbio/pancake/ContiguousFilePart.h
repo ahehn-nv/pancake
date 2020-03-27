@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <vector>
 
 namespace PacBio {
 namespace Pancake {
@@ -15,18 +16,23 @@ public:
     int32_t fileId = 0;
     int64_t startOffset = 0;
     int64_t endOffset = 0;
-    int32_t startId = 0;
-    int32_t endId = 0;
+    std::vector<int32_t> seqIds;
 
     bool operator==(const ContiguousFilePart& b) const
     {
         return fileId == b.fileId && startOffset == b.startOffset && endOffset == b.endOffset &&
-               startId == b.startId && endId == b.endId;
+               seqIds == b.seqIds;
     }
 
     bool CanAppendTo(const ContiguousFilePart& b) const
     {
-        if (fileId == b.fileId && startOffset == b.endOffset && startId == b.endId) return true;
+        if (seqIds.empty() || b.seqIds.empty()) {
+            throw std::runtime_error(
+                "Cannot run CanAppendTo because one or both of the ContiguousFilePart objects has "
+                "an empty seqIds vector");
+        }
+        if (fileId == b.fileId && startOffset == b.endOffset && seqIds.front() == b.seqIds.back())
+            return true;
         return false;
     }
 
@@ -38,7 +44,7 @@ public:
                 "sequential.");
         }
         endOffset = b.endOffset;
-        endId = b.endId;
+        seqIds.insert(seqIds.end(), b.seqIds.begin(), b.seqIds.end());
     }
 };
 

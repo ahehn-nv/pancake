@@ -93,8 +93,8 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
             std::ostringstream oss;
             oss << "(SeqDBReaderCachedBlock) Could not read data for the following part: "
                 << "fileId = " << part.fileId << ", offsetStart = " << part.startOffset
-                << ", offsetEnd = " << part.endOffset << ", startId = " << part.startId
-                << ", endId = " << part.endId << ", itemsToRead = " << itemsToRead
+                << ", offsetEnd = " << part.endOffset << ", frontId = " << part.seqIds.front()
+                << ", backId = " << part.seqIds.back() << ", itemsToRead = " << itemsToRead
                 << ", numItemsRead = " << numItemsRead;
             throw std::runtime_error(oss.str());
         }
@@ -104,7 +104,7 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
         int64_t startByteOffset = part.startOffset;
 
         // Decompress and create the records, and add them to the lookups.
-        for (int32_t id = part.startId; id < part.endId; ++id, ++currRecord) {
+        for (const auto& id : part.seqIds) {
             const auto& sl = seqDBIndexCache_->GetSeqLine(id);
             const int64_t firstByte = sl.fileOffset - startByteOffset;
             DecompressSequence(&tempData[firstByte], sl.numBytes, sl.numBases, sl.ranges,
@@ -114,6 +114,7 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
             headerToOrdinalId_[sl.header] = currRecord;
             seqIdToOrdinalId_[sl.seqId] = currRecord;
             seqStart += sl.numBases;
+            ++currRecord;
         }
     }
 }
@@ -141,21 +142,22 @@ void SeqDBReaderCachedBlock::LoadBlockUncompressed_(const std::vector<Contiguous
             std::ostringstream oss;
             oss << "(SeqDBReaderCachedBlock) Could not read data for the following part: "
                 << "fileId = " << part.fileId << ", offsetStart = " << part.startOffset
-                << ", offsetEnd = " << part.endOffset << ", startId = " << part.startId
-                << ", endId = " << part.endId << ", itemsToRead = " << itemsToRead
+                << ", offsetEnd = " << part.endOffset << ", firstId = " << part.seqIds.front()
+                << ", lastId = " << part.seqIds.back() << ", itemsToRead = " << itemsToRead
                 << ", numItemsRead = " << numItemsRead;
             throw std::runtime_error(oss.str());
         }
 
         // Create the records, and add them to the lookups.
         int64_t seqStart = currDataPos;
-        for (int32_t id = part.startId; id < part.endId; ++id, ++currRecord) {
+        for (const auto& id : part.seqIds) {
             const auto& sl = seqDBIndexCache_->GetSeqLine(id);
             records_[currRecord] = FastaSequenceCached{
                 sl.header, reinterpret_cast<const char*>(&data_[seqStart]), sl.numBases, sl.seqId};
             headerToOrdinalId_[sl.header] = currRecord;
             seqIdToOrdinalId_[sl.seqId] = currRecord;
             seqStart += sl.numBases;
+            ++currRecord;
         }
 
         // Increment the storage location for the next part.
