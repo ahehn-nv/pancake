@@ -414,8 +414,15 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
 
 std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
-    const std::vector<int32_t>& seqIdsToFetch)
+    std::vector<int32_t> seqIdsToFetch)
 {
+    // Sort the sequences by their offset in the input File.
+    std::sort(seqIdsToFetch.begin(), seqIdsToFetch.end(),
+              [&seqDBIndexCache](const auto& a, const auto& b) {
+                  return seqDBIndexCache->GetSeqLine(a).fileOffset <
+                         seqDBIndexCache->GetSeqLine(b).fileOffset;
+              });
+
     // Sequences in the block might not be stored contiguously in the file,
     // for example if a user has permuted or filtered the DB.
     // We will collect all contiguous stretches of bytes here, and then

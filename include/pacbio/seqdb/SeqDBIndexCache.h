@@ -130,7 +130,7 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
 
 std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
-    const std::vector<int32_t>& seqIdsToFetch);
+    std::vector<int32_t> seqIdsToFetch);
 
 std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
