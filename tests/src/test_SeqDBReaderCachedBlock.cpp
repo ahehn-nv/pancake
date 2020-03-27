@@ -36,6 +36,8 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_UncompressedInput)
             PacBio::Pancake::SeqDBReader readerTruth(seqDBCache);
             std::vector<PacBio::Pancake::FastaSequenceId> expected;
             readerTruth.GetBlock(expected, blockId);
+            std::sort(expected.begin(), expected.end(),
+                      [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
 
             // Create a SeedDB reader under test.
             // Convert all FastaSequenceCached to FastaSequenceId for easier comparison.
@@ -46,6 +48,8 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_UncompressedInput)
                 results.emplace_back(PacBio::Pancake::FastaSequenceId(
                     record.Name(), std::string(record.Bases(), record.Size()), record.Id()));
             }
+            std::sort(results.begin(), results.end(),
+                      [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
 
             // Evaluate the current block.
             EXPECT_EQ(expected, results);
@@ -67,7 +71,7 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_CompressedInput)
     };
 
     for (const auto& inSeqDB : inDBs) {
-        // Load the SeedDB.
+        // Load the SeqDB.
         std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
             PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
 
@@ -81,6 +85,8 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_CompressedInput)
             PacBio::Pancake::SeqDBReader readerTruth(seqDBCache);
             std::vector<PacBio::Pancake::FastaSequenceId> expected;
             readerTruth.GetBlock(expected, blockId);
+            std::sort(expected.begin(), expected.end(),
+                      [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
 
             // Create a SeedDB reader under test.
             // Convert all FastaSequenceCached to FastaSequenceId for easier comparison.
@@ -91,6 +97,8 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_CompressedInput)
                 results.emplace_back(PacBio::Pancake::FastaSequenceId(
                     record.Name(), std::string(record.Bases(), record.Size()), record.Id()));
             }
+            std::sort(results.begin(), results.end(),
+                      [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
 
             // Evaluate the current block.
             EXPECT_EQ(expected, results);
@@ -107,7 +115,7 @@ TEST(SeqDBReaderCachedBlock, MultipleInputBlocks_Uncompressed)
     const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-3.seqdb";
     const std::vector<int32_t> inBlocks = {1, 2, 3};
 
-    // Load the SeedDB.
+    // Load the SeqDB.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
 
@@ -457,11 +465,9 @@ B	0	0	5	16560	66233
 
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
-    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 11809, 16560, {0}},
-                                                                       {0, 10532, 11809, {1}},
-                                                                       {0, 4459, 10532, {2}},
-                                                                       {0, 1463, 4459, {3}},
-                                                                       {0, 0, 1463, {4}}};
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
+        {0, 0, 16560, {4, 3, 2, 1, 0}}};
+
     // Load the SeedDB.
     std::istringstream is(inSeqDB);
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
