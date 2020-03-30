@@ -127,6 +127,7 @@ if not meson.is_subproject()
   install_headers(
     files([
       'pacbio/util/CommonTypes.h',
+      'pacbio/util/RunLengthEncoding.h',
       'pacbio/util/TicToc.h',
       ]),
       subdir : 'pacbio/util')
