@@ -30,8 +30,11 @@ public:
     void LoadBlocks(const std::vector<int32_t>& blockIds);
     void LoadSequences(const std::vector<int32_t>& seqIds);
     void LoadSequences(const std::vector<std::string>& seqNames);
+
     const FastaSequenceCached& GetSequence(int32_t seqId) const;
     const FastaSequenceCached& GetSequence(const std::string& seqName) const;
+    void GetSequence(FastaSequenceCached& record, int32_t seqId);
+    void GetSequence(FastaSequenceCached& record, const std::string& seqName);
     const std::vector<FastaSequenceCached>& records() const { return records_; }
 
 private:

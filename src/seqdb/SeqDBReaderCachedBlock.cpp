@@ -219,6 +219,19 @@ const FastaSequenceCached& SeqDBReaderCachedBlock::GetSequence(int32_t seqId) co
     return records_[ordinalId];
 }
 
+void SeqDBReaderCachedBlock::GetSequence(FastaSequenceCached& record, int32_t seqId)
+{
+    auto it = seqIdToOrdinalId_.find(seqId);
+    if (it == seqIdToOrdinalId_.end()) {
+        std::ostringstream oss;
+        oss << "(SeqDBReaderCachedBlock) Invalid seqId, not found in the preloaded data. seqId = "
+            << seqId << ", records_.size() = " << records_.size();
+        throw std::runtime_error(oss.str());
+    }
+    int32_t ordinalId = it->second;
+    record = records_[ordinalId];
+}
+
 const FastaSequenceCached& SeqDBReaderCachedBlock::GetSequence(const std::string& seqName) const
 {
     auto it = headerToOrdinalId_.find(seqName);
@@ -231,6 +244,20 @@ const FastaSequenceCached& SeqDBReaderCachedBlock::GetSequence(const std::string
     }
     int32_t ordinalId = it->second;
     return records_[ordinalId];
+}
+
+void SeqDBReaderCachedBlock::GetSequence(FastaSequenceCached& record, const std::string& seqName)
+{
+    auto it = headerToOrdinalId_.find(seqName);
+    if (it == headerToOrdinalId_.end()) {
+        std::ostringstream oss;
+        oss << "(SeqDBReaderCachedBlock) Invalid seqName, not found in the preloaded data. seqName "
+               "= '"
+            << seqName << ".";
+        throw std::runtime_error(oss.str());
+    }
+    int32_t ordinalId = it->second;
+    record = records_[ordinalId];
 }
 
 }  // namespace Pancake

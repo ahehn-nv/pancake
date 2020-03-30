@@ -101,6 +101,18 @@ const FastaSequenceId& SeqDBReaderCached::GetSequence(int32_t seqId) const
     return records_[ordinalId];
 }
 
+void SeqDBReaderCached::GetSequence(FastaSequenceId& record, int32_t seqId)
+{
+    auto it = seqIdToOrdinalId_.find(seqId);
+    if (it == seqIdToOrdinalId_.end()) {
+        std::ostringstream oss;
+        oss << "(SeqDBReaderCached) Invalid seqId = " << seqId << ".";
+        throw std::runtime_error(oss.str());
+    }
+    int32_t ordinalId = it->second;
+    record = records_[ordinalId];
+}
+
 const FastaSequenceId& SeqDBReaderCached::GetSequence(const std::string& seqName) const
 {
     auto it = headerToOrdinalId_.find(seqName);
@@ -111,6 +123,18 @@ const FastaSequenceId& SeqDBReaderCached::GetSequence(const std::string& seqName
     }
     int32_t ordinalId = it->second;
     return records_[ordinalId];
+}
+
+void SeqDBReaderCached::GetSequence(FastaSequenceId& record, const std::string& seqName)
+{
+    auto it = headerToOrdinalId_.find(seqName);
+    if (it == headerToOrdinalId_.end()) {
+        std::ostringstream oss;
+        oss << "(SeqDBReaderCached) Invalid seqName: '" << seqName << "'";
+        throw std::runtime_error(oss.str());
+    }
+    int32_t ordinalId = it->second;
+    record = records_[ordinalId];
 }
 
 }  // namespace Pancake

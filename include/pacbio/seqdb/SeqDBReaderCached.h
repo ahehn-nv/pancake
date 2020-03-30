@@ -25,6 +25,8 @@ public:
 
     const FastaSequenceId& GetSequence(int32_t seqId) const;
     const FastaSequenceId& GetSequence(const std::string& seqName) const;
+    void GetSequence(FastaSequenceId& record, int32_t seqId);
+    void GetSequence(FastaSequenceId& record, const std::string& seqName);
     const std::vector<PacBio::Pancake::FastaSequenceId>& records() const { return records_; }
 
 private:
