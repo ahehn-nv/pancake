@@ -283,6 +283,59 @@ TEST(SeqDBReaderCachedBlock, LoadSequences_SeqName)
     }
 }
 
+TEST(SeqDBReaderCachedBlock, LoadAndHPCompress_From_in_2_small)
+{
+    /*
+     * Load sequences and compress homopolymers in the cache.
+    */
+
+    const std::vector<std::string> inDBs = {
+        PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/test-10a-compressed-in-2-small.seqdb",
+        PacBio::PancakeTestsConfig::Data_Dir +
+            "/seqdb-writer/test-10b-uncompressed-in-2-small.seqdb",
+    };
+
+    std::vector<PacBio::Pancake::FastaSequenceId> expected = {
+        PacBio::Pancake::FastaSequenceId("Seq1", "ATCGTCAGCGCG", 0),
+        PacBio::Pancake::FastaSequenceId("Seq2", "AGCGCAGCAGACATACGATATGCA", 1),
+        PacBio::Pancake::FastaSequenceId("Seq3", "C", 2),
+        PacBio::Pancake::FastaSequenceId("Seq4", "A", 3),
+        PacBio::Pancake::FastaSequenceId("Seq5", "ACTCGCGCAGTGACATCGCAGAGTATAGCAGCGTACAGCGTACGTG",
+                                         4),
+    };
+
+    int32_t blockId = 0;
+
+    for (const auto& inSeqDB : inDBs) {
+        SCOPED_TRACE(inSeqDB);
+
+        // Load the SeqDB.
+        std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
+            PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
+
+        // Create a unit under test.
+        // Read the sequences for the specified blocks and compress homopolymers.
+        // Convert all FastaSequenceCached to FastaSequenceId for easier comparison.
+        PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, true);
+        readerTest.LoadBlocks({blockId});
+        std::vector<PacBio::Pancake::FastaSequenceId> results;
+        for (const auto& record : readerTest.records()) {
+            results.emplace_back(PacBio::Pancake::FastaSequenceId(
+                record.Name(), std::string(record.Bases(), record.Size()), record.Id()));
+        }
+        std::sort(results.begin(), results.end(),
+                  [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
+
+        for (const auto& record : results) {
+            std::cerr << ">" << record.Name() << "-" << record.Id() << "\n"
+                      << record.Bases() << "\n";
+        }
+
+        // Evaluate the current block.
+        EXPECT_EQ(expected, results);
+    }
+}
+
 TEST(SeqDBReaderCachedBlock, GetSeqDBContiguousParts_NormalSingleBlock)
 {
     /*
