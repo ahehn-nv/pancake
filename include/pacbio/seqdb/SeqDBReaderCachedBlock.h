@@ -1,7 +1,7 @@
 // Author: Ivan Sovic
 
 /*
- * Similar to SeqDBReaderCachedBlock, but it doesn't parse the sequences one by one.
+ * Similar to SeqDBReaderCached, but it doesn't parse the sequences one by one.
  * Instead, it loads all the data as a block, and provides sequences via C-style
  * pointers to the local data.
  * This works only for uncompressed sequences.
@@ -24,7 +24,8 @@ namespace Pancake {
 class SeqDBReaderCachedBlock
 {
 public:
-    SeqDBReaderCachedBlock(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seedDBCache);
+    SeqDBReaderCachedBlock(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seedDBCache,
+                           bool useHomopolymerCompression);
     ~SeqDBReaderCachedBlock();
 
     void LoadBlocks(const std::vector<int32_t>& blockIds);
@@ -39,6 +40,7 @@ public:
 
 private:
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBIndexCache_;
+    bool useHomopolymerCompression_;
     std::vector<uint8_t> data_;
     std::vector<FastaSequenceCached> records_;
 
@@ -48,6 +50,8 @@ private:
 
     void LoadBlockUncompressed_(const std::vector<ContiguousFilePart>& parts);
     void LoadBlockCompressed_(const std::vector<ContiguousFilePart>& parts);
+
+    void CompressHomopolymers_();
 };
 
 }  // namespace Pancake

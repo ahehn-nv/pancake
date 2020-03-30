@@ -4,6 +4,7 @@
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
 #include <pacbio/seqdb/Twobit.h>
 #include <pacbio/seqdb/Util.h>
+#include <pacbio/util/RunLengthEncoding.h>
 #include <iostream>
 #include <sstream>
 
@@ -11,8 +12,8 @@ namespace PacBio {
 namespace Pancake {
 
 SeqDBReaderCachedBlock::SeqDBReaderCachedBlock(
-    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBCache)
-    : seqDBIndexCache_(seqDBCache)
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBCache, bool useHomopolymerCompression)
+    : seqDBIndexCache_(seqDBCache), useHomopolymerCompression_(useHomopolymerCompression)
 {
     ValidateSeqDBIndexCache(seqDBCache);
 }
@@ -33,21 +34,6 @@ void SeqDBReaderCachedBlock::LoadBlocks(const std::vector<int32_t>& blockIds)
     // Get the contiguous file parts for loading.
     std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, seqIds);
 
-    // Count the data size.
-    int64_t totalBases = 0;
-    int64_t totalRecords = 0;
-    for (const auto& part : parts) {
-        for (const auto& sId : part.seqIds) {
-            const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
-            totalBases += sl.numBases;
-        }
-        totalRecords += static_cast<int64_t>(part.seqIds.size());
-    }
-
-    // Preallocate the space for all the records.
-    data_.resize(totalBases);
-    records_.resize(totalRecords);
-
     // Actually load the data.
     if (seqDBIndexCache_->compressionLevel == 0) {
         return LoadBlockUncompressed_(parts);
@@ -59,21 +45,6 @@ void SeqDBReaderCachedBlock::LoadSequences(const std::vector<int32_t>& seqIds)
 {
     // Get the contiguous file parts for loading.
     std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, seqIds);
-
-    // Count the data size.
-    int64_t totalBases = 0;
-    int64_t totalRecords = 0;
-    for (const auto& part : parts) {
-        for (const auto& sId : part.seqIds) {
-            const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
-            totalBases += sl.numBases;
-        }
-        totalRecords += static_cast<int64_t>(part.seqIds.size());
-    }
-
-    // Preallocate the space for all the records.
-    data_.resize(totalBases);
-    records_.resize(totalRecords);
 
     // Actually load the data.
     if (seqDBIndexCache_->compressionLevel == 0) {
@@ -87,6 +58,15 @@ void SeqDBReaderCachedBlock::LoadSequences(const std::vector<std::string>& seqNa
     // Get the contiguous file parts for loading.
     std::vector<ContiguousFilePart> parts = GetSeqDBContiguousParts(seqDBIndexCache_, seqNames);
 
+    // Actually load the data.
+    if (seqDBIndexCache_->compressionLevel == 0) {
+        return LoadBlockUncompressed_(parts);
+    }
+    return LoadBlockCompressed_(parts);
+}
+
+void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFilePart>& parts)
+{
     // Count the data size.
     int64_t totalBases = 0;
     int64_t totalRecords = 0;
@@ -102,15 +82,6 @@ void SeqDBReaderCachedBlock::LoadSequences(const std::vector<std::string>& seqNa
     data_.resize(totalBases);
     records_.resize(totalRecords);
 
-    // Actually load the data.
-    if (seqDBIndexCache_->compressionLevel == 0) {
-        return LoadBlockUncompressed_(parts);
-    }
-    return LoadBlockCompressed_(parts);
-}
-
-void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFilePart>& parts)
-{
     // Position of a current record in the data_ vector.
     int64_t seqStart = 0;
     int64_t currRecord = 0;
@@ -158,10 +129,29 @@ void SeqDBReaderCachedBlock::LoadBlockCompressed_(const std::vector<ContiguousFi
             ++currRecord;
         }
     }
+
+    if (useHomopolymerCompression_) {
+        CompressHomopolymers_();
+    }
 }
 
 void SeqDBReaderCachedBlock::LoadBlockUncompressed_(const std::vector<ContiguousFilePart>& parts)
 {
+    // Count the data size.
+    int64_t totalBases = 0;
+    int64_t totalRecords = 0;
+    for (const auto& part : parts) {
+        for (const auto& sId : part.seqIds) {
+            const auto& sl = seqDBIndexCache_->GetSeqLine(sId);
+            totalBases += sl.numBases;
+        }
+        totalRecords += static_cast<int64_t>(part.seqIds.size());
+    }
+
+    // Preallocate the space for all the records.
+    data_.resize(totalBases);
+    records_.resize(totalRecords);
+
     int64_t currDataPos = 0;
     int64_t currRecord = 0;
     for (const auto& part : parts) {
@@ -203,6 +193,10 @@ void SeqDBReaderCachedBlock::LoadBlockUncompressed_(const std::vector<Contiguous
 
         // Increment the storage location for the next part.
         currDataPos += numItemsRead;
+    }
+
+    if (useHomopolymerCompression_) {
+        CompressHomopolymers_();
     }
 }
 
@@ -258,6 +252,16 @@ void SeqDBReaderCachedBlock::GetSequence(FastaSequenceCached& record, const std:
     }
     int32_t ordinalId = it->second;
     record = records_[ordinalId];
+}
+
+void SeqDBReaderCachedBlock::CompressHomopolymers_()
+{
+    std::vector<int32_t> runLengths;
+    for (auto& record : records_) {
+        int64_t comprLen = PacBio::Pancake::RunLengthEncoding(const_cast<char*>(record.bases),
+                                                              record.size, runLengths);
+        record.size = comprLen;
+    }
 }
 
 }  // namespace Pancake

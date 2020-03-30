@@ -44,7 +44,7 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_UncompressedInput)
 
             // Create a SeedDB reader under test.
             // Convert all FastaSequenceCached to FastaSequenceId for easier comparison.
-            PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache);
+            PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, false);
             readerTest.LoadBlocks({blockId});
             std::vector<PacBio::Pancake::FastaSequenceId> results;
             for (const auto& record : readerTest.records()) {
@@ -95,7 +95,7 @@ TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_CompressedInput)
 
             // Create a SeedDB reader under test.
             // Convert all FastaSequenceCached to FastaSequenceId for easier comparison.
-            PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache);
+            PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, false);
             readerTest.LoadBlocks({blockId});
             std::vector<PacBio::Pancake::FastaSequenceId> results;
             for (const auto& record : readerTest.records()) {
@@ -156,7 +156,7 @@ TEST(SeqDBReaderCachedBlock, MultipleInputBlocks)
         // Create a unit under test.
         // Read the sequences for the specified blocks, and convert all
         // FastaSequenceCached to FastaSequenceId for easier comparison.
-        PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache);
+        PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, false);
         readerTest.LoadBlocks(inBlocks);
         std::vector<PacBio::Pancake::FastaSequenceId> results;
         for (const auto& record : readerTest.records()) {
@@ -210,7 +210,7 @@ TEST(SeqDBReaderCachedBlock, LoadSequences_SeqId)
         // Create a unit under test.
         // Read the sequences for the specified blocks, and convert all
         // FastaSequenceCached to FastaSequenceId for easier comparison.
-        PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache);
+        PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, false);
         readerTest.LoadSequences(seqIds);
         std::vector<PacBio::Pancake::FastaSequenceId> results;
         for (const auto& record : readerTest.records()) {
@@ -268,7 +268,7 @@ TEST(SeqDBReaderCachedBlock, LoadSequences_SeqName)
         // Create a unit under test.
         // Read the sequences for the specified blocks, and convert all
         // FastaSequenceCached to FastaSequenceId for easier comparison.
-        PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache);
+        PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, false);
         readerTest.LoadSequences(seqNames);
         std::vector<PacBio::Pancake::FastaSequenceId> results;
         for (const auto& record : readerTest.records()) {
