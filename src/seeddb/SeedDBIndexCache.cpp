@@ -280,8 +280,8 @@ std::vector<ContiguousFilePart> GetSeedDBContiguousParts(
     std::vector<ContiguousFilePart> contiguousParts;
 
     auto AddContiguousPart = [&](const SeedDBSeedsLine& sl) {
-        contiguousParts.emplace_back(ContiguousFilePart{
-            sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes, sl.seqId, sl.seqId + 1});
+        contiguousParts.emplace_back(
+            ContiguousFilePart{sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes, {sl.seqId}});
     };
 
     for (int32_t ordId = block.startSeqId; ordId < block.endSeqId; ++ordId) {
@@ -295,7 +295,7 @@ std::vector<ContiguousFilePart> GetSeedDBContiguousParts(
 
         } else if (sl.fileOffset == contiguousParts.back().endOffset) {
             contiguousParts.back().endOffset += sl.numBytes;
-            contiguousParts.back().endId = sl.seqId + 1;
+            contiguousParts.back().seqIds.emplace_back(sl.seqId);
 
         } else if (sl.fileOffset > contiguousParts.back().endOffset ||
                    (sl.fileOffset + sl.numBytes) <= contiguousParts.back().startOffset) {

@@ -101,21 +101,22 @@ void SeedDBReaderCachedBlock::LoadBlock(const std::vector<int32_t>& blockIds)
             std::ostringstream oss;
             oss << "(SeedDBReaderCachedBlock) Could not read data for the following part: "
                 << "fileId = " << part.fileId << ", offsetStart = " << part.startOffset
-                << ", offsetEnd = " << part.endOffset << ", startId = " << part.startId
-                << ", endId = " << part.endId << ", itemsToRead = " << itemsToRead
+                << ", offsetEnd = " << part.endOffset << ", firstId = " << part.seqIds.front()
+                << ", lastId = " << part.seqIds.back() << ", itemsToRead = " << itemsToRead
                 << ", numItemsRead = " << numItemsRead;
             throw std::runtime_error(oss.str());
         }
 
         // Create the records, and add them to the lookups.
         int64_t seqStart = currDataPos;
-        for (int32_t id = part.startId; id < part.endId; ++id, ++currRecord) {
+        for (const auto& id : part.seqIds) {
             const auto& sl = indexCache_->GetSeedsLine(id);
             records_[currRecord] =
                 SequenceSeedsCached(sl.header, &data_[seqStart], sl.numSeeds, sl.seqId);
             headerToOrdinalId_[sl.header] = currRecord;
             seqIdToOrdinalId_[sl.seqId] = currRecord;
             seqStart += sl.numSeeds;
+            ++currRecord;
         }
 
         // Increment the storage location for the next part.

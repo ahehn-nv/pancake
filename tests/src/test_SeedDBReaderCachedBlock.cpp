@@ -166,6 +166,7 @@ TEST(SeedDBReaderCachedBlock, MultipleInputBlocks)
 {
     /*
      * Test loading of multiple blocks at once.
+     * Evaluate using a previously tested SeedDBReader as the truth.
     */
 
     const std::string inSeqDB =
@@ -185,6 +186,8 @@ TEST(SeedDBReaderCachedBlock, MultipleInputBlocks)
         reader.GetBlock(blockRecords, blockId);
         expected.insert(expected.end(), blockRecords.begin(), blockRecords.end());
     }
+    std::sort(expected.begin(), expected.end(),
+              [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
 
     // Create a unit under test.
     // Read the sequences for the specified blocks, and convert all
@@ -195,7 +198,63 @@ TEST(SeedDBReaderCachedBlock, MultipleInputBlocks)
         std::vector<PacBio::Pancake::Int128t> seeds(record.Seeds(), record.Seeds() + record.Size());
         results.emplace_back(PacBio::Pancake::SequenceSeeds(record.Name(), seeds, record.Id()));
     }
+    std::sort(results.begin(), results.end(),
+              [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
 
     // Evaluate the current block.
     EXPECT_EQ(expected, results);
+}
+
+TEST(SeedDBReaderCachedBlock, BatchCompareWithSeedDBReader)
+{
+    /*
+     * Test loading of multiple blocks at once.
+     * Evaluate using a previously tested SeedDBReader as the truth.
+    */
+
+    const std::vector<std::string> inDBs = {
+        PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb",
+        PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1b.seeddb",
+        PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1c.seeddb",
+        PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1e-permuted-file-offset.seeddb",
+    };
+
+    for (const auto& inSeqDB : inDBs) {
+        // Load the SeedDB.
+        std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache =
+            PacBio::Pancake::LoadSeedDBIndexCache(inSeqDB);
+
+        const int32_t numBlocks = indexCache->blockLines.size();
+
+        for (int32_t blockId = 0; blockId < numBlocks; ++blockId) {
+            SCOPED_TRACE(inSeqDB + ", blockId = " + std::to_string(blockId));
+
+            // Collect all expected seeds lines for the specified input blocks
+            // using an orthogonal reader. These are treated as the truth data.
+            std::vector<PacBio::Pancake::SequenceSeeds> expected;
+            PacBio::Pancake::SeedDBReader readerTruth(indexCache);
+            std::vector<PacBio::Pancake::SequenceSeeds> blockRecords;
+            readerTruth.GetBlock(blockRecords, blockId);
+            expected.insert(expected.end(), blockRecords.begin(), blockRecords.end());
+            std::sort(expected.begin(), expected.end(),
+                      [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
+
+            // Create a unit under test.
+            // Read the sequences for the specified blocks, and convert all
+            // vvectors to SequenceSeeds objects for easier comparison.
+            PacBio::Pancake::SeedDBReaderCachedBlock readerTest(indexCache, {blockId});
+            std::vector<PacBio::Pancake::SequenceSeeds> results;
+            for (const auto& record : readerTest.records()) {
+                std::vector<PacBio::Pancake::Int128t> seeds(record.Seeds(),
+                                                            record.Seeds() + record.Size());
+                results.emplace_back(
+                    PacBio::Pancake::SequenceSeeds(record.Name(), seeds, record.Id()));
+            }
+            std::sort(results.begin(), results.end(),
+                      [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
+
+            // Evaluate the current block.
+            EXPECT_EQ(expected, results);
+        }
+    }
 }

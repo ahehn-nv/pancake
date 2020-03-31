@@ -79,7 +79,14 @@ public:
     const SeqDBSequenceLine& GetSeqLine(int32_t seqId) const;
     const SeqDBBlockLine& GetBlockLine(int32_t blockId) const;
     const SeqDBFileLine& GetFileLine(int32_t fileId) const;
+
+    /// \brief Checks that the fileLines, seqLines and blockLines are not empty.
+    ///        Throws if they are.
+    void Validate() const;
 };
+
+/// \brief Validates the pointer and then calls indexCache->Validate.
+void ValidateSeqDBIndexCache(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& indexCache);
 
 /// \brief Writes the .seqdb file to disk.
 void WriteSeqDBIndexCache(FILE* fpOut, const SeqDBIndexCache& cache);
@@ -120,6 +127,14 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
 
 std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache, int32_t blockId);
+
+std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
+    const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
+    std::vector<int32_t> seqIdsToFetch);
+
+std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
+    const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
+    const std::vector<std::string>& seqNamesToFetch);
 
 /// \brief Filters the list of sequence lines from a SeqDB index.
 ///

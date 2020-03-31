@@ -34,7 +34,7 @@ B	4	4	5	10304
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
     const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
-        PacBio::Pancake::ContiguousFilePart{0, 0, 2976, 0, 1}};
+        PacBio::Pancake::ContiguousFilePart{0, 0, 2976, {0}}};
 
     // Load the SeedDB.
     std::istringstream is(inSeedDB);
@@ -76,7 +76,7 @@ B	1	1	5	32960
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
     const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
-        {1, 0, 7664, 1, 2}, {2, 0, 12384, 2, 3}, {3, 0, 2608, 3, 4}, {4, 0, 10304, 4, 5},
+        {1, 0, 7664, {1}}, {2, 0, 12384, {2}}, {3, 0, 2608, {3}}, {4, 0, 10304, {4}},
     };
 
     // Load the SeedDB.
@@ -113,8 +113,8 @@ B	0	0	4	23552
 
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
-    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 0, 10640, 0, 2},
-                                                                       {0, 23024, 35936, 2, 4}};
+    const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {{0, 0, 10640, {0, 1}},
+                                                                       {0, 23024, 35936, {2, 3}}};
 
     // Load the SeedDB.
     std::istringstream is(inSeedDB);
@@ -233,7 +233,7 @@ B	0	0	4	23552
     // Expected.
     // Tuple: (file_id, file_offset_start, file_offset_end)
     const std::vector<PacBio::Pancake::ContiguousFilePart> expected = {
-        {0, 0, 10640, 0, 2}, {0, 25632, 35936, 2, 3}, {0, 23024, 25632, 3, 4}};
+        {0, 0, 10640, {0, 1}}, {0, 25632, 35936, {2}}, {0, 23024, 25632, {3}}};
 
     // Load the SeedDB.
     std::istringstream is(inSeedDB);

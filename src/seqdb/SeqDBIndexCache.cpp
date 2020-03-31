@@ -5,6 +5,7 @@
 #include <array>
 #include <iostream>
 #include <limits>
+#include <numeric>
 #include <sstream>
 
 namespace PacBio {
@@ -315,6 +316,23 @@ void NormalizeSeqDBIndexCache(SeqDBIndexCache& cache, int64_t blockSize)
     cache.blockLines = CreateSeqDBBlocks(cache.seqLines, blockSize);
 }
 
+void SeqDBIndexCache::Validate() const
+{
+    if (fileLines.empty())
+        throw std::runtime_error("There are no file specifications in the input index file.");
+    if (seqLines.empty())
+        throw std::runtime_error("There are no sequences in the input index file.");
+    if (blockLines.empty())
+        throw std::runtime_error("There are no blocks in the input index file.");
+}
+
+void ValidateSeqDBIndexCache(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& indexCache)
+{
+    // Sanity checks.
+    if (indexCache == nullptr) throw std::runtime_error("Provided seqDBCache == nullptr!");
+    indexCache->Validate();
+}
+
 const SeqDBSequenceLine& SeqDBIndexCache::GetSeqLine(int32_t seqId) const
 {
     // Sanity check for the sequence ID.
@@ -365,6 +383,47 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
         throw std::runtime_error(oss.str());
     }
 
+    // Create a vector of sequence IDs which will be collected.
+    std::vector<int32_t> seqIdsToFetch(block.endSeqId - block.startSeqId);
+    std::iota(seqIdsToFetch.begin(), seqIdsToFetch.end(), block.startSeqId);
+
+    return GetSeqDBContiguousParts(seqDBIndexCache, seqIdsToFetch);
+}
+
+std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
+    const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
+    const std::vector<std::string>& seqNamesToFetch)
+{
+    HeaderLookupType headerToOrdinalId;
+    ComputeSeqDBIndexHeaderLookup(*seqDBIndexCache, headerToOrdinalId);
+
+    std::vector<std::int32_t> seqIdsToFetch;
+
+    for (const auto& seqName : seqNamesToFetch) {
+        auto it = headerToOrdinalId.find(seqName);
+        if (it == headerToOrdinalId.end()) {
+            throw std::runtime_error("(GetSeqDBContiguousParts) Cannot find seq name '" + seqName +
+                                     "' in the provided seqDBIndexCache.");
+        }
+        auto id = it->second;
+        seqIdsToFetch.emplace_back(id);
+    }
+
+    return GetSeqDBContiguousParts(seqDBIndexCache, seqIdsToFetch);
+}
+
+std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
+    const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache,
+    std::vector<int32_t> seqIdsToFetch  // Intentional copy, for sort.
+    )
+{
+    // Sort the sequences by their offset in the input File.
+    std::sort(seqIdsToFetch.begin(), seqIdsToFetch.end(),
+              [&seqDBIndexCache](const auto& a, const auto& b) {
+                  return seqDBIndexCache->GetSeqLine(a).fileOffset <
+                         seqDBIndexCache->GetSeqLine(b).fileOffset;
+              });
+
     // Sequences in the block might not be stored contiguously in the file,
     // for example if a user has permuted or filtered the DB.
     // We will collect all contiguous stretches of bytes here, and then
@@ -372,12 +431,12 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     std::vector<ContiguousFilePart> contiguousParts;
 
     auto AddContiguousPart = [&](const SeqDBSequenceLine& sl) {
-        contiguousParts.emplace_back(ContiguousFilePart{
-            sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes, sl.seqId, sl.seqId + 1});
+        contiguousParts.emplace_back(
+            ContiguousFilePart{sl.fileId, sl.fileOffset, sl.fileOffset + sl.numBytes, {sl.seqId}});
     };
 
-    for (int32_t ordId = block.startSeqId; ordId < block.endSeqId; ++ordId) {
-        const auto& sl = seqDBIndexCache->seqLines[ordId];
+    for (const auto& ordId : seqIdsToFetch) {
+        const auto& sl = seqDBIndexCache->GetSeqLine(ordId);
 
         if (contiguousParts.empty()) {
             AddContiguousPart(sl);
@@ -387,7 +446,7 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
 
         } else if (sl.fileOffset == contiguousParts.back().endOffset) {
             contiguousParts.back().endOffset += sl.numBytes;
-            contiguousParts.back().endId = sl.seqId + 1;
+            contiguousParts.back().seqIds.emplace_back(sl.seqId);
 
         } else if (sl.fileOffset > contiguousParts.back().endOffset ||
                    (sl.fileOffset + sl.numBytes) <= contiguousParts.back().startOffset) {
