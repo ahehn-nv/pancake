@@ -31,7 +31,8 @@ public:
                 "Cannot run CanAppendTo because one or both of the ContiguousFilePart objects has "
                 "an empty seqIds vector");
         }
-        if (fileId == b.fileId && startOffset == b.endOffset && seqIds.front() == b.seqIds.back())
+        if ((fileId == b.fileId) && (startOffset == b.endOffset) &&
+            (seqIds.front() == b.seqIds.back()))
             return true;
         return false;
     }
