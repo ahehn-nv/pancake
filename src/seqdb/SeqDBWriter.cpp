@@ -57,6 +57,8 @@ void SeqDBWriter::AddSequence(const std::string& header, const std::string& seq)
         OpenNewSequenceFile_();
     }
 
+    openNewSequenceFileUponNextWrite_ = false;
+
     int32_t numBytes = 0;
     std::vector<Range> ranges;
     int64_t numUncompressedBases = 0;
