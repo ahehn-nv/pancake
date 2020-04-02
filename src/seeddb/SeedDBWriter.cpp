@@ -65,6 +65,8 @@ void SeedDBWriter::WriteSeeds(const std::string& seqName, int32_t seqId, int32_t
         OpenNewSeedsFile_();
     }
 
+    openNewSeedsFileUponNextWrite_ = false;
+
     // Create a new index registry object.
     SeedDBSeedsLine sl;
     sl.seqId = seqId;

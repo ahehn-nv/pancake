@@ -15,6 +15,19 @@ Test construction of the DB from a small test FASTA file. Store each sequence in
   test-1.seqdb.3.seq
   test-1.seqdb.4.seq
 
+Test construction of the DB from a small test FASTA file, and split blocks but this time more than 1 sequence per block.
+  $ rm -f test-1.seqdb*
+  > ${BIN_DIR}/pancake seqdb test-11-split-blocks ${PROJECT_DIR}/test-data/seqdb-writer/in.fasta --block-size 0.015 --buffer-size 1024 --split-blocks
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-11-split-blocks.seqdb test-11-split-blocks.seqdb
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-11-split-blocks.seqdb.0.seq test-11-split-blocks.seqdb.0.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-11-split-blocks.seqdb.1.seq test-11-split-blocks.seqdb.1.seq
+  > diff ${PROJECT_DIR}/test-data/seqdb-writer/test-11-split-blocks.seqdb.2.seq test-11-split-blocks.seqdb.2.seq
+  > ls -1 test-11-split-blocks.seqdb*
+  test-11-split-blocks.seqdb
+  test-11-split-blocks.seqdb.0.seq
+  test-11-split-blocks.seqdb.1.seq
+  test-11-split-blocks.seqdb.2.seq
+
 FASTQ input.
 Test construction of the DB from a small test FASTQ file. Store each sequence into a separate 2-bit compressed file.
 This test is exactly the same as the previous one, the only difference is that the input is in the FASTQ format instead of FASTA.
