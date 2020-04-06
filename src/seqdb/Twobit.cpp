@@ -140,8 +140,16 @@ void DecompressSequence(const std::vector<uint8_t>& twobit, int32_t numBases,
             }
             // Last byte - again, the range can end within the byte. We need
             // to pick only the valid bases.
-            std::string backBases(ByteToBases[twobit[rangeEndByte]]);
-            oss << backBases.substr(0, rangeEndOffset);
+            // This 'if' is required for the edge case where the input
+            // sequence length is divisible by 4. Then the rangeEndByte would
+            // point to the new byte, but rangeEndOffset is equal to 0 because no
+            // bases are used from this new byte. For example, consider a range
+            // [4, 11] as a situation without an edge case, and [4, 12] which includes
+            // full 3 bytes and would trigger this edge case.
+            if (rangeEndOffset > 0) {
+                std::string backBases(ByteToBases[twobit[rangeEndByte]]);
+                oss << backBases.substr(0, rangeEndOffset);
+            }
         }
 
         // Add the unknown bases in between ranges.
@@ -252,9 +260,17 @@ void DecompressSequence(const uint8_t* twobit, int64_t twobitLen, int32_t numBas
 
             // Last byte - again, the range can end within the byte. We need
             // to pick only the valid bases.
-            std::string backBases(ByteToBases[twobit[rangeEndByte]]);
-            for (int32_t val = 0; val < rangeEndOffset; ++val, ++outBasesCount) {
-                outBases[outBasesCount] = backBases[val];
+            // This 'if' is required for the edge case where the input
+            // sequence length is divisible by 4. Then the rangeEndByte would
+            // point to the new byte, but rangeEndOffset is equal to 0 because no
+            // bases are used from this new byte. For example, consider a range
+            // [4, 11] as a situation without an edge case, and [4, 12] which includes
+            // full 3 bytes and would trigger this edge case.
+            if (rangeEndOffset > 0) {
+                std::string backBases(ByteToBases[twobit[rangeEndByte]]);
+                for (int32_t val = 0; val < rangeEndOffset; ++val, ++outBasesCount) {
+                    outBases[outBasesCount] = backBases[val];
+                }
             }
         }
 
