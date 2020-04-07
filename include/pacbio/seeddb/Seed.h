@@ -72,8 +72,8 @@ public:
                                                   bool _isRev)
     {
         PacBio::Pancake::Int128t ret = ((PacBio::Pancake::Int128t)_key) << 64;
-        ret |= (((PacBio::Pancake::Int128t)(_seqID & MINIMIZER_32bit_MASK)) << 33);
-        ret |= ((PacBio::Pancake::Int128t)(_pos & MINIMIZER_32bit_MASK));
+        ret |= (((PacBio::Pancake::Int128t)(_seqID)) & MINIMIZER_32bit_MASK) << 33;
+        ret |= ((PacBio::Pancake::Int128t)(_pos)) & MINIMIZER_32bit_MASK;
         if (_isRev) {
             ret |= MINIMIZER_CODED_REV_BIT;
         }

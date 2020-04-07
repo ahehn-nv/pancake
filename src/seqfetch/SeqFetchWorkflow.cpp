@@ -78,10 +78,10 @@ bool FormatIsFastq(const std::string& fn)
            boost::algorithm::iends_with(fn, ".fastq.gz") ||
            boost::algorithm::iends_with(fn, ".fq") || boost::algorithm::iends_with(fn, ".fq.gz");
 }
-bool FormatIsFofn(const std::string& fn) { return boost::algorithm::iends_with(fn, ".fofn"); };
-bool FormatIsBam(const std::string& fn) { return boost::algorithm::iends_with(fn, ".bam"); };
-bool FormatIsXml(const std::string& fn) { return boost::algorithm::iends_with(fn, ".xml"); };
-bool FormatIsSeqDB(const std::string& fn) { return boost::algorithm::iends_with(fn, ".seqdb"); };
+bool FormatIsFofn(const std::string& fn) { return boost::algorithm::iends_with(fn, ".fofn"); }
+bool FormatIsBam(const std::string& fn) { return boost::algorithm::iends_with(fn, ".bam"); }
+bool FormatIsXml(const std::string& fn) { return boost::algorithm::iends_with(fn, ".xml"); }
+bool FormatIsSeqDB(const std::string& fn) { return boost::algorithm::iends_with(fn, ".seqdb"); }
 
 SeqFetchInputFormat ParseFormat(const std::string& filename)
 {

@@ -128,7 +128,7 @@ void SeedIndex::ComputeFrequencyStats(double percentileCutoff, int64_t& retFreqM
     // Return values.
     retFreqMax = freqs.back();
     retFreqCutoff = freqs[cutoffId];
-    retFreqAvg = sumFreqs / static_cast<double>(numKeys);
+    retFreqAvg = sumFreqs / numKeys;
     retFreqMedian = (static_cast<double>(freqs[numValidKeys / 2]) +
                      static_cast<double>(freqs[(numValidKeys - 1) / 2])) /
                     2.0;

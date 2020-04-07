@@ -26,7 +26,7 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
     PBLOG_INFO << "Mapping query ID = " << querySeq.Id() << ", header = " << querySeq.Name();
 #endif
 
-    if (static_cast<int64_t>(querySeq.Size()) < settings_.MinQueryLen) {
+    if (querySeq.Size() < settings_.MinQueryLen) {
         return {};
     }
 
