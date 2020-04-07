@@ -116,7 +116,7 @@ OverlapPtr ParseOverlapFromString(const std::string& line)
 
     ovl->Arev = Arev;
     ovl->Brev = Brev;
-    ovl->Identity /= 100.0;
+    ovl->Identity /= 100.0f;
 
     // Internally we represent the overlap in the strand of the overlap.
     // (The format specifies it always in the FWD strand.)

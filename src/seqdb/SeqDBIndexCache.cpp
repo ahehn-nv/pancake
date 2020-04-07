@@ -75,7 +75,7 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 break;
             case 'F':
-                numReadItems = sscanf(&line[1], "%d %s %d %lld %lld", &(fl.fileId), buff,
+                numReadItems = sscanf(&line[1], "%d %s %d %ld %ld", &(fl.fileId), buff,
                                       &(fl.numSequences), &(fl.numBytes), &(fl.numCompressedBases));
                 if (numReadItems != 5)
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
@@ -85,7 +85,7 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
                 cache->seqLines.reserve(totalNumSeqs);
                 break;
             case 'S':
-                numReadItems = sscanf(&line[1], "%d %s %d %lld %d %d %d%n", &(sl.seqId), buff,
+                numReadItems = sscanf(&line[1], "%d %s %d %ld %d %d %d%n", &(sl.seqId), buff,
                                       &(sl.fileId), &(sl.fileOffset), &(sl.numBytes),
                                       &(sl.numBases), &(numRanges), &readOffset);
                 if (numReadItems != 7)
@@ -112,9 +112,8 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
                 cache->seqLines.emplace_back(sl);
                 break;
             case 'B':
-                numReadItems =
-                    sscanf(&line[1], "%d %d %d %lld %lld", &(bl.blockId), &(bl.startSeqId),
-                           &(bl.endSeqId), &(bl.numBytes), &(bl.numBases));
+                numReadItems = sscanf(&line[1], "%d %d %d %ld %ld", &(bl.blockId), &(bl.startSeqId),
+                                      &(bl.endSeqId), &(bl.numBytes), &(bl.numBases));
                 if (numReadItems != 5)
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 cache->blockLines.emplace_back(bl);
@@ -217,13 +216,13 @@ void WriteSeqDBIndexCache(FILE* fpOut, const SeqDBIndexCache& cache)
 
     // Write all the files and their sizes.
     for (const auto& f : cache.fileLines) {
-        fprintf(fpOut, "F\t%d\t%s\t%d\t%lld\t%lld\n", f.fileId, f.filename.c_str(), f.numSequences,
+        fprintf(fpOut, "F\t%d\t%s\t%d\t%ld\t%ld\n", f.fileId, f.filename.c_str(), f.numSequences,
                 f.numBytes, f.numCompressedBases);
     }
 
     // Write the indexes of all sequences.
     for (size_t i = 0; i < cache.seqLines.size(); ++i) {
-        fprintf(fpOut, "S\t%d\t%s\t%d\t%lld\t%d\t%d", cache.seqLines[i].seqId,
+        fprintf(fpOut, "S\t%d\t%s\t%d\t%ld\t%d\t%d", cache.seqLines[i].seqId,
                 cache.seqLines[i].header.c_str(), cache.seqLines[i].fileId,
                 cache.seqLines[i].fileOffset, cache.seqLines[i].numBytes,
                 cache.seqLines[i].numBases);
@@ -236,7 +235,7 @@ void WriteSeqDBIndexCache(FILE* fpOut, const SeqDBIndexCache& cache)
 
     // Write the blocks of all sequences.
     for (size_t i = 0; i < cache.blockLines.size(); ++i) {
-        fprintf(fpOut, "B\t%d\t%d\t%d\t%lld\t%lld\n", cache.blockLines[i].blockId,
+        fprintf(fpOut, "B\t%d\t%d\t%d\t%ld\t%ld\n", cache.blockLines[i].blockId,
                 cache.blockLines[i].startSeqId, cache.blockLines[i].endSeqId,
                 cache.blockLines[i].numBytes, cache.blockLines[i].numBases);
     }
