@@ -108,3 +108,33 @@ Nonexistent sequence, FAIL when it cannot be found.
   > echo "some_read_which_does_not_exist" > test.in.list.txt
   > ${BIN_DIR}/pancake seqfetch --fail --out-fmt fastq out.fastq test.in.list.txt test.in.1.fastq 2>&1 | sed 's/.*pancake //g'
   seqfetch ERROR: Not all queries were found in the provided input files! Found sequences: 0 / 1 .
+
+Test writing the sequence ID instead of the header.
+Output in FASTA.
+  $ rm -f out.* test.in.*
+  > ${BIN_DIR}/pancake seqdb test.in.1 ${PROJECT_DIR}/test-data/seqdb-writer/in.fastq
+  > echo "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292" > test.in.list.txt
+  > ${BIN_DIR}/pancake seqfetch --out-fmt fasta --write-ids out.fasta test.in.list.txt test.in.1.seqdb
+  > echo ">000000002" > expected.fasta
+  > head -n 6 ${PROJECT_DIR}/test-data/seqdb-writer/in.fasta | tail -n 1 >> expected.fasta
+  > diff expected.fasta out.fasta | wc -l | awk '{ print $1 }'
+  0
+
+Test that the --write-ids feature should fail if the input is not SeqDB.
+The list of input files consists of one SeqDB file and one FASTA file. The FASTA wille should throw.
+  $ rm -f out.* test.in.*
+  > head -n 6 ${PROJECT_DIR}/test-data/seqdb-writer/in.fasta > test.in.1.fasta
+  > samtools faidx test.in.1.fasta
+  > ${BIN_DIR}/pancake seqdb test.in.2 ${PROJECT_DIR}/test-data/seqdb-writer/in.fastq
+  > echo "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292" > test.in.list.txt
+  > ${BIN_DIR}/pancake seqfetch --write-ids --out-fmt fasta out.fasta test.in.list.txt test.in.2.seqdb test.in.1.fasta 2>&1 | sed 's/.*pancake //g'
+  seqfetch ERROR: Cannot use the --write-ids option with input files which are not in the SeqDB format. Offending file: 'test.in.1.fasta'.
+
+Test that the --write-ids feature should fail if the input is not SeqDB.
+Here, the offending input is in FASTQ.
+  $ rm -f out.* test.in.*
+  > tail -n 8 ${PROJECT_DIR}/test-data/seqdb-writer/in.fastq > test.in.1.fastq
+  > samtools fqidx test.in.1.fastq
+  > echo "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292" > test.in.list.txt
+  > ${BIN_DIR}/pancake seqfetch --write-ids --out-fmt fasta out.fasta test.in.list.txt test.in.1.fastq 2>&1 | sed 's/.*pancake //g'
+  seqfetch ERROR: Cannot use the --write-ids option with input files which are not in the SeqDB format. Offending file: 'test.in.1.fastq'.

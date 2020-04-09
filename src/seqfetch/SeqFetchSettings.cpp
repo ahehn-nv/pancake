@@ -62,6 +62,13 @@ R"({
     "type" : "bool"
 })", SeqFetchSettings::Defaults::FailOnMissingQueries};
 
+const CLI_v2::Option WriteIds {
+R"({
+    "names" : ["write-ids"],
+    "description" : "The output sequence names will be replaced by their IDs in the SeqDB, if the SeqDB was provided as input.",
+    "type" : "bool"
+})", SeqFetchSettings::Defaults::WriteIds};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -86,6 +93,7 @@ SeqFetchSettings::SeqFetchSettings(const PacBio::CLI_v2::Results& options)
     , InputFiles{options[OptionNames::InputFiles]}
     , AliasSeqDBFile(options[OptionNames::AliasSeqDBFile])
     , FailOnMissingQueries(options[OptionNames::FailOnMissingQueries])
+    , WriteIds(options[OptionNames::WriteIds])
 {
     // Allow multiple positional input arguments.
     const auto& files = options.PositionalArguments();
@@ -119,6 +127,7 @@ PacBio::CLI_v2::Interface SeqFetchSettings::CreateCLI()
         OptionNames::DummyQV,
         OptionNames::AliasSeqDBFile,
         OptionNames::FailOnMissingQueries,
+        OptionNames::WriteIds,
     });
     i.AddPositionalArguments({
         OptionNames::OutputFile,
