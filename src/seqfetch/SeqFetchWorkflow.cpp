@@ -222,7 +222,7 @@ void FetchFromBam(std::shared_ptr<std::ostream>& osPtr, std::vector<std::string>
 void FetchFromSeqDB(std::shared_ptr<std::ostream>& osPtr, std::vector<std::string>& foundSeqs,
                     const std::string& inFile,
                     const std::unordered_set<std::string>& remainingToFind, const char dummyQV,
-                    const PacBio::Pancake::SeqFetchOutFormat& outFormat)
+                    const bool writeIds, const PacBio::Pancake::SeqFetchOutFormat& outFormat)
 {
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(inFile);
@@ -236,7 +236,14 @@ void FetchFromSeqDB(std::shared_ptr<std::ostream>& osPtr, std::vector<std::strin
             continue;
         }
         foundSeqs.emplace_back(seqName);
-        WriteSeq(*osPtr, seqName, record.Bases(), std::string(), dummyQV, false, outFormat);
+        if (writeIds) {
+            char buff[20];
+            sprintf(buff, "%09ld", record.Id());
+            WriteSeq(*osPtr, std::string(buff), record.Bases(), std::string(), dummyQV, false,
+                     outFormat);
+        } else {
+            WriteSeq(*osPtr, seqName, record.Bases(), std::string(), dummyQV, false, outFormat);
+        }
     }
 }
 
@@ -244,9 +251,26 @@ int SeqFetchWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 {
     SeqFetchSettings settings{options};
 
+    // Expand FOFNs and determine the formats of input files.
     std::vector<std::pair<SeqFetchInputFormat, std::string>> inFiles =
         ExpandInputFileList(settings.InputFiles);
+
+    // Parse the specified list of sequences to be fetched.
     std::unordered_set<std::string> seqNamesToFind = ParseSet(settings.InputFetchListFile);
+
+    // Verify that the settings.WriteIds is used properly.
+    for (const auto& filePair : inFiles) {
+        const auto& inFmt = std::get<0>(filePair);
+        const auto& inFile = std::get<1>(filePair);
+
+        if (settings.WriteIds && inFmt != SeqFetchInputFormat::SeqDB) {
+            std::ostringstream oss;
+            oss << "Cannot use the --write-ids option with input files which are not in the SeqDB "
+                   "format. Offending file: '"
+                << inFile << "'.";
+            throw std::runtime_error(oss.str());
+        }
+    }
 
     // If the input list is composed of sequence IDs, then the alias SeqDB
     // can be used to get the actual sequence names corresponding to those IDs.
@@ -300,7 +324,7 @@ int SeqFetchWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
         } else if (inFmt == SeqFetchInputFormat::SeqDB) {
             FetchFromSeqDB(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
-                           settings.OutputFormat);
+                           settings.WriteIds, settings.OutputFormat);
 
         } else if (inFmt == SeqFetchInputFormat::Bam) {
             FetchFromBam(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
