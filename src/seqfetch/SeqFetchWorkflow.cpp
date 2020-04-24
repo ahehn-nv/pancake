@@ -1,6 +1,7 @@
 // Authors: Ivan Sovic
 
 #include "SeqFetchWorkflow.h"
+#include <pacbio/util/FileIO.h>
 #include "SeqFetchSettings.h"
 
 #include <algorithm>
@@ -25,121 +26,6 @@
 
 namespace PacBio {
 namespace Pancake {
-
-enum class SeqFetchInputFormat
-{
-    Fasta,
-    Fastq,
-    Bam,
-    Xml,
-    Fofn,
-    SeqDB,
-    Unknown,
-};
-
-std::vector<std::string> ParseVector(const std::string& listPath)
-{
-    std::vector<std::string> ret;
-    std::ifstream ifs(listPath);
-    if (ifs.is_open() == false) {
-        throw std::runtime_error("Could not open file '" + listPath + "'!");
-    }
-    std::string line;
-    while (std::getline(ifs, line)) {
-        ret.emplace_back(line);
-    }
-    return ret;
-}
-
-std::unordered_set<std::string> ParseSet(const std::string& listPath)
-{
-    std::unordered_set<std::string> ret;
-    std::ifstream ifs(listPath);
-    if (ifs.is_open() == false) {
-        throw std::runtime_error("Could not open file '" + listPath + "'!");
-    }
-    std::string line;
-    while (std::getline(ifs, line)) {
-        ret.emplace(line);
-    }
-    return ret;
-}
-
-bool FormatIsFasta(const std::string& fn)
-{
-    return boost::algorithm::iends_with(fn, ".fasta") ||
-           boost::algorithm::iends_with(fn, ".fasta.gz") ||
-           boost::algorithm::iends_with(fn, ".fa") || boost::algorithm::iends_with(fn, ".fa.gz");
-}
-
-bool FormatIsFastq(const std::string& fn)
-{
-    return boost::algorithm::iends_with(fn, ".fastq") ||
-           boost::algorithm::iends_with(fn, ".fastq.gz") ||
-           boost::algorithm::iends_with(fn, ".fq") || boost::algorithm::iends_with(fn, ".fq.gz");
-}
-bool FormatIsFofn(const std::string& fn) { return boost::algorithm::iends_with(fn, ".fofn"); }
-bool FormatIsBam(const std::string& fn) { return boost::algorithm::iends_with(fn, ".bam"); }
-bool FormatIsXml(const std::string& fn) { return boost::algorithm::iends_with(fn, ".xml"); }
-bool FormatIsSeqDB(const std::string& fn) { return boost::algorithm::iends_with(fn, ".seqdb"); }
-
-SeqFetchInputFormat ParseFormat(const std::string& filename)
-{
-
-    if (FormatIsFasta(filename)) {
-        return SeqFetchInputFormat::Fasta;
-    } else if (FormatIsFastq(filename)) {
-        return SeqFetchInputFormat::Fastq;
-    } else if (FormatIsBam(filename)) {
-        return SeqFetchInputFormat::Bam;
-    } else if (FormatIsXml(filename)) {
-        return SeqFetchInputFormat::Xml;
-    } else if (FormatIsFofn(filename)) {
-        return SeqFetchInputFormat::Fofn;
-    } else if (FormatIsSeqDB(filename)) {
-        return SeqFetchInputFormat::SeqDB;
-    }
-    return SeqFetchInputFormat::Unknown;
-}
-
-std::vector<std::pair<SeqFetchInputFormat, std::string>> ExpandInputFileList(
-    const std::vector<std::string>& inFiles)
-{
-    // Create the expanded list with loaded FOFNs, or BAM files from the XML.
-    std::vector<std::pair<SeqFetchInputFormat, std::string>> retFiles;
-
-    for (const auto& inFile : inFiles) {
-        auto fmt = ParseFormat(inFile);
-
-        if (fmt == SeqFetchInputFormat::Fofn) {
-            std::vector<std::string> files = ParseVector(inFile);
-            for (const auto& newFile : files) {
-                auto newFmt = ParseFormat(newFile);
-                retFiles.emplace_back(std::make_pair(newFmt, newFile));
-            }
-
-        } else if (fmt == SeqFetchInputFormat::Xml) {
-            BAM::DataSet dataset{inFile};
-            const auto& bamFiles = dataset.BamFiles();
-            for (const auto& bamFile : bamFiles)
-                retFiles.emplace_back(std::make_pair(SeqFetchInputFormat::Bam, bamFile.Filename()));
-
-        } else {
-            retFiles.emplace_back(std::make_pair(fmt, inFile));
-        }
-    }
-
-    // Validate that all input formats are known.
-    for (const auto& vals : retFiles) {
-        const auto& fmt = std::get<0>(vals);
-        const auto& file = std::get<1>(vals);
-        if (fmt == SeqFetchInputFormat::Unknown) {
-            throw std::runtime_error("Unknown extension of file: '" + file + "'.");
-        }
-    }
-
-    return retFiles;
-}
 
 void WriteSeq(std::ostream& os, const std::string& seqName, const std::string& seq,
               const std::string& quals, char dummyQV, bool useProvidedQuals,
@@ -252,18 +138,18 @@ int SeqFetchWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     SeqFetchSettings settings{options};
 
     // Expand FOFNs and determine the formats of input files.
-    std::vector<std::pair<SeqFetchInputFormat, std::string>> inFiles =
+    std::vector<std::pair<SequenceFormat, std::string>> inFiles =
         ExpandInputFileList(settings.InputFiles);
 
     // Parse the specified list of sequences to be fetched.
-    std::unordered_set<std::string> seqNamesToFind = ParseSet(settings.InputFetchListFile);
+    std::unordered_set<std::string> seqNamesToFind = LoadLinesToSet(settings.InputFetchListFile);
 
     // Verify that the settings.WriteIds is used properly.
     for (const auto& filePair : inFiles) {
         const auto& inFmt = std::get<0>(filePair);
         const auto& inFile = std::get<1>(filePair);
 
-        if (settings.WriteIds && inFmt != SeqFetchInputFormat::SeqDB) {
+        if (settings.WriteIds && inFmt != SequenceFormat::SeqDB) {
             std::ostringstream oss;
             oss << "Cannot use the --write-ids option with input files which are not in the SeqDB "
                    "format. Offending file: '"
@@ -314,19 +200,19 @@ int SeqFetchWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
         std::vector<std::string> foundSeqs;
 
-        if (inFmt == SeqFetchInputFormat::Fasta) {
+        if (inFmt == SequenceFormat::Fasta) {
             FetchFromFasta(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
                            settings.OutputFormat);
 
-        } else if (inFmt == SeqFetchInputFormat::Fastq) {
+        } else if (inFmt == SequenceFormat::Fastq) {
             FetchFromFastq(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
                            settings.OutputFormat);
 
-        } else if (inFmt == SeqFetchInputFormat::SeqDB) {
+        } else if (inFmt == SequenceFormat::SeqDB) {
             FetchFromSeqDB(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
                            settings.WriteIds, settings.OutputFormat);
 
-        } else if (inFmt == SeqFetchInputFormat::Bam) {
+        } else if (inFmt == SequenceFormat::Bam) {
             FetchFromBam(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
                          settings.OutputFormat);
         }

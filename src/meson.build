@@ -61,6 +61,7 @@ pancake_cpp_sources = files([
     'seqdb/Twobit.cpp',
     'seqfetch/SeqFetchSettings.cpp',
     'seqfetch/SeqFetchWorkflow.cpp',
+    'util/FileIO.cpp',
     'util/RunLengthEncoding.cpp',
     'util/TicToc.cpp',
 ])
