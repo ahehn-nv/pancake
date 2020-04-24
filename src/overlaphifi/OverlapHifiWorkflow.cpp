@@ -120,13 +120,19 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     PBLOG_INFO << "Seed statistic: freqMax = " << freqMax << ", freqAvg = " << freqAvg
                << ", freqMedian = " << freqMedian << ", freqCutoff = " << freqCutoff;
 
+    PBLOG_INFO << "Using traceback alignment: " << (settings.UseTraceback ? "on" : "off");
+
     PBLOG_INFO << "Beginning to map the sequences.";
     PBLOG_INFO << "Using " << settings.NumThreads << " threads.";
-    Mapper mapper(settings);
+    std::vector<Mapper> mappers;
+    for (size_t i = 0; i < settings.NumThreads; ++i) {
+        mappers.emplace_back(Mapper(settings));
+    }
     TicToc ttMap;
 
     PacBio::Pancake::OverlapWriter writer(stdout, settings.WriteReverseOverlaps,
-                                          settings.AllowedDovetailDist, settings.WriteIds, false);
+                                          settings.AllowedDovetailDist, settings.WriteIds,
+                                          settings.WriteCigar);
 
     const int32_t endBlockId = (settings.QueryBlockEndId <= 0) ? querySeqDBCache->blockLines.size()
                                                                : settings.QueryBlockEndId;
@@ -198,8 +204,9 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
             for (int32_t i = 0; i < actualThreadCount; ++i) {
                 faf.ProduceWith(Worker, std::cref(targetSeqDBReader), std::cref(index),
                                 std::cref(querySeqDBReader), std::cref(querySeedDBReader),
-                                std::cref(settings), std::cref(mapper), freqCutoff, submittedCount,
-                                submittedCount + recordsPerThread[i], std::ref(results));
+                                std::cref(settings), std::cref(mappers[i]), freqCutoff,
+                                submittedCount, submittedCount + recordsPerThread[i],
+                                std::ref(results));
                 submittedCount += recordsPerThread[i];
             }
             faf.Finalize();
