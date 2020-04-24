@@ -1,14 +1,18 @@
 // Authors: Ivan Sovic
 
 #include <lib/kxsort/kxsort.h>
+#include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/alignment/SesDistanceBanded.h>
 #include <pacbio/overlaphifi/Mapper.h>
 #include <pacbio/overlaphifi/OverlapWriter.h>
 #include <pacbio/seqdb/Util.h>
+#include <pacbio/util/RunLengthEncoding.h>
 #include <pacbio/util/TicToc.h>
 #include <pbcopper/logging/Logging.h>
+#include <pbcopper/third-party/edlib.h>
 #include <algorithm>
 #include <iostream>
+#include <pacbio/alignment/SesAlignBanded.hpp>
 #include <sstream>
 
 namespace PacBio {
@@ -57,7 +61,7 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 
     TicToc ttAlign;
     overlaps = AlignOverlaps_(targetSeqs, querySeq, overlaps, settings_.AlignmentBandwidth,
-                              settings_.AlignmentMaxD);
+                              settings_.AlignmentMaxD, settings_.UseTraceback, sesScratch_);
     ttAlign.Stop();
 
     TicToc ttFilter;
@@ -273,7 +277,8 @@ std::vector<OverlapPtr> Mapper::FilterTandemOverlaps_(const std::vector<OverlapP
 std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::vector<OverlapPtr>& overlaps,
-    double alignBandwidth, double alignMaxDiff)
+    double alignBandwidth, double alignMaxDiff, bool useTraceback,
+    std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
     std::vector<OverlapPtr> ret;
     const std::string reverseQuerySeq =
@@ -282,7 +287,10 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     for (size_t i = 0; i < overlaps.size(); ++i) {
         const auto& targetSeq = targetSeqs.GetSequence(overlaps[i]->Bid);
         auto newOverlap = AlignOverlap_(targetSeq, querySeq, reverseQuerySeq, overlaps[i],
-                                        alignBandwidth, alignMaxDiff);
+                                        alignBandwidth, alignMaxDiff, useTraceback, sesScratch);
+        if (newOverlap == nullptr) {
+            continue;
+        }
         ret.emplace_back(std::move(newOverlap));
     }
     return ret;
@@ -311,10 +319,11 @@ std::string Mapper::FetchTargetSubsequence_(const PacBio::Pancake::FastaSequence
     return ret;
 }
 
-OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
-                                 const PacBio::Pancake::FastaSequenceCached& querySeq,
-                                 const std::string reverseQuerySeq, const OverlapPtr& ovl,
-                                 double alignBandwidth, double alignMaxDiff)
+OverlapPtr Mapper::AlignOverlap_(
+    const PacBio::Pancake::FastaSequenceCached& targetSeq,
+    const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
+    const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTraceback,
+    std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
 
     if (ovl == nullptr) {
@@ -323,6 +332,9 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
 
     OverlapPtr ret = createOverlap(ovl);
     int32_t diffsRight = 0;
+
+    PacBio::BAM::Cigar cigarRight;
+    PacBio::BAM::Cigar cigarLeft;
 
     ///////////////////////////
     /// Align forward pass. ///
@@ -359,8 +371,19 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const int32_t tSpan = tseq.size();
         const int32_t dMax = ovl->Alen * alignMaxDiff;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
-        const auto sesResult = PacBio::Pancake::Alignment::SESDistanceBanded(
-            querySeq.Bases() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
+
+        PacBio::Pancake::Alignment::SesResults sesResult;
+        if (useTraceback) {
+            sesResult =
+                PacBio::Pancake::Alignment::SESAlignBanded<Alignment::SESAlignMode::Semiglobal,
+                                                           Alignment::SESTracebackMode::Enabled>(
+                    querySeq.Bases() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth,
+                    sesScratch);
+        } else {
+            sesResult = PacBio::Pancake::Alignment::SESDistanceBanded(
+                querySeq.Bases() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
+        }
+
         ret->Aend = sesResult.lastQueryPos;
         ret->Bend = sesResult.lastTargetPos;
         ret->Aend += ovl->Astart;
@@ -368,6 +391,10 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         ret->EditDistance = sesResult.diffs;
         ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
         diffsRight = sesResult.diffs;
+        cigarRight = std::move(sesResult.cigar);
+        // std::cerr << "CIGAR right: " << cigarRight.ToStdString() << "\n";
+        // std::reverse
+        // std::cerr << "(fwd) sesResult: " << sesResult << "\n";
     }
 
     ///////////////////////////
@@ -395,8 +422,19 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const int32_t tSpan = tseq.size();
         const int32_t dMax = ovl->Alen * alignMaxDiff - diffsRight;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
-        const auto sesResult = PacBio::Pancake::Alignment::SESDistanceBanded(
-            reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
+
+        PacBio::Pancake::Alignment::SesResults sesResult;
+        if (useTraceback) {
+            sesResult =
+                PacBio::Pancake::Alignment::SESAlignBanded<Alignment::SESAlignMode::Semiglobal,
+                                                           Alignment::SESTracebackMode::Enabled>(
+                    reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth,
+                    sesScratch);
+        } else {
+            sesResult = PacBio::Pancake::Alignment::SESDistanceBanded(
+                reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
+        }
+
         ret->Astart = ovl->Astart - sesResult.lastQueryPos;
         ret->Bstart = ovl->Bstart - sesResult.lastTargetPos;
         ret->EditDistance = diffsRight + sesResult.diffs;
@@ -404,6 +442,16 @@ OverlapPtr Mapper::AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& tar
         const float span = std::max(ret->ASpan(), ret->BSpan());
         ret->Identity =
             ((span != 0) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -2.0f);
+        cigarLeft = std::move(sesResult.cigar);
+        // std::cerr << "CIGAR left: " << cigarLeft.ToStdString() << "\n";
+        std::reverse(cigarLeft.begin(), cigarLeft.end());
+        // std::cerr << "(rev) sesResult: " << sesResult << "\n";
+    }
+
+    ret->Cigar = std::move(cigarLeft);
+    if (cigarRight.size() > 0) {
+        AppendToCigar(ret->Cigar, cigarRight.front().Type(), cigarRight.front().Length());
+        ret->Cigar.insert(ret->Cigar.end(), cigarRight.begin() + 1, cigarRight.end());
     }
 
     return ret;
