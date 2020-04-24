@@ -11,7 +11,8 @@ std::vector<std::string> WrapRunHeuristicExtendOverlapFlanks(
         auto ovl = PacBio::Pancake::ParseOverlapFromString(ovlStr);
         // ovl->Type = PacBio::Pancake::DetermineOverlapType(ovl, allowedDist);
         PacBio::Pancake::HeuristicExtendOverlapFlanks(ovl, allowedDist);
-        std::string resultStr = PacBio::Pancake::OverlapWriter::PrintOverlapAsM4(ovl, "", "", true);
+        std::string resultStr =
+            PacBio::Pancake::OverlapWriter::PrintOverlapAsM4(ovl, "", "", true, false);
         results.emplace_back(resultStr);
     }
     return results;

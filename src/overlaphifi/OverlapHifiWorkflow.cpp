@@ -126,7 +126,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     TicToc ttMap;
 
     PacBio::Pancake::OverlapWriter writer(stdout, settings.WriteReverseOverlaps,
-                                          settings.AllowedDovetailDist, settings.WriteIds);
+                                          settings.AllowedDovetailDist, settings.WriteIds, false);
 
     const int32_t endBlockId = (settings.QueryBlockEndId <= 0) ? querySeqDBCache->blockLines.size()
                                                                : settings.QueryBlockEndId;
