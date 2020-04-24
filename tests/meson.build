@@ -1,4 +1,5 @@
 pancake_test_cpp_sources = files([
+  'src/test_AlignmentTools.cpp',
   'src/test_FileIO.cpp',
   'src/test_Minimizers.cpp',
   'src/test_Overlap.cpp',

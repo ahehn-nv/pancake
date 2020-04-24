@@ -29,6 +29,7 @@ pancake_version_sources = [
 ###########
 
 pancake_cpp_sources = files([
+    'alignment/AlignmentTools.cpp',
     'alignment/SesDistanceBanded.cpp',
     'dbfilter/DBFilterSettings.cpp',
     'dbfilter/DBFilterWorkflow.cpp',
