@@ -1,9 +1,10 @@
 CURRENT_BUILD_DIR?=build
 CURRENT_DEBUG_BUILD_DIR?=build-debug
+CURRENT_DEBUG_BUILD_DIR_SANITIZE?=build-debug-sanitize
 ENABLED_TESTS?=true
 export ENABLED_TESTS CURRENT_BUILD_DIR
 
-.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug
+.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug build-debug2 conf-debug2 debug2
 
 
 
@@ -30,6 +31,17 @@ conf-debug:
 	bash -vex scripts/ci/configure_debug_fallback.sh ${CURRENT_DEBUG_BUILD_DIR}
 
 debug: conf-debug build-debug
+
+
+
+build-debug2:
+	mkdir -p ${CURRENT_DEBUG_BUILD_DIR_SANITIZE} && ninja -C "${CURRENT_DEBUG_BUILD_DIR_SANITIZE}" -v test
+
+conf-debug2:
+	rm -rf "${CURRENT_DEBUG_BUILD_DIR_SANITIZE}"
+	bash -vex scripts/ci/configure_debug_sanitize_fallback.sh ${CURRENT_DEBUG_BUILD_DIR_SANITIZE}
+
+debug2: conf-debug2 build-debug2
 
 ##############
 ### Tests. ###
