@@ -64,6 +64,7 @@ if not meson.is_subproject()
   install_headers(
     files([
       'pacbio/alignment/SesDistanceBanded.h',
+      'pacbio/alignment/SesResults.h',
       ]),
       subdir : 'pacbio/alignment')
 
