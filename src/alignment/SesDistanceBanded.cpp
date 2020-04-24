@@ -4,7 +4,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <vector>
+
+#define DEBUG_SES_ALIGN_GLOBAL
 
 namespace PacBio {
 namespace Pancake {
@@ -54,9 +57,15 @@ SesResults SESDistanceBanded(const char* query, size_t queryLen, const char* tar
             break;
         }
 
+        int32_t x = 0;
         for (int32_t k = minK; k <= maxK; k += 2) {
             int32_t kz = k + zero_offset;
-            int32_t x = std::max(v[kz + 1], v[kz - 1] + 1);
+            if (k == minK || (k != maxK && v[kz - 1] < v[kz + 1])) {
+                x = v[kz + 1];
+            } else {
+                x = v[kz - 1] + 1;
+            }
+
             int32_t y = x - k;
             while (x < N && y < M && query[x] == target[y]) {
                 ++x;
@@ -92,13 +101,9 @@ SesResults SESDistanceBanded(const char* query, size_t queryLen, const char* tar
                 new_maxK = std::max(k, new_maxK);
             }
         }
-
         minK = new_minK - 1;
         maxK = new_maxK + 1;
     }
-
-    ret.minK = minK;
-    ret.maxK = maxK;
 
     return ret;
 }
