@@ -25,6 +25,8 @@ struct SeqFetchSettings
         static const char DummyQV = '!';
         static const bool FailOnMissingQueries = false;
         static const bool WriteIds = false;
+        static const bool UseHPC = false;
+        static const bool UseRLE = false;
     };
 
     std::string OutputFile;
@@ -35,6 +37,8 @@ struct SeqFetchSettings
     std::string AliasSeqDBFile;
     bool FailOnMissingQueries = Defaults::FailOnMissingQueries;
     bool WriteIds = Defaults::WriteIds;
+    bool UseHPC = Defaults::UseHPC;
+    bool UseRLE = Defaults::UseRLE;
 
     SeqFetchSettings();
     SeqFetchSettings(const PacBio::CLI_v2::Results& options);
