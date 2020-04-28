@@ -183,6 +183,12 @@ R"({
     "type" : "int"
 })", OverlapHifiSettings::Defaults::BestN};
 
+const CLI_v2::Option UseHPC{
+R"({
+    "names" : ["use-hpc"],
+    "description" : "Enable homopolymer compression."
+})", OverlapHifiSettings::Defaults::UseHPC};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -217,6 +223,7 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , AllowedHeuristicExtendDist{options[OptionNames::AllowedHeuristicExtendDist]}
     , CombineBlocks{options[OptionNames::CombineBlocks]}
     , BestN{options[OptionNames::BestN]}
+    , UseHPC{options[OptionNames::UseHPC]}
 {
 }
 
@@ -247,6 +254,7 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::AllowedHeuristicExtendDist,
         OptionNames::CombineBlocks,
         OptionNames::BestN,
+        OptionNames::UseHPC,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

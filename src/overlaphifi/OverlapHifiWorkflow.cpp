@@ -56,6 +56,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     PBLOG_INFO << "Loading the input DBs.";
     TicToc ttInit;
+
     // Load the target DB caches.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> targetSeqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(targetSeqDBFile);
@@ -63,6 +64,12 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(targetSeedDBFile);
     PBLOG_INFO << "After loading target seed cache: " << ttInit.VerboseSecs(true);
+    if (targetSeedDBCache->seedParams.UseHPC != settings.UseHPC) {
+        throw std::runtime_error(
+            "The --use-hpc option was either used to compute the target SeedDB but not specified "
+            "for overlapping, or vice versa.");
+    }
+
     // Load the query DB caches.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> querySeqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(querySeqDBFile);
@@ -70,13 +77,21 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> querySeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(querySeedDBFile);
     PBLOG_INFO << "After loading query seed cache: " << ttInit.VerboseSecs(true);
+    if (querySeedDBCache->seedParams.UseHPC != settings.UseHPC) {
+        throw std::runtime_error(
+            "The --use-hpc option was either used to compute the query SeedDB but not specified "
+            "for overlapping, or vice versa.");
+    }
+
     // Create the target readers.
-    PacBio::Pancake::SeqDBReaderCachedBlock targetSeqDBReader(targetSeqDBCache, false);
+    PacBio::Pancake::SeqDBReaderCachedBlock targetSeqDBReader(targetSeqDBCache, settings.UseHPC);
     targetSeqDBReader.LoadBlocks({settings.TargetBlockId});
     PacBio::Pancake::SeedDBReaderRawBlock targetSeedDBReader(targetSeedDBCache);
+
     // Read the seeds for the target block.
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds =
         targetSeedDBReader.GetBlock(settings.TargetBlockId);
+
     ttInit.Stop();
     PBLOG_INFO << "Loaded the target index and seqs in " << ttInit.GetSecs() << " sec / "
                << ttInit.GetCpuSecs() << " CPU sec";
@@ -117,7 +132,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                                                                : settings.QueryBlockEndId;
 
     // Process all blocks.
-    PacBio::Pancake::SeqDBReaderCachedBlock querySeqDBReader(querySeqDBCache, false);
+    PacBio::Pancake::SeqDBReaderCachedBlock querySeqDBReader(querySeqDBCache, settings.UseHPC);
     PacBio::Pancake::SeedDBReaderCachedBlock querySeedDBReader(querySeedDBCache);
     for (int32_t queryBlockId = settings.QueryBlockStartId; queryBlockId < endBlockId;
          queryBlockId += settings.CombineBlocks) {
