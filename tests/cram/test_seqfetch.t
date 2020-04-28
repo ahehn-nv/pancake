@@ -138,3 +138,75 @@ Here, the offending input is in FASTQ.
   > echo "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/0_24292" > test.in.list.txt
   > ${BIN_DIR}/pancake seqfetch --write-ids --out-fmt fasta out.fasta test.in.list.txt test.in.1.fastq 2>&1 | sed 's/.*pancake //g'
   seqfetch ERROR: Cannot use the --write-ids option with input files which are not in the SeqDB format. Offending file: 'test.in.1.fastq'.
+
+####################
+### Testing HPC. ###
+####################
+
+Test fetching with homopolymer compression.
+Output in FASTA.
+  $ rm -f out.* test.in.*
+  > echo "seq-1-single_base" > test.in.list.txt
+  > echo "seq-2-single_polyA_5x" >> test.in.list.txt
+  > echo "seq-3-simple_seq" >> test.in.list.txt
+  > ${BIN_DIR}/pancake seqfetch --use-hpc --out-fmt fasta out.fasta test.in.list.txt ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-in.fasta
+  > diff ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-expected.fasta out.fasta | wc -l | awk '{ print $1 }'
+  > diff ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-expected.fasta out.fasta
+  0
+
+Test the '--use-rle' option. The fetched sequences should be identical to the original ones because we are not
+specifying the '--use-hpc' here, but there should be an additional file written that contains the run length encoding, out.fasta.rle.
+Output in FASTA.
+  $ rm -f out.* test.in.*
+  > echo "seq-1-single_base" > test.in.list.txt
+  > echo "seq-2-single_polyA_5x" >> test.in.list.txt
+  > echo "seq-3-simple_seq" >> test.in.list.txt
+  > ${BIN_DIR}/pancake seqfetch --use-rle --out-fmt fasta out.fasta test.in.list.txt ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-in.fasta
+  > diff ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-in.fasta out.fasta | wc -l | awk '{ print $1 }'
+  > diff ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-expected.rle out.fasta.rle | wc -l | awk '{ print $1 }'
+  0
+  0
+
+Test the '--use-rle' and '--use-hpc' options together. The fetched sequences should be homopolymer compressed, and
+there should be an additional file written that contains the run length encoding, out.fasta.rle.
+Output in FASTA.
+  $ rm -f out.* test.in.*
+  > echo "seq-1-single_base" > test.in.list.txt
+  > echo "seq-2-single_polyA_5x" >> test.in.list.txt
+  > echo "seq-3-simple_seq" >> test.in.list.txt
+  > ${BIN_DIR}/pancake seqfetch --use-hpc --use-rle --out-fmt fasta out.fasta test.in.list.txt ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-in.fasta
+  > diff ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-expected.fasta out.fasta | wc -l | awk '{ print $1 }'
+  > diff ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-expected.rle out.fasta.rle | wc -l | awk '{ print $1 }'
+  0
+  0
+
+Test fetching with homopolymer compression and run-length encoding, but try outputting to stdout.
+This should fail.
+  $ rm -f out.* test.in.*
+  > echo "seq-1-single_base" > test.in.list.txt
+  > echo "seq-2-single_polyA_5x" >> test.in.list.txt
+  > echo "seq-3-simple_seq" >> test.in.list.txt
+  > ${BIN_DIR}/pancake seqfetch --use-rle --out-fmt fasta - test.in.list.txt ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-in.fasta 2>&1 | sed 's/.*pancake //g'
+  seqfetch ERROR: Cannot output to sequences to stdout and write a .rle file. Please specify a concrete output file.
+
+Test the '--use-rle' option without '--use-hpc' and output to FASTQ. This should be valid and the output sequences
+the same as input.
+Output in FASTA.
+  $ rm -f out.* test.in.*
+  > echo "seq-1-single_base" > test.in.list.txt
+  > echo "seq-2-single_polyA_5x" >> test.in.list.txt
+  > echo "seq-3-simple_seq" >> test.in.list.txt
+  > ${BIN_DIR}/pancake seqfetch --use-rle --out-fmt fastq out.fastq test.in.list.txt ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-in.fasta
+  > diff ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-expected.rle out.fastq.rle | wc -l | awk '{ print $1 }'
+  > wc -l out.fastq | awk '{ print $1 }'
+  0
+  12
+
+Test fetching with homopolymer compression and run-length encoding, but try outputting to a FASTQ file.
+This should fail.
+  $ rm -f out.* test.in.*
+  > echo "seq-1-single_base" > test.in.list.txt
+  > echo "seq-2-single_polyA_5x" >> test.in.list.txt
+  > echo "seq-3-simple_seq" >> test.in.list.txt
+  > ${BIN_DIR}/pancake seqfetch --use-hpc --out-fmt fastq out.fastq test.in.list.txt ${PROJECT_DIR}/test-data/seqfetch/test-1-hpc-in.fasta 2>&1 | sed 's/.*pancake //g'
+  seqfetch ERROR: Fastq output format is not supported with the homopolymer compression option.
