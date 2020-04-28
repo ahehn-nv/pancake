@@ -1,6 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <pacbio/seeddb/SeedDBWriter.h>
+#include <pacbio/seqdb/FastaSequenceCached.h>
 #include <pacbio/seqdb/Util.h>
 #include <cmath>
 #include <iostream>
@@ -112,6 +113,22 @@ void SeedDBWriter::WriteSeeds(const std::vector<PacBio::Pancake::FastaSequenceId
     for (size_t i = 0; i < seqs.size(); ++i) {
         WriteSeeds(seqs[i].Name(), static_cast<int32_t>(seqs[i].Id()),
                    static_cast<int32_t>(seqs[i].Bases().size()), seeds[i]);
+    }
+}
+
+void SeedDBWriter::WriteSeeds(const std::vector<PacBio::Pancake::FastaSequenceCached>& seqs,
+                              const std::vector<std::vector<PacBio::Pancake::Int128t>>& seeds)
+{
+    if (seqs.size() != seeds.size()) {
+        std::ostringstream oss;
+        oss << "The seqs and seeds vector are of different lengths (seqs.size() = " << seqs.size()
+            << ", seeds.size() = " << seeds.size() << ").";
+        throw std::runtime_error(oss.str());
+    }
+
+    for (size_t i = 0; i < seqs.size(); ++i) {
+        WriteSeeds(seqs[i].name, static_cast<int32_t>(seqs[i].id),
+                   static_cast<int32_t>(seqs[i].size), seeds[i]);
     }
 }
 
