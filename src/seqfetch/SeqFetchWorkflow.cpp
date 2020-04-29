@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <set>
 #include <string>
 #include <tuple>
 #include <unordered_set>
@@ -89,7 +90,7 @@ void WriteSeqAndRLE(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::o
 
 void FetchFromFasta(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ostream>& osRlePtr,
                     std::vector<std::string>& foundSeqs, const std::string& inFile,
-                    const std::unordered_set<std::string>& remainingToFind, const char dummyQV,
+                    const std::set<std::string>& remainingToFind, const char dummyQV,
                     const PacBio::Pancake::SeqFetchOutFormat& outFormat, bool useHPC, bool useRLE)
 {
     BAM::IndexedFastaReader reader{inFile};
@@ -109,7 +110,7 @@ void FetchFromFasta(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::o
 
 void FetchFromFastq(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ostream>& osRlePtr,
                     std::vector<std::string>& foundSeqs, const std::string& inFile,
-                    const std::unordered_set<std::string>& remainingToFind, const char dummyQV,
+                    const std::set<std::string>& remainingToFind, const char dummyQV,
                     const PacBio::Pancake::SeqFetchOutFormat& outFormat, bool useHPC, bool useRLE)
 {
     BAM::IndexedFastqReader reader{inFile};
@@ -132,7 +133,7 @@ void FetchFromFastq(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::o
 
 void FetchFromBam(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ostream>& osRlePtr,
                   std::vector<std::string>& foundSeqs, const std::string& inFile,
-                  const std::unordered_set<std::string>& remainingToFind, const char dummyQV,
+                  const std::set<std::string>& remainingToFind, const char dummyQV,
                   const PacBio::Pancake::SeqFetchOutFormat& outFormat, bool useHPC, bool useRLE)
 {
     PacBio::BAM::BamFile bamFile(inFile);
@@ -152,7 +153,7 @@ void FetchFromBam(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ost
 
 void FetchFromSeqDB(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ostream>& osRlePtr,
                     std::vector<std::string>& foundSeqs, const std::string& inFile,
-                    const std::unordered_set<std::string>& remainingToFind, const char dummyQV,
+                    const std::set<std::string>& remainingToFind, const char dummyQV,
                     const bool writeIds, const PacBio::Pancake::SeqFetchOutFormat& outFormat,
                     bool useHPC, bool useRLE)
 {
@@ -189,7 +190,7 @@ int SeqFetchWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         ExpandInputFileList(settings.InputFiles);
 
     // Parse the specified list of sequences to be fetched.
-    std::unordered_set<std::string> seqNamesToFind = LoadLinesToSet(settings.InputFetchListFile);
+    std::set<std::string> seqNamesToFind = LoadLinesToOrderedSet(settings.InputFetchListFile);
 
     // Verify that the settings.WriteIds is used properly.
     for (const auto& filePair : inFiles) {
