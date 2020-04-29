@@ -4,6 +4,7 @@
 #define PANCAKE_FILE_IO_H
 
 #include <cstdint>
+#include <set>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -29,6 +30,10 @@ std::vector<std::string> LoadLinesToVector(const std::string& listPath);
 /// \brief Parses a file line by line, and stores each line into a set.
 ///         Useful for parsing sets of reads or similar identifiers.
 std::unordered_set<std::string> LoadLinesToSet(const std::string& listPath);
+
+/// \brief Parses a file line by line, and stores each line into a set.
+///         Useful for parsing sets of reads or similar identifiers.
+std::set<std::string> LoadLinesToOrderedSet(const std::string& listPath);
 
 /// \brief Checks if the provided file path has a FASTA/gzipped FASTA type of extension.
 bool FormatIsFasta(const std::string& fn);

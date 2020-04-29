@@ -60,6 +60,30 @@ TEST(Test_FileIO, LoadLinesToSet)
     EXPECT_EQ(expected, results);
 }
 
+TEST(Test_FileIO, LoadLinesToOrderedSet)
+{
+    // Input data which will be written and read.
+    std::vector<std::string> inData = {"2", "1", "3", "4", "4", "4", "5"};
+    std::set<std::string> expected = {"2", "1", "3", "4", "5"};
+
+    // The input file for the parsing function.
+    std::string tmpInFile = PacBio::PancakeTestsConfig::GeneratedData_Dir + "/in.data";
+
+    // Write the test input file.
+    {
+        std::ofstream ofs(tmpInFile);
+        for (const auto& line : inData) {
+            ofs << line << "\n";
+        }
+    }
+
+    // Run unit under test.
+    std::set<std::string> results = PacBio::Pancake::LoadLinesToOrderedSet(tmpInFile);
+
+    // Verify.
+    EXPECT_EQ(expected, results);
+}
+
 TEST(Test_FileIO, FormatIs)
 {
     // Input data.

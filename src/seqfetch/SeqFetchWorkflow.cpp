@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <set>
 #include <string>
 #include <tuple>
 #include <unordered_set>
@@ -13,6 +14,7 @@
 
 #include <pacbio/seqdb/SeqDBIndexCache.h>
 #include <pacbio/seqdb/SeqDBReader.h>
+#include <pacbio/util/RunLengthEncoding.h>
 #include <pbbam/BamReader.h>
 #include <pbbam/DataSet.h>
 #include <pbbam/IndexedFastaReader.h>
@@ -45,10 +47,51 @@ void WriteSeq(std::ostream& os, const std::string& seqName, const std::string& s
     }
 }
 
-void FetchFromFasta(std::shared_ptr<std::ostream>& osPtr, std::vector<std::string>& foundSeqs,
-                    const std::string& inFile,
-                    const std::unordered_set<std::string>& remainingToFind, const char dummyQV,
-                    const PacBio::Pancake::SeqFetchOutFormat& outFormat)
+void WriteRLE(std::ostream& os, const std::string& seqName, std::vector<int32_t> hpcToSeqCoords)
+{
+    os << ">" << seqName << "\n";
+    if (hpcToSeqCoords.size() > 0) {
+        os << hpcToSeqCoords[0];
+    }
+    for (size_t i = 1; i < hpcToSeqCoords.size(); ++i) {
+        os << ",";
+        os << hpcToSeqCoords[i];
+    }
+    os << "\n";
+}
+
+void WriteSeqAndRLE(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ostream>& osRlePtr,
+                    const std::string& seqName, const std::string& seq, const std::string& quals,
+                    char dummyQV, bool useProvidedQuals, const SeqFetchOutFormat& outFmt,
+                    bool useHPC, bool useRLE)
+{
+    std::string seqRLE;
+    std::vector<int32_t> seqToHPCCoords;
+    std::vector<int32_t> hpcToSeqCoords;
+
+    // Compute the run length encoding when either useHPC or useRLE are specified.
+    // In case of useRLE, only the coordinates will be used, and in case of
+    // the useHPC only the sequence will be used.
+    if (useHPC || useRLE) {
+        RunLengthEncoding(seq, seqRLE, seqToHPCCoords, hpcToSeqCoords);
+    }
+
+    // Only use the HPC sequence if useHPC is specified.
+    const std::string& seqFinal = useHPC ? seqRLE : seq;
+
+    // Write the sequence and quals.
+    WriteSeq(*osPtr, seqName, seqFinal, quals, dummyQV, useProvidedQuals, outFmt);
+
+    // Write the RLE if required.
+    if (useRLE) {
+        WriteRLE(*osRlePtr, seqName, hpcToSeqCoords);
+    }
+}
+
+void FetchFromFasta(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ostream>& osRlePtr,
+                    std::vector<std::string>& foundSeqs, const std::string& inFile,
+                    const std::set<std::string>& remainingToFind, const char dummyQV,
+                    const PacBio::Pancake::SeqFetchOutFormat& outFormat, bool useHPC, bool useRLE)
 {
     BAM::IndexedFastaReader reader{inFile};
     PBLOG_INFO << "Num sequences in file: " << reader.NumSequences();
@@ -59,15 +102,16 @@ void FetchFromFasta(std::shared_ptr<std::ostream>& osPtr, std::vector<std::strin
         if (!reader.HasSequence(seqName)) continue;
         std::string seq = reader.Subsequence(seqName.c_str());
         std::string qual;
+        WriteSeqAndRLE(osPtr, osRlePtr, seqName, seq, qual, dummyQV, false, outFormat, useHPC,
+                       useRLE);
         foundSeqs.emplace_back(seqName);
-        WriteSeq(*osPtr, seqName, seq, qual, dummyQV, false, outFormat);
     }
 }
 
-void FetchFromFastq(std::shared_ptr<std::ostream>& osPtr, std::vector<std::string>& foundSeqs,
-                    const std::string& inFile,
-                    const std::unordered_set<std::string>& remainingToFind, const char dummyQV,
-                    const PacBio::Pancake::SeqFetchOutFormat& outFormat)
+void FetchFromFastq(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ostream>& osRlePtr,
+                    std::vector<std::string>& foundSeqs, const std::string& inFile,
+                    const std::set<std::string>& remainingToFind, const char dummyQV,
+                    const PacBio::Pancake::SeqFetchOutFormat& outFormat, bool useHPC, bool useRLE)
 {
     BAM::IndexedFastqReader reader{inFile};
     PBLOG_INFO << "Num sequences in file: " << reader.NumSequences();
@@ -82,13 +126,15 @@ void FetchFromFastq(std::shared_ptr<std::ostream>& osPtr, std::vector<std::strin
         const auto& seq = std::get<0>(seqQualPair);
         std::string qual = std::get<1>(seqQualPair).Fastq();
         foundSeqs.emplace_back(seqName);
-        WriteSeq(*osPtr, seqName, seq, qual, dummyQV, true, outFormat);
+        WriteSeqAndRLE(osPtr, osRlePtr, seqName, seq, qual, dummyQV, true, outFormat, useHPC,
+                       useRLE);
     }
 }
 
-void FetchFromBam(std::shared_ptr<std::ostream>& osPtr, std::vector<std::string>& foundSeqs,
-                  const std::string& inFile, const std::unordered_set<std::string>& remainingToFind,
-                  const char dummyQV, const PacBio::Pancake::SeqFetchOutFormat& outFormat)
+void FetchFromBam(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ostream>& osRlePtr,
+                  std::vector<std::string>& foundSeqs, const std::string& inFile,
+                  const std::set<std::string>& remainingToFind, const char dummyQV,
+                  const PacBio::Pancake::SeqFetchOutFormat& outFormat, bool useHPC, bool useRLE)
 {
     PacBio::BAM::BamFile bamFile(inFile);
     bamFile.EnsurePacBioIndexExists();
@@ -99,16 +145,17 @@ void FetchFromBam(std::shared_ptr<std::ostream>& osPtr, std::vector<std::string>
     PacBio::BAM::PbiFilterQuery query{filter, bamFile};
     for (auto record : query) {
         auto quals = record.Qualities().Fastq();
-        WriteSeq(*osPtr, record.FullName(), record.Sequence(), quals, dummyQV, quals.size() > 0,
-                 outFormat);
+        WriteSeqAndRLE(osPtr, osRlePtr, record.FullName(), record.Sequence(), quals, dummyQV,
+                       quals.size() > 0, outFormat, useHPC, useRLE);
         foundSeqs.emplace_back(record.FullName());
     }
 }
 
-void FetchFromSeqDB(std::shared_ptr<std::ostream>& osPtr, std::vector<std::string>& foundSeqs,
-                    const std::string& inFile,
-                    const std::unordered_set<std::string>& remainingToFind, const char dummyQV,
-                    const bool writeIds, const PacBio::Pancake::SeqFetchOutFormat& outFormat)
+void FetchFromSeqDB(std::shared_ptr<std::ostream>& osPtr, std::shared_ptr<std::ostream>& osRlePtr,
+                    std::vector<std::string>& foundSeqs, const std::string& inFile,
+                    const std::set<std::string>& remainingToFind, const char dummyQV,
+                    const bool writeIds, const PacBio::Pancake::SeqFetchOutFormat& outFormat,
+                    bool useHPC, bool useRLE)
 {
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(inFile);
@@ -123,12 +170,13 @@ void FetchFromSeqDB(std::shared_ptr<std::ostream>& osPtr, std::vector<std::strin
         }
         foundSeqs.emplace_back(seqName);
         if (writeIds) {
-            char buff[20];
+            char buff[50];
             sprintf(buff, "%09ld", record.Id());
-            WriteSeq(*osPtr, std::string(buff), record.Bases(), std::string(), dummyQV, false,
-                     outFormat);
+            WriteSeqAndRLE(osPtr, osRlePtr, std::string(buff), record.Bases(), std::string(),
+                           dummyQV, false, outFormat, useHPC, useRLE);
         } else {
-            WriteSeq(*osPtr, seqName, record.Bases(), std::string(), dummyQV, false, outFormat);
+            WriteSeqAndRLE(osPtr, osRlePtr, seqName, record.Bases(), std::string(), dummyQV, false,
+                           outFormat, useHPC, useRLE);
         }
     }
 }
@@ -142,7 +190,7 @@ int SeqFetchWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         ExpandInputFileList(settings.InputFiles);
 
     // Parse the specified list of sequences to be fetched.
-    std::unordered_set<std::string> seqNamesToFind = LoadLinesToSet(settings.InputFetchListFile);
+    std::set<std::string> seqNamesToFind = LoadLinesToOrderedSet(settings.InputFetchListFile);
 
     // Verify that the settings.WriteIds is used properly.
     for (const auto& filePair : inFiles) {
@@ -183,7 +231,17 @@ int SeqFetchWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         osPtr = std::shared_ptr<std::ostream>(new std::ofstream(settings.OutputFile));
         PBLOG_INFO << "Output is to file: " << settings.OutputFile;
     } else {
+        if (settings.UseRLE) {
+            throw std::runtime_error(
+                "Cannot output to sequences to stdout and write a .rle file. Please specify a "
+                "concrete output file.");
+        }
         PBLOG_INFO << "Output is to stdout.";
+    }
+
+    std::shared_ptr<std::ostream> osRlePtr = nullptr;
+    if (settings.UseRLE) {
+        osRlePtr = std::shared_ptr<std::ostream>(new std::ofstream(settings.OutputFile + ".rle"));
     }
 
     PBLOG_INFO << "Starting to fetch.";
@@ -201,20 +259,21 @@ int SeqFetchWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         std::vector<std::string> foundSeqs;
 
         if (inFmt == SequenceFormat::Fasta) {
-            FetchFromFasta(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
-                           settings.OutputFormat);
+            FetchFromFasta(osPtr, osRlePtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
+                           settings.OutputFormat, settings.UseHPC, settings.UseRLE);
 
         } else if (inFmt == SequenceFormat::Fastq) {
-            FetchFromFastq(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
-                           settings.OutputFormat);
+            FetchFromFastq(osPtr, osRlePtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
+                           settings.OutputFormat, settings.UseHPC, settings.UseRLE);
 
         } else if (inFmt == SequenceFormat::SeqDB) {
-            FetchFromSeqDB(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
-                           settings.WriteIds, settings.OutputFormat);
+            FetchFromSeqDB(osPtr, osRlePtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
+                           settings.WriteIds, settings.OutputFormat, settings.UseHPC,
+                           settings.UseRLE);
 
         } else if (inFmt == SequenceFormat::Bam) {
-            FetchFromBam(osPtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
-                         settings.OutputFormat);
+            FetchFromBam(osPtr, osRlePtr, foundSeqs, inFile, remainingToFind, settings.DummyQV,
+                         settings.OutputFormat, settings.UseHPC, settings.UseRLE);
         }
 
         // Remove the found sequences from the remaining set.

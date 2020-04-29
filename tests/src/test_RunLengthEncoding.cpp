@@ -84,4 +84,22 @@ TEST(Test_RunLengthEncoding, SeveralTestCases_From_in_2_small_fasta)
         EXPECT_EQ(expectedRLE, resultRLE);
     }
 }
+
+TEST(Test_RunLengthEncoding, SimpleTestCase_WithCoords)
+{
+    std::string input("ACCTGTGGGCAA");
+    std::string expectedStr("ACTGTGCA");
+    std::vector<int32_t> expectedSeqToHPC = {0, 1, 1, 2, 3, 4, 5, 5, 5, 6, 7, 7};
+    std::vector<int32_t> expectedHPCToSeq = {0, 2, 3, 4, 5, 8, 9, 11};
+
+    std::string resultStr;
+    std::vector<int32_t> resultSeqToHPCCoords;
+    std::vector<int32_t> resultHPCToSeqCoords;
+    PacBio::Pancake::RunLengthEncoding(input, resultStr, resultSeqToHPCCoords,
+                                       resultHPCToSeqCoords);
+
+    EXPECT_EQ(expectedStr, resultStr);
+    EXPECT_EQ(expectedSeqToHPC, resultSeqToHPCCoords);
+    EXPECT_EQ(expectedHPCToSeq, resultHPCToSeqCoords);
+}
 }

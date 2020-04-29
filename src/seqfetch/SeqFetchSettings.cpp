@@ -69,6 +69,18 @@ R"({
     "type" : "bool"
 })", SeqFetchSettings::Defaults::WriteIds};
 
+const CLI_v2::Option UseHPC{
+R"({
+    "names" : ["use-hpc"],
+    "description" : "Fetch homopolymer compressed sequences."
+})", SeqFetchSettings::Defaults::UseHPC};
+
+const CLI_v2::Option UseRLE{
+R"({
+    "names" : ["use-rle"],
+    "description" : "Write a run-length-encoded file alongside to the output file. The RLE file contains conversion coordinates from the HPC space to the original space instead of the run-length-encoding. This option does not write the HPC sequence, for that please specify '--user-hpc'."
+})", SeqFetchSettings::Defaults::UseRLE};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -94,6 +106,8 @@ SeqFetchSettings::SeqFetchSettings(const PacBio::CLI_v2::Results& options)
     , AliasSeqDBFile(options[OptionNames::AliasSeqDBFile])
     , FailOnMissingQueries(options[OptionNames::FailOnMissingQueries])
     , WriteIds(options[OptionNames::WriteIds])
+    , UseHPC(options[OptionNames::UseHPC])
+    , UseRLE(options[OptionNames::UseRLE])
 {
     // Allow multiple positional input arguments.
     const auto& files = options.PositionalArguments();
@@ -110,6 +124,11 @@ SeqFetchSettings::SeqFetchSettings(const PacBio::CLI_v2::Results& options)
         throw std::runtime_error("The dummyQV needs to be exactly 1 character in size.");
     }
     DummyQV = tempDummyQV[0];
+
+    if (UseHPC && OutputFormat == SeqFetchOutFormat::Fastq) {
+        throw std::runtime_error(
+            "Fastq output format is not supported with the homopolymer compression option.");
+    }
 }
 
 PacBio::CLI_v2::Interface SeqFetchSettings::CreateCLI()
@@ -128,6 +147,8 @@ PacBio::CLI_v2::Interface SeqFetchSettings::CreateCLI()
         OptionNames::AliasSeqDBFile,
         OptionNames::FailOnMissingQueries,
         OptionNames::WriteIds,
+        OptionNames::UseHPC,
+        OptionNames::UseRLE,
     });
     i.AddPositionalArguments({
         OptionNames::OutputFile,
