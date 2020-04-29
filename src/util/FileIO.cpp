@@ -82,6 +82,20 @@ std::unordered_set<std::string> LoadLinesToSet(const std::string& listPath)
     return ret;
 }
 
+std::set<std::string> LoadLinesToOrderedSet(const std::string& listPath)
+{
+    std::set<std::string> ret;
+    std::ifstream ifs(listPath);
+    if (ifs.is_open() == false) {
+        throw std::runtime_error("Could not open file '" + listPath + "'!");
+    }
+    std::string line;
+    while (std::getline(ifs, line)) {
+        ret.emplace(line);
+    }
+    return ret;
+}
+
 std::vector<std::pair<SequenceFormat, std::string>> ExpandInputFileList(
     const std::vector<std::string>& inFiles)
 {
