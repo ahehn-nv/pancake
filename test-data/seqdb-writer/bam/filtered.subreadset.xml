@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pbds:SubreadSet CreatedAt="2020-03-26T14:18:35" MetaType="PacBio.DataSet.SubreadSet" Name="pacbio_dataset_subreadset-200326_211835336" Tags="" TimeStampedName="pacbio_dataset_subreadset-200326_211835336" UniqueId="34fef0ce-8268-9d22-1179-f600e3426dd7" Version="3.0.1" xmlns:pbbase="http://pacificbiosciences.com/PacBioBaseDataModel.xsd" xmlns:pbds="http://pacificbiosciences.com/PacBioDatasets.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pacificbiosciences.com/PacBioDataModel.xsd">
+	<pbbase:ExternalResources>
+		<pbbase:ExternalResource MetaType="PacBio.SubreadFile.SubreadBamFile" ResourceId="subreads1.bam" TimeStampedName="pacbio_subreadfile_subreadbamfile-200326_211835335" UniqueId="d96b8921-c340-4163-82af-b12df5605984">
+			<pbbase:FileIndices>
+				<pbbase:FileIndex MetaType="PacBio.Index.PacBioIndex" ResourceId="subreads1.bam.pbi" TimeStampedName="pacbio_index_pacbioindex-200326_211835326" UniqueId="2fec1010-3d07-4700-ac3e-6bd83f9bf835"/>
+			</pbbase:FileIndices>
+		</pbbase:ExternalResource>
+		<pbbase:ExternalResource MetaType="PacBio.SubreadFile.SubreadBamFile" ResourceId="subreads2.bam" TimeStampedName="pacbio_subreadfile_subreadbamfile-200326_211835335" UniqueId="6fee1a5c-eaa3-4582-bf15-e29058759ee0">
+			<pbbase:FileIndices>
+				<pbbase:FileIndex MetaType="PacBio.Index.PacBioIndex" ResourceId="subreads2.bam.pbi" TimeStampedName="pacbio_index_pacbioindex-200326_211835331" UniqueId="f57e1e9a-42c1-4be2-970a-8cffa8257867"/>
+			</pbbase:FileIndices>
+		</pbbase:ExternalResource>
+		<pbbase:ExternalResource MetaType="PacBio.SubreadFile.SubreadBamFile" ResourceId="subreads3.bam" TimeStampedName="pacbio_subreadfile_subreadbamfile-200326_211835335" UniqueId="023eba7e-e8ac-4de8-9bea-0a5b98554235">
+			<pbbase:FileIndices>
+				<pbbase:FileIndex MetaType="PacBio.Index.PacBioIndex" ResourceId="subreads3.bam.pbi" TimeStampedName="pacbio_index_pacbioindex-200326_211835335" UniqueId="60c4c2f8-6494-422e-b2f2-e65d463c7365"/>
+			</pbbase:FileIndices>
+		</pbbase:ExternalResource>
+	</pbbase:ExternalResources>
+	<pbds:Filters>
+		<pbds:Filter>
+			<pbbase:Properties>
+				<pbbase:Property Name="zm" Operator="!=" Value="2"/>
+				<pbbase:Property Name="length" Operator="&gt;=" Value="40000"/>
+			</pbbase:Properties>
+		</pbds:Filter>
+	</pbds:Filters>
+	<pbds:DataSetMetadata>
+		<pbds:TotalLength>464009</pbds:TotalLength>
+		<pbds:NumRecords>11</pbds:NumRecords>
+	</pbds:DataSetMetadata>
+</pbds:SubreadSet>
