@@ -7,6 +7,7 @@
 #include <pbbam/DataSet.h>
 #include <pbbam/FastaReader.h>
 #include <pbbam/FastqReader.h>
+#include <pbbam/PbiIndexedBamReader.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include "seqdb/SeqDBSettings.h"
 
@@ -28,7 +29,7 @@ int SeqDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     // Expand FOFNs and determine the formats of input files.
     std::vector<std::pair<SequenceFormat, std::string>> inputFiles =
-        ExpandInputFileList(settings.InputFiles);
+        ExpandInputFileList(settings.InputFiles, false);
 
     for (const auto& inFilePair : inputFiles) {
         const auto& inFmt = inFilePair.first;

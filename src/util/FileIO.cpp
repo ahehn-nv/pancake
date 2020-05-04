@@ -97,7 +97,7 @@ std::set<std::string> LoadLinesToOrderedSet(const std::string& listPath)
 }
 
 std::vector<std::pair<SequenceFormat, std::string>> ExpandInputFileList(
-    const std::vector<std::string>& inFiles)
+    const std::vector<std::string>& inFiles, bool expandXML)
 {
     std::deque<std::string> que;
 
@@ -125,7 +125,7 @@ std::vector<std::pair<SequenceFormat, std::string>> ExpandInputFileList(
                 que.emplace_back(newFile);
             }
 
-        } else if (fmt == SequenceFormat::Xml) {
+        } else if (fmt == SequenceFormat::Xml && expandXML) {
             if (visited.find(inFile) != visited.end()) {
                 throw std::runtime_error("Circular XML definition detected! File '" + inFile +
                                          "' was already parsed.");

@@ -60,7 +60,7 @@ SequenceFormat ParseFormat(const std::string& filename);
 ///         there are no more composite files left.
 /// \returns Vector of pairs of final non-composite files and their file formats.
 std::vector<std::pair<SequenceFormat, std::string>> ExpandInputFileList(
-    const std::vector<std::string>& inFiles);
+    const std::vector<std::string>& inFiles, bool expandXML);
 
 }  // namespace Pancake
 }  // namespace PacBio
