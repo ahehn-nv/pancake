@@ -166,7 +166,7 @@ TEST(Test_FileIO, ExpandInputFileList_EmptyInput)
 
     // Run unit under  test.
     std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> results =
-        PacBio::Pancake::ExpandInputFileList(inFiles);
+        PacBio::Pancake::ExpandInputFileList(inFiles, true);
 
     // Verify.
     EXPECT_EQ(expected, results);
@@ -184,7 +184,7 @@ TEST(Test_FileIO, ExpandInputFileList_OnlyNonComposite)
 
     // Run unit under  test.
     std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> results =
-        PacBio::Pancake::ExpandInputFileList(inFiles);
+        PacBio::Pancake::ExpandInputFileList(inFiles, true);
 
     // Verify.
     EXPECT_EQ(expected, results);
@@ -216,7 +216,7 @@ TEST(Test_FileIO, ExpandInputFileList_SingleFofnAndOneNoncomposite)
 
     // Run unit under  test.
     std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> results =
-        PacBio::Pancake::ExpandInputFileList(inFiles);
+        PacBio::Pancake::ExpandInputFileList(inFiles, true);
     std::sort(results.begin(), results.end());
 
     // Verify.
@@ -271,7 +271,7 @@ TEST(Test_FileIO, ExpandInputFileList_CompositeMix)
 
     // Run unit under  test.
     std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> results =
-        PacBio::Pancake::ExpandInputFileList(inFiles);
+        PacBio::Pancake::ExpandInputFileList(inFiles, true);
     std::sort(results.begin(), results.end());
 
     // Verify.
@@ -302,10 +302,10 @@ TEST(Test_FileIO, ExpandInputFileList_CircularFofnsShouldThrow)
     }
 
     // Run unit under  test.
-    EXPECT_THROW({ PacBio::Pancake::ExpandInputFileList(inFiles); }, std::runtime_error);
+    EXPECT_THROW({ PacBio::Pancake::ExpandInputFileList(inFiles, true); }, std::runtime_error);
 }
 
-TEST(Test_FileIO, ExpandInputFileList_FofnWithAnXml)
+TEST(Test_FileIO, ExpandInputFileList_FofnWithAnXmlAndExpansionToBAM)
 {
     // Input data which will be written and read.
     std::vector<std::string> inFiles = {
@@ -332,14 +332,14 @@ TEST(Test_FileIO, ExpandInputFileList_FofnWithAnXml)
 
     // Run unit under  test.
     std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> results =
-        PacBio::Pancake::ExpandInputFileList(inFiles);
+        PacBio::Pancake::ExpandInputFileList(inFiles, true);
     std::sort(results.begin(), results.end());
 
     // Verify.
     EXPECT_EQ(expected, results);
 }
 
-TEST(Test_FileIO, ExpandInputFileList_NoFofnJustXml)
+TEST(Test_FileIO, ExpandInputFileList_NoFofnJustXmlWithExpansionToBAM)
 {
     // Input data which will be written and read.
     std::vector<std::string> inFiles = {
@@ -358,7 +358,59 @@ TEST(Test_FileIO, ExpandInputFileList_NoFofnJustXml)
 
     // Run unit under  test.
     std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> results =
-        PacBio::Pancake::ExpandInputFileList(inFiles);
+        PacBio::Pancake::ExpandInputFileList(inFiles, true);
+    std::sort(results.begin(), results.end());
+
+    // Verify.
+    EXPECT_EQ(expected, results);
+}
+
+TEST(Test_FileIO, ExpandInputFileList_FofnWithAnXmlAndNoExpansionToBAM)
+{
+    // Input data which will be written and read.
+    std::vector<std::string> inFiles = {
+        PacBio::PancakeTestsConfig::GeneratedData_Dir + "/test1.fofn",
+    };
+
+    std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> expected = {
+        {PacBio::Pancake::SequenceFormat::Xml,
+         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/bam/subreadset.xml"},
+    };
+    std::sort(expected.begin(), expected.end());
+
+    // Create the FOFNs.
+    {
+        // The input file for the parsing function.
+        std::string tmpInFile = PacBio::PancakeTestsConfig::GeneratedData_Dir + "/test1.fofn";
+        std::ofstream ofs(tmpInFile);
+        ofs << PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/bam/subreadset.xml";
+    }
+
+    // Run unit under  test.
+    std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> results =
+        PacBio::Pancake::ExpandInputFileList(inFiles, false);
+    std::sort(results.begin(), results.end());
+
+    // Verify.
+    EXPECT_EQ(expected, results);
+}
+
+TEST(Test_FileIO, ExpandInputFileList_NoFofnJustXmlWithNoExpansionToBAM)
+{
+    // Input data which will be written and read.
+    std::vector<std::string> inFiles = {
+        PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/bam/subreadset.xml",
+    };
+
+    std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> expected = {
+        {PacBio::Pancake::SequenceFormat::Xml,
+         PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/bam/subreadset.xml"},
+    };
+    std::sort(expected.begin(), expected.end());
+
+    // Run unit under  test.
+    std::vector<std::pair<PacBio::Pancake::SequenceFormat, std::string>> results =
+        PacBio::Pancake::ExpandInputFileList(inFiles, false);
     std::sort(results.begin(), results.end());
 
     // Verify.

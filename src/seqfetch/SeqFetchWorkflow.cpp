@@ -187,7 +187,7 @@ int SeqFetchWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     // Expand FOFNs and determine the formats of input files.
     std::vector<std::pair<SequenceFormat, std::string>> inFiles =
-        ExpandInputFileList(settings.InputFiles);
+        ExpandInputFileList(settings.InputFiles, false);
 
     // Parse the specified list of sequences to be fetched.
     std::set<std::string> seqNamesToFind = LoadLinesToOrderedSet(settings.InputFetchListFile);

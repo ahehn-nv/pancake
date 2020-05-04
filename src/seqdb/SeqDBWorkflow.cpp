@@ -7,6 +7,7 @@
 #include <pbbam/DataSet.h>
 #include <pbbam/FastaReader.h>
 #include <pbbam/FastqReader.h>
+#include <pbbam/PbiIndexedBamReader.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include "seqdb/SeqDBSettings.h"
 
@@ -28,7 +29,7 @@ int SeqDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     // Expand FOFNs and determine the formats of input files.
     std::vector<std::pair<SequenceFormat, std::string>> inputFiles =
-        ExpandInputFileList(settings.InputFiles);
+        ExpandInputFileList(settings.InputFiles, false);
 
     for (const auto& inFilePair : inputFiles) {
         const auto& inFmt = inFilePair.first;
@@ -49,6 +50,19 @@ int SeqDBWorkflow::Runner(const PacBio::CLI_v2::Results& options)
             BAM::BamReader inputBamReader{inFile};
             for (const auto& bam : inputBamReader)
                 writer->AddSequence(bam.FullName(), bam.Sequence());
+        } else if (inFmt == SequenceFormat::Xml) {
+            BAM::DataSet dataset{inFile};
+            const PacBio::BAM::PbiIndexCache pbiCache = PacBio::BAM::MakePbiIndexCache(dataset);
+            const PacBio::BAM::PbiFilter filter = PacBio::BAM::PbiFilter::FromDataSet(dataset);
+            size_t fileId = 0;
+            for (const PacBio::BAM::BamFile& bam : dataset.BamFiles()) {
+                const std::shared_ptr<PacBio::BAM::PbiRawData>& pbiIndex = pbiCache->at(fileId);
+                PacBio::BAM::PbiIndexedBamReader reader{filter, bam, pbiIndex};
+                for (const auto& record : reader) {
+                    writer->AddSequence(record.FullName(), record.Sequence());
+                }
+                ++fileId;
+            }
         } else {
             throw std::runtime_error("Unknown input file extension for file: '" + inFile + "'.");
         }

@@ -218,3 +218,26 @@ Test XML input.
   B	0	0	15	152664	610647
   test-input-xml.seqdb
   test-input-xml.seqdb.0.seq
+
+Test filtered XML input.
+  $ rm -f test-input-xml.seqdb*
+  > ${BIN_DIR}/pancake seqdb test-input-xml ${PROJECT_DIR}/test-data/seqdb-writer/bam/filtered.subreadset.xml --block-size 1024 --buffer-size 1024 --split-blocks
+  > cat test-input-xml.seqdb
+  > ls -1 test-input-xml.seqdb*
+  V	0.1.0
+  C	1
+  F	0	test-input-xml.seqdb.0.seq	11	116004	464009
+  S	0	ref1/1/0_42148	0	0	10537	42148	1	0	42148
+  S	1	ref1/3/0_42176	0	10537	10544	42176	1	0	42176
+  S	2	ref1/4/0_42179	0	21081	10545	42179	1	0	42179
+  S	3	ref1/5/0_42280	0	31626	10570	42280	1	0	42280
+  S	4	ref2/1/0_42148	0	42196	10537	42148	1	0	42148
+  S	5	ref2/3/0_42176	0	52733	10544	42176	1	0	42176
+  S	6	ref2/4/0_42179	0	63277	10545	42179	1	0	42179
+  S	7	ref2/5/0_42280	0	73822	10570	42280	1	0	42280
+  S	8	ref1/159/0_42173	0	84392	10544	42173	1	0	42173
+  S	9	ref1/160/0_42090	0	94936	10523	42090	1	0	42090
+  S	10	ref1/162/0_42180	0	105459	10545	42180	1	0	42180
+  B	0	0	11	116004	464009
+  test-input-xml.seqdb
+  test-input-xml.seqdb.0.seq
