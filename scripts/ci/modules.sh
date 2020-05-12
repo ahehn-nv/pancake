@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-type module >& /dev/null || . /mnt/software/Modules/current/init/bash
-
 module purge
 
 module load gcc
