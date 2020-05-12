@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+type module >& /dev/null || . /mnt/software/Modules/current/init/bash
+
 set -e
 
 ################
@@ -61,3 +64,11 @@ if [[ -z ${PREFIX_ARG+x} ]]; then
 fi
 
 source scripts/ci/install.sh
+
+# Also install racon, since it lacks its own PB repo.
+export PREFIX_ARG="/mnt/software/r/racon/${bamboo_planRepository_branchName}"
+set +vx
+source scripts/ci/racon.modules.sh
+set -vx
+rm -rf racon-v1.4.13/build-meson # TEMP fix for my mistake
+make -C scripts/ci all
