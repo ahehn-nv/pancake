@@ -5,7 +5,7 @@ project(
   default_options : [
     'buildtype=release',
     'warning_level=3',
-    'cpp_std=c++14',
+    'cpp_std=c++17',
     'c_std=c11',
     'b_ndebug=if-release'],
   license : 'BSD-3',

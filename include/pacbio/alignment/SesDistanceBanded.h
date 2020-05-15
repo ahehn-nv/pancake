@@ -3,12 +3,14 @@
 #ifndef PANCAKE_ALIGNMENT_SES_DISTANCE_BANDED_H
 #define PANCAKE_ALIGNMENT_SES_DISTANCE_BANDED_H
 
-#include <pacbio/alignment/SesResults.h>
 #include <cstdint>
+
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <sstream>
+
+#include <pacbio/alignment/SesResults.h>
 
 namespace PacBio {
 namespace Pancake {

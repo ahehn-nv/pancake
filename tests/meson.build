@@ -1,4 +1,5 @@
 pancake_test_cpp_sources = files([
+  'src/test_AlignmentTools.cpp',
   'src/test_FileIO.cpp',
   'src/test_Minimizers.cpp',
   'src/test_Overlap.cpp',
@@ -12,6 +13,7 @@ pancake_test_cpp_sources = files([
   'src/test_SeqDBReader.cpp',
   'src/test_SeqDBReaderCached.cpp',
   'src/test_SeqDBReaderCachedBlock.cpp',
+  'src/test_SesAlignBanded.cpp',
   'src/test_SesDistanceBanded.cpp',
   'src/test_Twobit.cpp',
   'src/test_Util.cpp',

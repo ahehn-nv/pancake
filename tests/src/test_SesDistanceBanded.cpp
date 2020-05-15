@@ -3,6 +3,7 @@
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
 #include <pacbio/alignment/SesDistanceBanded.h>
+#include <pacbio/alignment/SesAlignBanded.hpp>
 #include <sstream>
 #include <tuple>
 
