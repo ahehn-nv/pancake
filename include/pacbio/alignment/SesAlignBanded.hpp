@@ -30,6 +30,33 @@ enum class SESTracebackMode {
     Enabled,
 };
 
+/// \brief Alignment function based on the O(nd) algorithm with modifications for banded alignment.
+///         this implementation supports both global and semiglobal alignment modes, where semiglobal
+///         doesn't penalize gaps at the end of either query or target.
+///         Also, this implementation implements a traceback, so the CIGAR vector can be obtained.
+///         Traceback and alignment modes are specified at compile time via the template parameters
+///         for efficiency.
+///
+/// \param ALIGN_MODE Alignment mode: SESAlignMode::Global or SESAlignMode::Semiglobal.
+/// \param TRACEBACK Specifies whether the traceback should be computed.
+///                     Either: SESTracebackMode::Enabled or SESTracebackMode::Disabled.
+/// \param query Query sequence as a C-type string consisting of [ACTG] characters.
+/// \param queryLen Length of the query sequence string.
+/// \param target Target sequence as a C-type string consisting of [ACTG] characters.
+/// \param targetLen Length of the target sequence string.
+/// \param maxDiffs Maximum allowed number of indel diffs for the alignment. This is a parameter
+///         specified by the original algorithm ("D"). If you want the maximum number of diffs.
+/// \param bandwidth Bandwidth for banded alignment.
+/// \param ss Scratch space for computation. Can be nullptr if no scratch space is provided. In this
+///             case, scratch space will be generated for one time use internally.
+///             It's much more efficient to provide the scratch space to this function to prevent
+///             unnecessary allocations when high efficiency is needed.
+///             To create a scratch space externally exactly the same approach can be used as it
+///             is done internally:
+///                 auto ss = std::make_shared<SESScratchSpace>();
+///             and then provide that to the function call.
+///
+/// \returns A SesResults object containing alignment coordinates, scores and CIGAR vector (if computed).
 template <SESAlignMode ALIGN_MODE, SESTracebackMode TRACEBACK>
 SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target, size_t targetLen,
                           int32_t maxDiffs, int32_t bandwidth,
