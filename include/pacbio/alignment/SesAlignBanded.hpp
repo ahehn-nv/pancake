@@ -20,7 +20,17 @@ namespace PacBio {
 namespace Pancake {
 namespace Alignment {
 
-template <bool GLOBAL, bool TRACEBACK>
+enum class SESAlignMode {
+    Global,     // Sequences are aligned end to end.
+    Semiglobal, // No penalty at the end of the query or target.
+};
+
+enum class SESTracebackMode {
+    Disabled,
+    Enabled,
+};
+
+template <SESAlignMode ALIGN_MODE, SESTracebackMode TRACEBACK>
 SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target, size_t targetLen,
                           int32_t maxDiffs, int32_t bandwidth,
                           std::shared_ptr<SESScratchSpace> ss = nullptr)
@@ -55,7 +65,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
         ss->alnPath.resize(rowLen);
     }
     // clang-format off
-    if constexpr (TRACEBACK) {
+    if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
         if ((rowLen * maxDiffs) > static_cast<int32_t>(v2.capacity())) {
             v2.resize(rowLen * maxDiffs);
         }
@@ -73,7 +83,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
         v[zero_offset] = x;
 
         // clang-format off
-        if constexpr (TRACEBACK) {
+        if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
             v2[0] = {x, -1};
             dStart[0] = {0, -1};
         }
@@ -86,7 +96,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
         lastD = 0;
 
         // clang-format off
-        if constexpr(GLOBAL) {
+        if constexpr(ALIGN_MODE == SESAlignMode::Global) {
             if (x >= N && y >= M) {
                 ret.valid = true;
             }
@@ -111,7 +121,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
             }
 
             // clang-format off
-            if constexpr (TRACEBACK) {
+            if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
                 // Location where to store the traceback info.
                 dStart[d] = {v2Pos, minK};
             }
@@ -122,14 +132,14 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
                 if (k == minK || (k != maxK && v[kz - 1] < v[kz + 1])) {
                     x = v[kz + 1];
                     // clang-format off
-                    if constexpr (TRACEBACK) {
+                    if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
                         prevK = k + 1;
                     }
                     // clang-format on
                 } else {
                     x = v[kz - 1] + 1;
                     // clang-format off
-                    if constexpr (TRACEBACK) {
+                    if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
                         prevK = k - 1;
                     }
                     // clang-format on
@@ -144,7 +154,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
                 u[kz] = x + y;
 
                 // clang-format off
-                if constexpr (TRACEBACK) {
+                if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
                     v2[v2Pos] = {x, prevK};
                     ++v2Pos;
                 }
@@ -160,7 +170,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
                 }
 
                 // clang-format off
-                if constexpr(GLOBAL) {
+                if constexpr(ALIGN_MODE == SESAlignMode::Global) {
                     if (x >= N && y >= M) {
                         ret.valid = true;
                         break;
@@ -193,7 +203,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
     }
 
     // clang-format off
-    if constexpr (TRACEBACK) {
+    if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
         int32_t currD = lastD;
         int32_t currK = lastK;
         int32_t numPoints = (currD + 1) * 2;

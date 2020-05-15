@@ -30,9 +30,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_SimpleSeqWithAllDiffs)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -64,9 +65,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_AnotherSimpleSeqWithAllDiffs)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -91,9 +93,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_CIGAR_5D_in_suffix)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -118,9 +121,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_CIGAR_5I_in_suffix)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -145,9 +149,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_CIGAR_5D_in_prefix)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -172,9 +177,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_CIGAR_5I_in_prefix)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -199,9 +205,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_SingleMatch)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -226,9 +233,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_MultipleExactMatches)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -253,9 +261,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_SingleMismatch)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -280,9 +289,10 @@ TEST(SESAlignBanded_Global, NormalSmallCase_MultipleMismatches)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<true, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Global,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -318,9 +328,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_SimpleSeqWithAllDiffs)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -352,9 +363,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_AnotherSimpleSeqWithAllDiffs)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -379,9 +391,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_CIGAR_5D_in_suffix)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -406,9 +419,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_CIGAR_5I_in_suffix)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -444,9 +458,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_CIGAR_5D_in_prefix)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -471,9 +486,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_CIGAR_5I_in_prefix)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -498,9 +514,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_SingleMatch)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -525,9 +542,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_MultipleExactMatches)
                                                     true, PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -552,9 +570,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_SingleMismatch)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
@@ -579,9 +598,10 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_MultipleMismatches)
                                                     PacBio::BAM::Cigar(cigar));
 
     // Run.
-    PacBio::Pancake::Alignment::SesResults result =
-        PacBio::Pancake::Alignment::SESAlignBanded<false, true>(
-            query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
+    PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESAlignBanded<
+        PacBio::Pancake::Alignment::SESAlignMode::Semiglobal,
+        PacBio::Pancake::Alignment::SESTracebackMode::Enabled>(
+        query.c_str(), query.size(), target.c_str(), target.size(), maxDiffs, bandwidth);
 
     std::cerr << "CIGAR: " << result.cigar.ToStdString() << "\n";
 
