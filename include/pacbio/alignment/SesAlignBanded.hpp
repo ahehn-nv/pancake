@@ -231,6 +231,37 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
         PacBio::BAM::CigarOperationType prevOp = PacBio::BAM::CigarOperationType::UNKNOWN_OP;
         uint32_t count = 0;
         uint32_t prevCount = 0;
+
+        auto ConvertMismatchesAndAppend = [&]() {
+            if (ret.cigar.size() > 0 &&
+                ((prevOp == PacBio::BAM::CigarOperationType::DELETION &&
+                    ret.cigar.back().Type() == PacBio::BAM::CigarOperationType::INSERTION) ||
+                    (prevOp == PacBio::BAM::CigarOperationType::INSERTION &&
+                    ret.cigar.back().Type() == PacBio::BAM::CigarOperationType::DELETION))) {
+
+                auto& last = ret.cigar.back();
+                uint32_t lastCount = last.Length();
+                int32_t minLen = std::min(prevCount, lastCount);  // Number of mismatches.
+                int32_t leftHang = static_cast<int32_t>(lastCount) - minLen;   // Remaining indels to the left.
+                int32_t rightHang = static_cast<int32_t>(prevCount) - minLen;  // Remaining indels to the right.
+                if (leftHang == 0) {
+                    last = PacBio::BAM::CigarOperation(
+                        PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH, minLen);
+                } else {
+                    last.Length(leftHang);
+                    ret.cigar.emplace_back(PacBio::BAM::CigarOperation(
+                        PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH, minLen));
+                }
+                prevCount = rightHang;
+                ret.numX += minLen;
+                ret.numD -= minLen;
+                ret.numI -= minLen;
+            }
+            if (prevCount > 0) {
+                ret.cigar.emplace_back(PacBio::BAM::CigarOperation(prevOp, prevCount));
+            }
+        };
+
         for (int32_t i = 1; i < numPoints; ++i) {
             const auto& prevMove = ss->alnPath[i - 1];
             const auto& alnMove = ss->alnPath[i];
@@ -254,65 +285,14 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
                 ret.numEq += count;
             }
             if (op != prevOp && prevOp != PacBio::BAM::CigarOperationType::UNKNOWN_OP) {
-                if (ret.cigar.size() > 0 &&
-                    ((prevOp == PacBio::BAM::CigarOperationType::DELETION &&
-                        ret.cigar.back().Type() == PacBio::BAM::CigarOperationType::INSERTION) ||
-                        (prevOp == PacBio::BAM::CigarOperationType::INSERTION &&
-                        ret.cigar.back().Type() == PacBio::BAM::CigarOperationType::DELETION))) {
-
-                    auto& last = ret.cigar.back();
-                    uint32_t lastCount = last.Length();
-                    int32_t minLen = std::min(prevCount, lastCount);  // Number of mismatches.
-                    int32_t leftHang = static_cast<int32_t>(lastCount) - minLen;   // Remaining indels to the left.
-                    int32_t rightHang = static_cast<int32_t>(prevCount) - minLen;  // Remaining indels to the right.
-                    if (leftHang == 0) {
-                        last = PacBio::BAM::CigarOperation(
-                            PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH, minLen);
-                    } else {
-                        last.Length(leftHang);
-                        ret.cigar.emplace_back(PacBio::BAM::CigarOperation(
-                            PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH, minLen));
-                    }
-                    prevCount = rightHang;
-                    ret.numX += minLen;
-                    ret.numD -= minLen;
-                    ret.numI -= minLen;
-                }
-                if (prevCount > 0) {
-                    ret.cigar.emplace_back(PacBio::BAM::CigarOperation(prevOp, prevCount));
-                }
+                ConvertMismatchesAndAppend();
                 prevCount = 0;
             }
             prevCount += count;
             prevOp = op;
         }
         // Add the final CIGAR operation.
-        if (ret.cigar.size() > 0 &&
-            ((prevOp == PacBio::BAM::CigarOperationType::DELETION &&
-                ret.cigar.back().Type() == PacBio::BAM::CigarOperationType::INSERTION) ||
-                (prevOp == PacBio::BAM::CigarOperationType::INSERTION &&
-                ret.cigar.back().Type() == PacBio::BAM::CigarOperationType::DELETION))) {
-            auto& last = ret.cigar.back();
-            uint32_t lastCount = last.Length();
-            int32_t minLen = std::min(prevCount, lastCount);  // Number of mismatches.
-            int32_t leftHang = static_cast<int32_t>(lastCount) - minLen;   // Remaining indels to the left.
-            int32_t rightHang = static_cast<int32_t>(prevCount) - minLen;  // Remaining indels to the right.
-            if (leftHang == 0) {
-                last = PacBio::BAM::CigarOperation(
-                    PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH, minLen);
-            } else {
-                last.Length(leftHang);
-                ret.cigar.emplace_back(PacBio::BAM::CigarOperation(
-                    PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH, minLen));
-            }
-            prevCount = rightHang;
-            ret.numX += minLen;
-            ret.numD -= minLen;
-            ret.numI -= minLen;
-        }
-        if (prevCount > 0) {
-            ret.cigar.emplace_back(PacBio::BAM::CigarOperation(prevOp, prevCount));
-        }
+        ConvertMismatchesAndAppend();
         ret.diffs = ret.numX + ret.numI + ret.numD;
     }
     // clang-format on
