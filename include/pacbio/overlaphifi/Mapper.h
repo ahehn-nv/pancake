@@ -131,7 +131,8 @@ private:
         const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
         const PacBio::Pancake::FastaSequenceCached& querySeq,
         const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff,
-        bool useTraceback, std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
+        bool useTraceback, bool noSNPs, bool noIndels,
+        std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
     /// \brief Performs alignment and alignment extension of a single overlap. Uses the
     ///        banded O(nd) algorithm to align the overlap. The edit distance is
@@ -151,7 +152,8 @@ private:
     static OverlapPtr AlignOverlap_(
         const PacBio::Pancake::FastaSequenceCached& targetSeq,
         const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
-        const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTracebak,
+        const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTraceback,
+        bool noSNPs, bool noIndels,
         std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
     /// \brief Filters overlaps based on the number of seeds, identity, mapped span or length.
