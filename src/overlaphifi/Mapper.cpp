@@ -60,8 +60,10 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
     ttFilterTandem.Stop();
 
     TicToc ttAlign;
-    overlaps = AlignOverlaps_(targetSeqs, querySeq, overlaps, settings_.AlignmentBandwidth,
-                              settings_.AlignmentMaxD, settings_.UseTraceback, sesScratch_);
+    overlaps =
+        AlignOverlaps_(targetSeqs, querySeq, overlaps, settings_.AlignmentBandwidth,
+                       settings_.AlignmentMaxD, settings_.UseTraceback, settings_.NoSNPsInIdentity,
+                       settings_.NoIndelsInIdentity, sesScratch_);
     ttAlign.Stop();
 
     TicToc ttFilter;
@@ -277,7 +279,7 @@ std::vector<OverlapPtr> Mapper::FilterTandemOverlaps_(const std::vector<OverlapP
 std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::vector<OverlapPtr>& overlaps,
-    double alignBandwidth, double alignMaxDiff, bool useTraceback,
+    double alignBandwidth, double alignMaxDiff, bool useTraceback, bool noSNPs, bool noIndels,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
     std::vector<OverlapPtr> ret;
@@ -286,8 +288,9 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
 
     for (size_t i = 0; i < overlaps.size(); ++i) {
         const auto& targetSeq = targetSeqs.GetSequence(overlaps[i]->Bid);
-        auto newOverlap = AlignOverlap_(targetSeq, querySeq, reverseQuerySeq, overlaps[i],
-                                        alignBandwidth, alignMaxDiff, useTraceback, sesScratch);
+        auto newOverlap =
+            AlignOverlap_(targetSeq, querySeq, reverseQuerySeq, overlaps[i], alignBandwidth,
+                          alignMaxDiff, useTraceback, noSNPs, noIndels, sesScratch);
         if (newOverlap == nullptr) {
             continue;
         }
@@ -323,6 +326,7 @@ OverlapPtr Mapper::AlignOverlap_(
     const PacBio::Pancake::FastaSequenceCached& targetSeq,
     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
     const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTraceback,
+    bool noSNPs, bool noIndels,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
 
@@ -331,10 +335,8 @@ OverlapPtr Mapper::AlignOverlap_(
     }
 
     OverlapPtr ret = createOverlap(ovl);
-    int32_t diffsRight = 0;
-
-    PacBio::BAM::Cigar cigarRight;
-    PacBio::BAM::Cigar cigarLeft;
+    PacBio::Pancake::Alignment::SesResults sesResultRight;
+    PacBio::Pancake::Alignment::SesResults sesResultLeft;
 
     ///////////////////////////
     /// Align forward pass. ///
@@ -372,26 +374,23 @@ OverlapPtr Mapper::AlignOverlap_(
         const int32_t dMax = ovl->Alen * alignMaxDiff;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
 
-        PacBio::Pancake::Alignment::SesResults sesResult;
         if (useTraceback) {
-            sesResult =
+            sesResultRight =
                 PacBio::Pancake::Alignment::SESAlignBanded<Alignment::SESAlignMode::Semiglobal,
                                                            Alignment::SESTracebackMode::Enabled>(
                     querySeq.Bases() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth,
                     sesScratch);
         } else {
-            sesResult = PacBio::Pancake::Alignment::SESDistanceBanded(
+            sesResultRight = PacBio::Pancake::Alignment::SESDistanceBanded(
                 querySeq.Bases() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
         }
 
-        ret->Aend = sesResult.lastQueryPos;
-        ret->Bend = sesResult.lastTargetPos;
+        ret->Aend = sesResultRight.lastQueryPos;
+        ret->Bend = sesResultRight.lastTargetPos;
         ret->Aend += ovl->Astart;
         ret->Bend += ovl->Bstart;
-        ret->EditDistance = sesResult.diffs;
+        ret->EditDistance = sesResultRight.diffs;
         ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
-        diffsRight = sesResult.diffs;
-        cigarRight = std::move(sesResult.cigar);
         // std::cerr << "CIGAR right: " << cigarRight.ToStdString() << "\n";
         // std::reverse
         // std::cerr << "(fwd) sesResult: " << sesResult << "\n";
@@ -420,38 +419,46 @@ OverlapPtr Mapper::AlignOverlap_(
             tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, !ret->Brev);
         }
         const int32_t tSpan = tseq.size();
-        const int32_t dMax = ovl->Alen * alignMaxDiff - diffsRight;
+        const int32_t dMax = ovl->Alen * alignMaxDiff - sesResultRight.diffs;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
 
-        PacBio::Pancake::Alignment::SesResults sesResult;
         if (useTraceback) {
-            sesResult =
+            sesResultLeft =
                 PacBio::Pancake::Alignment::SESAlignBanded<Alignment::SESAlignMode::Semiglobal,
                                                            Alignment::SESTracebackMode::Enabled>(
                     reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth,
                     sesScratch);
         } else {
-            sesResult = PacBio::Pancake::Alignment::SESDistanceBanded(
+            sesResultLeft = PacBio::Pancake::Alignment::SESDistanceBanded(
                 reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
         }
 
-        ret->Astart = ovl->Astart - sesResult.lastQueryPos;
-        ret->Bstart = ovl->Bstart - sesResult.lastTargetPos;
-        ret->EditDistance = diffsRight + sesResult.diffs;
-        ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
+        ret->Astart = ovl->Astart - sesResultLeft.lastQueryPos;
+        ret->Bstart = ovl->Bstart - sesResultLeft.lastTargetPos;
+        ret->EditDistance = -1;
+        if (useTraceback) {
+            ret->EditDistance = (noSNPs ? 0 : (sesResultRight.numX + sesResultLeft.numX)) +
+                                (noIndels ? 0 : (sesResultRight.numI + sesResultRight.numD +
+                                                 sesResultLeft.numI + sesResultLeft.numD));
+            ret->Score = -(sesResultRight.numEq + sesResultLeft.numEq);
+        } else {
+            ret->EditDistance = sesResultRight.diffs + sesResultLeft.diffs;
+            ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
+        }
         const float span = std::max(ret->ASpan(), ret->BSpan());
         ret->Identity =
             ((span != 0) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -2.0f);
-        cigarLeft = std::move(sesResult.cigar);
         // std::cerr << "CIGAR left: " << cigarLeft.ToStdString() << "\n";
-        std::reverse(cigarLeft.begin(), cigarLeft.end());
+        std::reverse(sesResultLeft.cigar.begin(), sesResultLeft.cigar.end());
         // std::cerr << "(rev) sesResult: " << sesResult << "\n";
     }
 
-    ret->Cigar = std::move(cigarLeft);
-    if (cigarRight.size() > 0) {
-        AppendToCigar(ret->Cigar, cigarRight.front().Type(), cigarRight.front().Length());
-        ret->Cigar.insert(ret->Cigar.end(), cigarRight.begin() + 1, cigarRight.end());
+    ret->Cigar = std::move(sesResultLeft.cigar);
+    if (sesResultRight.cigar.size() > 0) {
+        AppendToCigar(ret->Cigar, sesResultRight.cigar.front().Type(),
+                      sesResultRight.cigar.front().Length());
+        ret->Cigar.insert(ret->Cigar.end(), sesResultRight.cigar.begin() + 1,
+                          sesResultRight.cigar.end());
     }
 
     return ret;
