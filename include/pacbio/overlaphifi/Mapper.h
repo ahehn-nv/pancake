@@ -30,10 +30,9 @@ public:
 class Mapper
 {
 public:
-    Mapper(const OverlapHifiSettings& settings) : settings_(settings), sesScratch_(nullptr)
+    Mapper(const OverlapHifiSettings& settings)
+        : settings_{settings}, sesScratch_{std::make_shared<Pancake::Alignment::SESScratchSpace>()}
     {
-        sesScratch_ = std::make_shared<PacBio::Pancake::Alignment::SESScratchSpace>(
-            PacBio::Pancake::Alignment::SESScratchSpace());
     }
     ~Mapper() = default;
 
