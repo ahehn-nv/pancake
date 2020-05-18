@@ -117,9 +117,23 @@ R"({
 const CLI_v2::Option MinIdentity{
 R"({
     "names" : ["min-idt"],
-    "description" : "Minimum percent alignment identity allowed to report the alignment.",
+    "description" : "Minimum percent alignment identity allowed to report the alignment. This is an overall threshold which takes into account both indels and SNPs.",
     "type" : "double"
 })", OverlapHifiSettings::Defaults::MinIdentity};
+
+const CLI_v2::Option NoSNPsInIdentity{
+R"({
+    "names" : ["no-snps"],
+    "description" : "Ignore SNPs when computing the identity for an overlap. This only works in the traceback mode.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::NoSNPsInIdentity};
+
+const CLI_v2::Option NoIndelsInIdentity{
+R"({
+    "names" : ["no-indels"],
+    "description" : "Ignore indels when computing the identity for an overlap. This only works in the traceback mode.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::NoIndelsInIdentity};
 
 const CLI_v2::Option MinMappedLength{
 R"({
@@ -227,6 +241,8 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , AlignmentBandwidth{options[OptionNames::AlignmentBandwidth]}
     , AlignmentMaxD{options[OptionNames::AlignmentMaxD]}
     , MinIdentity{options[OptionNames::MinIdentity]}
+    , NoSNPsInIdentity{options[OptionNames::NoSNPsInIdentity]}
+    , NoIndelsInIdentity{options[OptionNames::NoIndelsInIdentity]}
     , MinMappedLength{options[OptionNames::MinMappedLength]}
     , SkipSymmetricOverlaps{options[OptionNames::SkipSymmetricOverlaps]}
     , OneHitPerTarget{options[OptionNames::OneHitPerTarget]}
@@ -240,6 +256,15 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , UseHPC{options[OptionNames::UseHPC]}
     , UseTraceback{options[OptionNames::UseTraceback]}
 {
+    if ((NoSNPsInIdentity || NoIndelsInIdentity) && (UseTraceback == false)) {
+        throw std::runtime_error(
+            "The '--no-snps' and '--no-indels' can only be used together with the '--traceback' "
+            "option.");
+    }
+    if (NoSNPsInIdentity && NoIndelsInIdentity) {
+        PBLOG_WARN << "Both --no-snps and --no-indels options are specified, which means that all "
+                      "identity values will be 100%.";
+    }
 }
 
 PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
@@ -260,6 +285,8 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::AlignmentBandwidth,
         OptionNames::AlignmentMaxD,
         OptionNames::MinIdentity,
+        OptionNames::NoSNPsInIdentity,
+        OptionNames::NoIndelsInIdentity,
         OptionNames::MinMappedLength,
         OptionNames::SkipSymmetricOverlaps,
         OptionNames::OneHitPerTarget,

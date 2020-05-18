@@ -31,6 +31,8 @@ struct OverlapHifiSettings
         static constexpr double AlignmentBandwidth = 0.01;
         static constexpr double AlignmentMaxD = 0.03;
         static constexpr double MinIdentity = 98.0;
+        static const bool NoSNPsInIdentity = 0.0;
+        static const bool NoIndelsInIdentity = 0.0;
         static const int64_t MinMappedLength = 1000;
         static const bool SkipSymmetricOverlaps = false;
         static const bool OneHitPerTarget = false;
@@ -64,6 +66,8 @@ struct OverlapHifiSettings
     double AlignmentBandwidth = Defaults::AlignmentBandwidth;
     double AlignmentMaxD = Defaults::AlignmentMaxD;
     double MinIdentity = Defaults::MinIdentity;
+    bool NoSNPsInIdentity = Defaults::NoSNPsInIdentity;
+    bool NoIndelsInIdentity = Defaults::NoIndelsInIdentity;
     int64_t MinMappedLength = Defaults::MinMappedLength;
     bool SkipSymmetricOverlaps = Defaults::SkipSymmetricOverlaps;
     bool OneHitPerTarget = Defaults::OneHitPerTarget;
