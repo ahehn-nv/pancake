@@ -175,3 +175,72 @@ Bestn testing on a set of perfect matching overlaps. A large positive value, to 
   fake_read/1/ccs-inverted_0-15000 fake_read/1/ccs -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
   fake_read/1/ccs-inverted_0-15000 m64030_190330_071939/101844710/ccs -5000 100.00 0 0 5000 15000 1 0 5000 11811 5
 ##############
+
+###########################
+### Traceback alignment ###
+###########################
+Traceback alignment.
+Dovetail overlap all fwd oriented, with the sensitive mode turned on.
+Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile3-fwd.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback | grep "^m64030_190330_071939/102303370/ccs"
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -6940 99.21 0 0 6996 8602 0 656 7651 7651 5
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/109642940/ccs -6818 99.84 0 0 6829 8602 0 1987 8823 8823 5
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/106038710/ccs -6803 99.91 0 1793 8602 8602 0 0 6813 8913 3
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/114034050/ccs -1783 99.78 0 0 1787 8602 0 7139 8928 8928 5
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/10946880/ccs -1324 99.85 0 7276 8602 8602 0 0 1328 9090 3
+
+Traceback alignment.
+Dovetail overlap all rev oriented, with the sensitive mode turned on.
+Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile4-rev.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback | grep "^m64030_190330_071939/102172020/ccs"
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/43124430/ccs -9838 99.91 0 0 9847 10635 1 0 9851 10977 5
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/30016220/ccs -9406 99.87 0 1217 10635 10635 1 946 10371 10371 3
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/28901470/ccs -6167 99.85 0 4459 10635 10635 1 3541 9723 9723 3
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/49610760/ccs -4527 99.67 0 0 4547 10635 1 0 4542 9121 5
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/52102340/ccs -3645 99.75 0 6981 10635 10635 1 7165 10825 10825 3
+
+Traceback and HPC turned on at the same time.
+Dovetail overlap all fwd oriented, with the sensitive mode turned on.
+Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
+Important: because of HPC compression, the overlap span can reduce below the default threshold of 1000bp. These
+settings need to be modified below.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile3-fwd.fasta
+  > ${BIN_DIR}/pancake seeddb --use-hpc reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --use-hpc --min-map-len 0 --min-anchor-span 100 | grep "^m64030_190330_071939/102303370/ccs"
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -5139 99.90 0 0 5145 6298 0 496 5640 5640 5
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/109642940/ccs -5025 99.98 0 0 5026 6298 0 1470 6497 6497 5
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/106038710/ccs -5008 100.00 0 1290 6298 6298 0 0 5008 6585 3
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/114034050/ccs -1288 100.00 0 0 1288 6298 0 5263 6551 6551 5
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/10946880/ccs -952 100.00 0 5346 6298 6298 0 0 952 6699 3
+
+Traceback and HPC turned on at the same time.
+Dovetail overlap all rev oriented, with the sensitive mode turned on.
+Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
+Important: because of HPC compression, the overlap span can reduce below the default threshold of 1000bp. These
+settings need to be modified below.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile4-rev.fasta
+  > ${BIN_DIR}/pancake seeddb --use-hpc reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --use-hpc --min-map-len 0 --min-anchor-span 100 | grep "^m64030_190330_071939/102172020/ccs"
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/43124430/ccs -7275 99.99 0 0 7276 7845 1 0 7276 8160 5
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/30016220/ccs -6944 99.99 0 900 7845 7845 1 705 7650 7650 3
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/28901470/ccs -4530 99.98 0 3314 7845 7845 1 2617 7148 7148 3
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/49610760/ccs -3378 99.97 0 0 3379 7845 1 0 3380 6838 5
+  m64030_190330_071939/102172020/ccs m64030_190330_071939/52102340/ccs -2680 99.96 0 5164 7845 7845 1 5338 8019 8019 3
+
+Writing the CIGAR string produced by the traceback. HPC is turned on at the same time just so that the CIGAR string is shorter.
+Dovetail overlap all fwd oriented, with the sensitive mode turned on.
+Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
+Important: because of HPC compression, the overlap span can reduce below the default threshold of 1000bp. These
+settings need to be modified below.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile3-fwd.fasta
+  > ${BIN_DIR}/pancake seeddb --use-hpc reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --use-hpc --min-map-len 0 --min-anchor-span 100 --write-cigar | grep "^m64030_190330_071939/102303370/ccs"
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -5139 99.90 0 0 5145 6298 0 496 5640 5640 5 221=1D649=1D296=1I169=1I167=1I3640=
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/109642940/ccs -5025 99.98 0 0 5026 6298 0 1470 6497 6497 5 5026=1D
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/106038710/ccs -5008 100.00 0 1290 6298 6298 0 0 5008 6585 3 5008=
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/114034050/ccs -1288 100.00 0 0 1288 6298 0 5263 6551 6551 5 1288=
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/10946880/ccs -952 100.00 0 5346 6298 6298 0 0 952 6699 3 952=
