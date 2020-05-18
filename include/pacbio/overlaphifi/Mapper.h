@@ -3,6 +3,7 @@
 #ifndef PANCAKE_OVERLAPHIFI_OVERLAPPER_H
 #define PANCAKE_OVERLAPHIFI_OVERLAPPER_H
 
+#include <pacbio/alignment/SesResults.h>
 #include <pacbio/overlaphifi/Overlap.h>
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
 #include <pacbio/overlaphifi/SeedIndex.h>
@@ -29,7 +30,10 @@ public:
 class Mapper
 {
 public:
-    Mapper(const OverlapHifiSettings& settings) : settings_(settings) {}
+    Mapper(const OverlapHifiSettings& settings)
+        : settings_{settings}, sesScratch_{std::make_shared<Pancake::Alignment::SESScratchSpace>()}
+    {
+    }
     ~Mapper() = default;
 
     /// \brief Maps a single query to a given set of targets. The targets
@@ -51,6 +55,7 @@ public:
 
 private:
     OverlapHifiSettings settings_;
+    std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch_;
 
     /// \brief Writes the seed hits to a specified file, in a CSV format, useful for visualization.
     /// The header line contains:
@@ -118,12 +123,15 @@ private:
     ///                       O(nd) algorithm
     /// \param alignMaxDiff The maximum number of diffs allowed between the query and target pair.
     ///                     This is a parameter of the O(nd) algorithm.
+    /// \param useTraceback Runs alignment with traceback, for more accurate
+    ///                     identity computation (in terms of mismatches) and CIGAR construction.
     /// \returns A new vector of overlaps with alignment information and modified coordinates.
     ///
     static std::vector<OverlapPtr> AlignOverlaps_(
         const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
         const PacBio::Pancake::FastaSequenceCached& querySeq,
-        const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff);
+        const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff,
+        bool useTraceback, std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
     /// \brief Performs alignment and alignment extension of a single overlap. Uses the
     ///        banded O(nd) algorithm to align the overlap. The edit distance is
@@ -136,12 +144,15 @@ private:
     ///                       O(nd) algorithm
     /// \param alignMaxDiff The maximum number of diffs allowed between the query and target pair.
     ///                     This is a parameter of the O(nd) algorithm.
+    /// \param useTraceback Runs alignment with traceback, for more accurate
+    ///                     identity computation (in terms of mismatches) and CIGAR construction.
     /// \returns A new vector overlap with alignment information and modified coordinates.
     ///
-    static OverlapPtr AlignOverlap_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
-                                    const PacBio::Pancake::FastaSequenceCached& querySeq,
-                                    const std::string reverseQuerySeq, const OverlapPtr& ovl,
-                                    double alignBandwidth, double alignMaxDiff);
+    static OverlapPtr AlignOverlap_(
+        const PacBio::Pancake::FastaSequenceCached& targetSeq,
+        const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
+        const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTracebak,
+        std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
     /// \brief Filters overlaps based on the number of seeds, identity, mapped span or length.
     ///

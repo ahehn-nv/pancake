@@ -154,6 +154,12 @@ R"({
     "description" : "Output overlaps will contain numeric IDs for the A and B reads (instead of names).",
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::WriteIds};
+const CLI_v2::Option WriteCigar{
+R"({
+    "names" : ["write-cigar"],
+    "description" : "Write the CIGAR string if the sensitive alignment mode is applied.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::WriteCigar};
 
 const CLI_v2::Option AllowedDovetailDist{
 R"({
@@ -189,6 +195,13 @@ R"({
     "description" : "Enable homopolymer compression."
 })", OverlapHifiSettings::Defaults::UseHPC};
 
+const CLI_v2::Option UseTraceback{
+R"({
+    "names" : ["traceback"],
+    "description" : "Run alignment traceback and compute mismatches.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::UseTraceback};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -219,11 +232,13 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , OneHitPerTarget{options[OptionNames::OneHitPerTarget]}
     , WriteReverseOverlaps{options[OptionNames::WriteReverseOverlaps]}
     , WriteIds{options[OptionNames::WriteIds]}
+    , WriteCigar{options[OptionNames::WriteCigar]}
     , AllowedDovetailDist{options[OptionNames::AllowedDovetailDist]}
     , AllowedHeuristicExtendDist{options[OptionNames::AllowedHeuristicExtendDist]}
     , CombineBlocks{options[OptionNames::CombineBlocks]}
     , BestN{options[OptionNames::BestN]}
     , UseHPC{options[OptionNames::UseHPC]}
+    , UseTraceback{options[OptionNames::UseTraceback]}
 {
 }
 
@@ -250,11 +265,13 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::OneHitPerTarget,
         OptionNames::WriteReverseOverlaps,
         OptionNames::WriteIds,
+        OptionNames::WriteCigar,
         OptionNames::AllowedDovetailDist,
         OptionNames::AllowedHeuristicExtendDist,
         OptionNames::CombineBlocks,
         OptionNames::BestN,
         OptionNames::UseHPC,
+        OptionNames::UseTraceback,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

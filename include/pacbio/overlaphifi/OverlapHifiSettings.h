@@ -36,11 +36,13 @@ struct OverlapHifiSettings
         static const bool OneHitPerTarget = false;
         static const bool WriteReverseOverlaps = false;
         static const bool WriteIds = false;
+        static const bool WriteCigar = false;
         static const int32_t AllowedDovetailDist = 0;
         static const int32_t AllowedHeuristicExtendDist = 0;
         static const int32_t CombineBlocks = 1;
         static const int32_t BestN = 0;
         static const bool UseHPC = false;
+        static const bool UseTraceback = false;
     };
 
     std::string TargetDBPrefix;
@@ -67,11 +69,13 @@ struct OverlapHifiSettings
     bool OneHitPerTarget = Defaults::OneHitPerTarget;
     bool WriteReverseOverlaps = Defaults::WriteReverseOverlaps;
     bool WriteIds = Defaults::WriteIds;
+    bool WriteCigar = Defaults::WriteCigar;
     int32_t AllowedDovetailDist = Defaults::AllowedDovetailDist;
     int32_t AllowedHeuristicExtendDist = Defaults::AllowedHeuristicExtendDist;
     int32_t CombineBlocks = Defaults::CombineBlocks;
     int32_t BestN = Defaults::BestN;
     bool UseHPC = Defaults::UseHPC;
+    bool UseTraceback = Defaults::UseTraceback;
 
     OverlapHifiSettings();
     OverlapHifiSettings(const PacBio::CLI_v2::Results& options);
