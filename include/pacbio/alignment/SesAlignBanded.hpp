@@ -74,8 +74,8 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
     const int32_t bandTolerance = bandwidth / 2 + 1;  // ss->bandTolerance;
     int32_t lastK = 0;                                // ss->lastK;
     int32_t lastD = 0;
-    int32_t minK = -1;            // ss->minK;
-    int32_t maxK = 1;             // ss->maxK;
+    int32_t minK = 0;             // ss->minK;
+    int32_t maxK = 0;             // ss->maxK;
     int32_t best_u = 0;           // ss->best_u;
     auto& v = ss->v;              // Working row.
     auto& u = ss->u;              // Banding.
@@ -86,7 +86,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
     const int32_t rowLen = (2 * maxDiffs + 3);
 
     if (rowLen > static_cast<int32_t>(v.capacity())) {
-        v.resize(rowLen, MINUS_INF);
+        v.resize(rowLen, 0);
         u.resize(rowLen, MINUS_INF);
         dStart.resize(rowLen, {0, 0});
         ss->alnPath.resize(rowLen);
@@ -99,48 +99,14 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
     }
     // clang-format on
 
-    // Initialization is required. Outside of the main loop, so that the
-    // MINUS_INF trick can be used.
-    {
-        int32_t x = 0, y = 0;
-        while (x < N && y < M && query[x] == target[y]) {
-            ++x;
-            ++y;
-        }
-        v[zero_offset] = x;
-
-        // clang-format off
-        if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-            v2[0] = {x, -1};
-            dStart[0] = {0, -1};
-        }
-        // clang-format on
-
-        ret.numDiffs = 0;
-        ret.lastQueryPos = x;
-        ret.lastTargetPos = y;
-        lastK = 0;
-        lastD = 0;
-
-        // clang-format off
-        if constexpr(ALIGN_MODE == SESAlignMode::Global) {
-            if (x >= N && y >= M) {
-                ret.valid = true;
-            }
-        } else {
-            if (x >= N || y >= M) {
-                ret.valid = true;
-            }
-        }
-        // clang-format on
-    }
-
     int32_t v2Pos = 1;
     if (ret.valid == false) {
         int32_t prevK = -1;
         int32_t x = 0;
 
-        for (int32_t d = 1; d < maxDiffs; ++d) {
+        v[zero_offset + 1] = 0;
+
+        for (int32_t d = 0; d < maxDiffs; ++d) {
             ret.numDiffs = d;
             if ((maxK - minK) > bandwidth) {
                 ret.valid = false;
