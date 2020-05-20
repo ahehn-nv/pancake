@@ -67,6 +67,7 @@ if not meson.is_subproject()
       'pacbio/alignment/DiffCounts.h',
       'pacbio/alignment/SesAlignBanded.hpp',
       'pacbio/alignment/SesDistanceBanded.h',
+      'pacbio/alignment/SesOptions.h',
       'pacbio/alignment/SesResults.h',
       ]),
       subdir : 'pacbio/alignment')

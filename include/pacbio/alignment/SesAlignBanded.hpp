@@ -14,21 +14,12 @@
 #include <pbbam/CigarOperation.h>
 
 #include <pacbio/alignment/AlignmentTools.h>
+#include <pacbio/alignment/SesOptions.h>
 #include <pacbio/alignment/SesResults.h>
 
 namespace PacBio {
 namespace Pancake {
 namespace Alignment {
-
-enum class SESAlignMode {
-    Global,     // Sequences are aligned end to end.
-    Semiglobal, // No penalty at the end of the query or target.
-};
-
-enum class SESTracebackMode {
-    Disabled,
-    Enabled,
-};
 
 /// \brief Alignment function based on the O(nd) algorithm with modifications for banded alignment.
 ///         this implementation supports both global and semiglobal alignment modes, where semiglobal
