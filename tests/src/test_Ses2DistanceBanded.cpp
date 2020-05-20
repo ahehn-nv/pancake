@@ -241,6 +241,10 @@ std::vector<TestData> testDataGlobal = {
     */
     TestData{"AboveMaxDiffs", "GGATCAGTT", "GAATTCGTT", 3, 30, SesResults(5, 6, 2, false)},
 
+    /*
+     * This is an actual real set of sequences. Only a subportion which aligns end-to-end
+     * was extracted for the unit test here, so that the global aligner can be tested without mapping.
+    */
     // clang-format off
     TestData{"RealHifiReads_Subsequences",
                 // >mo_m64001_190914_015449/130352465/ccs:8054-16191
@@ -264,7 +268,7 @@ TEST(Ses2DistanceBanded, Semiglobal_AllTests)
         SCOPED_TRACE(data.testName);
 
         // Run.
-        SesResults result = SES2DistanceBanded<SESAlignMode::Semiglobal>(
+        SesResults result = SES2DistanceBanded<SESAlignMode::Semiglobal, SESTrimmingMode::Disabled>(
             data.query.c_str(), data.query.size(), data.target.c_str(), data.target.size(),
             data.maxDiffs, data.bandwidth);
 
@@ -280,7 +284,7 @@ TEST(Ses2DistanceBanded, Global_AllTests)
         SCOPED_TRACE(data.testName);
 
         // Run.
-        SesResults result = SES2DistanceBanded<SESAlignMode::Global>(
+        SesResults result = SES2DistanceBanded<SESAlignMode::Global, SESTrimmingMode::Disabled>(
             data.query.c_str(), data.query.size(), data.target.c_str(), data.target.size(),
             data.maxDiffs, data.bandwidth);
 

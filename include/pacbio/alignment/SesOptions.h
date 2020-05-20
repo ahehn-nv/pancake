@@ -18,6 +18,12 @@ enum class SESTracebackMode
     Disabled,
     Enabled,
 };
+
+enum class SESTrimmingMode
+{
+    Disabled,
+    Enabled,
+};
 }
 }
 }
