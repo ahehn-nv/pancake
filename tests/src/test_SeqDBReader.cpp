@@ -109,6 +109,47 @@ TEST(SeqDBReaderCompressed, GetSequenceByID2)
         std::runtime_error);
 }
 
+TEST(SeqDBReaderCompressed, GetSequenceByID3)
+{
+    /*
+     * This tests accessing the same sequence multiple times in a row.
+     * There was a bug in SeqDBReader - when a sequence was fread, the fileHandler.pos was
+     * not being updated. This failed when the same sequence was being read multiple times in a row,
+     * because fseek wouldn't run due to an if statement.
+    */
+
+    // Input values;
+    const std::string inSeqFasta = PacBio::PancakeTestsConfig::Data_Dir + "/seqdb-writer/in.fasta";
+    const std::string inSeqDB = PacBio::PancakeTestsConfig::Data_Dir +
+                                "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
+
+    // Load the expected sequences.
+    const auto expected = HelperLoadFasta(inSeqFasta);
+
+    // Load the DB.
+    std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
+        PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
+
+    // Create a reader.
+    PacBio::Pancake::SeqDBReader reader(seqDBCache);
+
+    // Load the last sequence multiple times.
+    std::vector<int32_t> loadOrder = {0,
+                                      0,
+                                      0,
+                                      static_cast<int32_t>(expected.size()) - 1,
+                                      static_cast<int32_t>(expected.size()) - 1,
+                                      static_cast<int32_t>(expected.size()) - 1};
+
+    // Arbitrary set of sequences.
+    for (const auto& seqId : loadOrder) {
+        const auto& expRecord = expected[seqId];
+        PacBio::Pancake::FastaSequenceId record;
+        reader.GetSequence(record, seqId);
+        EXPECT_EQ(expRecord, record);
+    }
+}
+
 TEST(SeqDBReaderCompressed, GetSequenceByName)
 {
     // Input values;
