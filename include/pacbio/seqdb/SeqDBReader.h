@@ -28,6 +28,10 @@ public:
     bool JumpTo(int64_t seqId) override;
     bool JumpTo(const std::string& seqName) override;
 
+    const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& GetSeqDBIndexCache() const;
+    const SeqDBSequenceLine& GetSequenceInfo(int64_t seqId) const;
+    const SeqDBSequenceLine& GetSequenceInfo(const std::string& seqName) const;
+
 private:
     using FilePtr = std::unique_ptr<FILE, FileDeleter>;
     class OpenFileHandler

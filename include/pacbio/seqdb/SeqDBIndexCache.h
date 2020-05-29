@@ -77,13 +77,27 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeqDBIndexCache& r);
 
     const SeqDBSequenceLine& GetSeqLine(int32_t seqId) const;
+    const SeqDBSequenceLine& GetSeqLine(const std::string& header) const;
     const SeqDBBlockLine& GetBlockLine(int32_t blockId) const;
     const SeqDBFileLine& GetFileLine(int32_t fileId) const;
 
     /// \brief Checks that the fileLines, seqLines and blockLines are not empty.
     ///        Throws if they are.
     void Validate() const;
+
+    /// \brief Constructs a header lookup from this index object and stores it
+    ///         to the private members.
+    void ConstructHeaderLookup();
+
+private:
+    HeaderLookupType headerToOrdinalId_;
+    bool headerToOrdinalIdConstructed_ = false;
 };
+
+/// \brief Utility function to fetch a sequence by header.
+const SeqDBSequenceLine& GetSeqLine(const SeqDBIndexCache& indexCache,
+                                    const HeaderLookupType& headerToOrdinalId,
+                                    const std::string& header);
 
 /// \brief Validates the pointer and then calls indexCache->Validate.
 void ValidateSeqDBIndexCache(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& indexCache);

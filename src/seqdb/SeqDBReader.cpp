@@ -26,6 +26,21 @@ SeqDBReader::SeqDBReader(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqD
 
 SeqDBReader::~SeqDBReader() = default;
 
+const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& SeqDBReader::GetSeqDBIndexCache() const
+{
+    return seqDBIndexCache_;
+}
+
+const SeqDBSequenceLine& SeqDBReader::GetSequenceInfo(int64_t seqId) const
+{
+    return seqDBIndexCache_->GetSeqLine(seqId);
+}
+
+const SeqDBSequenceLine& SeqDBReader::GetSequenceInfo(const std::string& seqName) const
+{
+    return GetSeqLine(*seqDBIndexCache_, headerToOrdinalId_, seqName);
+}
+
 bool SeqDBReader::GetSequence(Pancake::FastaSequenceId& record, int64_t seqId)
 {
     // Clear the output.

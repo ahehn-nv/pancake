@@ -332,6 +332,12 @@ void ValidateSeqDBIndexCache(std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& 
     indexCache->Validate();
 }
 
+void SeqDBIndexCache::ConstructHeaderLookup()
+{
+    ComputeSeqDBIndexHeaderLookup(*this, headerToOrdinalId_);
+    headerToOrdinalIdConstructed_ = true;
+}
+
 const SeqDBSequenceLine& SeqDBIndexCache::GetSeqLine(int32_t seqId) const
 {
     // Sanity check for the sequence ID.
@@ -341,6 +347,38 @@ const SeqDBSequenceLine& SeqDBIndexCache::GetSeqLine(int32_t seqId) const
         throw std::runtime_error(oss.str());
     }
     return seqLines[seqId];
+}
+
+const SeqDBSequenceLine& SeqDBIndexCache::GetSeqLine(const std::string& header) const
+{
+    if (headerToOrdinalIdConstructed_ == false) {
+        std::ostringstream oss;
+        oss << "Cannot look-up the sequence line by header because headerToOrdinalId was not "
+               "constructed. Have you ran ConstructHeaderLookup()?";
+        throw std::runtime_error(oss.str());
+    }
+    const auto it = headerToOrdinalId_.find(header);
+    if (it == headerToOrdinalId_.end()) {
+        std::ostringstream oss;
+        oss << "Invalid lookup into SeqDBIndexCache. Sequence header '" << header << "' not found.";
+        throw std::runtime_error(oss.str());
+    }
+    int32_t id = it->second;
+    return GetSeqLine(id);
+}
+
+const SeqDBSequenceLine& GetSeqLine(const SeqDBIndexCache& indexCache,
+                                    const HeaderLookupType& headerToOrdinalId,
+                                    const std::string& header)
+{
+    const auto it = headerToOrdinalId.find(header);
+    if (it == headerToOrdinalId.end()) {
+        std::ostringstream oss;
+        oss << "Invalid lookup into SeqDBIndexCache. Sequence header '" << header << "' not found.";
+        throw std::runtime_error(oss.str());
+    }
+    int32_t id = it->second;
+    return indexCache.GetSeqLine(id);
 }
 
 const SeqDBBlockLine& SeqDBIndexCache::GetBlockLine(int32_t blockId) const
