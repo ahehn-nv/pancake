@@ -188,7 +188,7 @@ TEST(SeqDBReaderCachedBlock, LoadSequences_SeqId)
     for (const auto& inSeqDB : inDBs) {
         SCOPED_TRACE(inSeqDB);
 
-        const std::vector<int32_t> seqIds = {1, 2, 3};
+        const std::vector<int32_t> seqIds = {1, 2, 3};  // Load the same sequence multiple times.
 
         // Load the SeqDB.
         std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
@@ -196,7 +196,6 @@ TEST(SeqDBReaderCachedBlock, LoadSequences_SeqId)
 
         // Collect all expected sequences for the specified input blocks
         // using an orthogonal reader. These are treated as the truth sequences.
-
         PacBio::Pancake::SeqDBReader readerTruth(seqDBCache);
         std::vector<PacBio::Pancake::FastaSequenceId> expected;
         for (const auto& seqId : seqIds) {
@@ -211,17 +210,52 @@ TEST(SeqDBReaderCachedBlock, LoadSequences_SeqId)
         // Read the sequences for the specified blocks, and convert all
         // FastaSequenceCached to FastaSequenceId for easier comparison.
         PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, false);
-        readerTest.LoadSequences(seqIds);
-        std::vector<PacBio::Pancake::FastaSequenceId> results;
-        for (const auto& record : readerTest.records()) {
-            results.emplace_back(PacBio::Pancake::FastaSequenceId(
-                record.Name(), std::string(record.Bases(), record.Size()), record.Id()));
-        }
-        std::sort(results.begin(), results.end(),
-                  [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
 
-        // Evaluate the current block.
-        EXPECT_EQ(expected, results);
+        // Run the same exact test multiple times, to see that there aren't any sideffects to
+        // reusing the same reader to load another set of sequences.
+        for (int32_t iteration = 0; iteration < 3; ++iteration) {
+            readerTest.LoadSequences(seqIds);
+            std::vector<PacBio::Pancake::FastaSequenceId> results;
+            for (const auto& record : readerTest.records()) {
+                results.emplace_back(PacBio::Pancake::FastaSequenceId(
+                    record.Name(), std::string(record.Bases(), record.Size()), record.Id()));
+            }
+            std::sort(results.begin(), results.end(),
+                      [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
+
+            // Evaluate the current block.
+            EXPECT_EQ(expected, results);
+        }
+    }
+}
+
+TEST(SeqDBReaderCachedBlock, LoadSequences_SeqId_DuplicateIds_ShouldFail)
+{
+    /*
+     * Load sequences by their sequence ID.
+     * Compare with the previously tested SeqDBReader.
+    */
+
+    const std::vector<std::string> inDBs = {
+        PacBio::PancakeTestsConfig::Data_Dir +
+            "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb",
+        PacBio::PancakeTestsConfig::Data_Dir +
+            "/seqdb-writer/test-3-uncompressed-each-seq-one-block-and-file.seqdb",
+    };
+
+    for (const auto& inSeqDB : inDBs) {
+        SCOPED_TRACE(inSeqDB);
+
+        const std::vector<int32_t> seqIds = {1, 2, 3, 2,
+                                             2};  // Load the same sequence multiple times.
+
+        // Load the SeqDB.
+        std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
+            PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
+
+        // Create a unit under test.
+        PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, false);
+        EXPECT_THROW({ readerTest.LoadSequences(seqIds); }, std::runtime_error);
     }
 }
 
@@ -269,17 +303,62 @@ TEST(SeqDBReaderCachedBlock, LoadSequences_SeqName)
         // Read the sequences for the specified blocks, and convert all
         // FastaSequenceCached to FastaSequenceId for easier comparison.
         PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, false);
-        readerTest.LoadSequences(seqNames);
-        std::vector<PacBio::Pancake::FastaSequenceId> results;
-        for (const auto& record : readerTest.records()) {
-            results.emplace_back(PacBio::Pancake::FastaSequenceId(
-                record.Name(), std::string(record.Bases(), record.Size()), record.Id()));
-        }
-        std::sort(results.begin(), results.end(),
-                  [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
 
-        // Evaluate the current block.
-        EXPECT_EQ(expected, results);
+        // Run the same exact test multiple times, to see that there aren't any sideffects to
+        // reusing the same reader to load another set of sequences.
+        for (int32_t iteration = 0; iteration < 3; ++iteration) {
+            readerTest.LoadSequences(seqNames);
+            std::vector<PacBio::Pancake::FastaSequenceId> results;
+            for (const auto& record : readerTest.records()) {
+                results.emplace_back(PacBio::Pancake::FastaSequenceId(
+                    record.Name(), std::string(record.Bases(), record.Size()), record.Id()));
+            }
+            std::sort(results.begin(), results.end(),
+                      [](const auto& a, const auto& b) { return a.Id() < b.Id(); });
+
+            // Evaluate the current block.
+            EXPECT_EQ(expected, results);
+        }
+    }
+}
+
+TEST(SeqDBReaderCachedBlock, LoadSequences_SeqName_DuplicateNames_ShouldFail)
+{
+    /*
+     * Load sequences by their sequence name.
+     * Compare with the previously tested SeqDBReader.
+    */
+
+    const std::vector<std::string> inDBs = {
+        PacBio::PancakeTestsConfig::Data_Dir +
+            "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb",
+        PacBio::PancakeTestsConfig::Data_Dir +
+            "/seqdb-writer/test-3-uncompressed-each-seq-one-block-and-file.seqdb",
+    };
+
+    for (const auto& inSeqDB : inDBs) {
+        SCOPED_TRACE(inSeqDB);
+
+        const std::vector<std::string> seqNames = {
+            "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3414/"
+            "0_11983",
+            "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3820/"
+            "0_24292",
+            "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/"
+            "0_5105",
+            "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/"
+            "0_5105",  // Same sequence multiple times.
+            "m141013_011508_sherri_c100709962550000001823135904221533_s1_p0/3981/"
+            "0_5105",
+        };
+
+        // Load the SeqDB.
+        std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
+            PacBio::Pancake::LoadSeqDBIndexCache(inSeqDB);
+
+        // Create a unit under test.
+        PacBio::Pancake::SeqDBReaderCachedBlock readerTest(seqDBCache, false);
+        EXPECT_THROW({ readerTest.LoadSequences(seqNames); }, std::runtime_error);
     }
 }
 

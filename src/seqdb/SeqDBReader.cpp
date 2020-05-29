@@ -244,10 +244,13 @@ void SeqDBReader::LoadAndUnpackSequence_(
         // Load and decompress the sequence.
         std::vector<uint8_t> data(sl.numBytes);
         int32_t n = fread(data.data(), sizeof(uint8_t), sl.numBytes, fileHandler.fp.get());
+        fileHandler.pos += n;
         if (n != sl.numBytes) {
             std::ostringstream oss;
             oss << "Could not read sequence of '" << sl.header << "'. Num bytes read: " << n
                 << ", expected: " << sl.numBytes;
+            oss << ", file_id = " << sl.fileId << ", file_offset = " << sl.fileOffset
+                << ", ftell = " << ftell(fileHandler.fp.get());
             throw std::runtime_error(oss.str());
         }
         std::string bases;
@@ -259,6 +262,7 @@ void SeqDBReader::LoadAndUnpackSequence_(
     } else {
         std::string bases(sl.numBytes, '\0');
         int32_t n = fread(&bases[0], sizeof(char), sl.numBytes, fileHandler.fp.get());
+        fileHandler.pos += n;
         if (n != sl.numBytes) {
             std::ostringstream oss;
             oss << "Could not read sequence of '" << sl.header << "'. Num bytes read: " << n
