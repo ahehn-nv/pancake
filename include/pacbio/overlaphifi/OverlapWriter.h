@@ -4,6 +4,7 @@
 #define PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_H
 
 #include <pacbio/overlaphifi/Overlap.h>
+#include <pacbio/overlaphifi/OverlapWriterBase.h>
 #include <pacbio/seqdb/FastaSequenceId.h>
 #include <pacbio/seqdb/SeqDBReaderCached.h>
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
@@ -49,13 +50,6 @@ private:
     bool writeIds_ = false;
     bool writeCigar_ = false;
 };
-
-constexpr char ConstexprTypeToChar(PacBio::BAM::CigarOperationType type)
-{
-    constexpr char lookup[11] = "MIDNSHP=XB";
-    const int32_t x = static_cast<int>(type);
-    return lookup[x];
-}
 
 }  // namespace Pancake
 }  // namespace PacBio
