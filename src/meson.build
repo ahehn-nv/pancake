@@ -37,7 +37,6 @@ pancake_cpp_sources = files([
     'overlaphifi/Overlap.cpp',
     'overlaphifi/OverlapHifiSettings.cpp',
     'overlaphifi/OverlapHifiWorkflow.cpp',
-    'overlaphifi/OverlapWriter.cpp',
     'overlaphifi/OverlapWriterBase.cpp',
     'overlaphifi/OverlapWriterFactory.cpp',
     'overlaphifi/OverlapWriterIPAOvl.cpp',

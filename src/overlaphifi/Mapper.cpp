@@ -4,7 +4,7 @@
 #include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/alignment/SesDistanceBanded.h>
 #include <pacbio/overlaphifi/Mapper.h>
-#include <pacbio/overlaphifi/OverlapWriter.h>
+#include <pacbio/overlaphifi/OverlapWriterBase.h>
 #include <pacbio/seqdb/Util.h>
 #include <pacbio/util/RunLengthEncoding.h>
 #include <pacbio/util/TicToc.h>
@@ -75,8 +75,8 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 
 #ifdef PANCAKE_DEBUG
     for (const auto& ovl : overlaps) {
-        OverlapWriter::PrintOverlapAsM4(stdout, ovl, querySeq.Name(),
-                                        targetSeqs.GetSequence(ovl->Bid).Name(), false);
+        OverlapWriterBase::PrintOverlapAsM4(stdout, ovl, querySeq.Name(),
+                                            targetSeqs.GetSequence(ovl->Bid).Name(), false);
     }
 
     PBLOG_INFO << "Num anchors: " << overlaps.size();

@@ -76,7 +76,6 @@ if not meson.is_subproject()
       'pacbio/overlaphifi/Mapper.h',
       'pacbio/overlaphifi/Overlap.h',
       'pacbio/overlaphifi/OverlapHifiSettings.h',
-      'pacbio/overlaphifi/OverlapWriter.h',
       'pacbio/overlaphifi/OverlapWriterBase.h',
       'pacbio/overlaphifi/OverlapWriterFactory.h',
       'pacbio/overlaphifi/OverlapWriterIPAOvl.h',
