@@ -19,8 +19,6 @@ namespace Pancake {
 class OverlapWriterBase
 {
 public:
-    // OverlapWriterBase(const std::string& outFile, bool writeIds, bool writeCigar);
-    // OverlapWriterBase(FILE* fpOut, bool writeIds, bool writeCigar);
     virtual ~OverlapWriterBase() {}
 
     virtual void Write(const OverlapPtr& overlaps,
