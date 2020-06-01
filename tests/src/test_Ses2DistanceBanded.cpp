@@ -265,7 +265,7 @@ TEST(Ses2DistanceBanded, Semiglobal_AllTests)
 {
     for (const auto& data : testDataSemiglobal) {
         // Name the test.
-        SCOPED_TRACE(data.testName);
+        SCOPED_TRACE("Semiglobal-" + data.testName);
 
         // Run.
         SesResults result = SES2DistanceBanded<SESAlignMode::Semiglobal, SESTrimmingMode::Disabled>(
@@ -281,7 +281,7 @@ TEST(Ses2DistanceBanded, Global_AllTests)
 {
     for (const auto& data : testDataGlobal) {
         // Name the test.
-        SCOPED_TRACE(data.testName);
+        SCOPED_TRACE("Global-" + data.testName);
 
         // Run.
         SesResults result = SES2DistanceBanded<SESAlignMode::Global, SESTrimmingMode::Disabled>(
