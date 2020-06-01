@@ -46,7 +46,7 @@ void OverlapWriter::Write(const std::vector<OverlapPtr>& overlaps,
         const auto& qName = writeIds_ ? "" : querySeq.Name();
         const auto& tName = writeIds_ ? "" : targetSeqs.GetSequence(ovl->Bid).Name();
 
-        PrintOverlapAsM4(fpOut_, ovl, qName, tName, writeIds_, writeCigar_);
+        PrintOverlapAsIPAOvl(fpOut_, ovl, qName, tName, writeIds_, writeCigar_);
 
         if (writeReverseOverlaps_) {
             // Reverse overlaps cannot be collected in the Mapper class, because
@@ -68,7 +68,7 @@ void OverlapWriter::Write(const std::vector<OverlapPtr>& overlaps,
         const auto& qName = writeIds_ ? "" : querySeq.Name();
         const auto& tName = writeIds_ ? "" : targetSeqs.GetSequence(ovl->Bid).Name();
 
-        PrintOverlapAsM4(fpOut_, ovl, qName, tName, writeIds_, writeCigar_);
+        PrintOverlapAsIPAOvl(fpOut_, ovl, qName, tName, writeIds_, writeCigar_);
 
         if (writeReverseOverlaps_) {
             // Reverse overlaps cannot be collected in the Mapper class, because
