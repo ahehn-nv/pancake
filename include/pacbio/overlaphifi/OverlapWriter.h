@@ -33,6 +33,8 @@ public:
                const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                const PacBio::Pancake::FastaSequenceCached& querySeq);
 
+    static void PrintOverlapAsIPAOvl(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
+                                     const std::string& Bname, bool writeIds, bool writeCigar);
     static void PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
                                  const std::string& Bname, bool writeIds, bool writeCigar);
     static std::string PrintOverlapAsM4(const OverlapPtr& ovl, const std::string& Aname,

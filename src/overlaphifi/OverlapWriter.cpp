@@ -54,7 +54,7 @@ void OverlapWriter::Write(const std::vector<OverlapPtr>& overlaps,
             // Bread (which comes from the target DB) gets lost and it's impossible
             // to tell which DB Aread and Bread came from.
             auto newOvl = CreateFlippedOverlap(ovl, allowedDovetailDist_);
-            PrintOverlapAsM4(fpOut_, newOvl, tName, qName, writeIds_, writeCigar_);
+            PrintOverlapAsIPAOvl(fpOut_, newOvl, tName, qName, writeIds_, writeCigar_);
         }
     }
 }
@@ -76,9 +76,66 @@ void OverlapWriter::Write(const std::vector<OverlapPtr>& overlaps,
             // Bread (which comes from the target DB) gets lost and it's impossible
             // to tell which DB Aread and Bread came from.
             auto newOvl = CreateFlippedOverlap(ovl, allowedDovetailDist_);
-            PrintOverlapAsM4(fpOut_, newOvl, tName, qName, writeIds_, writeCigar_);
+            PrintOverlapAsIPAOvl(fpOut_, newOvl, tName, qName, writeIds_, writeCigar_);
         }
     }
+}
+
+void OverlapWriter::PrintOverlapAsIPAOvl(FILE* fpOut, const OverlapPtr& ovl,
+                                         const std::string& Aname, const std::string& Bname,
+                                         bool writeIds, bool writeCigar)
+{
+    double identity = static_cast<double>(ovl->Identity);
+    if (identity == 0.0 && ovl->EditDistance >= 0.0) {
+        const double editDist = ovl->EditDistance;
+        const double qSpan = ovl->ASpan();
+        const double tSpan = ovl->BSpan();
+        const double identityQ = (qSpan != 0) ? ((qSpan - editDist) / qSpan) : -2.0;
+        const double identityT = (tSpan != 0) ? ((tSpan - editDist) / tSpan) : -2.0;
+        identity = std::min(identityQ, identityT);
+    }
+
+    // Format - 17 columns, space separated.
+    //  Aid Bid score idt Arev Astart Aend Alen Brev Bstart Bend Blen ovl_type priority cigar variant_str in_phase
+
+    // The format specifies coordinates always in the FWD strand.
+    int32_t tStart = ovl->BstartFwd();
+    int32_t tEnd = ovl->BendFwd();
+    const int32_t tIsRev = ovl->Brev;
+    const int32_t tLen = ovl->Blen;
+    std::string typeStr = OverlapTypeToString(ovl->Type);
+
+    // First 12 columns are the same as in M4.
+    if (writeIds) {
+        fprintf(fpOut, "%09d %09d", ovl->Aid, ovl->Bid);
+    } else {
+        fprintf(fpOut, "%s %s", Aname.c_str(), Bname.c_str());
+    }
+    fprintf(fpOut, " %d %.2lf %d %d %d %d %d %d %d %d", static_cast<int32_t>(ovl->Score),
+            100.0 * identity, static_cast<int32_t>(ovl->Arev), ovl->Astart, ovl->Aend, ovl->Alen,
+            static_cast<int32_t>(tIsRev), tStart, tEnd, tLen);
+
+    // Overlap type and priority. Priority is a placeholder for downstream tools.
+    fprintf(fpOut, " %s *", typeStr.c_str());
+
+    // Write the CIGAR only if specified, for speed.
+    if (writeCigar) {
+        if (ovl->Cigar.empty()) {
+            fprintf(fpOut, " *");
+        } else {
+            fprintf(fpOut, " ");
+            for (const auto& op : ovl->Cigar) {
+                fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
+            }
+        }
+    } else {
+        fprintf(fpOut, " *");
+    }
+
+    // Variant string and in_phase value. Variant string is a list of variant bases for every
+    // non-match CIGAR operation.
+    fprintf(fpOut, " * u");
+    fprintf(fpOut, "\n");
 }
 
 void OverlapWriter::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
