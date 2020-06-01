@@ -109,10 +109,13 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
             }
 
             int32_t x = y + k;
+            int32_t minLeft = std::min(qlen - x, tlen - y);
+            const char* querySub = query + x;
+            const char* targetSub = target + y;
+            int32_t moves = 0;
 
-            while (x < qlen && y < tlen && query[x] == target[y]) {
-                ++y;
-                ++x;
+            while (moves < minLeft && querySub[moves] == targetSub[moves]) {
+                ++moves;
                 if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
                     if ((b & MASKC) == 0) {
                         ++m;
@@ -120,6 +123,8 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
                     b = (b << 1) | 1;
                 }
             }
+            y += moves;
+            x += moves;
 
             W[kz] = y;
             if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
