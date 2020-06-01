@@ -3,7 +3,7 @@
 #include "overlaphifi/OverlapHifiWorkflow.h"
 #include <pacbio/overlaphifi/Mapper.h>
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
-#include <pacbio/overlaphifi/OverlapWriter.h>
+#include <pacbio/overlaphifi/OverlapWriterFactory.h>
 #include <pacbio/overlaphifi/SeedIndex.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
@@ -140,9 +140,8 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     }
     TicToc ttMap;
 
-    PacBio::Pancake::OverlapWriter writer(stdout, settings.WriteReverseOverlaps,
-                                          settings.AllowedDovetailDist, settings.WriteIds,
-                                          settings.WriteCigar);
+    auto writer = PacBio::Pancake::OverlapWriterFactory(OverlapWriterType::IPAOvl, stdout,
+                                                        settings.WriteIds, settings.WriteCigar);
 
     const int32_t endBlockId = (settings.QueryBlockEndId <= 0) ? querySeqDBCache->blockLines.size()
                                                                : settings.QueryBlockEndId;
@@ -225,7 +224,15 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
             for (size_t i = 0; i < querySeqDBReader.records().size(); ++i) {
                 const auto& result = results[i];
                 const auto& querySeq = querySeqDBReader.records()[i];
-                writer.Write(result.overlaps, targetSeqDBReader, querySeq);
+
+                for (const auto& ovl : result.overlaps) {
+                    writer->Write(ovl, targetSeqDBReader, querySeq, false);
+
+                    if (settings.WriteReverseOverlaps) {
+                        auto newOvl = CreateFlippedOverlap(ovl, settings.AllowedDovetailDist);
+                        writer->Write(newOvl, targetSeqDBReader, querySeq, true);
+                    }
+                }
             }
 
             ttQueryBlockMapping.Stop();
