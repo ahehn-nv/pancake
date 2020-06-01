@@ -80,6 +80,7 @@ if not meson.is_subproject()
       'pacbio/overlaphifi/OverlapWriterFactory.h',
       'pacbio/overlaphifi/OverlapWriterIPAOvl.h',
       'pacbio/overlaphifi/OverlapWriterM4.h',
+      'pacbio/overlaphifi/OverlapWriterSAM.h',
       'pacbio/overlaphifi/SeedHit.h',
       'pacbio/overlaphifi/SeedIndex.h',
       ]),

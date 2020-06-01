@@ -107,6 +107,56 @@ void OverlapWriterBase::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl,
     fprintf(fpOut, "\n");
 }
 
+void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl,
+                                          const std::string& Aname, const std::string& Bname,
+                                          bool writeIds, bool writeCigar)
+{
+    // double identity = static_cast<double>(ovl->Identity);
+    // if (identity == 0.0 && ovl->EditDistance >= 0.0) {
+    //     const double editDist = ovl->EditDistance;
+    //     const double qSpan = ovl->ASpan();
+    //     const double tSpan = ovl->BSpan();
+    //     const double identityQ = (qSpan != 0) ? ((qSpan - editDist) / qSpan) : -2.0;
+    //     const double identityT = (tSpan != 0) ? ((tSpan - editDist) / tSpan) : -2.0;
+    //     identity = std::min(identityQ, identityT);
+    // }
+
+    // The format specifies coordinates always in the FWD strand.
+    int32_t tStart = ovl->BstartFwd();
+    int32_t tEnd = ovl->BendFwd();
+    const int32_t tIsRev = ovl->Brev;
+    const int32_t tLen = ovl->Blen;
+    std::string typeStr = OverlapTypeToString(ovl->Type);
+    int32_t flag = tIsRev ? 16 : 0;
+    int32_t mapq = 60;
+    std::string seq = "*";
+    std::string qual = "*";
+
+    // Query and target names, flag, pos and mapq.
+    if (writeIds) {
+        fprintf(fpOut, "%09d\t%d\t%09d\t%d\t%d", ovl->Aid, flag, ovl->Bid, tStart, mapq);
+    } else {
+        fprintf(fpOut, "%s\t%d\t%s\t%d\t%d", Aname.c_str(), flag, Bname.c_str(), tStart, mapq);
+    }
+
+    // Write the CIGAR only if specified, for speed.
+    if (writeCigar) {
+        if (ovl->Cigar.empty()) {
+            fprintf(fpOut, "\t*");
+        } else {
+            fprintf(fpOut, "\t");
+            for (const auto& op : ovl->Cigar) {
+                fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
+            }
+        }
+    } else {
+        fprintf(fpOut, "\t*");
+    }
+
+    fprintf(fpOut, "\t*\t0\t0\t%s\t%s", seq.c_str(), qual.c_str());
+    fprintf(fpOut, "\n");
+}
+
 std::string OverlapWriterBase::PrintOverlapAsM4(const OverlapPtr& ovl, const std::string& Aname,
                                                 const std::string& Bname, bool writeIds,
                                                 bool writeCigar)
