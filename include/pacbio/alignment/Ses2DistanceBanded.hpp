@@ -67,6 +67,7 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
         int32_t ym = MINUS_INF;
         int32_t yc = MINUS_INF;
         int32_t yp = -1;
+        int32_t y = MINUS_INF;
 
         W[zero_offset + minK - 1] = W[zero_offset + maxK + 1] = W[zero_offset + maxK + 0] = MINUS_INF;
 
@@ -77,24 +78,22 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
             yc = yp;
             yp = W[kz + 1];
 
-            int32_t minY = std::max(yc, std::max(ym, yp));
+            int32_t maxY = std::max(yc, std::max(ym, yp));
 
-            int32_t y = MINUS_INF;
-
-            if (ym == minY) {
+            if (ym == maxY || yc >= tlen) {
                 y = ym;
                 if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
                     m = M[kz - 1];
                     b = B[kz - 1];
                 }
-            } else if (yp == minY) {
+            } else if (yp == maxY) {
                 y = yp + 1; // Unlike 1986 paper, here we update y instead of x, so the +1 goes to the move to right (yp) instead of down (ym).
                 if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
                     m = M[kz + 1];
                     b = B[kz + 1];
                 }
             } else {
-                y = yc + ((yc < tlen) ? 1 : 0);
+                y = yc + 1;
                 if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
                     m = M[kz];
                     b = B[kz];
