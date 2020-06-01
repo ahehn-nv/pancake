@@ -14,7 +14,6 @@ enum class OverlapWriterType
 {
     IPAOvl,
     M4,
-    M4Extended,
 };
 
 std::unique_ptr<OverlapWriterBase> OverlapWriterFactory(OverlapWriterType writerType, FILE* fpOut,

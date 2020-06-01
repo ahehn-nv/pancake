@@ -1,6 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <pacbio/overlaphifi/OverlapWriterFactory.h>
+#include <pacbio/overlaphifi/OverlapWriterM4.h>
 
 namespace PacBio {
 namespace Pancake {
@@ -11,6 +12,9 @@ std::unique_ptr<OverlapWriterBase> OverlapWriterFactory(OverlapWriterType writer
     if (writerType == OverlapWriterType::IPAOvl) {
         return std::unique_ptr<OverlapWriterBase>(
             new OverlapWriterIPAOvl(fpOut, writeIds, writeCigar));
+    } else if (writerType == OverlapWriterType::M4) {
+        return std::unique_ptr<OverlapWriterBase>(
+            new OverlapWriterM4(fpOut, writeIds, writeCigar));
     }
     throw std::runtime_error("Unsupported output format!");
     return nullptr;
