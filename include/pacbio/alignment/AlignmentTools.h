@@ -26,6 +26,11 @@ PacBio::BAM::Cigar ExpandMismatches(const char* query, int64_t queryLen, const c
 void ValidateCigar(const char* query, int64_t queryLen, const char* target, int64_t targetLen,
                    const PacBio::BAM::Cigar& cigar, const std::string& label);
 
+void ExtractVariantString(const char* query, int64_t queryLen, const char* target,
+                          int64_t targetLen, const PacBio::BAM::Cigar& cigar,
+                          bool maskSimpleRepeats, bool maskHomopolymers,
+                          std::string& retQueryVariants, std::string& retTargetVariants);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
