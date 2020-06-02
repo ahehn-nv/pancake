@@ -99,7 +99,7 @@ OverlapPtr HeuristicExtendOverlapFlanks(const OverlapPtr& ovl, int32_t allowedDi
     return newOvl;
 }
 
-OverlapPtr ParseOverlapFromString(const std::string& line)
+OverlapPtr ParseM4OverlapFromString(const std::string& line)
 {
     auto ovl = createOverlap();
     char type[500];
@@ -131,9 +131,12 @@ OverlapPtr ParseOverlapFromString(const std::string& line)
         ovl->Bend = ovl->Blen - ovl->Bend;
     }
 
+    ovl->Atype = OverlapType::Unknown;
+    ovl->Btype = OverlapType::Unknown;
+
     // If the type is specified in the line, parse it.
     if (n >= 13) {
-        ovl->Type = OverlapTypeFromString(type);
+        ovl->Atype = OverlapTypeFromString(type);
     }
     return ovl;
 }
