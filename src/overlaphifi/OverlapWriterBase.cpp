@@ -58,7 +58,12 @@ void OverlapWriterBase::PrintOverlapAsIPAOvl(FILE* fpOut, const OverlapPtr& ovl,
 
     // Variant string and in_phase value. Variant string is a list of variant bases for every
     // non-match CIGAR operation.
-    fprintf(fpOut, " * u");
+    if (ovl->VariantString.empty()) {
+        fprintf(fpOut, " *");
+    } else {
+        fprintf(fpOut, " %s", ovl->VariantString.c_str());
+    }
+    fprintf(fpOut, " u");
     fprintf(fpOut, "\n");
 }
 
