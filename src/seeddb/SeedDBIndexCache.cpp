@@ -98,7 +98,8 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
                 break;
             case 'P':
                 // Find the first non-whitespace character.
-                for (offset = 1; offset < lineLen && (line[offset] == ' ' || line[offset] == '\t'); ++offset) {
+                for (offset = 1; offset < lineLen && (line[offset] == ' ' || line[offset] == '\t');
+                     ++offset) {
                 }
                 cache->seedParams = ParseSeedDBParams(std::string(line + offset));
                 break;
@@ -156,12 +157,14 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
     SplitPath(indexFilename, cache->indexParentFolder, cache->indexBasename);
 
     std::string line;
-    char token;
+    std::string tokenStr;
     while (std::getline(is, line)) {
         if (line.empty()) continue;
 
         std::istringstream iss(line);
-        iss >> token;
+        iss >> tokenStr;
+
+        char token = line[0];
 
         SeedDBFileLine fl;
         SeedDBSeedsLine sl;
@@ -198,7 +201,7 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
                 break;
             default:
                 std::ostringstream oss;
-                oss << "Unknown token found when parsing the index: " << token;
+                oss << "Unknown token found when parsing the index. Token: '" << token << "'.";
                 throw std::runtime_error(oss.str());
                 break;
         }
