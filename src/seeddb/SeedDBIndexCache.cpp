@@ -98,7 +98,7 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
                 break;
             case 'P':
                 // Find the first non-whitespace character.
-                for (offset = 1; offset < lineLen && (offset == ' ' || offset == '\t'); ++offset) {
+                for (offset = 1; offset < lineLen && (line[offset] == ' ' || line[offset] == '\t'); ++offset) {
                 }
                 cache->seedParams = ParseSeedDBParams(std::string(line + offset));
                 break;
