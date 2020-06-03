@@ -473,6 +473,36 @@ OverlapPtr Mapper::AlignOverlap_(
                       sesResultRight.cigar.front().Length());
         ret->Cigar.insert(ret->Cigar.end(), sesResultRight.cigar.begin() + 1,
                           sesResultRight.cigar.end());
+
+        /// This works, but is slower because it requires to copy the target sequence every time.
+        /// Since we already have the reversed query, we can simply reverse the CIGAR string and provide
+        /// the reversed query, as below.
+        // auto tseq = FetchTargetSubsequence_(targetSeq, ret->BstartFwd(), ret->BendFwd(), ret->Brev);
+        // ret->VariantString = ExtractVariantString(querySeq.Bases() + ret->Astart, ret->ASpan(), tseq.c_str(), tseq.size(),
+        //               ret->Cigar, false, false);
+
+        if (ret->Brev) {
+            auto tempCigar = ret->Cigar;
+            std::reverse(tempCigar.begin(), tempCigar.end());
+            ExtractVariantString(reverseQuerySeq.c_str() + (ret->Alen - ret->Aend), ret->ASpan(),
+                                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(), tempCigar,
+                                 false, false, ret->Avars, ret->Bvars);
+            ret->Avars = Pancake::ReverseComplement(ret->Avars, 0, ret->Avars.size());
+            ret->Bvars = Pancake::ReverseComplement(ret->Bvars, 0, ret->Bvars.size());
+
+            // ValidateCigar(reverseQuerySeq.c_str() + (ret->Alen - ret->Aend), ret->ASpan(),
+            //                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(),
+            //                 tempCigar, OverlapWriterBase::PrintOverlapAsM4(
+            //                             ret, querySeq.Name(), targetSeq.Name(), true, false));
+        } else {
+            ExtractVariantString(querySeq.Bases() + ret->Astart, ret->ASpan(),
+                                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(), ret->Cigar,
+                                 false, false, ret->Avars, ret->Bvars);
+            // ValidateCigar(querySeq.Bases() + ret->Astart, ret->ASpan(),
+            //                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(),
+            //                 ret->Cigar, OverlapWriterBase::PrintOverlapAsM4(
+            //                             ret, querySeq.Name(), targetSeq.Name(), false, false));
+        }
     }
 
     return ret;
