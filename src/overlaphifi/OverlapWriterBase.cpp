@@ -27,8 +27,8 @@ void OverlapWriterBase::PrintOverlapAsIPAOvl(FILE* fpOut, const OverlapPtr& ovl,
     int32_t tEnd = ovl->BendFwd();
     const int32_t tIsRev = ovl->Brev;
     const int32_t tLen = ovl->Blen;
-    std::string AtypeStr = OverlapTypeToString(ovl->Atype);
-    std::string BtypeStr = OverlapTypeToString(ovl->Btype);
+    std::string AtypeStr = OverlapTypeToStringSingleChar(ovl->Atype);
+    std::string BtypeStr = OverlapTypeToStringSingleChar(ovl->Btype);
 
     // [1-14] First 12 columns are the same as in M4 + add the overlap type info for A and B reads.
     if (writeIds) {
