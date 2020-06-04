@@ -44,6 +44,15 @@ R"({
 
 
 
+const CLI_v2::Option OutFormat{
+R"({
+    "names" : ["out-fmt"],
+    "choices" : ["m4", "ipa"],
+    "type" : "string",
+    "default" : "m4",
+    "description" : "Select the output format."
+})", std::string("m4")};
+
 const CLI_v2::Option FreqPercentile{
 R"({
     "names" : ["freq-percentile"],
@@ -222,6 +231,16 @@ R"({
 
 OverlapHifiSettings::OverlapHifiSettings() = default;
 
+OverlapWriterFormat ParseOutFormat(const std::string& val)
+{
+    if (val == "m4") {
+        return OverlapWriterFormat::M4;
+    } else if (val == "ipa") {
+        return OverlapWriterFormat::IPAOvl;
+    }
+    return OverlapWriterFormat::Unknown;
+}
+
 OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     : TargetDBPrefix{options[OptionNames::TargetDBPrefix]}
     , QueryDBPrefix{options[OptionNames::QueryDBPrefix]}
@@ -265,6 +284,12 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
         PBLOG_WARN << "Both --no-snps and --no-indels options are specified, which means that all "
                       "identity values will be 100%.";
     }
+
+    OutFormat = ParseOutFormat(options[OptionNames::OutFormat]);
+    if (OutFormat == OverlapWriterFormat::Unknown) {
+        throw std::runtime_error("Unknown output format: '" +
+                                 std::string(options[OptionNames::OutFormat]) + "'.");
+    }
 }
 
 PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
@@ -273,6 +298,9 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
                                 PacBio::Pancake::PancakeFormattedVersion()};
 
     // clang-format off
+    i.AddOptionGroup("Input/Output Options", {
+        OptionNames::OutFormat,
+    });
     i.AddOptionGroup("Algorithm Options", {
         OptionNames::FreqPercentile,
         OptionNames::MinQueryLen,
