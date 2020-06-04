@@ -19,8 +19,8 @@ void OverlapWriterBase::PrintOverlapAsIPAOvl(FILE* fpOut, const OverlapPtr& ovl,
         identity = std::min(identityQ, identityT);
     }
 
-    // Format - 17 columns, space separated.
-    //  Aid Bid score idt Arev Astart Aend Alen Brev Bstart Bend Blen ovl_type priority cigar variant_str in_phase
+    // Format - 18 columns, space separated.
+    //  Aid Bid score idt Arev Astart Aend Alen Brev Bstart Bend Blen ovl_type priority cigar Avars Bvars in_phase
 
     // The format specifies coordinates always in the FWD strand.
     int32_t tStart = ovl->BstartFwd();
@@ -35,7 +35,7 @@ void OverlapWriterBase::PrintOverlapAsIPAOvl(FILE* fpOut, const OverlapPtr& ovl,
     } else {
         fprintf(fpOut, "%s %s", Aname.c_str(), Bname.c_str());
     }
-    fprintf(fpOut, " %d %.2lf %d %d %d %d %d %d %d %d", static_cast<int32_t>(ovl->Score),
+    fprintf(fpOut, " %d %.6lf %d %d %d %d %d %d %d %d", static_cast<int32_t>(ovl->Score),
             100.0 * identity, static_cast<int32_t>(ovl->Arev), ovl->Astart, ovl->Aend, ovl->Alen,
             static_cast<int32_t>(tIsRev), tStart, tEnd, tLen);
 
@@ -56,13 +56,32 @@ void OverlapWriterBase::PrintOverlapAsIPAOvl(FILE* fpOut, const OverlapPtr& ovl,
         fprintf(fpOut, " *");
     }
 
-    // Variant string and in_phase value. Variant string is a list of variant bases for every
-    // non-match CIGAR operation.
-    if (ovl->VariantString.empty()) {
+    // Write the A-read variant string, in the fwd orientation of the A-read.
+    // Variant string is a list of variant bases for every non-match CIGAR operation.
+    if (ovl->Avars.empty()) {
         fprintf(fpOut, " *");
     } else {
-        fprintf(fpOut, " %s", ovl->VariantString.c_str());
+        if (ovl->Arev) {
+            auto vars = Pancake::ReverseComplement(ovl->Avars, 0, ovl->Avars.size());
+            fprintf(fpOut, " %s", vars.c_str());
+        } else {
+            fprintf(fpOut, " %s", ovl->Avars.c_str());
+        }
     }
+
+    // Write the B-read variant string, in the fwd orientation of the B-read.
+    if (ovl->Bvars.empty()) {
+        fprintf(fpOut, " *");
+    } else {
+        if (ovl->Brev) {
+            auto vars = Pancake::ReverseComplement(ovl->Bvars, 0, ovl->Bvars.size());
+            fprintf(fpOut, " %s", vars.c_str());
+        } else {
+            fprintf(fpOut, " %s", ovl->Bvars.c_str());
+        }
+    }
+
+    // Write the "in-phase" info. At this point, everything is unphased.
     fprintf(fpOut, " u");
     fprintf(fpOut, "\n");
 }
