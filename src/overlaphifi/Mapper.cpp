@@ -19,6 +19,7 @@ namespace PacBio {
 namespace Pancake {
 
 // #define PANCAKE_DEBUG
+// #define PANCAKE_DEBUG_ALN
 
 static const int32_t MIN_DIFFS_CAP = 10;
 static const int32_t MIN_BANDWIDTH_CAP = 10;
@@ -55,6 +56,9 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
                                          settings_.MinNumSeeds, settings_.MinChainSpan, true,
                                          settings_.SkipSymmetricOverlaps);
     ttChain.Stop();
+#ifdef PANCAKE_DEBUG
+    PBLOG_INFO << "Formed diagonal anchors: " << overlaps.size();
+#endif
 
     // Filter out multiple hits per query-target pair (e.g. tandem repeats) by
     // taking only the longest overlap chain.
@@ -63,6 +67,9 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
         overlaps = FilterTandemOverlaps_(overlaps);
     }
     ttFilterTandem.Stop();
+#ifdef PANCAKE_DEBUG
+    PBLOG_INFO << "Overlaps after tandem filtering: " << overlaps.size();
+#endif
 
     TicToc ttAlign;
     overlaps =
@@ -70,6 +77,12 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
                        settings_.AlignmentMaxD, settings_.UseTraceback, settings_.NoSNPsInIdentity,
                        settings_.NoIndelsInIdentity, sesScratch_);
     ttAlign.Stop();
+#ifdef PANCAKE_DEBUG
+    PBLOG_INFO << "Overlaps after alignment: " << overlaps.size();
+    for (const auto& ovl : overlaps) {
+        PBLOG_INFO << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
+    }
+#endif
 
     TicToc ttFilter;
     overlaps = FilterOverlaps_(overlaps, settings_.MinNumSeeds, settings_.MinIdentity,
@@ -79,11 +92,11 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
     ttFilter.Stop();
 
 #ifdef PANCAKE_DEBUG
+    PBLOG_INFO << "Overlaps after filtering: " << overlaps.size();
     for (const auto& ovl : overlaps) {
-        OverlapWriterBase::PrintOverlapAsM4(stdout, ovl, querySeq.Name(),
-                                            targetSeqs.GetSequence(ovl->Bid).Name(), false);
+        OverlapWriterBase::PrintOverlapAsM4(stderr, ovl, querySeq.Name(),
+                                            targetSeqs.GetSequence(ovl->Bid).Name(), false, false);
     }
-
     PBLOG_INFO << "Num anchors: " << overlaps.size();
     PBLOG_INFO << "Collected " << hits.size() << " hits.";
     PBLOG_INFO << "Time - collecting hits: " << ttCollectHits.GetMillisecs() << " ms / "
@@ -174,12 +187,29 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
             (static_cast<uint64_t>(sortedHits[i].targetPos) << 32) |
             (static_cast<uint64_t>(sortedHits[i].queryPos));
 
+#ifdef PANCAKE_DEBUG
+        PBLOG_INFO << "[hit " << i << "] tid = " << currHit.targetId
+                   << ", trev = " << currHit.targetRev << ", tpos = " << currHit.targetPos
+                   << ", qpos = " << currHit.queryPos << ", flag = " << currHit.flags
+                   << "; minPosId = " << minPosId << ", maxPosId = " << maxPosId;
+#endif
+
         if (currHit.targetId != prevHit.targetId || currHit.targetRev != prevHit.targetRev ||
             diagDiff > chainBandwidth) {
             auto ovl =
                 MakeOverlap_(sortedHits, querySeq, indexCache, beginId, i, minPosId, maxPosId);
             beginId = i;
             beginDiag = currDiag;
+
+#ifdef PANCAKE_DEBUG
+            PBLOG_INFO << "ovl->NumSeeds = " << ovl->NumSeeds << " (" << minNumSeeds
+                       << "), minChainSpan = " << minChainSpan
+                       << ", ovl->ASpan() = " << ovl->ASpan() << ", ovl->BSpan() = " << ovl->BSpan()
+                       << ", skipSelfHits = " << skipSelfHits << ", ovl->Aid = " << ovl->Aid
+                       << ", ovl->Bid = " << ovl->Bid
+                       << ", skipSymmetricOverlaps = " << skipSymmetricOverlaps;
+            PBLOG_INFO << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
+#endif
 
             // Add a new overlap.
             if (ovl->NumSeeds >= minNumSeeds && ovl->ASpan() > minChainSpan &&
@@ -207,11 +237,21 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
     if ((numHits - beginId) > 0) {
         auto ovl =
             MakeOverlap_(sortedHits, querySeq, indexCache, beginId, numHits, minPosId, maxPosId);
+
+#ifdef PANCAKE_DEBUG
+        PBLOG_INFO << "ovl->NumSeeds = " << ovl->NumSeeds << " (" << minNumSeeds
+                   << "), minChainSpan = " << minChainSpan << ", ovl->ASpan() = " << ovl->ASpan()
+                   << ", ovl->BSpan() = " << ovl->BSpan() << ", skipSelfHits = " << skipSelfHits
+                   << ", ovl->Aid = " << ovl->Aid << ", ovl->Bid = " << ovl->Bid
+                   << ", skipSymmetricOverlaps = " << skipSymmetricOverlaps;
+#endif
+
         // Add a new overlap.
         if (ovl->NumSeeds >= minNumSeeds && ovl->ASpan() > minChainSpan &&
             ovl->BSpan() > minChainSpan &&
             (skipSelfHits == false || (skipSelfHits && ovl->Bid != ovl->Aid)) &&
             (skipSymmetricOverlaps == false || (skipSymmetricOverlaps && ovl->Bid < ovl->Aid))) {
+
             overlaps.emplace_back(std::move(ovl));
         }
     }
@@ -347,6 +387,10 @@ OverlapPtr Mapper::AlignOverlap_(
         return nullptr;
     }
 
+#ifdef PANCAKE_DEBUG_ALN
+    PBLOG_INFO << "Initial: " << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
+#endif
+
     OverlapPtr ret = createOverlap(ovl);
     PacBio::Pancake::Alignment::SesResults sesResultRight;
     PacBio::Pancake::Alignment::SesResults sesResultLeft;
@@ -407,9 +451,13 @@ OverlapPtr Mapper::AlignOverlap_(
         ret->Bend += ovl->Bstart;
         ret->EditDistance = sesResultRight.numDiffs;
         ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
-        // std::cerr << "CIGAR right: " << cigarRight.ToStdString() << "\n";
-        // std::reverse
-        // std::cerr << "(fwd) sesResult: " << sesResult << "\n";
+
+#ifdef PANCAKE_DEBUG_ALN
+        PBLOG_INFO << "dMax = " << dMax << ", bandwidth = " << bandwidth;
+        PBLOG_INFO << "Right: diffs = " << sesResultRight.diffs;
+        PBLOG_INFO << "After right: "
+                   << OverlapWriterBase::PrintOverlapAsM4(ret, "", "", true, false);
+#endif
     }
 
     ///////////////////////////
@@ -510,6 +558,10 @@ OverlapPtr Mapper::AlignOverlap_(
             //                             ret, querySeq.Name(), targetSeq.Name(), false, false));
         }
     }
+
+#ifdef PANCAKE_DEBUG_ALN
+    PBLOG_INFO << "Final: " << OverlapWriterBase::PrintOverlapAsM4(ret, "", "", true, false);
+#endif
 
     return ret;
 }
