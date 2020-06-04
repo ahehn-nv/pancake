@@ -27,6 +27,9 @@ enum class OverlapType
     ThreePrime
 };
 
+OverlapType DetermineOverlapType(bool Arev, int32_t AstartFwd, int32_t AendFwd, int32_t Alen,
+                                 bool Brev, int32_t BstartFwd, int32_t BendFwd, int32_t Blen,
+                                 int32_t allowedDovetailDist);
 OverlapType DetermineOverlapType(const Overlap& ovl, int32_t allowedDovetailDist);
 void HeuristicExtendOverlapFlanks(OverlapPtr& ovl, int32_t allowedDist);
 OverlapPtr HeuristicExtendOverlapFlanks(const OverlapPtr& ovl, int32_t allowedDist);
@@ -99,7 +102,7 @@ public:
     int32_t BstartFwd() const { return (Brev ? (Blen - Bend) : Bstart); }
     int32_t BendFwd() const { return (Brev ? (Blen - Bstart) : Bend); }
 
-    void Flip(int32_t allowedDovetailDist)
+    void Flip()
     {
         std::swap(Aid, Bid);
         std::swap(Arev, Brev);
@@ -145,7 +148,6 @@ public:
             std::swap(Astart, Bstart);
             std::swap(Aend, Bend);
         }
-        // Atype = DetermineOverlapType(*this, allowedDovetailDist);
     }
 
 public:
@@ -193,10 +195,10 @@ inline std::unique_ptr<Overlap> createOverlap(const std::unique_ptr<Overlap>& ov
         ovl->Btype, ovl->Cigar, ovl->Avars, ovl->Bvars));
 }
 
-inline OverlapPtr CreateFlippedOverlap(const OverlapPtr& ovl, int32_t allowedDovetailDist)
+inline OverlapPtr CreateFlippedOverlap(const OverlapPtr& ovl)
 {
     auto newOvl = createOverlap(ovl);
-    newOvl->Flip(allowedDovetailDist);
+    newOvl->Flip();
     return newOvl;
 }
 

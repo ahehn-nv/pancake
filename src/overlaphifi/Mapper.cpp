@@ -235,8 +235,14 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
             continue;
         }
         auto newOvl = createOverlap(ovl);
-        newOvl->Atype = DetermineOverlapType(*ovl, allowedDovetailDist);
-        newOvl->Btype = OverlapType::Unknown;
+        newOvl->Atype =
+            DetermineOverlapType(ovl->Arev, ovl->AstartFwd(), ovl->AendFwd(), ovl->Alen, ovl->Brev,
+                                 ovl->BstartFwd(), ovl->BendFwd(), ovl->Blen, allowedDovetailDist);
+        // Arev and Brev are intentionally out of place here! The A-read's orientation should always
+        // be FWD, so the B-read is the one that determines the direction.
+        newOvl->Btype =
+            DetermineOverlapType(ovl->Arev, ovl->BstartFwd(), ovl->BendFwd(), ovl->Blen, ovl->Brev,
+                                 ovl->AstartFwd(), ovl->AendFwd(), ovl->Alen, allowedDovetailDist);
         HeuristicExtendOverlapFlanks(newOvl, allowedExtendDist);
         ret.emplace_back(std::move(newOvl));
     }

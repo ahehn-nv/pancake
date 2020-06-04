@@ -5,14 +5,16 @@
 namespace PacBio {
 namespace Pancake {
 
-OverlapType DetermineOverlapType(const Overlap& ovl, int32_t allowedDovetailDist)
+OverlapType DetermineOverlapType(bool Arev, int32_t AstartFwd, int32_t AendFwd, int32_t Alen,
+                                 bool Brev, int32_t BstartFwd, int32_t BendFwd, int32_t Blen,
+                                 int32_t allowedDovetailDist)
 {
-    int32_t leftHangA = ovl.AstartFwd();
-    int32_t rightHangA = ovl.Alen - ovl.AendFwd();
-    int32_t leftHangB = ovl.BstartFwd();
-    int32_t rightHangB = ovl.Blen - ovl.BendFwd();
+    int32_t leftHangA = AstartFwd;
+    int32_t rightHangA = Alen - AendFwd;
+    int32_t leftHangB = BstartFwd;
+    int32_t rightHangB = Blen - BendFwd;
 
-    if (ovl.Brev) {
+    if (Brev) {
         std::swap(leftHangB, rightHangB);
     }
 
@@ -68,6 +70,12 @@ OverlapType DetermineOverlapType(const Overlap& ovl, int32_t allowedDovetailDist
     }
 
     return ovlType;
+}
+
+OverlapType DetermineOverlapType(const Overlap& ovl, int32_t allowedDovetailDist)
+{
+    return DetermineOverlapType(ovl.Arev, ovl.AstartFwd(), ovl.AendFwd(), ovl.Alen, ovl.Brev,
+                                ovl.BstartFwd(), ovl.BendFwd(), ovl.Blen, allowedDovetailDist);
 }
 
 void HeuristicExtendOverlapFlanks(OverlapPtr& ovl, int32_t allowedDist)
