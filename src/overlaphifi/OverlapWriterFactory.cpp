@@ -7,15 +7,15 @@
 namespace PacBio {
 namespace Pancake {
 
-std::unique_ptr<OverlapWriterBase> OverlapWriterFactory(OverlapWriterType writerType, FILE* fpOut,
+std::unique_ptr<OverlapWriterBase> OverlapWriterFactory(OverlapWriterFormat writerType, FILE* fpOut,
                                                         bool writeIds, bool writeCigar)
 {
-    if (writerType == OverlapWriterType::IPAOvl) {
+    if (writerType == OverlapWriterFormat::IPAOvl) {
         return std::unique_ptr<OverlapWriterBase>(
             new OverlapWriterIPAOvl(fpOut, writeIds, writeCigar));
-    } else if (writerType == OverlapWriterType::M4) {
+    } else if (writerType == OverlapWriterFormat::M4) {
         return std::unique_ptr<OverlapWriterBase>(new OverlapWriterM4(fpOut, writeIds, writeCigar));
-    } else if (writerType == OverlapWriterType::SAM) {
+    } else if (writerType == OverlapWriterFormat::SAM) {
         return std::unique_ptr<OverlapWriterBase>(
             new OverlapWriterSAM(fpOut, writeIds, writeCigar));
     }
