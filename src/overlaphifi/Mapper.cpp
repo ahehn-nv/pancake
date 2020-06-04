@@ -137,7 +137,8 @@ OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
 
     return createOverlap(querySeq.Id(), targetId, score, identity, 0, beginHit.queryPos,
                          endHit.queryPos, querySeq.Size(), beginHit.targetRev, beginHit.targetPos,
-                         endHit.targetPos, targetLen, editDist, numSeeds, OverlapType::Unknown);
+                         endHit.targetPos, targetLen, editDist, numSeeds, OverlapType::Unknown,
+                         OverlapType::Unknown);
 }
 
 std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
@@ -234,7 +235,8 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
             continue;
         }
         auto newOvl = createOverlap(ovl);
-        newOvl->Type = DetermineOverlapType(*ovl, allowedDovetailDist);
+        newOvl->Atype = DetermineOverlapType(*ovl, allowedDovetailDist);
+        newOvl->Btype = OverlapType::Unknown;
         HeuristicExtendOverlapFlanks(newOvl, allowedExtendDist);
         ret.emplace_back(std::move(newOvl));
     }
