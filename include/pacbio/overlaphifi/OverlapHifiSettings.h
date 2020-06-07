@@ -46,6 +46,8 @@ struct OverlapHifiSettings
         static const int32_t BestN = 0;
         static const bool UseHPC = false;
         static const bool UseTraceback = false;
+        static const bool MaskHomopolymers = false;
+        static const bool MaskSimpleRepeats = false;
         static const OverlapWriterFormat OutFormat = OverlapWriterFormat::M4;
     };
 
@@ -82,6 +84,8 @@ struct OverlapHifiSettings
     int32_t BestN = Defaults::BestN;
     bool UseHPC = Defaults::UseHPC;
     bool UseTraceback = Defaults::UseTraceback;
+    bool MaskHomopolymers = Defaults::MaskHomopolymers;
+    bool MaskSimpleRepeats = Defaults::MaskSimpleRepeats;
     OverlapWriterFormat OutFormat = Defaults::OutFormat;
 
     OverlapHifiSettings();
