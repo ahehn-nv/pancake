@@ -2,6 +2,7 @@
 
 #include <lib/kxsort/kxsort.h>
 #include <pacbio/alignment/AlignmentTools.h>
+#include <pacbio/alignment/DiffCounts.h>
 #include <pacbio/alignment/SesDistanceBanded.h>
 #include <pacbio/overlaphifi/Mapper.h>
 #include <pacbio/overlaphifi/OverlapWriterBase.h>
@@ -23,6 +24,7 @@ namespace Pancake {
 
 static const int32_t MIN_DIFFS_CAP = 10;
 static const int32_t MIN_BANDWIDTH_CAP = 10;
+static const int32_t MASK_DEGREE = 3;
 
 MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                          const PacBio::Pancake::SeedIndex& index,
@@ -72,10 +74,10 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 #endif
 
     TicToc ttAlign;
-    overlaps =
-        AlignOverlaps_(targetSeqs, querySeq, overlaps, settings_.AlignmentBandwidth,
-                       settings_.AlignmentMaxD, settings_.UseTraceback, settings_.NoSNPsInIdentity,
-                       settings_.NoIndelsInIdentity, sesScratch_);
+    overlaps = AlignOverlaps_(targetSeqs, querySeq, overlaps, settings_.AlignmentBandwidth,
+                              settings_.AlignmentMaxD, settings_.UseTraceback,
+                              settings_.NoSNPsInIdentity, settings_.NoIndelsInIdentity,
+                              settings_.MaskHomopolymers, settings_.MaskSimpleRepeats, sesScratch_);
     ttAlign.Stop();
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Overlaps after alignment: " << overlaps.size();
@@ -333,6 +335,7 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::vector<OverlapPtr>& overlaps,
     double alignBandwidth, double alignMaxDiff, bool useTraceback, bool noSNPs, bool noIndels,
+    bool maskHomopolymers, bool maskSimpleRepeats,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
     std::vector<OverlapPtr> ret;
@@ -341,9 +344,9 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
 
     for (size_t i = 0; i < overlaps.size(); ++i) {
         const auto& targetSeq = targetSeqs.GetSequence(overlaps[i]->Bid);
-        auto newOverlap =
-            AlignOverlap_(targetSeq, querySeq, reverseQuerySeq, overlaps[i], alignBandwidth,
-                          alignMaxDiff, useTraceback, noSNPs, noIndels, sesScratch);
+        auto newOverlap = AlignOverlap_(targetSeq, querySeq, reverseQuerySeq, overlaps[i],
+                                        alignBandwidth, alignMaxDiff, useTraceback, noSNPs,
+                                        noIndels, maskHomopolymers, maskSimpleRepeats, sesScratch);
         if (newOverlap == nullptr) {
             continue;
         }
@@ -379,7 +382,7 @@ OverlapPtr Mapper::AlignOverlap_(
     const PacBio::Pancake::FastaSequenceCached& targetSeq,
     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
     const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTraceback,
-    bool noSNPs, bool noIndels,
+    bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
 
@@ -521,13 +524,17 @@ OverlapPtr Mapper::AlignOverlap_(
             ((span != 0.0f) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -0.0f);
     }
 
+    // Merge the CIGAR strings.
     ret->Cigar = std::move(sesResultLeft.cigar);
     if (sesResultRight.cigar.size() > 0) {
         AppendToCigar(ret->Cigar, sesResultRight.cigar.front().Type(),
                       sesResultRight.cigar.front().Length());
         ret->Cigar.insert(ret->Cigar.end(), sesResultRight.cigar.begin() + 1,
                           sesResultRight.cigar.end());
+    }
 
+    // Extract the variant strings.
+    if (ret->Cigar.size() > 0) {
         /// This works, but is slower because it requires to copy the target sequence every time.
         /// Since we already have the reversed query, we can simply reverse the CIGAR string and provide
         /// the reversed query, as below.
@@ -535,12 +542,15 @@ OverlapPtr Mapper::AlignOverlap_(
         // ret->VariantString = ExtractVariantString(querySeq.Bases() + ret->Astart, ret->ASpan(), tseq.c_str(), tseq.size(),
         //               ret->Cigar, false, false);
 
+        PacBio::Pancake::Alignment::DiffCounts diffsPerBase;
+        PacBio::Pancake::Alignment::DiffCounts diffsPerEvent;
         if (ret->Brev) {
             auto tempCigar = ret->Cigar;
             std::reverse(tempCigar.begin(), tempCigar.end());
             ExtractVariantString(reverseQuerySeq.c_str() + (ret->Alen - ret->Aend), ret->ASpan(),
                                  targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(), tempCigar,
-                                 false, false, ret->Avars, ret->Bvars);
+                                 maskHomopolymers, maskSimpleRepeats, ret->Avars, ret->Bvars,
+                                 diffsPerBase, diffsPerEvent);
             ret->Avars = Pancake::ReverseComplement(ret->Avars, 0, ret->Avars.size());
             ret->Bvars = Pancake::ReverseComplement(ret->Bvars, 0, ret->Bvars.size());
 
@@ -551,12 +561,17 @@ OverlapPtr Mapper::AlignOverlap_(
         } else {
             ExtractVariantString(querySeq.Bases() + ret->Astart, ret->ASpan(),
                                  targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(), ret->Cigar,
-                                 false, false, ret->Avars, ret->Bvars);
+                                 maskHomopolymers, maskSimpleRepeats, ret->Avars, ret->Bvars,
+                                 diffsPerBase, diffsPerEvent);
             // ValidateCigar(querySeq.Bases() + ret->Astart, ret->ASpan(),
             //                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(),
             //                 ret->Cigar, OverlapWriterBase::PrintOverlapAsM4(
             //                             ret, querySeq.Name(), targetSeq.Name(), false, false));
         }
+
+        const auto& diffs = diffsPerBase;
+        diffs.Identity(noSNPs, noIndels, ret->Identity, ret->EditDistance);
+        ret->Score = -diffs.numEq;
     }
 
 #ifdef PANCAKE_DEBUG_ALN
