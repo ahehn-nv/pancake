@@ -296,9 +296,10 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
 }
 
 void ExtractVariantString(const char* query, int64_t queryLen, const char* target,
-                          int64_t targetLen, const PacBio::BAM::Cigar& cigar,
-                          bool maskSimpleRepeats, bool maskHomopolymers,
-                          std::string& retQueryVariants, std::string& retTargetVariants)
+                          int64_t targetLen, const PacBio::BAM::Cigar& cigar, bool maskHomopolymers,
+                          bool maskSimpleRepeats, std::string& retQueryVariants,
+                          std::string& retTargetVariants, Alignment::DiffCounts& retDiffsPerBase,
+                          Alignment::DiffCounts& retDiffsPerEvent)
 {
     int64_t queryPos = 0;
     int64_t targetPos = 0;
@@ -322,6 +323,8 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
     std::string varStrTarget(varStrTargetSize, '0');
     int32_t varStrQueryPos = 0;
     int32_t varStrTargetPos = 0;
+    Alignment::DiffCounts diffsPerBase;
+    Alignment::DiffCounts diffsPerEvent;
 
     for (int32_t i = 0; i < numCigarOps; ++i) {
         const auto& op = cigar[i];
@@ -350,6 +353,9 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
                     << ", CIGAR: " << cigar.ToStdString();
                 throw std::runtime_error(oss.str());
             }
+            // Compute diffs.
+            diffsPerBase.numEq += op.Length();
+            diffsPerEvent.numEq += op.Length();
             // Move down.
             queryPos += op.Length();
             targetPos += op.Length();
@@ -375,6 +381,9 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
             varStrQueryPos += op.Length();
             varStrTargetPos += op.Length();
 
+            // Compute diffs.
+            diffsPerBase.numX += op.Length();
+            diffsPerEvent.numX += op.Length();
             // Move down.
             queryPos += op.Length();
             targetPos += op.Length();
@@ -391,9 +400,63 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
                 throw std::runtime_error(oss.str());
             }
 
+            bool isMasked = false;
+
+            if (maskHomopolymers) {
+                // All bases in the event need to be the same to be a homopolymer event.
+                int32_t baseSwitches = 0;
+                char prevBase = query[queryPos + 0];
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    if (query[queryPos + pos] != prevBase) {
+                        ++baseSwitches;
+                        prevBase = query[queryPos + pos];
+                    }
+                }
+                // Check if the current event bases are the same as the previous/next base
+                // in either query or target to call it homopolymer.
+                if (baseSwitches == 0 &&
+                    ((queryPos > 0 && query[queryPos - 1] == prevBase) ||
+                     ((queryPos + 1) < queryLen && query[queryPos + 1] == prevBase) ||
+                     (target[targetPos] == prevBase) ||
+                     ((targetPos + 1) < targetLen && target[targetPos + 1] == prevBase))) {
+                    isMasked = true;
+                }
+            }
+
+            // Check if the indel is exactly the same as preceding or following bases in
+            // either query or target.
+            if (maskSimpleRepeats && isMasked == false && op.Length() > 1) {
+                if (queryPos >= op.Length() &&
+                    strncmp(query + queryPos - op.Length(), query + queryPos, op.Length()) == 0) {
+                    isMasked = true;
+                } else if ((queryPos + 2 * op.Length()) <= queryLen &&
+                           strncmp(query + queryPos, query + queryPos + op.Length(), op.Length()) ==
+                               0) {
+                    isMasked = true;
+                } else if (targetPos >= op.Length() &&
+                           strncmp(target + targetPos - op.Length(), query + queryPos,
+                                   op.Length()) == 0) {
+                    isMasked = true;
+                } else if ((targetPos + op.Length()) <= targetLen &&
+                           strncmp(query + queryPos, target + targetPos, op.Length()) == 0) {
+                    // Note: using "(targetPos + op.Length()) <= targetLen" instead of "(targetPos + 2 * op.Length()) <= targetLen"
+                    // because the bases don't exist in the target so we need to start at the current position.
+                    isMasked = true;
+                }
+            }
+
             // Add the query (insertion) bases.
-            for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
-                varStrQuery[varStrQueryPos + pos] = query[queryPos + pos];
+            if (isMasked) {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrQuery[varStrQueryPos + pos] = std::tolower(query[queryPos + pos]);
+                }
+            } else {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrQuery[varStrQueryPos + pos] = query[queryPos + pos];
+                }
+                // Compute diffs.
+                diffsPerBase.numI += op.Length();
+                ++diffsPerEvent.numI;
             }
             varStrQueryPos += op.Length();
 
@@ -412,9 +475,64 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
                 throw std::runtime_error(oss.str());
             }
 
+            bool isMasked = false;
+
+            if (maskHomopolymers) {
+                // All bases in the event need to be the same to be a homopolymer event.
+                int32_t baseSwitches = 0;
+                char prevBase = target[targetPos + 0];
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    if (target[targetPos + pos] != prevBase) {
+                        ++baseSwitches;
+                        prevBase = target[targetPos + pos];
+                    }
+                }
+                // Check if the current event bases are the same as the previous/next base
+                // in either query or target to call it homopolymer.
+                if (baseSwitches == 0 &&
+                    ((targetPos > 0 && target[targetPos - 1] == prevBase) ||
+                     ((targetPos + 1) < targetLen && target[targetPos + 1] == prevBase) ||
+                     (query[queryPos] == prevBase) ||
+                     ((queryPos + 1) < queryLen && query[queryPos + 1] == prevBase))) {
+                    isMasked = true;
+                }
+            }
+
+            // Check if the indel is exactly the same as preceding or following bases in
+            // either query or target.
+            if (maskSimpleRepeats && isMasked == false && op.Length() > 1) {
+                if (targetPos >= op.Length() &&
+                    strncmp(target + targetPos - op.Length(), target + targetPos, op.Length()) ==
+                        0) {
+                    isMasked = true;
+                } else if ((targetPos + 2 * op.Length()) <= targetLen &&
+                           strncmp(target + targetPos, target + targetPos + op.Length(),
+                                   op.Length()) == 0) {
+                    isMasked = true;
+                } else if (queryPos >= op.Length() &&
+                           strncmp(query + queryPos - op.Length(), target + targetPos,
+                                   op.Length()) == 0) {
+                    isMasked = true;
+                } else if ((queryPos + op.Length()) <= queryLen &&
+                           strncmp(query + queryPos, target + targetPos, op.Length()) == 0) {
+                    // Note: using "(queryPos + op.Length()) <= queryLen" instead of "(queryPos + 2 * op.Length()) <= queryLen"
+                    // because the bases don't exist in the query so we need to start at the current position.
+                    isMasked = true;
+                }
+            }
+
             // Add the target (deletion) bases.
-            for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
-                varStrTarget[varStrTargetPos + pos] = target[targetPos + pos];
+            if (isMasked) {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrTarget[varStrTargetPos + pos] = std::tolower(target[targetPos + pos]);
+                }
+            } else {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrTarget[varStrTargetPos + pos] = target[targetPos + pos];
+                }
+                // Compute diffs.
+                diffsPerBase.numD += op.Length();
+                ++diffsPerEvent.numD;
             }
             varStrTargetPos += op.Length();
 
@@ -453,6 +571,9 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
             // Move down.
             targetPos += op.Length();
 
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::HARD_CLIP) {
+            // Do nothing.
+
         } else {
             std::ostringstream oss;
             oss << "CIGAR operation '" << op.TypeToChar(op.Type())
@@ -463,6 +584,8 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
 
     std::swap(retQueryVariants, varStrQuery);
     std::swap(retTargetVariants, varStrTarget);
+    std::swap(retDiffsPerBase, diffsPerBase);
+    std::swap(retDiffsPerEvent, diffsPerEvent);
 }
 
 }  // namespace Pancake

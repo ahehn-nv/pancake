@@ -3,6 +3,7 @@
 #ifndef PANCAKE_ALIGNMENT_TOOLS_H
 #define PANCAKE_ALIGNMENT_TOOLS_H
 
+#include <pacbio/alignment/DiffCounts.h>
 #include <pbbam/Cigar.h>
 #include <pbbam/CigarOperation.h>
 
@@ -27,9 +28,10 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                    const PacBio::BAM::Cigar& cigar, const std::string& label);
 
 void ExtractVariantString(const char* query, int64_t queryLen, const char* target,
-                          int64_t targetLen, const PacBio::BAM::Cigar& cigar,
-                          bool maskSimpleRepeats, bool maskHomopolymers,
-                          std::string& retQueryVariants, std::string& retTargetVariants);
+                          int64_t targetLen, const PacBio::BAM::Cigar& cigar, bool maskHomopolymers,
+                          bool maskSimpleRepeats, std::string& retQueryVariants,
+                          std::string& retTargetVariants, Alignment::DiffCounts& retDiffsPerBase,
+                          Alignment::DiffCounts& retDiffsPerEvent);
 
 }  // namespace Pancake
 }  // namespace PacBio
