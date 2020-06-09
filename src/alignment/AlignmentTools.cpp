@@ -588,5 +588,99 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
     std::swap(retDiffsPerEvent, diffsPerEvent);
 }
 
+Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
+                                        const std::string& queryVariants,
+                                        const std::string& targetVariants)
+{
+
+    int32_t aVarPos = 0;
+    int32_t bVarPos = 0;
+
+    Alignment::DiffCounts diffs;
+
+    for (const auto& op : cigar) {
+        if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
+            // Move down.
+            diffs.numEq += op.Length();
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+
+            for (int32_t i = 0; i < static_cast<int32_t>(op.Length()); ++i) {
+                const int aLower = islower(queryVariants[aVarPos]);
+                const int bLower = islower(targetVariants[bVarPos]);
+
+                // Sanity check.
+                if (aLower != bLower) {
+                    std::ostringstream oss;
+                    oss << "Incorrect variant masking, variant is uppercase in one instance and "
+                           "lowercase in the other. "
+                        << ", CIGAR op: " << op.Length() << op.TypeToChar(op.Type());
+                    throw std::runtime_error(oss.str());
+                }
+                // Skip masked variants.
+                if (aLower == 0 && bLower == 0) {
+                    ++diffs.numX;
+                }
+                ++aVarPos;
+                ++bVarPos;
+            }
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION) {
+            /*
+             * CIGAR operations are from the perspective of the A-read.
+             * Now, the A-read is the reference, so insertions and deletions should
+             * be reversed.
+            */
+            bool isMasked = false;
+            for (int32_t i = 0; i < static_cast<int32_t>(op.Length()); ++i) {
+                // Skip masked variants.
+                if (islower(queryVariants[aVarPos + i])) {
+                    isMasked = true;
+                    break;
+                }
+            }
+            if (isMasked == false) {
+                diffs.numI += op.Length();
+            }
+            aVarPos += op.Length();
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION) {
+            /*
+             * CIGAR operations are from the perspective of the A-read.
+             * Now, the A-read is the reference, so insertions and deletions should
+             * be reversed.
+            */
+
+            // If any of the insertion bases are masked, skip the entire event.
+            bool isMasked = false;
+            for (int32_t i = 0; i < static_cast<int32_t>(op.Length()); ++i) {
+                // Skip masked variants.
+                if (islower(targetVariants[bVarPos + i])) {
+                    isMasked = true;
+                    break;
+                }
+            }
+            if (isMasked == false) {
+                diffs.numD += op.Length();
+            }
+            bVarPos += op.Length();
+
+            // } else if (op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
+            //     // Move down.
+
+            // } else if (op.Type() == PacBio::BAM::CigarOperationType::REFERENCE_SKIP) {
+            //     // Move down.
+
+        } else {
+            std::ostringstream oss;
+            oss << "CIGAR operation '" << op.TypeToChar(op.Type())
+                << "' not supported by the ComputeDiffCounts function.";
+            throw std::runtime_error(oss.str());
+        }
+    }
+
+    return diffs;
+}
+
 }  // namespace Pancake
 }  // namespace PacBio

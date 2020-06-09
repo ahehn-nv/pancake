@@ -33,6 +33,10 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
                           std::string& retTargetVariants, Alignment::DiffCounts& retDiffsPerBase,
                           Alignment::DiffCounts& retDiffsPerEvent);
 
+Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
+                                        const std::string& queryVariants,
+                                        const std::string& targetVariants);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
