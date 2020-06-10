@@ -147,4 +147,49 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
         EXPECT_EQ(data.expectedDiffsPerEvent, resultDiffsPerEvent);
     }
 }
+
+TEST(Test_AlignmentTools_FindTargetPosFromCigar, ArrayOfTests)
+{
+    // clang-format off
+    std::vector<std::tuple<std::string, std::string, int32_t, int32_t, bool>> testData = {
+        {"Empty input", "", 0, -1, true},
+        {"Simple matches", "10=", 4, 4, false},
+        {"Simple matches", "10=", -1, -1, true},
+        {"Simple matches", "10=", 10, -1, true},
+
+        {"Simple CIGAR pos 0", "2=2D1=1X1=2I1=", 0, 0, false},
+        {"Simple CIGAR pos 1", "2=2D1=1X1=2I1=", 1, 1, false},
+        {"Simple CIGAR pos 2", "2=2D1=1X1=2I1=", 2, 4, false},
+        {"Simple CIGAR pos 3", "2=2D1=1X1=2I1=", 3, 5, false},
+        {"Simple CIGAR pos 4", "2=2D1=1X1=2I1=", 4, 6, false},
+        {"Simple CIGAR pos 5", "2=2D1=1X1=2I1=", 5, 6, false},
+        {"Simple CIGAR pos 6", "2=2D1=1X1=2I1=", 6, 6, false},
+        {"Simple CIGAR pos 7", "2=2D1=1X1=2I1=", 7, 7, false},
+
+        {"Custom real 1", "59=1I10=1I601=1I48=1D274=1D432=1I84=1I573=1I94=1D1545=1I1=1D1131=1D1042=1I329=1I581=1D452=", 1380, 1379, false},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Get the data.
+        const std::string testName = std::get<0>(data);
+        PacBio::BAM::Cigar cigar(std::get<1>(data));
+        int32_t queryPos = std::get<2>(data);
+        int32_t expected = std::get<3>(data);
+        bool shouldThrow = std::get<4>(data);
+
+        // Name the test.
+        SCOPED_TRACE("FindTargetPosFromCigar-" + testName);
+
+        // Run.
+        if (shouldThrow) {
+            EXPECT_THROW({ PacBio::Pancake::FindTargetPosFromCigar(cigar, queryPos); },
+                         std::runtime_error);
+        } else {
+            int32_t result = PacBio::Pancake::FindTargetPosFromCigar(cigar, queryPos);
+            // Evaluate.
+            EXPECT_EQ(expected, result);
+        }
+    }
+}
 }

@@ -682,5 +682,60 @@ Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
     return diffs;
 }
 
+int32_t FindTargetPosFromCigar(const BAM::Cigar& cigar, int32_t queryPos)
+{
+    if (cigar.empty()) {
+        throw std::runtime_error("Empty CIGAR given to FindTargetPosFromCigar!");
+    }
+    if (queryPos < 0) {
+        std::ostringstream oss;
+        oss << "The queryPos should be >= 0, value " << queryPos
+            << " was given to FindTargetPosFromCigar.";
+        throw std::runtime_error(oss.str());
+    }
+    int32_t currQueryPos = 0;
+    int32_t currTargetPos = 0;
+    for (const auto& op : cigar) {
+        int32_t opLen = op.Length();
+        if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH ||
+            op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH ||
+            op.Type() == PacBio::BAM::CigarOperationType::ALIGNMENT_MATCH) {
+            if (queryPos < (currQueryPos + opLen)) {
+                int32_t diff = queryPos - currQueryPos;
+                return currTargetPos + diff;
+            }
+            currQueryPos += opLen;
+            currTargetPos += opLen;
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION) {
+            if (queryPos < (currQueryPos + opLen)) {
+                return currTargetPos - 1;  // By convention, insertions come after an actual base.
+            }
+            currQueryPos += opLen;
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
+            if (queryPos < (currQueryPos + opLen)) {
+                std::ostringstream oss;
+                oss << "Given query position is located in a soft clipped region! queryPos = "
+                    << queryPos << ", CIGAR: " << cigar.ToStdString();
+                throw std::runtime_error(oss.str());
+            }
+            currQueryPos += opLen;
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION ||
+                   op.Type() == PacBio::BAM::CigarOperationType::REFERENCE_SKIP) {
+            // if (queryPos < (currQueryPos + op.Length())) {
+            //     return currTargetPos;
+            // }
+            // Don't report alignment position within a deletion - wait for an actual base.
+            currTargetPos += opLen;
+        }
+    }
+
+    std::ostringstream oss;
+    oss << "Coordinate queryPos = " << queryPos
+        << " is out of bounds of the supplied CIGAR alignment: " << cigar.ToStdString();
+    throw std::runtime_error(oss.str());
+
+    return -1;
+}
+
 }  // namespace Pancake
 }  // namespace PacBio

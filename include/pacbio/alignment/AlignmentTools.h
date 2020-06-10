@@ -37,6 +37,11 @@ Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
                                         const std::string& queryVariants,
                                         const std::string& targetVariants);
 
+/// \brief For a given query position finds the corresponding target position based
+///         on a provided CIGAR string.
+///         Lineraly scans through all CIGAR operations to perform the mapping.
+int32_t FindTargetPosFromCigar(const BAM::Cigar& cigar, int32_t queryPos);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
