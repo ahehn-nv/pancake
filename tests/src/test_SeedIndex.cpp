@@ -160,7 +160,7 @@ P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
 S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
-    )";
+)";
     std::istringstream is(targetSeedDBString);
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
@@ -214,7 +214,7 @@ P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
 S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
-    )";
+)";
     std::istringstream is(targetSeedDBString);
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
@@ -268,7 +268,7 @@ P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
 S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
-    )";
+)";
     std::istringstream is(targetSeedDBString);
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
@@ -318,7 +318,7 @@ P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
 S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
-    )";
+)";
     std::istringstream is(targetSeedDBString);
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
@@ -400,7 +400,7 @@ P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
 S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
-    )";
+)";
     std::istringstream is(targetSeedDBString);
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
@@ -468,7 +468,7 @@ P	k=30,w=80,hpc=0,hpc_len=10,rc=1
 F	0	dummy.seeddb.0.seeds	1	96
 S	0	targetSeq0	0	0	96	38	6
 B	0	0	1	96
-    )";
+)";
     std::istringstream is(targetSeedDBString);
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
@@ -650,6 +650,115 @@ TEST(SeedIndex, ComputeFrequencyThresholdOutOfBounds)
         {
             si.ComputeFrequencyStats(-1.0, resultFreqMax, resultFreqAvg, resultFreqMedian,
                                      resultFreqCutoff);
+        },
+        std::runtime_error);
+}
+
+PacBio::Pancake::Int128t PackSeedHitWithDiagonalTo128_(const PacBio::Pancake::SeedHit& sh)
+{
+    static const PacBio::Pancake::Int128t MASK128_LOW32bit = 0x000000000FFFFFFFF;
+    PacBio::Pancake::Int128t ret = 0;
+    const int32_t diag = (sh.targetPos - sh.queryPos);
+    ret = ((static_cast<PacBio::Pancake::Int128t>(sh.targetId) & MASK128_LOW32bit) << 97) |
+          ((static_cast<PacBio::Pancake::Int128t>(sh.targetRev) & MASK128_LOW32bit) << 96) |
+          ((static_cast<PacBio::Pancake::Int128t>(diag) & MASK128_LOW32bit) << 64) |
+          ((static_cast<PacBio::Pancake::Int128t>(sh.targetPos) & MASK128_LOW32bit) << 32) |
+          (static_cast<PacBio::Pancake::Int128t>(sh.queryPos) & MASK128_LOW32bit);
+    return ret;
+}
+
+TEST(SeedIndex, ParsingSeedIndexCache_Stream_RoundTrip_Good)
+{
+    // Load the SeedDB cache.
+    const std::string targetSeedDBString =
+        R"(V	0.1.0
+P	k=15,w=10,s=0,hpc=0,hpc_len=10,rc=1
+F	0	reads.seeddb.0.seeds	2	992
+S	0	read1-fwd	0	0	496	180	31
+S	1	read4-rev	0	496	496	180	31
+B	0	0	2	992
+)";
+    std::istringstream is(targetSeedDBString);
+    std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
+        PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
+
+    std::ostringstream results;
+    results << *targetSeedDBCache;
+
+    EXPECT_EQ(targetSeedDBString, results.str());
+}
+
+TEST(SeedIndex, ParsingSeedIndexCache_File_RoundTrip_Good)
+{
+    // Load the SeedDB cache.
+    const std::string targetSeedDBString =
+        R"(V	0.1.0
+P	k=15,w=10,s=0,hpc=0,hpc_len=10,rc=1
+F	0	reads.seeddb.0.seeds	2	992
+S	0	read1-fwd	0	0	496	180	31
+S	1	read4-rev	0	496	496	180	31
+B	0	0	2	992
+)";
+    std::string seedDBFn = PacBio::PancakeTestsConfig::GeneratedData_Dir + "/test.seeddb";
+    {
+        std::ofstream ofs(seedDBFn);
+        ofs << targetSeedDBString;
+    }
+
+    FILE* fpIn = fopen(seedDBFn.c_str(), "r");
+    std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
+        PacBio::Pancake::LoadSeedDBIndexCache(fpIn, "test.seeddb");
+
+    std::ostringstream results;
+    results << *targetSeedDBCache;
+
+    EXPECT_EQ(targetSeedDBString, results.str());
+}
+
+TEST(SeedIndex, ParsingSeedIndexCache_RoundTrip_Stream_ExtraWhitespaceAtTheEndShouldThrow)
+{
+    // Load the SeedDB cache.
+    // NOTE: The whitespace on the last line is intentional!
+    const std::string targetSeedDBString =
+        R"(V	0.1.0
+P	k=15,w=10,s=0,hpc=0,hpc_len=10,rc=1
+F	0	reads.seeddb.0.seeds	2	992
+S	0	read1-fwd	0	0	496	180	31
+S	1	read4-rev	0	496	496	180	31
+B	0	0	2	992
+    )";
+    std::istringstream is(targetSeedDBString);
+
+    EXPECT_THROW(
+        {
+            std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
+                PacBio::Pancake::LoadSeedDBIndexCache(is, "filename.seeddb");
+        },
+        std::runtime_error);
+}
+
+TEST(SeedIndex, ParsingSeedIndexCache_File_ExtraWhitespaceAtTheEndShouldThrow)
+{
+    // Load the SeedDB cache.
+    const std::string targetSeedDBString =
+        R"(V	0.1.0
+P	k=15,w=10,s=0,hpc=0,hpc_len=10,rc=1
+F	0	reads.seeddb.0.seeds	2	992
+S	0	read1-fwd	0	0	496	180	31
+S	1	read4-rev	0	496	496	180	31
+B	0	0	2	992
+    )";
+    std::string seedDBFn = PacBio::PancakeTestsConfig::GeneratedData_Dir + "/test.seeddb";
+    {
+        std::ofstream ofs(seedDBFn);
+        ofs << targetSeedDBString;
+    }
+
+    FILE* fpIn = fopen(seedDBFn.c_str(), "r");
+    EXPECT_THROW(
+        {
+            std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
+                PacBio::Pancake::LoadSeedDBIndexCache(fpIn, "test.seeddb");
         },
         std::runtime_error);
 }

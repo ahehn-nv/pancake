@@ -64,6 +64,11 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> targetSeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(targetSeedDBFile);
     PBLOG_INFO << "After loading target seed cache: " << ttInit.VerboseSecs(true);
+    PBLOG_INFO << "Target seed params: k = " << targetSeedDBCache->seedParams.KmerSize
+               << ", w = " << targetSeedDBCache->seedParams.MinimizerWindow
+               << ", s = " << targetSeedDBCache->seedParams.Spacing
+               << ", hpc = " << targetSeedDBCache->seedParams.UseHPC
+               << ", rc = " << targetSeedDBCache->seedParams.UseRC;
     if (targetSeedDBCache->seedParams.UseHPC != settings.UseHPC) {
         throw std::runtime_error(
             "The --use-hpc option was either used to compute the target SeedDB but not specified "
@@ -77,6 +82,11 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> querySeedDBCache =
         PacBio::Pancake::LoadSeedDBIndexCache(querySeedDBFile);
     PBLOG_INFO << "After loading query seed cache: " << ttInit.VerboseSecs(true);
+    PBLOG_INFO << "Query seed params: k = " << targetSeedDBCache->seedParams.KmerSize
+               << ", w = " << targetSeedDBCache->seedParams.MinimizerWindow
+               << ", s = " << targetSeedDBCache->seedParams.Spacing
+               << ", hpc = " << targetSeedDBCache->seedParams.UseHPC
+               << ", rc = " << targetSeedDBCache->seedParams.UseRC;
     if (querySeedDBCache->seedParams.UseHPC != settings.UseHPC) {
         throw std::runtime_error(
             "The --use-hpc option was either used to compute the query SeedDB but not specified "
