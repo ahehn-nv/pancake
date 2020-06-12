@@ -192,4 +192,48 @@ TEST(Test_AlignmentTools_FindTargetPosFromCigar, ArrayOfTests)
         }
     }
 }
+
+TEST(Test_AlignmentTools_ComputeDiffCounts, ArrayOfTests)
+{
+    // clang-format off
+    std::vector<std::tuple<std::string, std::string, std::string, std::string, Alignment::DiffCounts, bool>> testData = {
+        {"Empty input", "", "", "", Alignment::DiffCounts(), false},
+        {"Exact match", "4=", "", "", Alignment::DiffCounts(4, 0, 0, 0), false},
+        {"Variant pos out of bounds (X)", "3=1X1=", "", "", Alignment::DiffCounts(), true},
+        {"Variant pos out of bounds (I)", "3=1I1=", "", "", Alignment::DiffCounts(), true},
+        {"Variant pos out of bounds (D)", "3=1D1=", "", "", Alignment::DiffCounts(), true},
+        {"Valid case, 1X", "3=1X1=", "A", "C", Alignment::DiffCounts(4, 1, 0, 0), false},
+        {"Valid case, 1X, masked", "3=1X1=", "a", "c", Alignment::DiffCounts(4, 0, 0, 0), false},
+        {"Valid case, 1X, mixed mask, should throw", "3=1X1=", "a", "C", Alignment::DiffCounts(), true},
+        {"Valid case with multiple diffs and 1 masked I", "3=1X1=1D2=2I2=1I", "ATAt", "CT", Alignment::DiffCounts(8, 1, 2, 1), false},
+        {"Valid case with clipping and reference skip", "3S3=1X1=1D2=1I2N2=1I3H", "ATt", "CT", Alignment::DiffCounts(8, 1, 1, 1), false},
+        {"Bad case, the 2-base I has mixed masking", "3=1X1=1D2=2I2=1I", "ATat", "CT", Alignment::DiffCounts(), true},
+        {"Bad case, the 2-base B has mixed masking", "3=1X1=2D2=2I2=1I", "ATat", "CTc", Alignment::DiffCounts(), true},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const std::string testName = std::get<0>(data);
+        PacBio::BAM::Cigar cigar(std::get<1>(data));
+        const std::string& queryVariants = std::get<2>(data);
+        const std::string& targetVariants = std::get<3>(data);
+        const PacBio::Pancake::Alignment::DiffCounts& expected = std::get<4>(data);
+        bool shouldThrow = std::get<5>(data);
+
+        // Name the test.
+        SCOPED_TRACE("ComputeDiffCounts-" + testName);
+
+        // Run.
+        if (shouldThrow) {
+            EXPECT_THROW(
+                { PacBio::Pancake::ComputeDiffCounts(cigar, queryVariants, targetVariants); },
+                std::runtime_error);
+        } else {
+            auto result = PacBio::Pancake::ComputeDiffCounts(cigar, queryVariants, targetVariants);
+            // Evaluate.
+            EXPECT_EQ(expected, result);
+        }
+    }
+}
 }
