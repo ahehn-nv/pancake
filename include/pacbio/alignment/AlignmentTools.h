@@ -23,6 +23,9 @@ void AppendToCigar(PacBio::BAM::Cigar& cigar, PacBio::BAM::CigarOperationType ne
 PacBio::BAM::Cigar ExpandMismatches(const char* query, int64_t queryLen, const char* target,
                                     int64_t targetLen, const PacBio::BAM::Cigar& cigar);
 
+void ValidateCigar(const char* query, int64_t queryLen, const char* target, int64_t targetLen,
+                   const PacBio::BAM::Cigar& cigar, const std::string& label);
+
 }  // namespace Pancake
 }  // namespace PacBio
 

@@ -185,5 +185,114 @@ PacBio::BAM::Cigar ExpandMismatches(const char* query, int64_t queryLen, const c
     return ret;
 }
 
+void ValidateCigar(const char* query, int64_t queryLen, const char* target, int64_t targetLen,
+                   const PacBio::BAM::Cigar& cigar, const std::string& label)
+{
+    int64_t queryPos = 0;
+    int64_t targetPos = 0;
+    int32_t numCigarOps = cigar.size();
+
+    for (int32_t i = 0; i < numCigarOps; ++i) {
+        const auto& op = cigar[i];
+
+        if (queryPos > queryLen || targetPos > targetLen) {
+            std::ostringstream oss;
+            oss << "Invalid CIGAR string (global): "
+                << "coordinates out of bounds! "
+                << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+            throw std::runtime_error(oss.str());
+        }
+
+        if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
+            if ((queryPos + op.Length()) > queryLen || (targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (SEQUENCE_MATCH): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+            if (strncmp(query + queryPos, target + targetPos, op.Length()) != 0) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (SEQUENCE_MATCH): "
+                    << "sequences are not equal even though they are delimited by a SEQUENCE_MATCH "
+                       "operation! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+            queryPos += op.Length();
+            targetPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+            if ((queryPos + op.Length()) > queryLen || (targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (SEQUENCE_MISMATCH): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+
+            for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                if (query[queryPos + pos] == target[targetPos + pos]) {
+                    std::ostringstream oss;
+                    oss << "Invalid CIGAR string (SEQUENCE_MISMATCH): "
+                        << "sequences are equal even though they are delimited by a "
+                           "SEQUENCE_MISMATCH operation! "
+                        << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                        << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                        << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                        << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    throw std::runtime_error(oss.str());
+                }
+            }
+            queryPos += op.Length();
+            targetPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION ||
+                   op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
+            if ((queryPos + op.Length()) > queryLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (INSERTION): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+            queryPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION ||
+                   op.Type() == PacBio::BAM::CigarOperationType::REFERENCE_SKIP) {
+            if ((targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (DELETION): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+            targetPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::HARD_CLIP) {
+            // Do nothing.
+        } else {
+            std::ostringstream oss;
+            oss << "CIGAR operation '" << op.TypeToChar(op.Type())
+                << "' not supported by the validation function.";
+            throw std::runtime_error(oss.str());
+        }
+    }
+}
+
 }  // namespace Pancake
 }  // namespace PacBio
