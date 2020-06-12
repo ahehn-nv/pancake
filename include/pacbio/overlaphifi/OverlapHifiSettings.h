@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string>
 
+#include <pacbio/overlaphifi/OverlapWriterFormat.h>
 #include <pbcopper/cli2/CLI.h>
 
 namespace PacBio {
@@ -45,6 +46,7 @@ struct OverlapHifiSettings
         static const int32_t BestN = 0;
         static const bool UseHPC = false;
         static const bool UseTraceback = false;
+        static const OverlapWriterFormat OutFormat = OverlapWriterFormat::M4;
     };
 
     std::string TargetDBPrefix;
@@ -80,6 +82,7 @@ struct OverlapHifiSettings
     int32_t BestN = Defaults::BestN;
     bool UseHPC = Defaults::UseHPC;
     bool UseTraceback = Defaults::UseTraceback;
+    OverlapWriterFormat OutFormat = Defaults::OutFormat;
 
     OverlapHifiSettings();
     OverlapHifiSettings(const PacBio::CLI_v2::Results& options);

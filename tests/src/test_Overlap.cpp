@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <pacbio/overlaphifi/Overlap.h>
-#include <pacbio/overlaphifi/OverlapWriter.h>
+#include <pacbio/overlaphifi/OverlapWriterBase.h>
 #include <vector>
 
 std::vector<std::string> WrapRunHeuristicExtendOverlapFlanks(
@@ -12,7 +12,7 @@ std::vector<std::string> WrapRunHeuristicExtendOverlapFlanks(
         // ovl->Type = PacBio::Pancake::DetermineOverlapType(ovl, allowedDist);
         PacBio::Pancake::HeuristicExtendOverlapFlanks(ovl, allowedDist);
         std::string resultStr =
-            PacBio::Pancake::OverlapWriter::PrintOverlapAsM4(ovl, "", "", true, false);
+            PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
         results.emplace_back(resultStr);
     }
     return results;

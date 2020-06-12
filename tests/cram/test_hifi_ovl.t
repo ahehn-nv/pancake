@@ -2,7 +2,7 @@ Dovetail overlap 5prime test. Read "m64030_190330_071939/101844710/ccs" should h
 Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile1-5prime.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 | grep "^m64030_190330_071939/101844710/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --out-fmt m4 | grep "^m64030_190330_071939/101844710/ccs"
   m64030_190330_071939/101844710/ccs m64030_190330_071939/60686570/ccs -9052 99.72 0 0 9077 11811 0 981 10059 10059 5
   m64030_190330_071939/101844710/ccs m64030_190330_071939/62523930/ccs -7889 99.94 0 0 7895 11811 1 0 7894 11307 5
   m64030_190330_071939/101844710/ccs m64030_190330_071939/61737670/ccs -6015 99.82 0 0 6031 11811 0 2564 8590 8590 5
@@ -13,7 +13,7 @@ Dovetail overlap 3prime test. Read "m64030_190330_071939/101909220/ccs" should h
 Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile2-3prime.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 | grep "^m64030_190330_071939/101909220/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --out-fmt m4 | grep "^m64030_190330_071939/101909220/ccs"
   m64030_190330_071939/101909220/ccs m64030_190330_071939/165937510/ccs -7411 99.89 0 2111 9530 9530 1 2475 9898 9898 3
   m64030_190330_071939/101909220/ccs m64030_190330_071939/22611030/ccs -5385 99.10 0 4096 9530 9530 0 0 5435 9487 3
   m64030_190330_071939/101909220/ccs m64030_190330_071939/25626700/ccs -3280 99.91 0 6247 9530 9530 0 0 3286 10208 3
@@ -24,7 +24,7 @@ Dovetail overlap all fwd oriented.
 Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile3-fwd.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 | grep "^m64030_190330_071939/102303370/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --out-fmt m4 | grep "^m64030_190330_071939/102303370/ccs"
   m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -6940 99.21 0 0 6996 8602 0 656 7651 7651 5
   m64030_190330_071939/102303370/ccs m64030_190330_071939/109642940/ccs -6818 99.84 0 0 6829 8602 0 1987 8823 8823 5
   m64030_190330_071939/102303370/ccs m64030_190330_071939/106038710/ccs -6803 99.91 0 1793 8602 8602 0 0 6813 8913 3
@@ -35,7 +35,7 @@ Dovetail overlap all rev oriented.
 Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile4-rev.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 | grep "^m64030_190330_071939/102172020/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --out-fmt m4 | grep "^m64030_190330_071939/102172020/ccs"
   m64030_190330_071939/102172020/ccs m64030_190330_071939/43124430/ccs -9837 99.90 0 0 9847 10635 1 0 9851 10977 5
   m64030_190330_071939/102172020/ccs m64030_190330_071939/30016220/ccs -9405 99.86 0 1217 10635 10635 1 946 10371 10371 3
   m64030_190330_071939/102172020/ccs m64030_190330_071939/28901470/ccs -6166 99.84 0 4459 10635 10635 1 3541 9723 9723 3
@@ -49,7 +49,7 @@ All should have perfect 100.00% identity matches.
 Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/101844710/ccs fake_read/1/ccs -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
   m64030_190330_071939/101844710/ccs fake_read/1/ccs-inverted_0-15000 -5000 100.00 0 0 5000 11811 1 0 5000 15000 5
   fake_read/1/ccs fake_read/1/ccs-inverted_0-15000 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
@@ -61,21 +61,21 @@ Test symmetry in the aligned identity when A->B and B->A.
 Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile6-short-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --min-idt 96 reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --min-idt 96 reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/39060280/ccs m64030_190330_071939/101975180/ccs -1893 96.53 0 5293 7255 9907 1 0 1961 10984 u
   m64030_190330_071939/101975180/ccs m64030_190330_071939/39060280/ccs -1893 96.53 0 0 1962 10984 1 5294 7255 9907 u
 
 Contained overlap.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile7-contained.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/100008040/ccs m64030_190330_071939/117113640/ccs -9831 99.88 0 0 9847 9847 0 388 10231 11163 contained
   m64030_190330_071939/117113640/ccs m64030_190330_071939/100008040/ccs -9831 99.88 0 388 10231 11163 0 0 9847 9847 contains
 
 Internal overlap.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile8-internal.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --min-idt 94.0 reads reads 0 0 0 | grep "^m64030_190330_071939/101451080/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --min-idt 94.0 reads reads 0 0 0 --out-fmt m4 | grep "^m64030_190330_071939/101451080/ccs"
   m64030_190330_071939/101451080/ccs m64030_190330_071939/161024730/ccs -3229 96.86 0 2140 5474 8022 1 1716 5063 12064 u
   m64030_190330_071939/101451080/ccs m64030_190330_071939/164825240/ccs -3214 95.72 0 2116 5474 8022 0 5649 9017 11350 u
   m64030_190330_071939/101451080/ccs m64030_190330_071939/164823320/ccs -3202 95.37 0 2116 5474 8022 1 3400 6770 10056 u
@@ -100,7 +100,7 @@ Overlapping a single full pile.
 This input consists of a single dovetail overlap. By default, both arcs should be output.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile10-single-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/101844710/ccs m64030_190330_071939/60686570/ccs -9052 99.72 0 0 9077 11811 0 981 10059 10059 5
   m64030_190330_071939/60686570/ccs m64030_190330_071939/101844710/ccs -9052 99.72 0 981 10059 10059 0 0 9077 11811 3
 
@@ -108,14 +108,14 @@ Skip symmetric overlaps. The pair where Aid > Bid should be removed. (The ID is 
 This input consists of a single dovetail overlap. By default, both arcs should be output.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile10-single-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --skip-sym reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --skip-sym reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/60686570/ccs m64030_190330_071939/101844710/ccs -9052 99.72 0 981 10059 10059 0 0 9077 11811 3
 
 Writing symmetric overlaps should provide the other arc of the pair of reads, even though only one of them was
 actually computed. Order may change though.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile10-single-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --skip-sym --write-rev reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --skip-sym --write-rev reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/60686570/ccs m64030_190330_071939/101844710/ccs -9052 99.72 0 981 10059 10059 0 0 9077 11811 3
   m64030_190330_071939/101844710/ccs m64030_190330_071939/60686570/ccs -9052 99.72 0 0 9077 11811 0 981 10059 10059 5
 ##################################################################
@@ -123,7 +123,7 @@ actually computed. Order may change though.
 Test writing IDs instead of headers. Other than that, the same as the Perfect match overlap test.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --write-ids reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --write-ids reads reads 0 0 0 --out-fmt m4
   000000000 000000001 -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
   000000000 000000002 -5000 100.00 0 0 5000 11811 1 0 5000 15000 5
   000000001 000000002 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
@@ -137,7 +137,7 @@ Test writing IDs instead of headers. Other than that, the same as the Perfect ma
 Bestn testing on a set of perfect matching overlaps. Value "0" should deactivate the filter.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn 0 reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn 0 reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/101844710/ccs fake_read/1/ccs -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
   m64030_190330_071939/101844710/ccs fake_read/1/ccs-inverted_0-15000 -5000 100.00 0 0 5000 11811 1 0 5000 15000 5
   fake_read/1/ccs fake_read/1/ccs-inverted_0-15000 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
@@ -148,7 +148,7 @@ Bestn testing on a set of perfect matching overlaps. Value "0" should deactivate
 Bestn testing on a set of perfect matching overlaps. Value < "0" should deactivate the filter.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn -1 reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn -1 reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/101844710/ccs fake_read/1/ccs -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
   m64030_190330_071939/101844710/ccs fake_read/1/ccs-inverted_0-15000 -5000 100.00 0 0 5000 11811 1 0 5000 15000 5
   fake_read/1/ccs fake_read/1/ccs-inverted_0-15000 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
@@ -159,7 +159,7 @@ Bestn testing on a set of perfect matching overlaps. Value < "0" should deactiva
 Bestn testing on a set of perfect matching overlaps. Positive value should be applied normally.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn 1 reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn 1 reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/101844710/ccs fake_read/1/ccs -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
   fake_read/1/ccs fake_read/1/ccs-inverted_0-15000 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
   fake_read/1/ccs-inverted_0-15000 fake_read/1/ccs -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
@@ -167,7 +167,7 @@ Bestn testing on a set of perfect matching overlaps. Positive value should be ap
 Bestn testing on a set of perfect matching overlaps. A large positive value, to test for potential edge cases.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile5-perfect-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn 10 reads reads 0 0 0
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --bestn 10 reads reads 0 0 0 --out-fmt m4
   m64030_190330_071939/101844710/ccs fake_read/1/ccs -5000 100.00 0 0 5000 11811 0 10000 15000 15000 5
   m64030_190330_071939/101844710/ccs fake_read/1/ccs-inverted_0-15000 -5000 100.00 0 0 5000 11811 1 0 5000 15000 5
   fake_read/1/ccs fake_read/1/ccs-inverted_0-15000 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
@@ -184,7 +184,7 @@ Dovetail overlap all fwd oriented, with the sensitive mode turned on.
 Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile3-fwd.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback | grep "^m64030_190330_071939/102303370/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --out-fmt m4 | grep "^m64030_190330_071939/102303370/ccs"
   m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -6968 99.21 0 0 6996 8602 0 656 7651 7651 5
   m64030_190330_071939/102303370/ccs m64030_190330_071939/109642940/ccs -6827 99.84 0 0 6829 8602 0 1987 8823 8823 5
   m64030_190330_071939/102303370/ccs m64030_190330_071939/106038710/ccs -6808 99.91 0 1793 8602 8602 0 0 6813 8913 3
@@ -196,7 +196,7 @@ Dovetail overlap all rev oriented, with the sensitive mode turned on.
 Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile4-rev.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback | grep "^m64030_190330_071939/102172020/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --out-fmt m4 | grep "^m64030_190330_071939/102172020/ccs"
   m64030_190330_071939/102172020/ccs m64030_190330_071939/43124430/ccs -9844 99.91 0 0 9847 10635 1 0 9851 10977 5
   m64030_190330_071939/102172020/ccs m64030_190330_071939/30016220/ccs -9415 99.87 0 1217 10635 10635 1 946 10371 10371 3
   m64030_190330_071939/102172020/ccs m64030_190330_071939/28901470/ccs -6174 99.85 0 4459 10635 10635 1 3541 9723 9723 3
@@ -210,7 +210,7 @@ Important: because of HPC compression, the overlap span can reduce below the def
 settings need to be modified below.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile3-fwd.fasta
   > ${BIN_DIR}/pancake seeddb --use-hpc reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --use-hpc --min-map-len 0 --min-anchor-span 100 | grep "^m64030_190330_071939/102303370/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --use-hpc --min-map-len 0 --min-anchor-span 100 --out-fmt m4 | grep "^m64030_190330_071939/102303370/ccs"
   m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -5142 99.90 0 0 5145 6298 0 496 5640 5640 5
   m64030_190330_071939/102303370/ccs m64030_190330_071939/109642940/ccs -5026 99.98 0 0 5026 6298 0 1470 6497 6497 5
   m64030_190330_071939/102303370/ccs m64030_190330_071939/106038710/ccs -5008 100.00 0 1290 6298 6298 0 0 5008 6585 3
@@ -224,7 +224,7 @@ Important: because of HPC compression, the overlap span can reduce below the def
 settings need to be modified below.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile4-rev.fasta
   > ${BIN_DIR}/pancake seeddb --use-hpc reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --use-hpc --min-map-len 0 --min-anchor-span 100 | grep "^m64030_190330_071939/102172020/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --use-hpc --min-map-len 0 --min-anchor-span 100 --out-fmt m4 | grep "^m64030_190330_071939/102172020/ccs"
   m64030_190330_071939/102172020/ccs m64030_190330_071939/43124430/ccs -7275 99.99 0 0 7276 7845 1 0 7276 8160 5
   m64030_190330_071939/102172020/ccs m64030_190330_071939/30016220/ccs -6944 99.99 0 900 7845 7845 1 705 7650 7650 3
   m64030_190330_071939/102172020/ccs m64030_190330_071939/28901470/ccs -4530 99.98 0 3314 7845 7845 1 2617 7148 7148 3
@@ -238,7 +238,7 @@ Important: because of HPC compression, the overlap span can reduce below the def
 settings need to be modified below.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile3-fwd.fasta
   > ${BIN_DIR}/pancake seeddb --use-hpc reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --use-hpc --min-map-len 0 --min-anchor-span 100 --write-cigar | grep "^m64030_190330_071939/102303370/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --use-hpc --min-map-len 0 --min-anchor-span 100 --write-cigar --out-fmt m4 | grep "^m64030_190330_071939/102303370/ccs"
   m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -5142 99.90 0 0 5145 6298 0 496 5640 5640 5 221=1D649=1D296=1I169=1I167=1I3640=
   m64030_190330_071939/102303370/ccs m64030_190330_071939/109642940/ccs -5026 99.98 0 0 5026 6298 0 1470 6497 6497 5 5026=1D
   m64030_190330_071939/102303370/ccs m64030_190330_071939/106038710/ccs -5008 100.00 0 1290 6298 6298 0 0 5008 6585 3 5008=
@@ -251,7 +251,7 @@ Important: because of HPC compression, the overlap span can reduce below the def
 settings need to be modified below.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile3-fwd.fasta
   > ${BIN_DIR}/pancake seeddb --use-hpc reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --no-indels --use-hpc --min-map-len 0 --min-anchor-span 100 --write-cigar | grep "^m64030_190330_071939/102303370/ccs"
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --no-indels --use-hpc --min-map-len 0 --min-anchor-span 100 --write-cigar --out-fmt m4 | grep "^m64030_190330_071939/102303370/ccs"
   m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -5142 100.00 0 0 5145 6298 0 496 5640 5640 5 221=1D649=1D296=1I169=1I167=1I3640=
   m64030_190330_071939/102303370/ccs m64030_190330_071939/109642940/ccs -5026 100.00 0 0 5026 6298 0 1470 6497 6497 5 5026=1D
   m64030_190330_071939/102303370/ccs m64030_190330_071939/106038710/ccs -5008 100.00 0 1290 6298 6298 0 0 5008 6585 3 5008=
@@ -264,7 +264,7 @@ Note: The mismatches introduced into the fake read are all near to homopolymers,
 mistake them for an indel combination with interspersed matching bases.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile11-3_mismatches.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --min-map-len 0 --min-anchor-span 100 --write-cigar --no-snps
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --min-map-len 0 --min-anchor-span 100 --write-cigar --no-snps --out-fmt m4
   m64030_190330_071939/101844710/ccs fake_read_with_3_snps/1/ccs -4997 99.92 0 0 5000 11811 0 10000 15000 15000 5 3000=1D1=1I998=1D1=1I897=1X100=
   fake_read_with_3_snps/1/ccs m64030_190330_071939/101844710/ccs -4997 99.92 0 10000 15000 15000 0 0 5000 11811 3 3000=1I1=1D998=1I1=1D897=1X100=
 
@@ -274,6 +274,6 @@ Note: The mismatches introduced into the fake read are all near to homopolymers,
 mistake them for an indel combination with interspersed matching bases.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile11-3_mismatches.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --min-map-len 0 --min-anchor-span 100 --write-cigar --no-indels
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --min-map-len 0 --min-anchor-span 100 --write-cigar --no-indels --out-fmt m4
   m64030_190330_071939/101844710/ccs fake_read_with_3_snps/1/ccs -4997 99.98 0 0 5000 11811 0 10000 15000 15000 5 3000=1D1=1I998=1D1=1I897=1X100=
   fake_read_with_3_snps/1/ccs m64030_190330_071939/101844710/ccs -4997 99.98 0 10000 15000 15000 0 0 5000 11811 3 3000=1I1=1D998=1I1=1D897=1X100=
