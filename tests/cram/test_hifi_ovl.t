@@ -192,8 +192,8 @@ Dovetail overlap all fwd oriented, with the sensitive mode turned on.
 Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and then runs overlapping.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile3-fwd.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --out-fmt m4 | grep "^m64030_190330_071939/102303370/ccs"
-  m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -6968 99.21 0 0 6996 8602 0 656 7651 7651 5
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback | grep "^m64030_190330_071939/102303370/ccs"
+  m64030_190330_071939/102303370/ccs m64030_190330_071939/108135170/ccs -6968 99.27 0 0 6996 8602 0 656 7651 7651 5
   m64030_190330_071939/102303370/ccs m64030_190330_071939/109642940/ccs -6827 99.84 0 0 6829 8602 0 1987 8823 8823 5
   m64030_190330_071939/102303370/ccs m64030_190330_071939/106038710/ccs -6808 99.91 0 1793 8602 8602 0 0 6813 8913 3
   m64030_190330_071939/102303370/ccs m64030_190330_071939/114034050/ccs -1786 99.78 0 0 1787 8602 0 7139 8928 8928 5
@@ -272,9 +272,9 @@ Note: The mismatches introduced into the fake read are all near to homopolymers,
 mistake them for an indel combination with interspersed matching bases.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile11-3_mismatches.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
-  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --min-map-len 0 --min-anchor-span 100 --write-cigar --no-snps --out-fmt m4
-  m64030_190330_071939/101844710/ccs fake_read_with_3_snps/1/ccs -4997 99.92 0 0 5000 11811 0 10000 15000 15000 5 3000=1D1=1I998=1D1=1I897=1X100=
-  fake_read_with_3_snps/1/ccs m64030_190330_071939/101844710/ccs -4997 99.92 0 10000 15000 15000 0 0 5000 11811 3 3000=1I1=1D998=1I1=1D897=1X100=
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --min-map-len 0 --min-anchor-span 100 --write-cigar --no-snps
+  m64030_190330_071939/101844710/ccs fake_read_with_3_snps/1/ccs -4997 100.00 0 0 5000 11811 0 10000 15000 15000 5 3000=1X999=1X898=1X100=
+  fake_read_with_3_snps/1/ccs m64030_190330_071939/101844710/ccs -4997 100.00 0 10000 15000 15000 0 0 5000 11811 3 3000=1X999=1X898=1X100=
 
 Ignore indels when computing the alignment identity.
 This is a synthetic test case.
@@ -283,8 +283,8 @@ mistake them for an indel combination with interspersed matching bases.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile11-3_mismatches.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --min-map-len 0 --min-anchor-span 100 --write-cigar --no-indels --out-fmt m4
-  m64030_190330_071939/101844710/ccs fake_read_with_3_snps/1/ccs -4997 99.98 0 0 5000 11811 0 10000 15000 15000 5 3000=1D1=1I998=1D1=1I897=1X100=
-  fake_read_with_3_snps/1/ccs m64030_190330_071939/101844710/ccs -4997 99.98 0 10000 15000 15000 0 0 5000 11811 3 3000=1I1=1D998=1I1=1D897=1X100=
+  m64030_190330_071939/101844710/ccs fake_read_with_3_snps/1/ccs -4997 99.94 0 0 5000 11811 0 10000 15000 15000 5 3000=1X999=1X898=1X100=
+  fake_read_with_3_snps/1/ccs m64030_190330_071939/101844710/ccs -4997 99.94 0 10000 15000 15000 0 0 5000 11811 3 3000=1X999=1X898=1X100=
 
 #############################
 ### Test variant strings. ###
