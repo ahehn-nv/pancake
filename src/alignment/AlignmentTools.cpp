@@ -595,17 +595,29 @@ Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
 
     int32_t aVarPos = 0;
     int32_t bVarPos = 0;
+    int32_t aVarLen = queryVariants.size();
+    int32_t bVarLen = targetVariants.size();
 
     Alignment::DiffCounts diffs;
 
     for (const auto& op : cigar) {
+        int32_t opLen = op.Length();
+
         if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
             // Move down.
-            diffs.numEq += op.Length();
+            diffs.numEq += opLen;
 
         } else if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+            if ((aVarPos + opLen) > aVarLen || (bVarPos + opLen) > bVarLen) {
+                std::ostringstream oss;
+                oss << "Variant position out of bounds. CIGAR op: " << op.Length()
+                    << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen;
+                throw std::runtime_error(oss.str());
+            }
 
-            for (int32_t i = 0; i < static_cast<int32_t>(op.Length()); ++i) {
+            for (int32_t i = 0; i < opLen; ++i) {
                 const int aLower = islower(queryVariants[aVarPos]);
                 const int bLower = islower(targetVariants[bVarPos]);
 
@@ -626,50 +638,71 @@ Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
             }
 
         } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION) {
-            /*
-             * CIGAR operations are from the perspective of the A-read.
-             * Now, the A-read is the reference, so insertions and deletions should
-             * be reversed.
-            */
-            bool isMasked = false;
-            for (int32_t i = 0; i < static_cast<int32_t>(op.Length()); ++i) {
-                // Skip masked variants.
+            if ((aVarPos + opLen) > aVarLen) {
+                std::ostringstream oss;
+                oss << "Variant position out of bounds. CIGAR op: " << op.Length()
+                    << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen;
+                throw std::runtime_error(oss.str());
+            }
+
+            int32_t numMasked = 0;
+            for (int32_t i = 0; i < opLen; ++i) {
                 if (islower(queryVariants[aVarPos + i])) {
-                    isMasked = true;
-                    break;
+                    ++numMasked;
                 }
             }
-            if (isMasked == false) {
-                diffs.numI += op.Length();
+            if (numMasked > 0 && numMasked < opLen) {
+                std::ostringstream oss;
+                oss << "Some positions in an insertion variant are masked, but not all. CIGAR op: "
+                    << op.Length() << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen << ", variant = '"
+                    << queryVariants.substr(aVarPos, opLen) << "'";
+                throw std::runtime_error(oss.str());
             }
-            aVarPos += op.Length();
+            if (numMasked == 0) {
+                diffs.numI += opLen;
+            }
+            aVarPos += opLen;
 
         } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION) {
-            /*
-             * CIGAR operations are from the perspective of the A-read.
-             * Now, the A-read is the reference, so insertions and deletions should
-             * be reversed.
-            */
+            if ((bVarPos + opLen) > bVarLen) {
+                std::ostringstream oss;
+                oss << "Variant position out of bounds. CIGAR op: " << op.Length()
+                    << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen;
+                throw std::runtime_error(oss.str());
+            }
 
-            // If any of the insertion bases are masked, skip the entire event.
-            bool isMasked = false;
-            for (int32_t i = 0; i < static_cast<int32_t>(op.Length()); ++i) {
-                // Skip masked variants.
+            int32_t numMasked = 0;
+            for (int32_t i = 0; i < opLen; ++i) {
                 if (islower(targetVariants[bVarPos + i])) {
-                    isMasked = true;
-                    break;
+                    ++numMasked;
                 }
             }
-            if (isMasked == false) {
-                diffs.numD += op.Length();
+            if (numMasked > 0 && numMasked < opLen) {
+                std::ostringstream oss;
+                oss << "Some positions in an insertion variant are masked, but not all. CIGAR op: "
+                    << op.Length() << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen << ", variant = '"
+                    << targetVariants.substr(bVarPos, opLen) << "'";
+                throw std::runtime_error(oss.str());
             }
-            bVarPos += op.Length();
+            if (numMasked == 0) {
+                diffs.numD += opLen;
+            }
+            bVarPos += opLen;
 
-            // } else if (op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
-            //     // Move down.
-
-            // } else if (op.Type() == PacBio::BAM::CigarOperationType::REFERENCE_SKIP) {
-            //     // Move down.
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
+            // Do nothing.
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::REFERENCE_SKIP) {
+            // Do nothing.
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::HARD_CLIP) {
+            // Do nothing.
 
         } else {
             std::ostringstream oss;
