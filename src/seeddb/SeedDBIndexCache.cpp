@@ -4,6 +4,7 @@
 #include <pacbio/seqdb/Util.h>
 #include <pbcopper/utility/StringUtils.h>
 #include <limits>
+#include <memory>
 #include <sstream>
 
 namespace PacBio {
@@ -62,19 +63,7 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
     cache->indexFilename = indexFilename;
     SplitPath(indexFilename, cache->indexParentFolder, cache->indexBasename);
 
-    char* line = NULL;
-    size_t lineLen = 0;
-    ssize_t numRead = 0;
     char buff[2000];  // Maximum string length (file names, headers).
-
-    // Helper function to do cleanup of the C-based allocs.
-    auto Cleanup = [&]() {
-        if (line) {
-            free(line);
-            line = NULL;
-            lineLen = 0;
-        }
-    };
 
     SeedDBFileLine fl;
     SeedDBSeedsLine sl;
@@ -83,18 +72,28 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
     size_t offset = 0;
     int32_t totalNumSeqs = 0;
 
-    while ((numRead = getline(&line, &lineLen, fpIn)) != -1) {
-        if (lineLen <= 0) {
-            Cleanup();
-            continue;
+    while (true) {
+        char* tmpLine = NULL;
+        size_t lineLen = 0;
+
+        /////////////////
+        // Keep these two lines tight, right next to each other.
+        ssize_t numRead = getline(&tmpLine, &lineLen, fpIn);
+        std::unique_ptr<char, decltype(std::free)*> linePtr{tmpLine, std::free};
+        /////////////////
+
+        const char* line = linePtr.get();
+
+        if (numRead == -1) {
+            break;
         }
+
         const char token = line[0];
         switch (token) {
             case 'V':
                 numReadItems = sscanf(&line[1], "%s", buff);
                 cache->version = buff;
                 if (numReadItems != 1) {
-                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 }
                 break;
@@ -109,7 +108,6 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
                 numReadItems = sscanf(&line[1], "%d %s %d %ld", &(fl.fileId), buff,
                                       &(fl.numSequences), &(fl.numBytes));
                 if (numReadItems != 4) {
-                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 }
                 fl.filename = buff;
@@ -122,11 +120,9 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
                     sscanf(&line[1], "%d %s %d %ld %ld %d %d", &(sl.seqId), buff, &(sl.fileId),
                            &(sl.fileOffset), &(sl.numBytes), &(sl.numBases), &(sl.numSeeds));
                 if (numReadItems != 7) {
-                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 }
                 if (sl.seqId != static_cast<int32_t>(cache->seedLines.size())) {
-                    Cleanup();
                     std::ostringstream oss;
                     oss << "Invalid seqId for line: '" << line
                         << "'. The actual ordinal ID of the seeds line is "
@@ -140,21 +136,17 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
                 numReadItems = sscanf(&line[1], "%d %d %d %ld", &(bl.blockId), &(bl.startSeqId),
                                       &(bl.endSeqId), &(bl.numBytes));
                 if (numReadItems != 4) {
-                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
                 }
                 cache->blockLines.emplace_back(bl);
                 break;
             default:
-                Cleanup();
                 std::ostringstream oss;
                 oss << "Unknown token found when parsing the index: " << token;
                 throw std::runtime_error(oss.str());
                 break;
         }
-        Cleanup();
     }
-    Cleanup();
     return cache;
 }
 
