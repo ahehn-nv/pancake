@@ -32,20 +32,24 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
         return ret;
     }
 
+    bandwidth = std::min(bandwidth, maxDiffs);
+
+    const int32_t maxAllowedDiffs = std::max(maxDiffs, bandwidth);
     const int32_t qlen = queryLen;
     const int32_t tlen = targetLen;
-    const int32_t zero_offset = maxDiffs + 1;
-    std::vector<int32_t> W(2 * maxDiffs + 3, MINUS_INF);    // Y for a diagonal k.
+    const int32_t zero_offset = maxAllowedDiffs + 1;
+    const int32_t rowLen = (2 * maxAllowedDiffs + 3);
+    std::vector<int32_t> W(rowLen, MINUS_INF);    // Y for a diagonal k.
     std::vector<uint64_t> B;                                // Bitmask for trimming.
     std::vector<int32_t> M;                                 // Match count.
 
     if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-        B.resize(2 * maxDiffs + 3, MINUS_INF);
-        M.resize(2 * maxDiffs + 3, MINUS_INF);
+        B.resize(rowLen, MINUS_INF);
+        M.resize(rowLen, MINUS_INF);
     }
 
     // Banding info.
-    std::vector<int32_t> u(2 * maxDiffs + 3, MINUS_INF);
+    std::vector<int32_t> u(rowLen, MINUS_INF);
     const int32_t bandTolerance = bandwidth / 2 + 1;
     int32_t minK = 0;
     int32_t maxK = 0;
