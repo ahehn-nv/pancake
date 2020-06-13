@@ -59,9 +59,12 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
         ss = std::make_shared<SESScratchSpace>();
     }
 
+    bandwidth = std::min(bandwidth, maxDiffs);
+
+    const int32_t maxAllowedDiffs = std::max(maxDiffs, bandwidth);
     const int32_t N = queryLen;                       // ss->N;
     const int32_t M = targetLen;                      // ss->M;
-    const int32_t zero_offset = maxDiffs + 1;         // ss->zero_offset;
+    const int32_t zero_offset = maxAllowedDiffs + 1;         // ss->zero_offset;
     const int32_t bandTolerance = bandwidth / 2 + 1;  // ss->bandTolerance;
     int32_t lastK = 0;                                // ss->lastK;
     int32_t lastD = 0;
@@ -74,7 +77,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
     auto& alnPath = ss->alnPath;  // Alignment path during traceback.
     auto& dStart = ss->dStart;    // Start of each diff's row in the v2 vector.
 
-    const int32_t rowLen = (2 * maxDiffs + 3);
+    const int32_t rowLen = (2 * maxAllowedDiffs + 3);
 
     if (rowLen > static_cast<int32_t>(v.capacity())) {
         v.resize(rowLen, 0);
@@ -84,8 +87,8 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
     }
     // clang-format off
     if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-        if ((rowLen * maxDiffs) > static_cast<int32_t>(v2.capacity())) {
-            v2.resize(rowLen * maxDiffs);
+        if ((rowLen * maxAllowedDiffs) > static_cast<int32_t>(v2.capacity())) {
+            v2.resize(rowLen * maxAllowedDiffs);
         }
     }
     // clang-format on
