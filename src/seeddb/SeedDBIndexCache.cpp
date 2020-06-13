@@ -93,8 +93,10 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
             case 'V':
                 numReadItems = sscanf(&line[1], "%s", buff);
                 cache->version = buff;
-                if (numReadItems != 1)
+                if (numReadItems != 1) {
+                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                }
                 break;
             case 'P':
                 // Find the first non-whitespace character.
@@ -106,8 +108,10 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
             case 'F':
                 numReadItems = sscanf(&line[1], "%d %s %d %ld", &(fl.fileId), buff,
                                       &(fl.numSequences), &(fl.numBytes));
-                if (numReadItems != 4)
+                if (numReadItems != 4) {
+                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                }
                 fl.filename = buff;
                 cache->fileLines.emplace_back(fl);
                 totalNumSeqs += fl.numSequences;
@@ -117,9 +121,12 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
                 numReadItems =
                     sscanf(&line[1], "%d %s %d %ld %ld %d %d", &(sl.seqId), buff, &(sl.fileId),
                            &(sl.fileOffset), &(sl.numBytes), &(sl.numBases), &(sl.numSeeds));
-                if (numReadItems != 7)
+                if (numReadItems != 7) {
+                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                }
                 if (sl.seqId != static_cast<int32_t>(cache->seedLines.size())) {
+                    Cleanup();
                     std::ostringstream oss;
                     oss << "Invalid seqId for line: '" << line
                         << "'. The actual ordinal ID of the seeds line is "
@@ -132,11 +139,14 @@ std::unique_ptr<PacBio::Pancake::SeedDBIndexCache> LoadSeedDBIndexCache(
             case 'B':
                 numReadItems = sscanf(&line[1], "%d %d %d %ld", &(bl.blockId), &(bl.startSeqId),
                                       &(bl.endSeqId), &(bl.numBytes));
-                if (numReadItems != 4)
+                if (numReadItems != 4) {
+                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                }
                 cache->blockLines.emplace_back(bl);
                 break;
             default:
+                Cleanup();
                 std::ostringstream oss;
                 oss << "Unknown token found when parsing the index: " << token;
                 throw std::runtime_error(oss.str());
