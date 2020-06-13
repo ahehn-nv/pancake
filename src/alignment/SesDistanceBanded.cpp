@@ -21,9 +21,13 @@ SesResults SESDistanceBanded(const char* query, size_t queryLen, const char* tar
     int32_t N = queryLen;
     int32_t M = targetLen;
 
-    int32_t zero_offset = maxDiffs + 1;
-    std::vector<int32_t> v(2 * maxDiffs + 3, 0);
-    std::vector<int32_t> u(2 * maxDiffs + 3, MINUS_INF);
+    bandwidth = std::min(bandwidth, maxDiffs);
+
+    const int32_t maxAllowedDiffs = std::max(maxDiffs, bandwidth);
+    int32_t zero_offset = maxAllowedDiffs + 1;
+    const int32_t rowLen = 2 * maxAllowedDiffs + 3;
+    std::vector<int32_t> v(rowLen, 0);
+    std::vector<int32_t> u(rowLen, MINUS_INF);
 
     int32_t bandTolerance = bandwidth / 2 + 1;
     int32_t minK = 0;
