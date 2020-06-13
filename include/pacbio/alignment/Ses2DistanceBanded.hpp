@@ -32,10 +32,9 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
         return ret;
     }
 
-    int32_t qlen = queryLen;
-    int32_t tlen = targetLen;
-
-    int32_t zero_offset = maxDiffs + 1;
+    const int32_t qlen = queryLen;
+    const int32_t tlen = targetLen;
+    const int32_t zero_offset = maxDiffs + 1;
     std::vector<int32_t> W(2 * maxDiffs + 3, MINUS_INF);    // Y for a diagonal k.
     std::vector<uint64_t> B;                                // Bitmask for trimming.
     std::vector<int32_t> M;                                 // Match count.
@@ -45,8 +44,9 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
         M.resize(2 * maxDiffs + 3, MINUS_INF);
     }
 
+    // Banding info.
     std::vector<int32_t> u(2 * maxDiffs + 3, MINUS_INF);
-    int32_t bandTolerance = bandwidth / 2 + 1;
+    const int32_t bandTolerance = bandwidth / 2 + 1;
     int32_t minK = 0;
     int32_t maxK = 0;
     int32_t best_u = 0;
@@ -64,12 +64,12 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
             break;
         }
 
+        W[zero_offset + minK - 1] = W[zero_offset + maxK + 1] = W[zero_offset + maxK + 0] = -1;
+
         int32_t ym = MINUS_INF;
         int32_t yc = MINUS_INF;
         int32_t yp = -1;
         int32_t y = MINUS_INF;
-
-        W[zero_offset + minK - 1] = W[zero_offset + maxK + 1] = W[zero_offset + maxK + 0] = MINUS_INF;
 
         for (int32_t k = (minK); k <= (maxK); ++k) {
             int32_t kz = k + zero_offset;
@@ -80,31 +80,30 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
 
             int32_t maxY = std::max(yc, std::max(ym, yp));
 
-            if (ym == maxY || yc >= tlen) {
-                y = ym;
-                if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-                    m = M[kz - 1];
-                    b = B[kz - 1];
-                }
-            } else if (yp == maxY) {
-                y = yp + 1; // Unlike 1986 paper, here we update y instead of x, so the +1 goes to the move to right (yp) instead of down (ym).
-                if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-                    m = M[kz + 1];
-                    b = B[kz + 1];
-                }
-            } else {
+            if (yc == maxY && yc < tlen) {
                 y = yc + 1;
+                // clang-format off
                 if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
                     m = M[kz];
                     b = B[kz];
                 }
-            }
-
-            if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-                if ((b & MASKC) != 0) {
-                    --m;
+                // clang-format on
+            } else if (k == minK || (k != maxK && yp == maxY) || yc >= tlen) {
+                y = yp + 1; // Unlike 1986 paper, here we update y instead of x, so the +1 goes to the move to right (yp) instead of down (ym).
+                // clang-format off
+                if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
+                    m = M[kz + 1];
+                    b = B[kz + 1];
                 }
-                b <<= 1;
+                // clang-format on
+            } else {
+                y = ym;
+                // clang-format off
+                if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
+                    m = M[kz - 1];
+                    b = B[kz - 1];
+                }
+                // clang-format on
             }
 
             int32_t x = y + k;
