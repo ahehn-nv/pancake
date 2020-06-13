@@ -38,12 +38,15 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
         ss = std::make_shared<SESScratchSpace>();
     }
 
+    bandwidth = std::min(bandwidth, maxDiffs);
+
     // Define the required variables.
+    const int32_t maxAllowedDiffs = std::max(maxDiffs, bandwidth);
     const int32_t qlen = queryLen;
     const int32_t tlen = targetLen;
-    const int32_t zero_offset = maxDiffs + 1;
+    const int32_t zero_offset = maxAllowedDiffs + 1;
     const int32_t bandTolerance = bandwidth / 2 + 1;
-    const int32_t rowLen = (2 * maxDiffs + 3);
+    const int32_t rowLen = (2 * maxAllowedDiffs + 3);
 
     // Working space for regular alignment (without traceback).
     auto& W = ss->v;                                        // Y for a diagonal k. 'W' is taken from the pseudocode. Working row.
@@ -80,8 +83,8 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
     }
     // Allocate the memory for trimming.
     if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-        B.resize(2 * maxDiffs + 3, MINUS_INF);
-        M.resize(2 * maxDiffs + 3, MINUS_INF);
+        B.resize(rowLen, MINUS_INF);
+        M.resize(rowLen, MINUS_INF);
     }
     // Allocate memory for traceback.
     // clang-format off
