@@ -66,19 +66,25 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
             case 'V':
                 numReadItems = sscanf(&line[1], "%s", buff);
                 cache->version = buff;
-                if (numReadItems != 1)
+                if (numReadItems != 1) {
+                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                }
                 break;
             case 'C':
                 numReadItems = sscanf(&line[1], "%d", &(cache->compressionLevel));
-                if (numReadItems != 1)
+                if (numReadItems != 1) {
+                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                }
                 break;
             case 'F':
                 numReadItems = sscanf(&line[1], "%d %s %d %ld %ld", &(fl.fileId), buff,
                                       &(fl.numSequences), &(fl.numBytes), &(fl.numCompressedBases));
-                if (numReadItems != 5)
+                if (numReadItems != 5) {
+                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                }
                 fl.filename = buff;
                 cache->fileLines.emplace_back(fl);
                 totalNumSeqs += fl.numSequences;
@@ -88,9 +94,12 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
                 numReadItems = sscanf(&line[1], "%d %s %d %ld %d %d %d%n", &(sl.seqId), buff,
                                       &(sl.fileId), &(sl.fileOffset), &(sl.numBytes),
                                       &(sl.numBases), &(numRanges), &readOffset);
-                if (numReadItems != 7)
+                if (numReadItems != 7) {
+                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                }
                 if (sl.seqId != static_cast<int32_t>(cache->seqLines.size())) {
+                    Cleanup();
                     std::ostringstream oss;
                     oss << "Invalid seqId for line: '" << line
                         << "'. The actual ordinal ID of the sequence line is "
@@ -103,9 +112,11 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
                 for (int32_t i = 0; i < numRanges; ++i) {
                     Range r;
                     numReadItems = sscanf(&line[offset], "%d %d%n", &r.start, &r.end, &readOffset);
-                    if (numReadItems != 2)
+                    if (numReadItems != 2) {
+                        Cleanup();
                         throw std::runtime_error("Problem parsing line: '" + std::string(line) +
                                                  "'.");
+                    }
                     offset += readOffset + 1;
                     sl.ranges.emplace_back(r);
                 }
@@ -114,11 +125,14 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> LoadSeqDBIndexCache(
             case 'B':
                 numReadItems = sscanf(&line[1], "%d %d %d %ld %ld", &(bl.blockId), &(bl.startSeqId),
                                       &(bl.endSeqId), &(bl.numBytes), &(bl.numBases));
-                if (numReadItems != 5)
+                if (numReadItems != 5) {
+                    Cleanup();
                     throw std::runtime_error("Problem parsing line: '" + std::string(line) + "'.");
+                }
                 cache->blockLines.emplace_back(bl);
                 break;
             default:
+                Cleanup();
                 std::ostringstream oss;
                 oss << "Unknown token found when parsing the index: " << line[0];
                 throw std::runtime_error(oss.str());
