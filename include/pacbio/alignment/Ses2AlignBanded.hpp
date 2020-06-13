@@ -115,15 +115,11 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
         }
         // clang-format on
 
-        W[zero_offset + minK - 1] = W[zero_offset + maxK + 1] = W[zero_offset + maxK + 0] = -1; //  MINUS_INF;
+        W[zero_offset + minK - 1] = W[zero_offset + maxK + 1] = W[zero_offset + maxK + 0] = -1;
 
-        // int32_t ym = -1; // MINUS_INF;
-        // int32_t yc = -1; // MINUS_INF;
-        // int32_t yp = W[zero_offset + minK + 1];
-        // int32_t y = -1; // MINUS_INF;
         int32_t ym = MINUS_INF;
         int32_t yc = MINUS_INF;
-        int32_t yp = -1; // W[zero_offset + minK + 1];
+        int32_t yp = -1;
         int32_t y = MINUS_INF;
 
 #ifdef SES2_DEBUG
@@ -177,7 +173,6 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
                 }
                 // clang-format on
             } else {
-            // } else if (k == maxK || (k != minK && ym == maxY)) {
                 y = ym;
                 // clang-format off
                 if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
@@ -191,85 +186,7 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
                     b = B[kz - 1];
                 }
                 // clang-format on
-            // } else {
             }
-
-            // if (k == minK || (k != maxK && yp == maxY) || yc >= tlen) {
-            //     y = yp + 1; // Unlike 1986 paper, here we update y instead of x, so the +1 goes to the move to right (yp) instead of down (ym).
-            //     // clang-format off
-            //     if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-            //         prevK = k + 1;
-            //         std::cerr << ": (yp) y = yp + 1 = " << y << ", prevK = " << prevK;
-            //     }
-            //     if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-            //         m = M[kz + 1];
-            //         b = B[kz + 1];
-            //     }
-            //     // clang-format on
-            // } else if (k == maxK || (k != minK && ym == maxY)) {
-            //     y = ym;
-            //     // clang-format off
-            //     if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-            //         prevK = k - 1;
-            //         std::cerr << ": (ym) y = ym = " << y << ", prevK = " << prevK;
-            //     }
-            //     if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-            //         m = M[kz - 1];
-            //         b = B[kz - 1];
-            //     }
-            //     // clang-format on
-            // } else {
-            //     y = yc + 1;
-            //     // clang-format off
-            //     if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-            //         prevK = k;
-            //         std::cerr << ": (else) y = yc + 1 = " << y << ", prevK = " << prevK;
-            //     }
-            //     if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-            //         m = M[kz];
-            //         b = B[kz];
-            //     }
-            //     // clang-format on
-
-            // }
-
-            // if (k != minK && (ym == maxY || yc >= tlen)) {
-            //     y = ym;
-            //     // clang-format off
-            //     if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-            //         prevK = k - 1;
-            //         std::cerr << ": (ym) y = ym = " << y << ", prevK = " << prevK;
-            //     }
-            //     if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-            //         m = M[kz - 1];
-            //         b = B[kz - 1];
-            //     }
-            //     // clang-format on
-            // } else if (k == minK || yp == maxY) {
-            //     y = yp + 1; // Unlike 1986 paper, here we update y instead of x, so the +1 goes to the move to right (yp) instead of down (ym).
-            //     // clang-format off
-            //     if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-            //         prevK = k + 1;
-            //         std::cerr << ": (yp) y = yp + 1 = " << y << ", prevK = " << prevK;
-            //     }
-            //     if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-            //         m = M[kz + 1];
-            //         b = B[kz + 1];
-            //     }
-            //     // clang-format on
-            // } else {
-            //     y = yc + 1;
-            //     // clang-format off
-            //     if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-            //         prevK = k;
-            //         std::cerr << ": (else) y = yc + 1 = " << y << ", prevK = " << prevK;
-            //     }
-            //     if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
-            //         m = M[kz];
-            //         b = B[kz];
-            //     }
-            //     // clang-format on
-            // }
 
             // clang-format off
             if constexpr (TRIM_MODE == SESTrimmingMode::Enabled) {
@@ -449,7 +366,6 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
             const auto& currW = WMatrix[currRowStart + currK - currMinK];
             int32_t x2 = currW.x2;
             int32_t y2 = currW.x2 - currK;
-            int32_t prevK = currW.prevK;
             int32_t prevX2 = 0;
             int32_t prevY2 = 0;
 
@@ -462,105 +378,6 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
         ret.diffs = ret.numX + ret.numI + ret.numD;
 
         std::reverse(ret.cigar.begin(), ret.cigar.end());
-
-        // // for (int32_t d = 0; d <= currD; ++d) {
-        // //     std::cerr << "[d = " << d << "] ";
-        // //     for (int32_t k = dStart[d].second; k <
-        // // }
-
-        // int32_t currD = lastD;
-        // int32_t currK = lastK;
-        // int32_t numPoints = (currD + 1) * 2;
-        // int32_t currPoint = numPoints - 1;
-
-        // int32_t rowStart = currD * rowLen;
-        // while (currD > 0) {
-        //     int32_t currRowStart = dStart[currD].first;
-        //     int32_t currRowMinK = dStart[currD].second;
-        //     int32_t prevRowStart = dStart[currD - 1].first;
-        //     int32_t prevRowMinK = dStart[currD - 1].second;
-
-        //     const auto& elCurr = WMatrix[currRowStart + ((currK - currRowMinK) >> 1)];
-        //     const auto& elPrev = WMatrix[prevRowStart + ((elCurr.prevK - prevRowMinK) >> 1)];
-
-        //     int32_t y2 = elCurr.x2 - currK;
-        //     alnPath[currPoint--] = {elCurr.x2, y2};
-
-        //     int32_t yPrev = elPrev.x2 - elCurr.prevK;
-        //     if (currK > elCurr.prevK) {
-        //         alnPath[currPoint--] = {elPrev.x2 + 1, yPrev};
-        //     } else if (currK < elCurr.prevK) {
-        //         alnPath[currPoint--] = {elPrev.x2, yPrev + 1};
-        //     } else {
-        //         alnPath[currPoint--] = {elPrev.x2, yPrev};
-        //     }
-
-        //     currK = elCurr.prevK;
-        //     --currD;
-        //     rowStart -= rowLen;
-        // }
-        // // Handle the first two points separately so that the above while loop
-        // // can be iterated without one more branching.
-        // const auto& elCurr = WMatrix[dStart[currD].first + ((currK - dStart[currD].second) >> 2)];
-        // alnPath[1] = {elCurr.x2, elCurr.x2 - currK};
-        // alnPath[0] = {0, 0};
-
-        // // Convert the trace to CIGAR.
-        // ret.cigar.reserve(numPoints / 2);
-        // ret.numEq = ret.numX = ret.numI = ret.numD = 0;
-        // PacBio::BAM::CigarOperationType op = PacBio::BAM::CigarOperationType::UNKNOWN_OP;
-        // PacBio::BAM::CigarOperationType prevOp = PacBio::BAM::CigarOperationType::UNKNOWN_OP;
-        // uint32_t count = 0;
-        // uint32_t prevCount = 0;
-
-        // auto AppendToCigar = [](PacBio::BAM::Cigar& cigar, PacBio::BAM::CigarOperationType newOp, int32_t newLen)
-        // {
-        //     if (cigar.empty() || newOp != cigar.back().Type()) {
-        //         cigar.emplace_back(PacBio::BAM::CigarOperation(newOp, newLen));
-        //     } else {
-        //         cigar.back().Length(cigar.back().Length() + newLen);
-        //     }
-        // };
-
-        // for (int32_t i = 0; i < numPoints; ++i) {
-        //     std::cerr << "[alnPath i = " << i << "] x = " << alnPath[i].x << ", y = " << alnPath[i].y << "\n";
-        // }
-        // std::cerr << "\n";
-
-        // for (int32_t i = 1; i < numPoints; ++i) {
-        //     const auto& prevMove = alnPath[i - 1];
-        //     const auto& alnMove = alnPath[i];
-        //     if (prevMove.x == alnMove.x && prevMove.y == alnMove.y) {
-        //         continue;
-        //     }
-        //     // Determine the CIGAR op.
-        //     op = PacBio::BAM::CigarOperationType::UNKNOWN_OP;
-        //     count = 0;
-        //     if (prevMove.x == alnMove.x && prevMove.y != alnMove.y) {
-        //         op = PacBio::BAM::CigarOperationType::DELETION;
-        //         count = abs(alnMove.y - prevMove.y);
-        //         ret.numD += count;
-        //         AppendToCigar(ret.cigar, op, count);
-        //     } else if (prevMove.x != alnMove.x && prevMove.y == alnMove.y) {
-        //         op = PacBio::BAM::CigarOperationType::INSERTION;
-        //         count = abs(alnMove.x - prevMove.x);
-        //         ret.numI += count;
-        //         AppendToCigar(ret.cigar, op, count);
-        //     } else {
-        //         int32_t span = abs(alnMove.x - prevMove.x);
-        //         for(int32_t j = 0; j < span; ++j) {
-        //             if (query[alnMove.x - j] == target[alnMove.y - j]) {
-        //                 op = PacBio::BAM::CigarOperationType::SEQUENCE_MATCH;
-        //                 ++ret.numEq;
-        //             } else {
-        //                 op = PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH;
-        //                 ++ret.numX;
-        //             }
-        //             AppendToCigar(ret.cigar, op, 1);
-        //         }
-        //     }
-        // }
-        // ret.diffs = ret.numX + ret.numI + ret.numD;
     }
     // clang-format on
 
