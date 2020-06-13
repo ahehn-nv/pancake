@@ -3,6 +3,7 @@
 #include <pacbio/alignment/AlignmentTools.h>
 
 #include <array>
+#include <cstring>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -183,6 +184,590 @@ PacBio::BAM::Cigar ExpandMismatches(const char* query, int64_t queryLen, const c
         AppendToCigar(ret, cigar[i].Type(), cigar[i].Length());
     }
     return ret;
+}
+
+void ValidateCigar(const char* query, int64_t queryLen, const char* target, int64_t targetLen,
+                   const PacBio::BAM::Cigar& cigar, const std::string& label)
+{
+    int64_t queryPos = 0;
+    int64_t targetPos = 0;
+    int32_t numCigarOps = cigar.size();
+
+    for (int32_t i = 0; i < numCigarOps; ++i) {
+        const auto& op = cigar[i];
+
+        if (queryPos > queryLen || targetPos > targetLen) {
+            std::ostringstream oss;
+            oss << "Invalid CIGAR string (global): "
+                << "coordinates out of bounds! "
+                << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+            throw std::runtime_error(oss.str());
+        }
+
+        if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
+            if ((queryPos + op.Length()) > queryLen || (targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (SEQUENCE_MATCH): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+            if (strncmp(query + queryPos, target + targetPos, op.Length()) != 0) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (SEQUENCE_MATCH): "
+                    << "sequences are not equal even though they are delimited by a SEQUENCE_MATCH "
+                       "operation! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+            queryPos += op.Length();
+            targetPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+            if ((queryPos + op.Length()) > queryLen || (targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (SEQUENCE_MISMATCH): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+
+            for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                if (query[queryPos + pos] == target[targetPos + pos]) {
+                    std::ostringstream oss;
+                    oss << "Invalid CIGAR string (SEQUENCE_MISMATCH): "
+                        << "sequences are equal even though they are delimited by a "
+                           "SEQUENCE_MISMATCH operation! "
+                        << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                        << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                        << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                        << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    throw std::runtime_error(oss.str());
+                }
+            }
+            queryPos += op.Length();
+            targetPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION ||
+                   op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
+            if ((queryPos + op.Length()) > queryLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (INSERTION): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+            queryPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION ||
+                   op.Type() == PacBio::BAM::CigarOperationType::REFERENCE_SKIP) {
+            if ((targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (DELETION): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                throw std::runtime_error(oss.str());
+            }
+            targetPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::HARD_CLIP) {
+            // Do nothing.
+        } else {
+            std::ostringstream oss;
+            oss << "CIGAR operation '" << op.TypeToChar(op.Type())
+                << "' not supported by the validation function.";
+            throw std::runtime_error(oss.str());
+        }
+    }
+}
+
+void ExtractVariantString(const char* query, int64_t queryLen, const char* target,
+                          int64_t targetLen, const PacBio::BAM::Cigar& cigar, bool maskHomopolymers,
+                          bool maskSimpleRepeats, std::string& retQueryVariants,
+                          std::string& retTargetVariants, Alignment::DiffCounts& retDiffsPerBase,
+                          Alignment::DiffCounts& retDiffsPerEvent)
+{
+    int64_t queryPos = 0;
+    int64_t targetPos = 0;
+    int32_t numCigarOps = cigar.size();
+
+    int32_t varStrQuerySize = 0;
+    int32_t varStrTargetSize = 0;
+    for (int32_t i = 0; i < numCigarOps; ++i) {
+        const auto& op = cigar[i];
+        if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+            varStrQuerySize += op.Length();
+            varStrTargetSize += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION) {
+            varStrQuerySize += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION) {
+            varStrTargetSize += op.Length();
+        }
+    }
+
+    std::string varStrQuery(varStrQuerySize, '0');
+    std::string varStrTarget(varStrTargetSize, '0');
+    int32_t varStrQueryPos = 0;
+    int32_t varStrTargetPos = 0;
+    Alignment::DiffCounts diffsPerBase;
+    Alignment::DiffCounts diffsPerEvent;
+
+    for (int32_t i = 0; i < numCigarOps; ++i) {
+        const auto& op = cigar[i];
+
+        if (queryPos > queryLen || targetPos > targetLen) {
+            std::ostringstream oss;
+            oss << "Invalid CIGAR string (global): "
+                << "coordinates out of bounds! "
+                << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                << ", CIGAR: " << cigar.ToStdString();
+            throw std::runtime_error(oss.str());
+        }
+
+        if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
+            // If it's a match, just move down the sequences.
+            // Sanity check.
+            if ((queryPos + op.Length()) > queryLen || (targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (SEQUENCE_MATCH): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString();
+                throw std::runtime_error(oss.str());
+            }
+            // Compute diffs.
+            diffsPerBase.numEq += op.Length();
+            diffsPerEvent.numEq += op.Length();
+            // Move down.
+            queryPos += op.Length();
+            targetPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+            // For a mismatch, include both alleles.
+            // Sanity check.
+            if ((queryPos + op.Length()) > queryLen || (targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (SEQUENCE_MISMATCH): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString();
+                throw std::runtime_error(oss.str());
+            }
+
+            // Store the target allele first, then the query allele.
+            for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                varStrTarget[varStrTargetPos + pos] = target[targetPos + pos];
+                varStrQuery[varStrQueryPos + pos] = query[queryPos + pos];
+            }
+            varStrQueryPos += op.Length();
+            varStrTargetPos += op.Length();
+
+            // Compute diffs.
+            diffsPerBase.numX += op.Length();
+            diffsPerEvent.numX += op.Length();
+            // Move down.
+            queryPos += op.Length();
+            targetPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION) {
+            // Sanity check.
+            if ((queryPos + op.Length()) > queryLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (INSERTION): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString();
+                throw std::runtime_error(oss.str());
+            }
+
+            bool isMasked = false;
+
+            if (maskHomopolymers) {
+                // All bases in the event need to be the same to be a homopolymer event.
+                int32_t baseSwitches = 0;
+                char prevBase = query[queryPos + 0];
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    if (query[queryPos + pos] != prevBase) {
+                        ++baseSwitches;
+                        prevBase = query[queryPos + pos];
+                    }
+                }
+                // Check if the current event bases are the same as the previous/next base
+                // in either query or target to call it homopolymer.
+                if (baseSwitches == 0 &&
+                    ((queryPos > 0 && query[queryPos - 1] == prevBase) ||
+                     ((queryPos + 1) < queryLen && query[queryPos + 1] == prevBase) ||
+                     (target[targetPos] == prevBase) ||
+                     ((targetPos + 1) < targetLen && target[targetPos + 1] == prevBase))) {
+                    isMasked = true;
+                }
+            }
+
+            // Check if the indel is exactly the same as preceding or following bases in
+            // either query or target.
+            if (maskSimpleRepeats && isMasked == false && op.Length() > 1) {
+                if (queryPos >= op.Length() &&
+                    strncmp(query + queryPos - op.Length(), query + queryPos, op.Length()) == 0) {
+                    isMasked = true;
+                } else if ((queryPos + 2 * op.Length()) <= queryLen &&
+                           strncmp(query + queryPos, query + queryPos + op.Length(), op.Length()) ==
+                               0) {
+                    isMasked = true;
+                } else if (targetPos >= op.Length() &&
+                           strncmp(target + targetPos - op.Length(), query + queryPos,
+                                   op.Length()) == 0) {
+                    isMasked = true;
+                } else if ((targetPos + op.Length()) <= targetLen &&
+                           strncmp(query + queryPos, target + targetPos, op.Length()) == 0) {
+                    // Note: using "(targetPos + op.Length()) <= targetLen" instead of "(targetPos + 2 * op.Length()) <= targetLen"
+                    // because the bases don't exist in the target so we need to start at the current position.
+                    isMasked = true;
+                }
+            }
+
+            // Add the query (insertion) bases.
+            if (isMasked) {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrQuery[varStrQueryPos + pos] = std::tolower(query[queryPos + pos]);
+                }
+            } else {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrQuery[varStrQueryPos + pos] = query[queryPos + pos];
+                }
+                // Compute diffs.
+                diffsPerBase.numI += op.Length();
+                ++diffsPerEvent.numI;
+            }
+            varStrQueryPos += op.Length();
+
+            // Move down.
+            queryPos += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION) {
+            // Sanity check.
+            if ((targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (DELETION): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString();
+                throw std::runtime_error(oss.str());
+            }
+
+            bool isMasked = false;
+
+            if (maskHomopolymers) {
+                // All bases in the event need to be the same to be a homopolymer event.
+                int32_t baseSwitches = 0;
+                char prevBase = target[targetPos + 0];
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    if (target[targetPos + pos] != prevBase) {
+                        ++baseSwitches;
+                        prevBase = target[targetPos + pos];
+                    }
+                }
+                // Check if the current event bases are the same as the previous/next base
+                // in either query or target to call it homopolymer.
+                if (baseSwitches == 0 &&
+                    ((targetPos > 0 && target[targetPos - 1] == prevBase) ||
+                     ((targetPos + 1) < targetLen && target[targetPos + 1] == prevBase) ||
+                     (query[queryPos] == prevBase) ||
+                     ((queryPos + 1) < queryLen && query[queryPos + 1] == prevBase))) {
+                    isMasked = true;
+                }
+            }
+
+            // Check if the indel is exactly the same as preceding or following bases in
+            // either query or target.
+            if (maskSimpleRepeats && isMasked == false && op.Length() > 1) {
+                if (targetPos >= op.Length() &&
+                    strncmp(target + targetPos - op.Length(), target + targetPos, op.Length()) ==
+                        0) {
+                    isMasked = true;
+                } else if ((targetPos + 2 * op.Length()) <= targetLen &&
+                           strncmp(target + targetPos, target + targetPos + op.Length(),
+                                   op.Length()) == 0) {
+                    isMasked = true;
+                } else if (queryPos >= op.Length() &&
+                           strncmp(query + queryPos - op.Length(), target + targetPos,
+                                   op.Length()) == 0) {
+                    isMasked = true;
+                } else if ((queryPos + op.Length()) <= queryLen &&
+                           strncmp(query + queryPos, target + targetPos, op.Length()) == 0) {
+                    // Note: using "(queryPos + op.Length()) <= queryLen" instead of "(queryPos + 2 * op.Length()) <= queryLen"
+                    // because the bases don't exist in the query so we need to start at the current position.
+                    isMasked = true;
+                }
+            }
+
+            // Add the target (deletion) bases.
+            if (isMasked) {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrTarget[varStrTargetPos + pos] = std::tolower(target[targetPos + pos]);
+                }
+            } else {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrTarget[varStrTargetPos + pos] = target[targetPos + pos];
+                }
+                // Compute diffs.
+                diffsPerBase.numD += op.Length();
+                ++diffsPerEvent.numD;
+            }
+            varStrTargetPos += op.Length();
+
+            // Move down.
+            targetPos += op.Length();
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
+            // Sanity check.
+            if ((queryPos + op.Length()) > queryLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (SOFT_CLIP): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString();
+                throw std::runtime_error(oss.str());
+            }
+
+            // Move down.
+            queryPos += op.Length();
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::REFERENCE_SKIP) {
+            // Sanity check.
+            if ((targetPos + op.Length()) > targetLen) {
+                std::ostringstream oss;
+                oss << "Invalid CIGAR string (REFERENCE_SKIP): "
+                    << "coordinates out of bounds! "
+                    << "queryPos = " << queryPos << ", targetPos = " << targetPos
+                    << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
+                    << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+                    << ", CIGAR: " << cigar.ToStdString();
+                throw std::runtime_error(oss.str());
+            }
+
+            // Move down.
+            targetPos += op.Length();
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::HARD_CLIP) {
+            // Do nothing.
+
+        } else {
+            std::ostringstream oss;
+            oss << "CIGAR operation '" << op.TypeToChar(op.Type())
+                << "' not supported by ExtractVariantString function.";
+            throw std::runtime_error(oss.str());
+        }
+    }
+
+    std::swap(retQueryVariants, varStrQuery);
+    std::swap(retTargetVariants, varStrTarget);
+    std::swap(retDiffsPerBase, diffsPerBase);
+    std::swap(retDiffsPerEvent, diffsPerEvent);
+}
+
+Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
+                                        const std::string& queryVariants,
+                                        const std::string& targetVariants)
+{
+
+    int32_t aVarPos = 0;
+    int32_t bVarPos = 0;
+    int32_t aVarLen = queryVariants.size();
+    int32_t bVarLen = targetVariants.size();
+
+    Alignment::DiffCounts diffs;
+
+    for (const auto& op : cigar) {
+        int32_t opLen = op.Length();
+
+        if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
+            // Move down.
+            diffs.numEq += opLen;
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+            if ((aVarPos + opLen) > aVarLen || (bVarPos + opLen) > bVarLen) {
+                std::ostringstream oss;
+                oss << "Variant position out of bounds. CIGAR op: " << op.Length()
+                    << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen;
+                throw std::runtime_error(oss.str());
+            }
+
+            for (int32_t i = 0; i < opLen; ++i) {
+                const int aLower = islower(queryVariants[aVarPos]);
+                const int bLower = islower(targetVariants[bVarPos]);
+
+                // Sanity check.
+                if (aLower != bLower) {
+                    std::ostringstream oss;
+                    oss << "Incorrect variant masking, variant is uppercase in one instance and "
+                           "lowercase in the other. "
+                        << ", CIGAR op: " << op.Length() << op.TypeToChar(op.Type());
+                    throw std::runtime_error(oss.str());
+                }
+                // Skip masked variants.
+                if (aLower == 0 && bLower == 0) {
+                    ++diffs.numX;
+                }
+                ++aVarPos;
+                ++bVarPos;
+            }
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION) {
+            if ((aVarPos + opLen) > aVarLen) {
+                std::ostringstream oss;
+                oss << "Variant position out of bounds. CIGAR op: " << op.Length()
+                    << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen;
+                throw std::runtime_error(oss.str());
+            }
+
+            int32_t numMasked = 0;
+            for (int32_t i = 0; i < opLen; ++i) {
+                if (islower(queryVariants[aVarPos + i])) {
+                    ++numMasked;
+                }
+            }
+            if (numMasked > 0 && numMasked < opLen) {
+                std::ostringstream oss;
+                oss << "Some positions in an insertion variant are masked, but not all. CIGAR op: "
+                    << op.Length() << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen << ", variant = '"
+                    << queryVariants.substr(aVarPos, opLen) << "'";
+                throw std::runtime_error(oss.str());
+            }
+            if (numMasked == 0) {
+                diffs.numI += opLen;
+            }
+            aVarPos += opLen;
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION) {
+            if ((bVarPos + opLen) > bVarLen) {
+                std::ostringstream oss;
+                oss << "Variant position out of bounds. CIGAR op: " << op.Length()
+                    << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen;
+                throw std::runtime_error(oss.str());
+            }
+
+            int32_t numMasked = 0;
+            for (int32_t i = 0; i < opLen; ++i) {
+                if (islower(targetVariants[bVarPos + i])) {
+                    ++numMasked;
+                }
+            }
+            if (numMasked > 0 && numMasked < opLen) {
+                std::ostringstream oss;
+                oss << "Some positions in an insertion variant are masked, but not all. CIGAR op: "
+                    << op.Length() << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
+                    << ", bVarPos = " << bVarPos << ", aVarLen = " << aVarLen
+                    << ", bVarLen = " << bVarLen << ", variant = '"
+                    << targetVariants.substr(bVarPos, opLen) << "'";
+                throw std::runtime_error(oss.str());
+            }
+            if (numMasked == 0) {
+                diffs.numD += opLen;
+            }
+            bVarPos += opLen;
+
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
+            // Do nothing.
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::REFERENCE_SKIP) {
+            // Do nothing.
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::HARD_CLIP) {
+            // Do nothing.
+
+        } else {
+            std::ostringstream oss;
+            oss << "CIGAR operation '" << op.TypeToChar(op.Type())
+                << "' not supported by the ComputeDiffCounts function.";
+            throw std::runtime_error(oss.str());
+        }
+    }
+
+    return diffs;
+}
+
+int32_t FindTargetPosFromCigar(const BAM::Cigar& cigar, int32_t queryPos)
+{
+    if (cigar.empty()) {
+        throw std::runtime_error("Empty CIGAR given to FindTargetPosFromCigar!");
+    }
+    if (queryPos < 0) {
+        std::ostringstream oss;
+        oss << "The queryPos should be >= 0, value " << queryPos
+            << " was given to FindTargetPosFromCigar.";
+        throw std::runtime_error(oss.str());
+    }
+    int32_t currQueryPos = 0;
+    int32_t currTargetPos = 0;
+    for (const auto& op : cigar) {
+        int32_t opLen = op.Length();
+        if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH ||
+            op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH ||
+            op.Type() == PacBio::BAM::CigarOperationType::ALIGNMENT_MATCH) {
+            if (queryPos < (currQueryPos + opLen)) {
+                int32_t diff = queryPos - currQueryPos;
+                return currTargetPos + diff;
+            }
+            currQueryPos += opLen;
+            currTargetPos += opLen;
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION) {
+            if (queryPos < (currQueryPos + opLen)) {
+                return currTargetPos - 1;  // By convention, insertions come after an actual base.
+            }
+            currQueryPos += opLen;
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
+            if (queryPos < (currQueryPos + opLen)) {
+                std::ostringstream oss;
+                oss << "Given query position is located in a soft clipped region! queryPos = "
+                    << queryPos << ", CIGAR: " << cigar.ToStdString();
+                throw std::runtime_error(oss.str());
+            }
+            currQueryPos += opLen;
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION ||
+                   op.Type() == PacBio::BAM::CigarOperationType::REFERENCE_SKIP) {
+            // if (queryPos < (currQueryPos + op.Length())) {
+            //     return currTargetPos;
+            // }
+            // Don't report alignment position within a deletion - wait for an actual base.
+            currTargetPos += opLen;
+        }
+    }
+
+    std::ostringstream oss;
+    oss << "Coordinate queryPos = " << queryPos
+        << " is out of bounds of the supplied CIGAR alignment: " << cigar.ToStdString();
+    throw std::runtime_error(oss.str());
+
+    return -1;
 }
 
 }  // namespace Pancake

@@ -99,6 +99,9 @@ inline std::string JoinPathWindows(std::string left, const std::string& right)
 inline std::string ReverseComplement(const std::string& seq, int64_t start, int64_t end)
 {
     int64_t seqLen = seq.size();
+    if (seqLen == 0) {
+        return {};
+    }
     if (start < 0 || end < 0 || start >= end || start > seqLen || end > seqLen) {
         std::ostringstream oss;
         oss << "Invalid start or end in a call to ReverseComplement. start = " << start
@@ -120,6 +123,9 @@ inline std::string ReverseComplement(const std::string& seq, int64_t start, int6
 
 inline std::string ReverseComplement(const char* seq, int64_t seqLen, int64_t start, int64_t end)
 {
+    if (seqLen == 0) {
+        return {};
+    }
     if (start < 0 || end < 0 || start >= end || start > seqLen || end > seqLen) {
         std::ostringstream oss;
         oss << "Invalid start or end in a call to ReverseComplement. start = " << start

@@ -3,6 +3,7 @@
 #ifndef PANCAKE_ALIGNMENT_TOOLS_H
 #define PANCAKE_ALIGNMENT_TOOLS_H
 
+#include <pacbio/alignment/DiffCounts.h>
 #include <pbbam/Cigar.h>
 #include <pbbam/CigarOperation.h>
 
@@ -22,6 +23,24 @@ void AppendToCigar(PacBio::BAM::Cigar& cigar, PacBio::BAM::CigarOperationType ne
 
 PacBio::BAM::Cigar ExpandMismatches(const char* query, int64_t queryLen, const char* target,
                                     int64_t targetLen, const PacBio::BAM::Cigar& cigar);
+
+void ValidateCigar(const char* query, int64_t queryLen, const char* target, int64_t targetLen,
+                   const PacBio::BAM::Cigar& cigar, const std::string& label);
+
+void ExtractVariantString(const char* query, int64_t queryLen, const char* target,
+                          int64_t targetLen, const PacBio::BAM::Cigar& cigar, bool maskHomopolymers,
+                          bool maskSimpleRepeats, std::string& retQueryVariants,
+                          std::string& retTargetVariants, Alignment::DiffCounts& retDiffsPerBase,
+                          Alignment::DiffCounts& retDiffsPerEvent);
+
+Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
+                                        const std::string& queryVariants,
+                                        const std::string& targetVariants);
+
+/// \brief For a given query position finds the corresponding target position based
+///         on a provided CIGAR string.
+///         Lineraly scans through all CIGAR operations to perform the mapping.
+int32_t FindTargetPosFromCigar(const BAM::Cigar& cigar, int32_t queryPos);
 
 }  // namespace Pancake
 }  // namespace PacBio
