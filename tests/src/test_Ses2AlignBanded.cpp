@@ -101,9 +101,12 @@ std::vector<TestData> testDataGlobal = {
                 * The maximum bandwidth for alignment is GOOD here (30 > 3).
                 * The output should be marked as "invalid" but also report the
                 * furthest reaching (f.r.) wave.
+                *      GGATCAGTT
+                *      |X||XX|||
+                *      GAATTCGTT
                 */
-                SesResults(4, 2, 2, 2, 0, 2, 0, false, PacBio::BAM::Cigar("1=1I1=1I")),
-                SesResults(4, 2, 2, 2, 0, 2, 0, false, PacBio::BAM::Cigar("1=1I1=1I")),
+                SesResults(5, 4, 2, 3, 1, 1, 0, false, PacBio::BAM::Cigar("1=1X2=1I")),
+                SesResults(5, 4, 2, 3, 1, 1, 0, false, PacBio::BAM::Cigar("1=1X2=1I")),
     },
 
 
@@ -172,8 +175,8 @@ std::vector<TestData> testDataGlobal = {
                 // >target len=702
                 "GGAGAGTATAGTTTTGAAACACTCTTTATTGTGGAGTCTGCAAGTGGATATTTGGCTGGATTTGAGGATTTCGTTGGAAACGGGATAAGGTATAAAAAGCAGACAGAAGCATTCTCAGCAATTTCTTTGTGATGTTTGCATTCAAGTCACAGAATTGAACATTCCCTTTCACAGAGCAGGTTTGAAACACTCTTTTTGTAGTGTCTGTAACTGGACTTTTGGAGCGCTTTCCGGCCTAAGGAGAAAAAGGACATATCTTCCATAAAAACTAGACAGAAGCATTGTCAGAAACTTACTCGTGATGTGTGTCTTCAACTGACGGAGTAGAACCTTTCTTTTGATAGAGCAGTTTTGAAACACTCTTTTTGTAGAATCTCCAAGTGGATATTTGGATAGCTTTGAGGATTTCGTTGGAAACGGGAATATCTTCATATAAAACCTAGACAGAAGCATTCTCAGAAACTTCCTTGTGATGGTTGCATTCAAGTCACGGAGTTGAACATTGGCTTTCATAGAGCAGGTTGGAAACACTCTTTTTTCCATTCCTGGAAGTGGACATTTGGAGCGCTTTGAGGCCTATGGTGAAAAAGGAAATATCTTCCCATAAAAACTAGACAGAAGCATTCTCAGAAACTTCTTTGTGATGTGTGTCCTCAACTGACAGAGTTGAACATGTCTTTTGAGAGAGCAGTTTTGAAACAC",
                 6, 110,
-                SesResults(8, 3, 5, 3, 0, 5, 0, false, PacBio::BAM::Cigar("1=3I1=1I1=1I")),
-                SesResults(8, 3, 5, 3, 0, 5, 0, false, PacBio::BAM::Cigar("1=3I1=1I1=1I")),
+                SesResults(22, 23, 5, 19, 2, 1, 2, false, PacBio::BAM::Cigar("1=1D1=1X4=1X5=1D8=1I")),
+                SesResults(22, 23, 5, 19, 2, 1, 2, false, PacBio::BAM::Cigar("1=1D1=1X4=1X5=1D8=1I")),
                 /*
                  * The max_diffs is much smaller than the given bandwidth.
                  * This tests if the memory allocation will do the right thing, otherwise AddressSanitizer will complain.
