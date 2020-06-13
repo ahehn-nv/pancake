@@ -90,8 +90,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
     }
     // clang-format on
 
-    int32_t v2Pos = 1;
-    if (ret.valid == false) {
+    int32_t v2Pos = 0;
         int32_t prevK = -1;
         int32_t x = 0;
 
@@ -184,7 +183,6 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
             minK = new_minK - 1;
             maxK = new_maxK + 1;
         }
-    }
 
     // clang-format off
     if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
