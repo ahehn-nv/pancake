@@ -64,7 +64,7 @@ Converts the input FASTA file into a SeqDB, computes the seeds using SeedDB, and
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile6-short-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --min-idt 0 reads reads 0 0 0
-  m64030_190330_071939/39060280/ccs m64030_190330_071939/101975180/ccs -1914 94.88 0 5184 7255 9907 1 0 2020 10984 u
+  m64030_190330_071939/39060280/ccs m64030_190330_071939/101975180/ccs -1929 94.36 0 5162 7255 9907 1 0 2047 10984 u
   m64030_190330_071939/101975180/ccs m64030_190330_071939/39060280/ccs -1929 94.38 0 0 2099 10984 1 5208 7255 9907 u
 
 Contained overlap.
