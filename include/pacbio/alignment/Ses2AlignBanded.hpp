@@ -78,7 +78,7 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
 
     // Allocate memory for basic alignment.
     if (rowLen > static_cast<int32_t>(W.capacity())) {
-        W.resize(rowLen, 0);
+        W.resize(rowLen, -1);
         u.resize(rowLen, MINUS_INF);
     }
     // Allocate the memory for trimming.
@@ -101,6 +101,10 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
     }
     // clang-format on
 
+    // Initialize the alignment vectors.
+    u[zero_offset] = u[zero_offset + 1] = u[zero_offset - 1] = MINUS_INF;
+    W[zero_offset] = W[zero_offset + 1] = W[zero_offset - 1] = -1;
+
     for (int32_t d = 0; d < maxDiffs; ++d) {
         ret.numDiffs = d;
         if ((maxK - minK) > bandwidth) {
@@ -119,6 +123,7 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
         // clang-format on
 
         W[zero_offset + minK - 1] = W[zero_offset + maxK + 1] = W[zero_offset + maxK + 0] = -1;
+        u[zero_offset + minK - 1] = u[zero_offset + maxK + 1] = MINUS_INF;
 
         int32_t ym = MINUS_INF;
         int32_t yc = MINUS_INF;
@@ -304,7 +309,7 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
             const auto& w = WMatrix[dStart[lastD].first + k - dStart[lastD].second];
             std::cerr << "\t{k = " << k << ", w.x2 = " << w.x2 << ", y2 = " << (w.x2 - k) << ", w.prevK = " << w.prevK << "}\n";
         }
-        // std::cerr << "\n";
+        std::cerr << "lastD = " << lastD << ", lastK = " << lastK << "\n";
         std::cerr << "\n";
 #endif
 
