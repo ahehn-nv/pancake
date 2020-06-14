@@ -116,7 +116,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
         }
         // clang-format on
 
-        ret.diffs = 0;
+        ret.numDiffs = 0;
         ret.lastQueryPos = x;
         ret.lastTargetPos = y;
         lastK = 0;
@@ -141,7 +141,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
         int32_t x = 0;
 
         for (int32_t d = 1; d < maxDiffs; ++d) {
-            ret.diffs = d;
+            ret.numDiffs = d;
             if ((maxK - minK) > bandwidth) {
                 ret.valid = false;
                 break;
@@ -263,7 +263,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
 
         // Convert the trace to CIGAR.
         ret.cigar.reserve(numPoints / 2);
-        ret.numEq = ret.numX = ret.numI = ret.numD = 0;
+        ret.diffCounts.Clear();
         PacBio::BAM::CigarOperationType op = PacBio::BAM::CigarOperationType::UNKNOWN_OP;
         PacBio::BAM::CigarOperationType prevOp = PacBio::BAM::CigarOperationType::UNKNOWN_OP;
         uint32_t count = 0;
@@ -290,9 +290,9 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
                         PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH, minLen));
                 }
                 prevCount = rightHang;
-                ret.numX += minLen;
-                ret.numD -= minLen;
-                ret.numI -= minLen;
+                ret.diffCounts.numX += minLen;
+                ret.diffCounts.numD -= minLen;
+                ret.diffCounts.numI -= minLen;
             }
             if (prevCount > 0) {
                 ret.cigar.emplace_back(PacBio::BAM::CigarOperation(prevOp, prevCount));
@@ -311,15 +311,15 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
             if (prevMove.x == alnMove.x && prevMove.y != alnMove.y) {
                 op = PacBio::BAM::CigarOperationType::DELETION;
                 count = abs(alnMove.y - prevMove.y);
-                ret.numD += count;
+                ret.diffCounts.numD += count;
             } else if (prevMove.x != alnMove.x && prevMove.y == alnMove.y) {
                 op = PacBio::BAM::CigarOperationType::INSERTION;
                 count = abs(alnMove.x - prevMove.x);
-                ret.numI += count;
+                ret.diffCounts.numI += count;
             } else {
                 op = PacBio::BAM::CigarOperationType::SEQUENCE_MATCH;
                 count = abs(alnMove.x - prevMove.x);
-                ret.numEq += count;
+                ret.diffCounts.numEq += count;
             }
             if (op != prevOp && prevOp != PacBio::BAM::CigarOperationType::UNKNOWN_OP) {
                 ConvertMismatchesAndAppend();
@@ -330,7 +330,7 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
         }
         // Add the final CIGAR operation.
         ConvertMismatchesAndAppend();
-        ret.diffs = ret.numX + ret.numI + ret.numD;
+        ret.numDiffs = ret.diffCounts.NumDiffs();
     }
     // clang-format on
 

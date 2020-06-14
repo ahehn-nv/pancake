@@ -60,8 +60,13 @@ public:
         if (span == 0.0f) {
             return;
         }
-        retEditDist = (noSNPs ? 0 : numX) + (noIndels ? 0 : (numI + numD));
-        retIdentity = ((span != 0) ? ((span - static_cast<float>(retEditDist)) / span) : -2.0f);
+        retEditDist = EditDistance(noSNPs, noIndels);
+        retIdentity = (span - static_cast<float>(retEditDist)) / span;
+    }
+
+    int32_t EditDistance(bool noSNPs, bool noIndels) const
+    {
+        return (noSNPs ? 0 : numX) + (noIndels ? 0 : (numI + numD));
     }
 };
 }
