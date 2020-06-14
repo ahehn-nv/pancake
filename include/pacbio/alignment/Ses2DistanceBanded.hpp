@@ -62,7 +62,7 @@ SesResults SES2DistanceBanded(const char* query, size_t queryLen, const char* ta
     const uint64_t MASKC = static_cast<uint64_t>(1) << (C - 1);
 
     for (int32_t d = 0; d < maxDiffs; ++d) {
-        ret.diffs = d;
+        ret.numDiffs = d;
         if ((maxK - minK) > bandwidth) {
             ret.valid = false;
             break;
