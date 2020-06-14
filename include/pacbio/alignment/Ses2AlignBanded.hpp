@@ -102,7 +102,7 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
     // clang-format on
 
     for (int32_t d = 0; d < maxDiffs; ++d) {
-        ret.diffs = d;
+        ret.numDiffs = d;
         if ((maxK - minK) > bandwidth) {
             ret.valid = false;
             break;
@@ -341,24 +341,24 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
                     AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::SEQUENCE_MATCH, matches);
                 }
                 AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::INSERTION, 1);
-                ret.numEq += matches;
-                ++ret.numI;
+                ret.diffCounts.numEq += matches;
+                ++ret.diffCounts.numI;
             } else if (currK < prevK) {
                 int32_t matches = std::min(x2 - prevX2, y2 - prevY2);
                 if (matches > 0) {
                     AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::SEQUENCE_MATCH, matches);
                 }
                 AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::DELETION, 1);
-                ret.numEq += matches;
-                ++ret.numD;
+                ret.diffCounts.numEq += matches;
+                ++ret.diffCounts.numD;
             } else {
                 int32_t matches = std::min(x2 - prevX2, y2 - prevY2) - 1;
                 if (matches > 0) {
                     AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::SEQUENCE_MATCH, matches);
                 }
                 AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH, 1);
-                ret.numEq += matches;
-                ++ret.numX;
+                ret.diffCounts.numEq += matches;
+                ++ret.diffCounts.numX;
             }
             currK = prevK;
             --currD;
@@ -376,9 +376,9 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
             if (matches > 0) {
                 AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::SEQUENCE_MATCH, matches);
             }
-            ret.numEq += matches;
+            ret.diffCounts.numEq += matches;
         }
-        ret.diffs = ret.numX + ret.numI + ret.numD;
+        ret.numDiffs = ret.diffCounts.NumDiffs();
 
         std::reverse(ret.cigar.begin(), ret.cigar.end());
     }
