@@ -20,6 +20,9 @@ namespace Pancake {
 
 // #define PANCAKE_DEBUG
 
+static const int32_t MIN_DIFFS_CAP = 10;
+static const int32_t MIN_BANDWIDTH_CAP = 10;
+
 MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                          const PacBio::Pancake::SeedIndex& index,
                          const PacBio::Pancake::FastaSequenceCached& querySeq,
@@ -44,6 +47,8 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
         return PackSeedHitWithDiagonalTo128_(a) < PackSeedHitWithDiagonalTo128_(b);
     });
     ttSortHits.Stop();
+
+    // PBLOG_INFO << "Hits: " << hits.size();
 
     TicToc ttChain;
     auto overlaps = FormDiagonalAnchors_(hits, querySeq, index.GetCache(), settings_.ChainBandwidth,
@@ -371,8 +376,11 @@ OverlapPtr Mapper::AlignOverlap_(
             tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, ovl->Brev);
         }
         const int32_t tSpan = tseq.size();
-        const int32_t dMax = ovl->Alen * alignMaxDiff;
-        const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
+        const int32_t dMax =
+            std::max(MIN_DIFFS_CAP, static_cast<int32_t>(ovl->Alen * alignMaxDiff));
+        const int32_t bandwidth =
+            std::max(MIN_BANDWIDTH_CAP,
+                     static_cast<int32_t>(std::min(ovl->Blen, ovl->Alen) * alignBandwidth));
 
         if (useTraceback) {
             sesResultRight =
@@ -419,8 +427,11 @@ OverlapPtr Mapper::AlignOverlap_(
             tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, !ret->Brev);
         }
         const int32_t tSpan = tseq.size();
-        const int32_t dMax = ovl->Alen * alignMaxDiff - sesResultRight.numDiffs;
-        const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
+        const int32_t dMax = std::max(MIN_DIFFS_CAP, static_cast<int32_t>(ovl->Alen * alignMaxDiff -
+                                                                          sesResultRight.numDiffs));
+        const int32_t bandwidth =
+            std::max(MIN_BANDWIDTH_CAP,
+                     static_cast<int32_t>(std::min(ovl->Blen, ovl->Alen) * alignBandwidth));
 
         if (useTraceback) {
             sesResultLeft =
