@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <ostream>
 
 namespace PacBio {
 namespace Pancake {
@@ -68,7 +69,15 @@ public:
     {
         return (noSNPs ? 0 : numX) + (noIndels ? 0 : (numI + numD));
     }
+
+    friend std::ostream& operator<<(std::ostream& os, const DiffCounts& r);
 };
+inline std::ostream& operator<<(std::ostream& os, const DiffCounts& a)
+{
+    os << "numEq = " << a.numEq << ", numX = " << a.numX << ", numI = " << a.numI
+       << ", numD = " << a.numD;
+    return os;
+}
 }
 }
 }
