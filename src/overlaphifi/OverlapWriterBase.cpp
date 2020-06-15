@@ -171,14 +171,27 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, co
         if (ovl->Cigar.empty()) {
             fprintf(fpOut, "\t*");
         } else {
-            std::string clipFront = (ovl->Astart > 0) ? std::to_string(ovl->Astart) + "S" : "";
-            std::string clipBack =
-                (ovl->Aend < ovl->Alen) ? std::to_string(ovl->Alen - ovl->Aend) + "S" : "";
-            fprintf(fpOut, "\t%s", clipFront.c_str());
-            for (const auto& op : ovl->Cigar) {
-                fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
+            if (ovl->Brev) {
+                std::string clipBack = (ovl->Astart > 0) ? std::to_string(ovl->Astart) + "S" : "";
+                std::string clipFront =
+                    (ovl->Aend < ovl->Alen) ? std::to_string(ovl->Alen - ovl->Aend) + "S" : "";
+                fprintf(fpOut, "\t%s", clipFront.c_str());
+                for (auto it = ovl->Cigar.rbegin(); it != ovl->Cigar.rend(); ++it) {
+                    const auto& op = *it;
+                    fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
+                }
+                fprintf(fpOut, "%s", clipBack.c_str());
+
+            } else {
+                std::string clipFront = (ovl->Astart > 0) ? std::to_string(ovl->Astart) + "S" : "";
+                std::string clipBack =
+                    (ovl->Aend < ovl->Alen) ? std::to_string(ovl->Alen - ovl->Aend) + "S" : "";
+                fprintf(fpOut, "\t%s", clipFront.c_str());
+                for (const auto& op : ovl->Cigar) {
+                    fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
+                }
+                fprintf(fpOut, "%s", clipBack.c_str());
             }
-            fprintf(fpOut, "%s", clipBack.c_str());
         }
     } else {
         fprintf(fpOut, "\t*");
