@@ -143,6 +143,8 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     auto writer = PacBio::Pancake::OverlapWriterFactory(settings.OutFormat, stdout,
                                                         settings.WriteIds, settings.WriteCigar);
 
+    writer->WriteHeader(targetSeqDBReader);
+
     const int32_t endBlockId = (settings.QueryBlockEndId <= 0) ? querySeqDBCache->blockLines.size()
                                                                : settings.QueryBlockEndId;
 

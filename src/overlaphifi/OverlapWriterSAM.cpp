@@ -17,6 +17,41 @@ OverlapWriterSAM::~OverlapWriterSAM()
     }
 }
 
+void OverlapWriterSAM::WriteHeader(const PacBio::Pancake::SeqDBReaderCached& targetSeqs)
+{
+    fprintf(fpOut_, "@HD\tVN:1.5\n");
+    if (writeIds_) {
+        char buff[100];
+        for (const auto& targetSeq : targetSeqs.records()) {
+            sprintf(buff, "%09d", static_cast<int32_t>(targetSeq.Id()));
+            fprintf(fpOut_, "@SQ\tSN:%s\tLN:%d\n", buff,
+                    static_cast<int32_t>(targetSeq.Bases().size()));
+        }
+    } else {
+        for (const auto& targetSeq : targetSeqs.records()) {
+            fprintf(fpOut_, "@SQ\tSN:%s\tLN:%d\n", targetSeq.Name().c_str(),
+                    static_cast<int32_t>(targetSeq.Bases().size()));
+        }
+    }
+}
+
+void OverlapWriterSAM::WriteHeader(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs)
+{
+    fprintf(fpOut_, "@HD\tVN:1.5\n");
+    if (writeIds_) {
+        char buff[100];
+        for (const auto& targetSeq : targetSeqs.records()) {
+            sprintf(buff, "%09d", static_cast<int32_t>(targetSeq.Id()));
+            fprintf(fpOut_, "@SQ\tSN:%s\tLN:%d\n", buff, static_cast<int32_t>(targetSeq.Size()));
+        }
+    } else {
+        for (const auto& targetSeq : targetSeqs.records()) {
+            fprintf(fpOut_, "@SQ\tSN:%s\tLN:%d\n", targetSeq.Name().c_str(),
+                    static_cast<int32_t>(targetSeq.Size()));
+        }
+    }
+}
+
 void OverlapWriterSAM::Write(const OverlapPtr& ovl,
                              const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
                              const PacBio::Pancake::FastaSequenceId& querySeq, bool isFlipped)

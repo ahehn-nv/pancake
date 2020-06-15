@@ -148,7 +148,7 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, co
     // }
 
     // The format specifies coordinates always in the FWD strand.
-    int32_t tStart = ovl->BstartFwd();
+    int32_t tStart = ovl->BstartFwd() + 1;
     int32_t tEnd = ovl->BendFwd();
     const int32_t tIsRev = ovl->Brev;
     const int32_t tLen = ovl->Blen;
@@ -171,10 +171,14 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, co
         if (ovl->Cigar.empty()) {
             fprintf(fpOut, "\t*");
         } else {
-            fprintf(fpOut, "\t");
+            std::string clipFront = (ovl->Astart > 0) ? std::to_string(ovl->Astart) + "S" : "";
+            std::string clipBack =
+                (ovl->Aend < ovl->Alen) ? std::to_string(ovl->Alen - ovl->Aend) + "S" : "";
+            fprintf(fpOut, "\t%s", clipFront.c_str());
             for (const auto& op : ovl->Cigar) {
                 fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
             }
+            fprintf(fpOut, "%s", clipBack.c_str());
         }
     } else {
         fprintf(fpOut, "\t*");

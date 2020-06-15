@@ -28,6 +28,10 @@ public:
                        const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                        const PacBio::Pancake::FastaSequenceCached& querySeq, bool isFlipped) = 0;
 
+    virtual void WriteHeader(const PacBio::Pancake::SeqDBReaderCached& targetSeqs) = 0;
+
+    virtual void WriteHeader(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs) = 0;
+
     static void PrintOverlapAsIPAOvl(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
                                      const std::string& Bname, bool writeIds, bool writeCigar);
     static void PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
