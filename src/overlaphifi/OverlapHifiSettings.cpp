@@ -234,7 +234,7 @@ R"({
 
 const CLI_v2::Option MaskSimpleRepeats{
 R"({
-    "names" : ["mask-rep"],
+    "names" : ["mask-repeats"],
     "description" : "Mask indels in simple exact repeats when traceback is generated. This will impact identity calculation.",
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::MaskSimpleRepeats};
