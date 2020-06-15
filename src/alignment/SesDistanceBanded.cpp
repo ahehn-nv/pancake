@@ -21,36 +21,20 @@ SesResults SESDistanceBanded(const char* query, size_t queryLen, const char* tar
     int32_t N = queryLen;
     int32_t M = targetLen;
 
-    int32_t zero_offset = maxDiffs + 1;
-    std::vector<int32_t> v(2 * maxDiffs + 3, MINUS_INF);
+    bandwidth = std::min(bandwidth, maxDiffs);
 
-    {  // Initialization is required. Outside of the main loop, so that the
-        // MINUS_INF trick can be used.
-        int32_t x = 0, y = 0;
-        while (x < N && y < M && query[x] == target[y]) {
-            ++x;
-            ++y;
-        }
-        v[zero_offset] = x;
-
-        ret.numDiffs = 0;
-        ret.lastQueryPos = x;
-        ret.lastTargetPos = y;
-
-        if (x >= N || y >= M) {
-            ret.valid = true;
-            return ret;
-        }
-    }
-
-    std::vector<int32_t> u(2 * maxDiffs + 3, MINUS_INF);
+    const int32_t maxAllowedDiffs = std::max(maxDiffs, bandwidth);
+    int32_t zero_offset = maxAllowedDiffs + 1;
+    const int32_t rowLen = 2 * maxAllowedDiffs + 3;
+    std::vector<int32_t> v(rowLen, 0);
+    std::vector<int32_t> u(rowLen, MINUS_INF);
 
     int32_t bandTolerance = bandwidth / 2 + 1;
-    int32_t minK = -1;
-    int32_t maxK = 1;  // +- 1 because we handled the '0' case above.
+    int32_t minK = 0;
+    int32_t maxK = 0;
     int32_t best_u = 0;
 
-    for (int32_t d = 1; d < maxDiffs; ++d) {
+    for (int32_t d = 0; d < maxDiffs; ++d) {
         ret.numDiffs = d;
         if ((maxK - minK) > bandwidth) {
             ret.valid = false;

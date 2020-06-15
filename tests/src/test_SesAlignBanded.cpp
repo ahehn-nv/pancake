@@ -15,7 +15,7 @@ TEST(SESAlignBanded_Global, NormalSmallCase_SimpleSeqWithAllDiffs)
     std::string query = "GGATCAGTT";   // GGAT-CAGTT
                                        // |X|| | |||
     std::string target = "GAATTCGTT";  // GAATTC-GTT
-    int32_t maxDiffs = 5;
+    int32_t maxDiffs = 6;
     int32_t bandwidth = 30;
     std::string cigar = "1=1I1=1D1=1D1=1I3=";
 
@@ -280,7 +280,7 @@ TEST(SESAlignBanded_Global, NormalSmallCase_MultipleMismatches)
     // Inputs.
     std::string query = "CCCC";
     std::string target = "GGGG";
-    int32_t maxDiffs = 15;
+    int32_t maxDiffs = 30;
     int32_t bandwidth = 30;
     std::string cigar = "4X";
 
@@ -313,7 +313,7 @@ TEST(SESAlignBanded_Semiglobal, NormalSmallCase_SimpleSeqWithAllDiffs)
     std::string query = "GGATCAGTT";   // GGAT-CAGTT
                                        // |X|| | |||
     std::string target = "GAATTCGTT";  // GAATTC-GTT
-    int32_t maxDiffs = 5;
+    int32_t maxDiffs = 6;
     int32_t bandwidth = 30;
     std::string cigar = "1=1I1=1D1=1D1=1I3=";
 

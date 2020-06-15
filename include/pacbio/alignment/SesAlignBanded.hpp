@@ -14,21 +14,12 @@
 #include <pbbam/CigarOperation.h>
 
 #include <pacbio/alignment/AlignmentTools.h>
+#include <pacbio/alignment/SesOptions.h>
 #include <pacbio/alignment/SesResults.h>
 
 namespace PacBio {
 namespace Pancake {
 namespace Alignment {
-
-enum class SESAlignMode {
-    Global,     // Sequences are aligned end to end.
-    Semiglobal, // No penalty at the end of the query or target.
-};
-
-enum class SESTracebackMode {
-    Disabled,
-    Enabled,
-};
 
 /// \brief Alignment function based on the O(nd) algorithm with modifications for banded alignment.
 ///         this implementation supports both global and semiglobal alignment modes, where semiglobal
@@ -68,14 +59,17 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
         ss = std::make_shared<SESScratchSpace>();
     }
 
+    bandwidth = std::min(bandwidth, maxDiffs);
+
+    const int32_t maxAllowedDiffs = std::max(maxDiffs, bandwidth);
     const int32_t N = queryLen;                       // ss->N;
     const int32_t M = targetLen;                      // ss->M;
-    const int32_t zero_offset = maxDiffs + 1;         // ss->zero_offset;
+    const int32_t zero_offset = maxAllowedDiffs + 1;         // ss->zero_offset;
     const int32_t bandTolerance = bandwidth / 2 + 1;  // ss->bandTolerance;
     int32_t lastK = 0;                                // ss->lastK;
     int32_t lastD = 0;
-    int32_t minK = -1;            // ss->minK;
-    int32_t maxK = 1;             // ss->maxK;
+    int32_t minK = 0;             // ss->minK;
+    int32_t maxK = 0;             // ss->maxK;
     int32_t best_u = 0;           // ss->best_u;
     auto& v = ss->v;              // Working row.
     auto& u = ss->u;              // Banding.
@@ -83,150 +77,114 @@ SesResults SESAlignBanded(const char* query, size_t queryLen, const char* target
     auto& alnPath = ss->alnPath;  // Alignment path during traceback.
     auto& dStart = ss->dStart;    // Start of each diff's row in the v2 vector.
 
-    const int32_t rowLen = (2 * maxDiffs + 3);
+    const int32_t rowLen = (2 * maxAllowedDiffs + 3);
 
     if (rowLen > static_cast<int32_t>(v.capacity())) {
-        v.resize(rowLen, MINUS_INF);
+        v.resize(rowLen, 0);
         u.resize(rowLen, MINUS_INF);
         dStart.resize(rowLen, {0, 0});
         ss->alnPath.resize(rowLen);
     }
     // clang-format off
     if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-        if ((rowLen * maxDiffs) > static_cast<int32_t>(v2.capacity())) {
-            v2.resize(rowLen * maxDiffs);
+        if ((rowLen * maxAllowedDiffs) > static_cast<int32_t>(v2.capacity())) {
+            v2.resize(rowLen * maxAllowedDiffs);
         }
     }
     // clang-format on
 
-    // Initialization is required. Outside of the main loop, so that the
-    // MINUS_INF trick can be used.
-    {
-        int32_t x = 0, y = 0;
-        while (x < N && y < M && query[x] == target[y]) {
-            ++x;
-            ++y;
+    int32_t v2Pos = 0;
+    int32_t prevK = -1;
+    int32_t x = 0;
+
+    v[zero_offset + 1] = 0;
+
+    for (int32_t d = 0; d < maxDiffs; ++d) {
+        ret.numDiffs = d;
+        if ((maxK - minK) > bandwidth) {
+            ret.valid = false;
+            break;
         }
-        v[zero_offset] = x;
 
         // clang-format off
         if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-            v2[0] = {x, -1};
-            dStart[0] = {0, -1};
+            // Location where to store the traceback info.
+            dStart[d] = {v2Pos, minK};
         }
         // clang-format on
 
-        ret.numDiffs = 0;
-        ret.lastQueryPos = x;
-        ret.lastTargetPos = y;
-        lastK = 0;
-        lastD = 0;
-
-        // clang-format off
-        if constexpr(ALIGN_MODE == SESAlignMode::Global) {
-            if (x >= N && y >= M) {
-                ret.valid = true;
+        for (int32_t k = minK; k <= maxK; k += 2) {
+            int32_t kz = k + zero_offset;
+            if (k == minK || (k != maxK && v[kz - 1] < v[kz + 1])) {
+                x = v[kz + 1];
+                // clang-format off
+                if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
+                    prevK = k + 1;
+                }
+                // clang-format on
+            } else {
+                x = v[kz - 1] + 1;
+                // clang-format off
+                if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
+                    prevK = k - 1;
+                }
+                // clang-format on
             }
-        } else {
-            if (x >= N || y >= M) {
-                ret.valid = true;
-            }
-        }
-        // clang-format on
-    }
 
-    int32_t v2Pos = 1;
-    if (ret.valid == false) {
-        int32_t prevK = -1;
-        int32_t x = 0;
-
-        for (int32_t d = 1; d < maxDiffs; ++d) {
-            ret.numDiffs = d;
-            if ((maxK - minK) > bandwidth) {
-                ret.valid = false;
-                break;
+            int32_t y = x - k;
+            while (x < N && y < M && query[x] == target[y]) {
+                ++x;
+                ++y;
             }
+            v[kz] = x;
+            u[kz] = x + y;
 
             // clang-format off
             if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-                // Location where to store the traceback info.
-                dStart[d] = {v2Pos, minK};
+                v2[v2Pos] = {x, prevK};
+                ++v2Pos;
             }
             // clang-format on
 
-            for (int32_t k = minK; k <= maxK; k += 2) {
-                int32_t kz = k + zero_offset;
-                if (k == minK || (k != maxK && v[kz - 1] < v[kz + 1])) {
-                    x = v[kz + 1];
-                    // clang-format off
-                    if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-                        prevK = k + 1;
-                    }
-                    // clang-format on
-                } else {
-                    x = v[kz - 1] + 1;
-                    // clang-format off
-                    if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-                        prevK = k - 1;
-                    }
-                    // clang-format on
-                }
+            ret.lastQueryPos = x;
+            ret.lastTargetPos = y;
+            lastK = k;
+            lastD = d;
 
-                int32_t y = x - k;
-                while (x < N && y < M && query[x] == target[y]) {
-                    ++x;
-                    ++y;
-                }
-                v[kz] = x;
-                u[kz] = x + y;
-
-                // clang-format off
-                if constexpr (TRACEBACK == SESTracebackMode::Enabled) {
-                    v2[v2Pos] = {x, prevK};
-                    ++v2Pos;
-                }
-                // clang-format on
-
-                ret.lastQueryPos = x;
-                ret.lastTargetPos = y;
-                lastK = k;
-                lastD = d;
-
-                if (best_u <= u[kz]) {
-                    best_u = u[kz];
-                }
-
-                // clang-format off
-                if constexpr(ALIGN_MODE == SESAlignMode::Global) {
-                    if (x >= N && y >= M) {
-                        ret.valid = true;
-                        break;
-                    }
-                } else {
-                    if (x >= N || y >= M) {
-                        ret.valid = true;
-                        break;
-                    }
-                }
-                // clang-format on
+            if (best_u <= u[kz]) {
+                best_u = u[kz];
             }
 
-            if (ret.valid) {
-                break;
-            }
-
-            int32_t new_minK = maxK;
-            int32_t new_maxK = minK;
-            for (int32_t k1 = minK; k1 <= maxK; k1 += 2) {
-                // Is there a bug here? Should this also have '&& u[k + zero_offset] <= (best_u + bandTolerance'?
-                if (u[k1 + zero_offset] >= (best_u - bandTolerance)) {
-                    new_minK = std::min(k1, new_minK);
-                    new_maxK = std::max(k1, new_maxK);
+            // clang-format off
+            if constexpr(ALIGN_MODE == SESAlignMode::Global) {
+                if (x >= N && y >= M) {
+                    ret.valid = true;
+                    break;
+                }
+            } else {
+                if (x >= N || y >= M) {
+                    ret.valid = true;
+                    break;
                 }
             }
-            minK = new_minK - 1;
-            maxK = new_maxK + 1;
+            // clang-format on
         }
+
+        if (ret.valid) {
+            break;
+        }
+
+        int32_t new_minK = maxK;
+        int32_t new_maxK = minK;
+        for (int32_t k1 = minK; k1 <= maxK; k1 += 2) {
+            // Is there a bug here? Should this also have '&& u[k + zero_offset] <= (best_u + bandTolerance'?
+            if (u[k1 + zero_offset] >= (best_u - bandTolerance)) {
+                new_minK = std::min(k1, new_minK);
+                new_maxK = std::max(k1, new_maxK);
+            }
+        }
+        minK = new_minK - 1;
+        maxK = new_maxK + 1;
     }
 
     // clang-format off

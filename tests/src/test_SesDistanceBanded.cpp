@@ -180,7 +180,7 @@ TEST(SesDistanceBanded, SesDistasnceBanded_AboveMaxDiffs)
     int32_t bandwidth = 30;
 
     // Order of elements in SesResult: lastQueryPos, lastTargetPos, diffs, minK, maxK, valid
-    PacBio::Pancake::Alignment::SesResults expected = {4, 4, 2, false};
+    PacBio::Pancake::Alignment::SesResults expected = {3, 2, 2, false};
 
     // Run.
     PacBio::Pancake::Alignment::SesResults result = PacBio::Pancake::Alignment::SESDistanceBanded(

@@ -13,6 +13,8 @@
 #include <pbcopper/third-party/edlib.h>
 #include <algorithm>
 #include <iostream>
+#include <pacbio/alignment/Ses2AlignBanded.hpp>
+#include <pacbio/alignment/Ses2DistanceBanded.hpp>
 #include <pacbio/alignment/SesAlignBanded.hpp>
 #include <sstream>
 
@@ -21,6 +23,26 @@ namespace Pancake {
 
 // #define PANCAKE_DEBUG
 // #define PANCAKE_DEBUG_ALN
+
+auto AlignWithTraceback(const char* query, size_t queryLen, const char* target, size_t targetLen,
+                        int32_t maxDiffs, int32_t bandwidth,
+                        std::shared_ptr<Alignment::SESScratchSpace> ss = nullptr)
+{
+    return Alignment::SES2AlignBanded<Alignment::SESAlignMode::Semiglobal,
+                                      Alignment::SESTrimmingMode::Disabled,
+                                      Alignment::SESTracebackMode::Enabled>(
+        query, queryLen, target, targetLen, maxDiffs, bandwidth, ss);
+}
+
+auto AlignNoTraceback(const char* query, size_t queryLen, const char* target, size_t targetLen,
+                      int32_t maxDiffs, int32_t bandwidth,
+                      std::shared_ptr<Alignment::SESScratchSpace> ss = nullptr)
+{
+    return Alignment::SES2AlignBanded<Alignment::SESAlignMode::Semiglobal,
+                                      Alignment::SESTrimmingMode::Disabled,
+                                      Alignment::SESTracebackMode::Disabled>(
+        query, queryLen, target, targetLen, maxDiffs, bandwidth, ss);
+}
 
 static const int32_t MIN_DIFFS_CAP = 10;
 static const int32_t MIN_BANDWIDTH_CAP = 10;
@@ -438,14 +460,11 @@ OverlapPtr Mapper::AlignOverlap_(
                      static_cast<int32_t>(std::min(ovl->Blen, ovl->Alen) * alignBandwidth));
 
         if (useTraceback) {
-            sesResultRight =
-                PacBio::Pancake::Alignment::SESAlignBanded<Alignment::SESAlignMode::Semiglobal,
-                                                           Alignment::SESTracebackMode::Enabled>(
-                    querySeq.Bases() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth,
-                    sesScratch);
+            sesResultRight = AlignWithTraceback(querySeq.Bases() + qStart, qSpan, tseq.c_str(),
+                                                tSpan, dMax, bandwidth, sesScratch);
         } else {
-            sesResultRight = PacBio::Pancake::Alignment::SESDistanceBanded(
-                querySeq.Bases() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
+            sesResultRight = AlignNoTraceback(querySeq.Bases() + qStart, qSpan, tseq.c_str(), tSpan,
+                                              dMax, bandwidth, sesScratch);
         }
 
         ret->Aend = sesResultRight.lastQueryPos;
@@ -493,14 +512,11 @@ OverlapPtr Mapper::AlignOverlap_(
                      static_cast<int32_t>(std::min(ovl->Blen, ovl->Alen) * alignBandwidth));
 
         if (useTraceback) {
-            sesResultLeft =
-                PacBio::Pancake::Alignment::SESAlignBanded<Alignment::SESAlignMode::Semiglobal,
-                                                           Alignment::SESTracebackMode::Enabled>(
-                    reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth,
-                    sesScratch);
+            sesResultLeft = AlignWithTraceback(reverseQuerySeq.c_str() + qStart, qSpan,
+                                               tseq.c_str(), tSpan, dMax, bandwidth, sesScratch);
         } else {
-            sesResultLeft = PacBio::Pancake::Alignment::SESDistanceBanded(
-                reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(), tSpan, dMax, bandwidth);
+            sesResultLeft = AlignNoTraceback(reverseQuerySeq.c_str() + qStart, qSpan, tseq.c_str(),
+                                             tSpan, dMax, bandwidth, sesScratch);
         }
 
         ret->Astart = ovl->Astart - sesResultLeft.lastQueryPos;

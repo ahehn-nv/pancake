@@ -15,6 +15,8 @@ pancake_test_cpp_sources = files([
   'src/test_SeqDBReaderCachedBlock.cpp',
   'src/test_SesAlignBanded.cpp',
   'src/test_SesDistanceBanded.cpp',
+  'src/test_Ses2AlignBanded.cpp',
+  'src/test_Ses2DistanceBanded.cpp',
   'src/test_Twobit.cpp',
   'src/test_Util.cpp',
 ])
