@@ -225,6 +225,20 @@ R"({
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::UseTraceback};
 
+const CLI_v2::Option MaskHomopolymers{
+R"({
+    "names" : ["mask-hp"],
+    "description" : "Mask homopolymer errors when traceback is generated. This will impact identity calculation.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::MaskHomopolymers};
+
+const CLI_v2::Option MaskSimpleRepeats{
+R"({
+    "names" : ["mask-rep"],
+    "description" : "Mask indels in simple exact repeats when traceback is generated. This will impact identity calculation.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::MaskSimpleRepeats};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -274,10 +288,14 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , BestN{options[OptionNames::BestN]}
     , UseHPC{options[OptionNames::UseHPC]}
     , UseTraceback{options[OptionNames::UseTraceback]}
+    , MaskHomopolymers{options[OptionNames::MaskHomopolymers]}
+    , MaskSimpleRepeats{options[OptionNames::MaskSimpleRepeats]}
 {
-    if ((NoSNPsInIdentity || NoIndelsInIdentity) && (UseTraceback == false)) {
+    if ((NoSNPsInIdentity || NoIndelsInIdentity || MaskHomopolymers || MaskSimpleRepeats) &&
+        (UseTraceback == false)) {
         throw std::runtime_error(
-            "The '--no-snps' and '--no-indels' can only be used together with the '--traceback' "
+            "The '--no-snps', '--no-indels', '--mask-hp' and '--mask-rep' can only be used "
+            "together with the '--traceback' "
             "option.");
     }
     if (NoSNPsInIdentity && NoIndelsInIdentity) {
@@ -327,6 +345,8 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::BestN,
         OptionNames::UseHPC,
         OptionNames::UseTraceback,
+        OptionNames::MaskHomopolymers,
+        OptionNames::MaskSimpleRepeats,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

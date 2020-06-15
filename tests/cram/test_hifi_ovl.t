@@ -277,3 +277,64 @@ mistake them for an indel combination with interspersed matching bases.
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --min-map-len 0 --min-anchor-span 100 --write-cigar --no-indels --out-fmt m4
   m64030_190330_071939/101844710/ccs fake_read_with_3_snps/1/ccs -4997 99.98 0 0 5000 11811 0 10000 15000 15000 5 3000=1D1=1I998=1D1=1I897=1X100=
   fake_read_with_3_snps/1/ccs m64030_190330_071939/101844710/ccs -4997 99.98 0 10000 15000 15000 0 0 5000 11811 3 3000=1I1=1D998=1I1=1D897=1X100=
+
+#############################
+### Test variant strings. ###
+#############################
+Overlap two reads where one should be reverse complemented.
+This is a synthetic test case, where there is only one mismatches and the sequences are short.
+The same alignment should be reported in fwd and rev directions, and it should be the same.
+The variant strings should always be in the fwd strand of the sequence, so when the reads are swapped, the
+actual variant sequences should in this case be the same (just swapped).
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt ipa
+  read1-fwd read4-rev -179 99.4444 0 0 180 180 1 0 180 180 c c u 152=1X27= T G *
+  read4-rev read1-fwd -179 99.4444 0 0 180 180 1 0 180 180 c c u 27=1X152= G T *
+
+An expansion of the previous test, but with more than 2 sequences.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile13-simple_errors_7_reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt ipa
+  read1-fwd read2-fwd -180 100.0000 0 0 180 180 0 0 180 180 c c u 180= * * *
+  read1-fwd read1-rev -180 100.0000 0 0 180 180 1 0 180 180 c c u 180= * * *
+  read1-fwd read3-fwd -179 99.4444 0 0 180 180 0 0 179 179 c c u 54=1I125= G * *
+  read1-fwd read4-fwd -179 99.4444 0 0 180 180 0 0 180 180 c c u 152=1X27= T C *
+  read1-fwd read3-rev -179 99.4444 0 0 180 180 1 0 179 179 c c u 54=1I125= G * *
+  read1-fwd read4-rev -179 99.4444 0 0 180 180 1 0 180 180 c c u 152=1X27= T G *
+  read2-fwd read1-fwd -180 100.0000 0 0 180 180 0 0 180 180 c c u 180= * * *
+  read2-fwd read1-rev -180 100.0000 0 0 180 180 1 0 180 180 c c u 180= * * *
+  read2-fwd read3-fwd -179 99.4444 0 0 180 180 0 0 179 179 c c u 54=1I125= G * *
+  read2-fwd read4-fwd -179 99.4444 0 0 180 180 0 0 180 180 c c u 152=1X27= T C *
+  read2-fwd read3-rev -179 99.4444 0 0 180 180 1 0 179 179 c c u 54=1I125= G * *
+  read2-fwd read4-rev -179 99.4444 0 0 180 180 1 0 180 180 c c u 152=1X27= T G *
+  read3-fwd read1-fwd -179 99.4444 0 0 179 179 0 0 180 180 c c u 54=1D125= * G *
+  read3-fwd read2-fwd -179 99.4444 0 0 179 179 0 0 180 180 c c u 54=1D125= * G *
+  read3-fwd read1-rev -179 99.4444 0 0 179 179 1 0 180 180 c c u 54=1D125= * C *
+  read3-fwd read3-rev -179 100.0000 0 0 179 179 1 0 179 179 c c u 179= * * *
+  read3-fwd read4-fwd -178 98.8889 0 0 179 179 0 0 180 180 c c u 54=1D97=1X27= T GC *
+  read3-fwd read4-rev -178 98.8889 0 0 179 179 1 0 180 180 c c u 54=1D97=1X27= T GC *
+  read4-fwd read4-rev -180 100.0000 0 0 180 180 1 0 180 180 c c u 180= * * *
+  read4-fwd read1-fwd -179 99.4444 0 0 180 180 0 0 180 180 c c u 152=1X27= C T *
+  read4-fwd read2-fwd -179 99.4444 0 0 180 180 0 0 180 180 c c u 152=1X27= C T *
+  read4-fwd read1-rev -179 99.4444 0 0 180 180 1 0 180 180 c c u 152=1X27= C A *
+  read4-fwd read3-fwd -178 98.8889 0 0 180 180 0 0 179 179 c c u 54=1I97=1X27= GC T *
+  read4-fwd read3-rev -178 98.8889 0 0 180 180 1 0 179 179 c c u 54=1I97=1X27= GC A *
+  read1-rev read1-fwd -180 100.0000 0 0 180 180 1 0 180 180 c c u 180= * * *
+  read1-rev read2-fwd -180 100.0000 0 0 180 180 1 0 180 180 c c u 180= * * *
+  read1-rev read3-fwd -179 99.4444 0 0 180 180 1 0 179 179 c c u 125=1I54= C * *
+  read1-rev read4-fwd -179 99.4444 0 0 180 180 1 0 180 180 c c u 27=1X152= A C *
+  read1-rev read3-rev -179 99.4444 0 0 180 180 0 0 179 179 c c u 125=1I54= C * *
+  read1-rev read4-rev -179 99.4444 0 0 180 180 0 0 180 180 c c u 27=1X152= A G *
+  read3-rev read1-fwd -179 99.4444 0 0 179 179 1 0 180 180 c c u 125=1D54= * G *
+  read3-rev read2-fwd -179 99.4444 0 0 179 179 1 0 180 180 c c u 125=1D54= * G *
+  read3-rev read3-fwd -179 100.0000 0 0 179 179 1 0 179 179 c c u 179= * * *
+  read3-rev read1-rev -179 99.4444 0 0 179 179 0 0 180 180 c c u 125=1D54= * C *
+  read3-rev read4-fwd -178 98.8889 0 0 179 179 1 0 180 180 c c u 27=1X97=1D54= A GC *
+  read3-rev read4-rev -178 98.8889 0 0 179 179 0 0 180 180 c c u 27=1X97=1D54= A GC *
+  read4-rev read4-fwd -180 100.0000 0 0 180 180 1 0 180 180 c c u 180= * * *
+  read4-rev read1-fwd -179 99.4444 0 0 180 180 1 0 180 180 c c u 27=1X152= G T *
+  read4-rev read2-fwd -179 99.4444 0 0 180 180 1 0 180 180 c c u 27=1X152= G T *
+  read4-rev read1-rev -179 99.4444 0 0 180 180 0 0 180 180 c c u 27=1X152= G A *
+  read4-rev read3-fwd -178 98.8889 0 0 180 180 1 0 179 179 c c u 27=1X97=1I54= GC T *
+  read4-rev read3-rev -178 98.8889 0 0 180 180 0 0 179 179 c c u 27=1X97=1I54= GC A *

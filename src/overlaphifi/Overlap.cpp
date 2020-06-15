@@ -5,14 +5,16 @@
 namespace PacBio {
 namespace Pancake {
 
-OverlapType DetermineOverlapType(const Overlap& ovl, int32_t allowedDovetailDist)
+OverlapType DetermineOverlapType(bool Arev, int32_t AstartFwd, int32_t AendFwd, int32_t Alen,
+                                 bool Brev, int32_t BstartFwd, int32_t BendFwd, int32_t Blen,
+                                 int32_t allowedDovetailDist)
 {
-    int32_t leftHangA = ovl.AstartFwd();
-    int32_t rightHangA = ovl.Alen - ovl.AendFwd();
-    int32_t leftHangB = ovl.BstartFwd();
-    int32_t rightHangB = ovl.Blen - ovl.BendFwd();
+    int32_t leftHangA = AstartFwd;
+    int32_t rightHangA = Alen - AendFwd;
+    int32_t leftHangB = BstartFwd;
+    int32_t rightHangB = Blen - BendFwd;
 
-    if (ovl.Brev) {
+    if (Brev) {
         std::swap(leftHangB, rightHangB);
     }
 
@@ -70,6 +72,12 @@ OverlapType DetermineOverlapType(const Overlap& ovl, int32_t allowedDovetailDist
     return ovlType;
 }
 
+OverlapType DetermineOverlapType(const Overlap& ovl, int32_t allowedDovetailDist)
+{
+    return DetermineOverlapType(ovl.Arev, ovl.AstartFwd(), ovl.AendFwd(), ovl.Alen, ovl.Brev,
+                                ovl.BstartFwd(), ovl.BendFwd(), ovl.Blen, allowedDovetailDist);
+}
+
 void HeuristicExtendOverlapFlanks(OverlapPtr& ovl, int32_t allowedDist)
 {
     /// Note: The Overlap coordinates are internally represented in the strand
@@ -99,7 +107,7 @@ OverlapPtr HeuristicExtendOverlapFlanks(const OverlapPtr& ovl, int32_t allowedDi
     return newOvl;
 }
 
-OverlapPtr ParseOverlapFromString(const std::string& line)
+OverlapPtr ParseM4OverlapFromString(const std::string& line)
 {
     auto ovl = createOverlap();
     char type[500];
@@ -131,19 +139,22 @@ OverlapPtr ParseOverlapFromString(const std::string& line)
         ovl->Bend = ovl->Blen - ovl->Bend;
     }
 
+    ovl->Atype = OverlapType::Unknown;
+    ovl->Btype = OverlapType::Unknown;
+
     // If the type is specified in the line, parse it.
     if (n >= 13) {
-        ovl->Type = OverlapTypeFromString(type);
+        ovl->Atype = OverlapTypeFromString(type);
     }
     return ovl;
 }
 
 std::string OverlapTypeToString(const OverlapType& type)
 {
-    std::string ret = "x";
+    std::string ret = "*";
     switch (type) {
         case OverlapType::Unknown:
-            ret = "x";
+            ret = "*";
             break;
         case OverlapType::Contained:
             ret = "contained";
@@ -161,7 +172,35 @@ std::string OverlapTypeToString(const OverlapType& type)
             ret = "u";
             break;
         default:
-            ret = "x";
+            ret = "*";
+    }
+    return ret;
+}
+
+std::string OverlapTypeToStringSingleChar(const OverlapType& type)
+{
+    std::string ret = "*";
+    switch (type) {
+        case OverlapType::Unknown:
+            ret = "*";
+            break;
+        case OverlapType::Contained:
+            ret = "c";
+            break;
+        case OverlapType::Contains:
+            ret = "C";
+            break;
+        case OverlapType::FivePrime:
+            ret = "5";
+            break;
+        case OverlapType::ThreePrime:
+            ret = "3";
+            break;
+        case OverlapType::Internal:
+            ret = "u";
+            break;
+        default:
+            ret = "*";
     }
     return ret;
 }
@@ -176,6 +215,23 @@ OverlapType OverlapTypeFromString(const std::string& typeStr)
     } else if (typeStr == "contained") {
         type = OverlapType::Contained;
     } else if (typeStr == "contains") {
+        type = OverlapType::Contains;
+    } else if (typeStr == "u") {
+        type = OverlapType::Internal;
+    }
+    return type;
+}
+
+OverlapType OverlapTypeFromStringSingleChar(const std::string& typeStr)
+{
+    OverlapType type = OverlapType::Unknown;
+    if (typeStr == "5") {
+        type = OverlapType::FivePrime;
+    } else if (typeStr == "3") {
+        type = OverlapType::ThreePrime;
+    } else if (typeStr == "c") {
+        type = OverlapType::Contained;
+    } else if (typeStr == "C") {
         type = OverlapType::Contains;
     } else if (typeStr == "u") {
         type = OverlapType::Internal;

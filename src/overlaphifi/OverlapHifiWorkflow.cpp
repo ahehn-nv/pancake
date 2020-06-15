@@ -229,7 +229,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                     writer->Write(ovl, targetSeqDBReader, querySeq, false);
 
                     if (settings.WriteReverseOverlaps) {
-                        auto newOvl = CreateFlippedOverlap(ovl, settings.AllowedDovetailDist);
+                        auto newOvl = CreateFlippedOverlap(ovl);
                         writer->Write(newOvl, targetSeqDBReader, querySeq, true);
                     }
                 }
