@@ -33,7 +33,7 @@ SesResults SESDistanceBanded(const char* query, size_t queryLen, const char* tar
         }
         v[zero_offset] = x;
 
-        ret.diffs = 0;
+        ret.numDiffs = 0;
         ret.lastQueryPos = x;
         ret.lastTargetPos = y;
 
@@ -51,7 +51,7 @@ SesResults SESDistanceBanded(const char* query, size_t queryLen, const char* tar
     int32_t best_u = 0;
 
     for (int32_t d = 1; d < maxDiffs; ++d) {
-        ret.diffs = d;
+        ret.numDiffs = d;
         if ((maxK - minK) > bandwidth) {
             ret.valid = false;
             break;

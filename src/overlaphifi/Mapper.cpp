@@ -389,7 +389,7 @@ OverlapPtr Mapper::AlignOverlap_(
         ret->Bend = sesResultRight.lastTargetPos;
         ret->Aend += ovl->Astart;
         ret->Bend += ovl->Bstart;
-        ret->EditDistance = sesResultRight.diffs;
+        ret->EditDistance = sesResultRight.numDiffs;
         ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
         // std::cerr << "CIGAR right: " << cigarRight.ToStdString() << "\n";
         // std::reverse
@@ -419,7 +419,7 @@ OverlapPtr Mapper::AlignOverlap_(
             tseq = FetchTargetSubsequence_(targetSeq, extractBegin, extractEnd, !ret->Brev);
         }
         const int32_t tSpan = tseq.size();
-        const int32_t dMax = ovl->Alen * alignMaxDiff - sesResultRight.diffs;
+        const int32_t dMax = ovl->Alen * alignMaxDiff - sesResultRight.numDiffs;
         const int32_t bandwidth = std::min(ovl->Blen, ovl->Alen) * alignBandwidth;
 
         if (useTraceback) {
@@ -435,22 +435,23 @@ OverlapPtr Mapper::AlignOverlap_(
 
         ret->Astart = ovl->Astart - sesResultLeft.lastQueryPos;
         ret->Bstart = ovl->Bstart - sesResultLeft.lastTargetPos;
-        ret->EditDistance = -1;
-        if (useTraceback) {
-            ret->EditDistance = (noSNPs ? 0 : (sesResultRight.numX + sesResultLeft.numX)) +
-                                (noIndels ? 0 : (sesResultRight.numI + sesResultRight.numD +
-                                                 sesResultLeft.numI + sesResultLeft.numD));
-            ret->Score = -(sesResultRight.numEq + sesResultLeft.numEq);
-        } else {
-            ret->EditDistance = sesResultRight.diffs + sesResultLeft.diffs;
-            ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
-        }
+        std::reverse(sesResultLeft.cigar.begin(), sesResultLeft.cigar.end());
+    }
+
+    PacBio::Pancake::Alignment::DiffCounts diffs =
+        sesResultRight.diffCounts + sesResultLeft.diffCounts;
+
+    // Compute edit distance, identity and score.
+    ret->EditDistance = -1;
+    if (useTraceback) {
+        diffs.Identity(noSNPs, noIndels, ret->Identity, ret->EditDistance);
+        ret->Score = -diffs.numEq;
+    } else {
+        ret->EditDistance = sesResultLeft.numDiffs + sesResultRight.numDiffs;
+        ret->Score = -(std::min(ret->ASpan(), ret->BSpan()) - ret->EditDistance);
         const float span = std::max(ret->ASpan(), ret->BSpan());
         ret->Identity =
-            ((span != 0) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -2.0f);
-        // std::cerr << "CIGAR left: " << cigarLeft.ToStdString() << "\n";
-        std::reverse(sesResultLeft.cigar.begin(), sesResultLeft.cigar.end());
-        // std::cerr << "(rev) sesResult: " << sesResult << "\n";
+            ((span != 0.0f) ? ((span - static_cast<float>(ret->EditDistance)) / span) : -0.0f);
     }
 
     ret->Cigar = std::move(sesResultLeft.cigar);
