@@ -133,9 +133,9 @@ void OverlapWriterBase::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl,
     fprintf(fpOut, "\n");
 }
 
-void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl,
-                                          const std::string& Aname, const std::string& Bname,
-                                          bool writeIds, bool writeCigar)
+void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, const char* query,
+                                          int64_t queryLen, const std::string& Aname,
+                                          const std::string& Bname, bool writeIds, bool writeCigar)
 {
     // double identity = static_cast<double>(ovl->Identity);
     // if (identity == 0.0 && ovl->EditDistance >= 0.0) {
@@ -155,7 +155,8 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl,
     std::string AtypeStr = OverlapTypeToString(ovl->Atype);
     int32_t flag = tIsRev ? 16 : 0;
     int32_t mapq = 60;
-    std::string seq = "*";
+    std::string seq = (ovl->Brev) ? ReverseComplement(query, queryLen, 0, queryLen)
+                                  : std::string(query, queryLen);
     std::string qual = "*";
 
     // Query and target names, flag, pos and mapq.

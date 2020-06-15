@@ -23,11 +23,10 @@ public:
     OverlapWriterIPAOvl(FILE* fpOut, bool writeIds, bool writeCigar);
     ~OverlapWriterIPAOvl();
 
-    void Write(const OverlapPtr& overlaps, const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
+    void Write(const OverlapPtr& ovl, const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
                const PacBio::Pancake::FastaSequenceId& querySeq, bool isFlipped) override;
 
-    void Write(const OverlapPtr& overlaps,
-               const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
+    void Write(const OverlapPtr& ovl, const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                const PacBio::Pancake::FastaSequenceCached& querySeq, bool isFlipped) override;
 
 private:
