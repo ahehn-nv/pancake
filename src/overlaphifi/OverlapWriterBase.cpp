@@ -133,9 +133,9 @@ void OverlapWriterBase::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl,
     fprintf(fpOut, "\n");
 }
 
-void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl,
-                                          const std::string& Aname, const std::string& Bname,
-                                          bool writeIds, bool writeCigar)
+void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, const char* query,
+                                          int64_t queryLen, const std::string& Aname,
+                                          const std::string& Bname, bool writeIds, bool writeCigar)
 {
     // double identity = static_cast<double>(ovl->Identity);
     // if (identity == 0.0 && ovl->EditDistance >= 0.0) {
@@ -148,14 +148,15 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl,
     // }
 
     // The format specifies coordinates always in the FWD strand.
-    int32_t tStart = ovl->BstartFwd();
+    int32_t tStart = ovl->BstartFwd() + 1;
     int32_t tEnd = ovl->BendFwd();
     const int32_t tIsRev = ovl->Brev;
     const int32_t tLen = ovl->Blen;
     std::string AtypeStr = OverlapTypeToString(ovl->Atype);
     int32_t flag = tIsRev ? 16 : 0;
     int32_t mapq = 60;
-    std::string seq = "*";
+    std::string seq = (ovl->Brev) ? ReverseComplement(query, queryLen, 0, queryLen)
+                                  : std::string(query, queryLen);
     std::string qual = "*";
 
     // Query and target names, flag, pos and mapq.
@@ -170,9 +171,26 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl,
         if (ovl->Cigar.empty()) {
             fprintf(fpOut, "\t*");
         } else {
-            fprintf(fpOut, "\t");
-            for (const auto& op : ovl->Cigar) {
-                fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
+            if (ovl->Brev) {
+                std::string clipBack = (ovl->Astart > 0) ? std::to_string(ovl->Astart) + "S" : "";
+                std::string clipFront =
+                    (ovl->Aend < ovl->Alen) ? std::to_string(ovl->Alen - ovl->Aend) + "S" : "";
+                fprintf(fpOut, "\t%s", clipFront.c_str());
+                for (auto it = ovl->Cigar.rbegin(); it != ovl->Cigar.rend(); ++it) {
+                    const auto& op = *it;
+                    fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
+                }
+                fprintf(fpOut, "%s", clipBack.c_str());
+
+            } else {
+                std::string clipFront = (ovl->Astart > 0) ? std::to_string(ovl->Astart) + "S" : "";
+                std::string clipBack =
+                    (ovl->Aend < ovl->Alen) ? std::to_string(ovl->Alen - ovl->Aend) + "S" : "";
+                fprintf(fpOut, "\t%s", clipFront.c_str());
+                for (const auto& op : ovl->Cigar) {
+                    fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
+                }
+                fprintf(fpOut, "%s", clipBack.c_str());
             }
         }
     } else {

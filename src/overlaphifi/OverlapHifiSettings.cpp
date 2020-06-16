@@ -251,6 +251,8 @@ OverlapWriterFormat ParseOutFormat(const std::string& val)
         return OverlapWriterFormat::M4;
     } else if (val == "ipa") {
         return OverlapWriterFormat::IPAOvl;
+    } else if (val == "sam") {
+        return OverlapWriterFormat::SAM;
     }
     return OverlapWriterFormat::Unknown;
 }

@@ -346,3 +346,82 @@ An expansion of the previous test, but with more than 2 sequences.
   read4-rev read1-rev -179 99.4444 0 0 180 180 0 0 180 180 c c u 27=1X152= G A *
   read4-rev read3-fwd -178 98.8889 0 0 180 180 1 0 179 179 c c u 27=1X97=1I54= GC T *
   read4-rev read3-rev -178 98.8889 0 0 180 180 0 0 179 179 c c u 27=1X97=1I54= GC A *
+
+#########################################
+### Test writing in different formats ###
+#########################################
+M4 output format - with traceback.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt m4
+  read1-fwd read4-rev -179 99.44 0 0 180 180 1 0 180 180 contained 152=1X27=
+  read4-rev read1-fwd -179 99.44 0 0 180 180 1 0 180 180 contained 27=1X152=
+
+IPAOvl output format - with traceback.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt ipa
+  read1-fwd read4-rev -179 99.4444 0 0 180 180 1 0 180 180 c c u 152=1X27= T G *
+  read4-rev read1-fwd -179 99.4444 0 0 180 180 1 0 180 180 c c u 27=1X152= G T *
+
+SAM output format - with traceback.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt sam
+  @HD	VN:1.5
+  @SQ	SN:read1-fwd	LN:180
+  @SQ	SN:read4-rev	LN:180
+  read1-fwd	16	read4-rev	1	60	27=1X152=	*	0	0	ATTATTGGCTCACTCTTACTCAGCCTTATTGTGGCAATGGTCATGAAGCGCAATAAAACCGTATAACATCTCTCTGTGCGCAGTACTTCCTGTATTATTGTGGTGGCGGTCGATATGCGCACTGGCAAAAAAACGGGCTTGAATATCGTTGAAACCCTTTAACAAAGCACAGGAGCGTGC	*
+  read4-rev	16	read1-fwd	1	60	152=1X27=	*	0	0	GCACGCTCCTGTGCTTTGTTAAAGGGTTTCAACGATATTCAAGCCCGTTTTTTTGCCAGTGCGCATATCGACCGCCACCACAATAATACAGGAAGTACTGCGCACAGAGAGATGTTATACGGTTTTATTGCGCTTCATGACCATTGCCACAACAAGGCTGAGTAAGAGTGAGCCAATAAT	*
+
+
+
+M4 output format - no traceback.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt m4
+  read1-fwd read4-rev -179 99.44 0 0 180 180 1 0 180 180 contained
+  read4-rev read1-fwd -179 99.44 0 0 180 180 1 0 180 180 contained
+
+IPAOvl output format - no traceback.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt ipa
+  read1-fwd read4-rev -179 99.4444 0 0 180 180 1 0 180 180 c c u * * * *
+  read4-rev read1-fwd -179 99.4444 0 0 180 180 1 0 180 180 c c u * * * *
+
+SAM output format - no traceback.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt sam
+  @HD	VN:1.5
+  @SQ	SN:read1-fwd	LN:180
+  @SQ	SN:read4-rev	LN:180
+  read1-fwd	16	read4-rev	1	60	*	*	0	0	ATTATTGGCTCACTCTTACTCAGCCTTATTGTGGCAATGGTCATGAAGCGCAATAAAACCGTATAACATCTCTCTGTGCGCAGTACTTCCTGTATTATTGTGGTGGCGGTCGATATGCGCACTGGCAAAAAAACGGGCTTGAATATCGTTGAAACCCTTTAACAAAGCACAGGAGCGTGC	*
+  read4-rev	16	read1-fwd	1	60	*	*	0	0	GCACGCTCCTGTGCTTTGTTAAAGGGTTTCAACGATATTCAAGCCCGTTTTTTTGCCAGTGCGCATATCGACCGCCACCACAATAATACAGGAAGTACTGCGCACAGAGAGATGTTATACGGTTTTATTGCGCTTCATGACCATTGCCACAACAAGGCTGAGTAAGAGTGAGCCAATAAT	*
+
+
+
+M4 output format - with traceback. Writing IDs.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --write-ids --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt m4
+  000000000 000000001 -179 99.44 0 0 180 180 1 0 180 180 contained 152=1X27=
+  000000001 000000000 -179 99.44 0 0 180 180 1 0 180 180 contained 27=1X152=
+
+IPAOvl output format - with traceback. Writing IDs.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --write-ids --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt ipa
+  000000000 000000001 -179 99.4444 0 0 180 180 1 0 180 180 c c u 152=1X27= T G *
+  000000001 000000000 -179 99.4444 0 0 180 180 1 0 180 180 c c u 27=1X152= G T *
+
+SAM output format - with traceback. Writing IDs.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --write-ids --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt sam
+  @HD	VN:1.5
+  @SQ	SN:000000000	LN:180
+  @SQ	SN:000000001	LN:180
+  000000000	16	000000001	1	60	27=1X152=	*	0	0	ATTATTGGCTCACTCTTACTCAGCCTTATTGTGGCAATGGTCATGAAGCGCAATAAAACCGTATAACATCTCTCTGTGCGCAGTACTTCCTGTATTATTGTGGTGGCGGTCGATATGCGCACTGGCAAAAAAACGGGCTTGAATATCGTTGAAACCCTTTAACAAAGCACAGGAGCGTGC	*
+  000000001	16	000000000	1	60	152=1X27=	*	0	0	GCACGCTCCTGTGCTTTGTTAAAGGGTTTCAACGATATTCAAGCCCGTTTTTTTGCCAGTGCGCATATCGACCGCCACCACAATAATACAGGAAGTACTGCGCACAGAGAGATGTTATACGGTTTTATTGCGCTTCATGACCATTGCCACAACAAGGCTGAGTAAGAGTGAGCCAATAAT	*

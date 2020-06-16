@@ -17,6 +17,16 @@ OverlapWriterIPAOvl::~OverlapWriterIPAOvl()
     }
 }
 
+void OverlapWriterIPAOvl::WriteHeader(const PacBio::Pancake::SeqDBReaderCached& targetSeqs)
+{
+    // This format doesn't have a header.
+}
+
+void OverlapWriterIPAOvl::WriteHeader(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs)
+{
+    // This format doesn't have a header.
+}
+
 void OverlapWriterIPAOvl::Write(const OverlapPtr& ovl,
                                 const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
                                 const PacBio::Pancake::FastaSequenceId& querySeq, bool isFlipped)

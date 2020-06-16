@@ -23,11 +23,14 @@ public:
     OverlapWriterM4(FILE* fpOut, bool writeIds, bool writeCigar);
     ~OverlapWriterM4();
 
-    void Write(const OverlapPtr& overlaps, const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
+    void WriteHeader(const PacBio::Pancake::SeqDBReaderCached& targetSeqs) override;
+
+    void WriteHeader(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs) override;
+
+    void Write(const OverlapPtr& ovl, const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
                const PacBio::Pancake::FastaSequenceId& querySeq, bool isFlipped) override;
 
-    void Write(const OverlapPtr& overlaps,
-               const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
+    void Write(const OverlapPtr& ovl, const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                const PacBio::Pancake::FastaSequenceCached& querySeq, bool isFlipped) override;
 
 private:

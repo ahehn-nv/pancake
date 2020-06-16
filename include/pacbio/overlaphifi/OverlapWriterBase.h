@@ -21,19 +21,23 @@ class OverlapWriterBase
 public:
     virtual ~OverlapWriterBase() {}
 
-    virtual void Write(const OverlapPtr& overlaps,
-                       const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
+    virtual void Write(const OverlapPtr& ovl, const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
                        const PacBio::Pancake::FastaSequenceId& querySeq, bool isFlipped) = 0;
 
-    virtual void Write(const OverlapPtr& overlaps,
+    virtual void Write(const OverlapPtr& ovl,
                        const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                        const PacBio::Pancake::FastaSequenceCached& querySeq, bool isFlipped) = 0;
+
+    virtual void WriteHeader(const PacBio::Pancake::SeqDBReaderCached& targetSeqs) = 0;
+
+    virtual void WriteHeader(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs) = 0;
 
     static void PrintOverlapAsIPAOvl(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
                                      const std::string& Bname, bool writeIds, bool writeCigar);
     static void PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
                                  const std::string& Bname, bool writeIds, bool writeCigar);
-    static void PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
+    static void PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, const char* seq,
+                                  int64_t seqLen, const std::string& Aname,
                                   const std::string& Bname, bool writeIds, bool writeCigar);
     static std::string PrintOverlapAsM4(const OverlapPtr& ovl, const std::string& Aname,
                                         const std::string& Bname, bool writeIds, bool writeCigar);
