@@ -418,7 +418,7 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
                     ((queryPos > 0 && query[queryPos - 1] == prevBase) ||
                      ((queryPos + 1) < queryLen && query[queryPos + 1] == prevBase) ||
                      (target[targetPos] == prevBase) ||
-                     ((targetPos + 1) < targetLen && target[targetPos + 1] == prevBase))) {
+                     (targetPos > 0 && target[targetPos - 1] == prevBase))) {
                     isMasked = true;
                 }
             }
@@ -493,7 +493,7 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
                     ((targetPos > 0 && target[targetPos - 1] == prevBase) ||
                      ((targetPos + 1) < targetLen && target[targetPos + 1] == prevBase) ||
                      (query[queryPos] == prevBase) ||
-                     ((queryPos + 1) < queryLen && query[queryPos + 1] == prevBase))) {
+                     (queryPos > 0 && query[queryPos - 1] == prevBase))) {
                     isMasked = true;
                 }
             }
