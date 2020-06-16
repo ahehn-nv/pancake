@@ -122,6 +122,29 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
 
         ExtractVariantStringTestCase{"Test case with HP and simple repeat masking",
                                      "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", true, true, "gATac", "GtCat", {14, 1, 1, 1}, {14, 1, 1, 1}},
+
+        /*
+         * This test case ("GCAC', "GAC") detected a false masking bug in the code. The HP masking used
+         * to check forward in target for insertions and backward in target for deletions. This is wrong
+         * because the coordinate in the strand with the gap points to the base _after_ the gap (and not before
+         * like I originally thought). So it should be vice versa.
+        */
+        ExtractVariantStringTestCase{"Small HP masking test 1 - insertion, no masking",
+                                     "GCAC", "GAC", "1=1I2=", true, true, "C", "", {3, 0, 1, 0}, {3, 0, 1, 0}},
+        ExtractVariantStringTestCase{"Small HP masking test 1 - deletion, no masking",
+                                     "GAC", "GCAC", "1=1D2=", true, true, "", "C", {3, 0, 0, 1}, {3, 0, 0, 1}},
+
+        ExtractVariantStringTestCase{"Small HP masking test 2 - insertion, no masking",
+                                     "TGCC", "TCC", "1=1I2=", true, true, "G", "", {3, 0, 1, 0}, {3, 0, 1, 0}},
+        ExtractVariantStringTestCase{"Small HP masking test 2 - deletion, no masking",
+                                     "TCC", "TGCC", "1=1D2=", true, true, "", "G", {3, 0, 0, 1}, {3, 0, 0, 1}},
+
+        ExtractVariantStringTestCase{"Small HP masking test 3 - insertion, no masking",
+                                     "ACAA", "AAA", "1=1I2=", true, true, "C", "", {3, 0, 1, 0}, {3, 0, 1, 0}},
+        ExtractVariantStringTestCase{"Small HP masking test 3 - insertion, no masking",
+                                     "AAA", "ACAA", "1=1D2=", true, true, "", "C", {3, 0, 0, 1}, {3, 0, 0, 1}},
+
+
     };
     // clang-format on
 
