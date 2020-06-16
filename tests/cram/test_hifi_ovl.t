@@ -425,3 +425,54 @@ SAM output format - with traceback. Writing IDs.
   @SQ	SN:000000001	LN:180
   000000000	16	000000001	1	60	27=1X152=	*	0	0	ATTATTGGCTCACTCTTACTCAGCCTTATTGTGGCAATGGTCATGAAGCGCAATAAAACCGTATAACATCTCTCTGTGCGCAGTACTTCCTGTATTATTGTGGTGGCGGTCGATATGCGCACTGGCAAAAAAACGGGCTTGAATATCGTTGAAACCCTTTAACAAAGCACAGGAGCGTGC	*
   000000001	16	000000000	1	60	152=1X27=	*	0	0	GCACGCTCCTGTGCTTTGTTAAAGGGTTTCAACGATATTCAAGCCCGTTTTTTTGCCAGTGCGCATATCGACCGCCACCACAATAATACAGGAAGTACTGCGCACAGAGAGATGTTATACGGTTTTATTGCGCTTCATGACCATTGCCACAACAAGGCTGAGTAAGAGTGAGCCAATAAT	*
+
+
+##########################################
+### Testing masking of variant strings ###
+##########################################
+Write the variant strings and mask homopolymers and simple repeats. Align only one arc.
+I manually verified the variants in this alignment using IGV.
+This is the list of variants broken down by their positions (note that Bvars is reverse complemented).
+OP      END     A   B       Valid   Description
+385=    385
+1I      1622    t           +       HP
+1237=   1623
+1I      1624    t           +       HP
+1=      1625
+1I      1626    T           +
+930=    2556
+1I      2557    c           +       HP
+75=     2632
+1D      2632        t       +       HP
+57=     2689
+1X      2690    T   G       +       This SNP is in a HP of 3 T bases, but it is not an indel so not masked.
+8=      2698
+1D      2698        g       +       HP
+61=     2759
+1I      2760    G           +
+780=    3540
+1I      3541    g           +       HP
+680=    4221
+1D      4221        c       +       HP
+165=    4386
+1D      4386        t       +       HP
+545=    4931
+1I      4932    c           +       HP
+442=    5374
+1I      5375    c           +       HP
+730=    6105
+1I      6106    t           +       HP
+589=    6695
+1D      6695        G       +       This G is placed in between two C bases in 000000551. Technically not a homopolymer error?
+370=    7065
+1D      7065        g       +       HP
+119=    7184
+1I      7185    G           +       This G is placed in between two C bases in 000000571. Technically not a homopolymer error?
+463=    7648
+1D      7648        T       +
+639=    8287
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads1.weird_masking_issue.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --skip-sym --write-rev --out-fmt ipa
+  000000571 000000551 -8276 99.9275 0 0 8287 10491 1 0 8284 8714 5 5 u 385=1I1237=1I1=1I930=1I75=1D57=1X8=1D61=1I780=1I680=1D165=1D545=1I442=1I730=1I589=1D370=1D119=1I463=1D639= ttTcTGgcctG AcCagcCa *
+  000000551 000000571 -8276 99.9275 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D119=1I370=1I589=1D730=1D442=1D545=1I165=1I680=1D780=1D61=1I8=1X57=1I75=1D930=1D1=1D1237=1D385= AcCagcCa ttTcTGgcctG *
