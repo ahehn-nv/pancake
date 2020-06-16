@@ -42,6 +42,8 @@ Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
 ///         Lineraly scans through all CIGAR operations to perform the mapping.
 int32_t FindTargetPosFromCigar(const BAM::Cigar& cigar, int32_t queryPos);
 
+void NormalizeAlignmentInPlace(std::string& queryAln, std::string& targetAln);
+
 }  // namespace Pancake
 }  // namespace PacBio
 

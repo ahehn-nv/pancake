@@ -770,5 +770,61 @@ int32_t FindTargetPosFromCigar(const BAM::Cigar& cigar, int32_t queryPos)
     return -1;
 }
 
+void NormalizeAlignmentInPlace(std::string& queryAln, std::string& targetAln)
+{
+    /*
+     * This function normalizes gaps by pushing them towards the ends of the
+     * query and target sequences.
+     * It also takes care of mismatches, shifting gaps through them.
+     * Example of what this function does.
+     * TTGACACT       TTGACACT
+     * ||| X|||   ->  |||X |||
+     * TTG-TACT       TTGT-ACT
+    */
+
+    if (queryAln.size() != targetAln.size()) {
+        std::ostringstream oss;
+        oss << "Invalid input alignment strings because size differs, queryAln.size() = "
+            << queryAln.size() << ", targetAln.size() = " << targetAln.size();
+        throw std::runtime_error(oss.str());
+    }
+
+    int64_t len = queryAln.size();
+
+    // Avoid getters for speed.
+    char* query = &queryAln[0];
+    char* target = &targetAln[0];
+
+    for (int64_t i = 0; i < (len - 1); ++i) {
+        if (query[i] == '-' && target[i] == '-') {
+            continue;
+        } else if (target[i] == '-') {
+            for (int64_t j = (i + 1); j < len; ++j) {
+                char c = target[j];
+                if (c == '-') {
+                    continue;
+                }
+                if (c == query[i] || target[j] != query[j]) {
+                    target[i] = c;
+                    target[j] = '-';
+                }
+                break;
+            }
+        } else if (query[i] == '-') {
+            for (int64_t j = (i + 1); j < len; ++j) {
+                char c = query[j];
+                if (c == '-') {
+                    continue;
+                }
+                if (c == target[i] || target[j] != query[j]) {
+                    query[i] = c;
+                    query[j] = '-';
+                }
+                break;
+            }
+        }
+    }
+}
+
 }  // namespace Pancake
 }  // namespace PacBio

@@ -438,4 +438,110 @@ TEST(Test_AlignmentTools_ComputeDiffCounts, ArrayOfTests)
         }
     }
 }
+
+TEST(Test_AlignmentTools_NormalizeAlignmentInPlace, ArrayOfTests)
+{
+    // clang-format off
+    std::vector<std::tuple<std::string, std::string, std::string, std::string, std::string, bool>> testData = {
+        {"Empty input", "", "", "", "", false},
+
+        {"Exact match",
+                        // Input alignment.
+                        "ACTG",
+                        "ACTG",
+                        // Expected alignment.
+                        "ACTG",
+                        "ACTG",
+                        false},
+
+        {"Just a mismatch",
+                        // Input alignment.
+                        "CAC",
+                        "CGC",
+                        // Expected alignment.
+                        "CAC",
+                        "CGC",
+                        false},
+
+        {"Simple normalization with 1 indel and 1 mismatch",
+                        // Input alignment.
+                        "TTGACACT",
+                        "TTG-TACT",
+                        // Expected alignment.
+                        "TTGACACT",
+                        "TTGT-ACT",
+                        false},
+        {"Simple with two deletions in the query",
+                        // Input alignment.
+                        "AC--TAAC",
+                        "ACTATAAC",
+                        // Expected alignment.
+                        "ACTA-A-C",
+                        "ACTATAAC",
+                        false},
+        {"Test reverse complement alignment of the previous one. Shows that left alignment is not symmetric.",
+                        // Input alignment.
+                        "GTTATAGT",
+                        "GTTA--GT",
+                        // Expected alignment.
+                        "GTTATAGT",
+                        "GTTA--GT",
+                        false},
+
+        {"Test shifting of gaps on the query",
+                        // Input alignment.
+                        "-C--CGT",
+                        "CCGAC-T",
+                        // Expected alignment.
+                        "CCG---T",
+                        "CCGAC-T",                  // TODO: Clear meaningles "-":"-" alignments.
+                        false},
+
+        {"Test shifting of gaps on the target",
+                        // Input alignment.
+                        "ATAT-AGCCGGC",
+                        "ATATTA---GGC",
+                        // Expected alignment.
+                        "ATAT-AGCCGGC",
+                        "ATATTAG--G-C",
+                        false},
+
+
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const std::string testName = std::get<0>(data);
+        const std::string& queryAln = std::get<1>(data);
+        const std::string& targetAln = std::get<2>(data);
+        const std::string& expectedQueryAln = std::get<3>(data);
+        const std::string& expectedTargetAln = std::get<4>(data);
+        const bool shouldThrow = std::get<5>(data);
+
+        // Name the test.
+        SCOPED_TRACE("NormalizeAlignmentInPlace-" + testName);
+
+        std::string resultQueryAln = queryAln;
+        std::string resultTargetAln = targetAln;
+
+        // std::cerr << "Q: " << queryAln << "\n"
+        //           << "T: " << targetAln << "\n";
+
+        // Run.
+        if (shouldThrow) {
+            EXPECT_THROW(
+                { PacBio::Pancake::NormalizeAlignmentInPlace(resultQueryAln, resultTargetAln); },
+                std::runtime_error);
+        } else {
+            PacBio::Pancake::NormalizeAlignmentInPlace(resultQueryAln, resultTargetAln);
+            // std::cerr << "Q: " << resultQueryAln << "\n"
+            //           << "T: " << resultTargetAln << "\n";
+            // Evaluate.
+            EXPECT_EQ(expectedQueryAln, resultQueryAln);
+            EXPECT_EQ(expectedTargetAln, resultTargetAln);
+        }
+        // std::cerr << "Test done.\n----------------------\n";
+    }
+}
 }
