@@ -551,4 +551,54 @@ TEST(Test_AlignmentTools_NormalizeAlignmentInPlace, ArrayOfTests)
         // std::cerr << "Test done.\n----------------------\n";
     }
 }
+
+TEST(Test_AlignmentTools_ConvertCigarToM5, ArrayOfTests)
+{
+    // clang-format off
+    std::vector<std::tuple<std::string, std::string, std::string, std::string, std::string, std::string, bool>> testData = {
+        {"Empty input", "", "", "", "", "", false},
+        {"Simple match", "ACTG", "ACTG", "4=", "ACTG", "ACTG", false},
+        {"Insertion in prefix", "AAAACTG", "ACTG", "3I4=", "AAAACTG", "---ACTG", false},
+        {"Insertion in suffix", "ACTGAAA", "ACTG", "4=3I", "ACTGAAA", "ACTG---", false},
+        {"Deletion in prefix", "ACTG", "AAAACTG", "3D4=", "---ACTG", "AAAACTG", false},
+        {"Deletion in suffix", "ACTG", "ACTGAAA", "4=3D", "ACTG---", "ACTGAAA", false},
+        {"Invalid CIGAR string", "ACTG", "ACTGAAA", "4=", "", "", true},
+        {"Simple CIGAR with all ops", "ATATAGCCGGC", "ATAGTAGGC", "3=1X1D1=3I3=", "ATAT-AGCCGGC", "ATAGTA---GGC", false},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const std::string testName = std::get<0>(data);
+        const std::string& query = std::get<1>(data);
+        const std::string& target = std::get<2>(data);
+        const PacBio::BAM::Cigar cigar(std::get<3>(data));
+        const std::string& expectedQueryAln = std::get<4>(data);
+        const std::string& expectedTargetAln = std::get<5>(data);
+        const bool shouldThrow = std::get<6>(data);
+
+        // Name the test.
+        SCOPED_TRACE("ConvertCigarToM5-" + testName);
+
+        std::string resultQueryAln;
+        std::string resultTargetAln;
+
+        // Run.
+        if (shouldThrow) {
+            EXPECT_THROW(
+                {
+                    PacBio::Pancake::ConvertCigarToM5(query.c_str(), query.size(), target.c_str(),
+                                                      target.size(), cigar, resultQueryAln,
+                                                      resultTargetAln);
+                },
+                std::runtime_error);
+        } else {
+            PacBio::Pancake::ConvertCigarToM5(query.c_str(), query.size(), target.c_str(),
+                                              target.size(), cigar, resultQueryAln,
+                                              resultTargetAln);
+            EXPECT_EQ(expectedQueryAln, resultQueryAln);
+            EXPECT_EQ(expectedTargetAln, resultTargetAln);
+        }
+    }
+}
 }

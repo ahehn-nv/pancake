@@ -840,5 +840,73 @@ void NormalizeAlignmentInPlace(std::string& queryAln, std::string& targetAln)
     }
 }
 
+void ConvertCigarToM5(const char* query, int64_t queryLen, const char* target, int64_t targetLen,
+                      const Data::Cigar& cigar, std::string& retQueryAln, std::string& retTargetAln)
+{
+    // Clear the output.
+    retQueryAln.clear();
+    retTargetAln.clear();
+
+    // Sanity check.
+    if (cigar.empty()) {
+        return;
+    }
+
+    // Compute diffs to know how many columns we need.
+    Alignment::DiffCounts diffs = CigarDiffCounts(cigar);
+    int32_t querySpan = diffs.numEq + diffs.numX + diffs.numI;
+    int32_t targetSpan = diffs.numEq + diffs.numX + diffs.numD;
+
+    // Sanity check.
+    if (querySpan != queryLen || targetSpan != targetLen) {
+        std::ostringstream oss;
+        oss << "Invalid CIGAR string, query or target span do not match. CIGAR: "
+            << cigar.ToStdString() << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+            << ", querySpan = " << querySpan << ", targetSpan = " << targetSpan;
+        throw std::runtime_error(oss.str());
+    }
+
+    // Preallocate space.
+    retQueryAln.resize(diffs.numEq + diffs.numX + diffs.numI + diffs.numD);
+    retTargetAln.resize(diffs.numEq + diffs.numX + diffs.numI + diffs.numD);
+
+    int64_t qPos = 0;
+    int64_t tPos = 0;
+    int64_t alnPos = 0;
+
+    for (auto& cigarOp : cigar) {
+        const auto op = cigarOp.Type();
+        const int32_t count = cigarOp.Length();
+
+        if (op == Data::CigarOperationType::ALIGNMENT_MATCH ||
+            op == Data::CigarOperationType::SEQUENCE_MATCH ||
+            op == Data::CigarOperationType::SEQUENCE_MISMATCH) {
+            for (int32_t opPos = 0; opPos < count; ++opPos, ++alnPos) {
+                retQueryAln[alnPos] = query[qPos];
+                retTargetAln[alnPos] = target[tPos];
+                ++qPos;
+                ++tPos;
+            }
+        } else if (op == Data::CigarOperationType::INSERTION ||
+                   op == Data::CigarOperationType::SOFT_CLIP) {
+            for (int32_t opPos = 0; opPos < count; ++opPos, ++alnPos) {
+                retQueryAln[alnPos] = query[qPos];
+                retTargetAln[alnPos] = '-';
+                ++qPos;
+            }
+
+        } else if (op == Data::CigarOperationType::DELETION ||
+                   op == Data::CigarOperationType::REFERENCE_SKIP) {
+            for (int32_t opPos = 0; opPos < count; ++opPos, ++alnPos) {
+                retQueryAln[alnPos] = '-';
+                retTargetAln[alnPos] = target[tPos];
+                ++tPos;
+            }
+        } else {
+            throw std::runtime_error{"ERROR: Unknown/unsupported CIGAR op: " + cigarOp.Char()};
+        }
+    }
+}
+
 }  // namespace Pancake
 }  // namespace PacBio

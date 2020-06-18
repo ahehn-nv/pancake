@@ -47,6 +47,10 @@ int32_t FindTargetPosFromCigar(const BAM::Cigar& cigar, int32_t queryPos);
 
 void NormalizeAlignmentInPlace(std::string& queryAln, std::string& targetAln);
 
+void ConvertCigarToM5(const char* query, int64_t queryLen, const char* target, int64_t targetLen,
+                      const Data::Cigar& cigar, std::string& retQueryAln,
+                      std::string& retTargetAln);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
