@@ -51,6 +51,8 @@ void ConvertCigarToM5(const char* query, int64_t queryLen, const char* target, i
                       const Data::Cigar& cigar, std::string& retQueryAln,
                       std::string& retTargetAln);
 
+Data::Cigar ConvertM5ToCigar(const std::string& queryAln, const std::string& targetAln);
+
 }  // namespace Pancake
 }  // namespace PacBio
 

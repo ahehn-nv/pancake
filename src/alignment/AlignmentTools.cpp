@@ -903,9 +903,45 @@ void ConvertCigarToM5(const char* query, int64_t queryLen, const char* target, i
                 ++tPos;
             }
         } else {
-            throw std::runtime_error{"ERROR: Unknown/unsupported CIGAR op: " + cigarOp.Char()};
+            throw std::runtime_error{"ERROR: Unknown/unsupported CIGAR op: " +
+                                     std::to_string(cigarOp.Char())};
         }
     }
+}
+
+Data::Cigar ConvertM5ToCigar(const std::string& queryAln, const std::string& targetAln)
+{
+    if (queryAln.size() != targetAln.size()) {
+        std::ostringstream oss;
+        oss << "Query and target M5 strings do not match in length! queryAln.size() = "
+            << queryAln.size() << ", targetAln.size() = " << targetAln.size();
+        throw std::runtime_error(oss.str());
+    }
+
+    Data::Cigar cigar;
+
+    const char* queryAlnC = queryAln.c_str();
+    const char* targetAlnC = targetAln.c_str();
+
+    for (size_t alnPos = 0; alnPos < queryAln.size(); ++alnPos) {
+        PacBio::BAM::CigarOperationType newOp;
+        if (queryAlnC[alnPos] == targetAlnC[alnPos] && queryAlnC[alnPos] != '-') {
+            newOp = PacBio::BAM::CigarOperationType::SEQUENCE_MATCH;
+        } else if (queryAlnC[alnPos] != targetAlnC[alnPos] && queryAlnC[alnPos] != '-' &&
+                   targetAlnC[alnPos] != '-') {
+            newOp = PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH;
+        } else if (queryAlnC[alnPos] == '-' && targetAlnC[alnPos] != '-') {
+            newOp = PacBio::BAM::CigarOperationType::DELETION;
+        } else if (queryAlnC[alnPos] != '-' && targetAlnC[alnPos] == '-') {
+            newOp = PacBio::BAM::CigarOperationType::INSERTION;
+        } else {
+            // Both are '-'.
+            continue;
+        }
+        AppendToCigar(cigar, newOp, 1);
+    }
+
+    return cigar;
 }
 
 }  // namespace Pancake
