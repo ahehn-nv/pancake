@@ -565,9 +565,16 @@ OverlapPtr Mapper::AlignOverlap_(
             int32_t querySubLen = ret->ASpan();
             const char* targetSub = targetSeq.Bases() + ret->BstartFwd();
             int32_t targetSubLen = ret->BSpan();
+            // Reverse the CIGAR (it was generated earlier by reversing the target).
             auto tempCigar = ret->Cigar;
             std::reverse(tempCigar.begin(), tempCigar.end());
 
+            // Normalize the CIGAR operations.
+            tempCigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, tempCigar);
+            ret->Cigar = tempCigar;
+            std::reverse(ret->Cigar.begin(), ret->Cigar.end());
+
+            // Extract variants for the updated CIGAR.
             ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
                                  maskHomopolymers, maskSimpleRepeats, ret->Avars, ret->Bvars,
                                  diffsPerBase, diffsPerEvent);
@@ -584,7 +591,10 @@ OverlapPtr Mapper::AlignOverlap_(
             int32_t querySubLen = ret->ASpan();
             const char* targetSub = targetSeq.Bases() + ret->BstartFwd();
             int32_t targetSubLen = ret->BSpan();
-            const auto& tempCigar = ret->Cigar;
+            auto& tempCigar = ret->Cigar;
+
+            // Normalize the CIGAR operations.
+            tempCigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, tempCigar);
 
             ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
                                  maskHomopolymers, maskSimpleRepeats, ret->Avars, ret->Bvars,
