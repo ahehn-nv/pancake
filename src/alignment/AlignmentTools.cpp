@@ -95,6 +95,23 @@ void CigarDiffCounts(const PacBio::BAM::Cigar& cigar, int32_t& numEq, int32_t& n
     }
 }
 
+Alignment::DiffCounts CigarDiffCounts(const PacBio::BAM::Cigar& cigar)
+{
+    Alignment::DiffCounts ret;
+    for (const auto& op : cigar) {
+        if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
+            ret.numEq += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+            ret.numX += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION) {
+            ret.numI += op.Length();
+        } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION) {
+            ret.numD += op.Length();
+        }
+    }
+    return ret;
+}
+
 void AppendToCigar(PacBio::BAM::Cigar& cigar, PacBio::BAM::CigarOperationType newOp, int32_t newLen)
 {
     if (newLen == 0) {

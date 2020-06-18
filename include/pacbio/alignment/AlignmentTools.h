@@ -18,6 +18,8 @@ void EdlibAlignmentDiffCounts(const unsigned char* aln, int32_t alnLen, int32_t&
 void CigarDiffCounts(const PacBio::BAM::Cigar& cigar, int32_t& numEq, int32_t& numX, int32_t& numI,
                      int32_t& numD);
 
+Alignment::DiffCounts CigarDiffCounts(const PacBio::BAM::Cigar& cigar);
+
 void AppendToCigar(PacBio::BAM::Cigar& cigar, PacBio::BAM::CigarOperationType newOp,
                    int32_t newLen);
 
