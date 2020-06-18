@@ -51,8 +51,8 @@ static const int32_t MASK_DEGREE = 3;
 MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                          const PacBio::Pancake::SeedIndex& index,
                          const PacBio::Pancake::FastaSequenceCached& querySeq,
-                         const PacBio::Pancake::SequenceSeedsCached& querySeeds,
-                         int64_t freqCutoff) const
+                         const PacBio::Pancake::SequenceSeedsCached& querySeeds, int64_t freqCutoff,
+                         bool generateFlippedOverlap) const
 {
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Mapping query ID = " << querySeq.Id() << ", header = " << querySeq.Name();
@@ -96,10 +96,11 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 #endif
 
     TicToc ttAlign;
-    overlaps = AlignOverlaps_(targetSeqs, querySeq, overlaps, settings_.AlignmentBandwidth,
-                              settings_.AlignmentMaxD, settings_.UseTraceback,
-                              settings_.NoSNPsInIdentity, settings_.NoIndelsInIdentity,
-                              settings_.MaskHomopolymers, settings_.MaskSimpleRepeats, sesScratch_);
+    overlaps =
+        AlignOverlaps_(targetSeqs, querySeq, overlaps, settings_.AlignmentBandwidth,
+                       settings_.AlignmentMaxD, settings_.UseTraceback, settings_.NoSNPsInIdentity,
+                       settings_.NoIndelsInIdentity, settings_.MaskHomopolymers,
+                       settings_.MaskSimpleRepeats, generateFlippedOverlap, sesScratch_);
     ttAlign.Stop();
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Overlaps after alignment: " << overlaps.size();
@@ -357,7 +358,7 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::vector<OverlapPtr>& overlaps,
     double alignBandwidth, double alignMaxDiff, bool useTraceback, bool noSNPs, bool noIndels,
-    bool maskHomopolymers, bool maskSimpleRepeats,
+    bool maskHomopolymers, bool maskSimpleRepeats, bool generateFlippedOverlap,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
     std::vector<OverlapPtr> ret;
@@ -366,14 +367,31 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
 
     for (size_t i = 0; i < overlaps.size(); ++i) {
         const auto& targetSeq = targetSeqs.GetSequence(overlaps[i]->Bid);
-        auto newOverlap = AlignOverlap_(targetSeq, querySeq, reverseQuerySeq, overlaps[i],
-                                        alignBandwidth, alignMaxDiff, useTraceback, noSNPs,
-                                        noIndels, maskHomopolymers, maskSimpleRepeats, sesScratch);
-        if (newOverlap == nullptr) {
-            continue;
+        OverlapPtr newOverlap = AlignOverlap_(
+            targetSeq, querySeq, reverseQuerySeq, overlaps[i], alignBandwidth, alignMaxDiff,
+            useTraceback, noSNPs, noIndels, maskHomopolymers, maskSimpleRepeats, sesScratch);
+
+        OverlapPtr newOverlapFlipped = nullptr;
+        if (generateFlippedOverlap) {
+            newOverlapFlipped =
+                GenerateFlippedOverlap_(targetSeq, querySeq, reverseQuerySeq, newOverlap, noSNPs,
+                                        noIndels, maskHomopolymers, maskSimpleRepeats);
         }
-        ret.emplace_back(std::move(newOverlap));
+
+        if (generateFlippedOverlap && newOverlap != nullptr && newOverlapFlipped == nullptr) {
+            throw std::runtime_error(
+                "Problem generating the flipped overlap, it's nullptr! Before flipping: " +
+                OverlapWriterBase::PrintOverlapAsM4(newOverlap, "", "", true, false));
+        }
+
+        if (newOverlap != nullptr) {
+            ret.emplace_back(std::move(newOverlap));
+        }
+        if (newOverlapFlipped != nullptr) {
+            ret.emplace_back(std::move(newOverlapFlipped));
+        }
     }
+
     return ret;
 }
 
@@ -555,6 +573,25 @@ OverlapPtr Mapper::AlignOverlap_(
 #ifdef PANCAKE_DEBUG_ALN
     PBLOG_INFO << "Final: " << OverlapWriterBase::PrintOverlapAsM4(ret, "", "", true, false);
 #endif
+
+    return ret;
+}
+
+OverlapPtr Mapper::GenerateFlippedOverlap_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
+                                           const PacBio::Pancake::FastaSequenceCached& querySeq,
+                                           const std::string reverseQuerySeq, const OverlapPtr& ovl,
+                                           bool noSNPs, bool noIndels, bool maskHomopolymers,
+                                           bool maskSimpleRepeats)
+{
+
+    if (ovl == nullptr) {
+        return nullptr;
+    }
+
+    auto ret = CreateFlippedOverlap(ovl);
+
+    // NormalizeAndExtractVariantsInPlace_(ret, targetSeq, querySeq, reverseQuerySeq, noSNPs, noIndels,
+    //                                     maskHomopolymers, maskSimpleRepeats);
 
     return ret;
 }
