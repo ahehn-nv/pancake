@@ -595,8 +595,8 @@ OverlapPtr Mapper::GenerateFlippedOverlap_(const PacBio::Pancake::FastaSequenceC
 
     auto ret = CreateFlippedOverlap(ovl);
 
-    // NormalizeAndExtractVariantsInPlace_(ret, targetSeq, querySeq, reverseQuerySeq, noSNPs, noIndels,
-    //                                     maskHomopolymers, maskSimpleRepeats);
+    NormalizeAndExtractVariantsInPlace_(ret, targetSeq, querySeq, reverseQuerySeq, noSNPs, noIndels,
+                                        maskHomopolymers, maskSimpleRepeats);
 
     return ret;
 }

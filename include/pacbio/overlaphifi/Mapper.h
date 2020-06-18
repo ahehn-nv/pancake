@@ -220,6 +220,9 @@ private:
     static std::string FetchTargetSubsequence_(
         const PacBio::Pancake::FastaSequenceCached& targetSeq, int32_t seqStart, int32_t seqEnd,
         bool revCmp);
+
+    static std::string FetchTargetSubsequence_(const char* seq, int32_t seqLen, int32_t seqStart,
+                                               int32_t seqEnd, bool revCmp);
 };
 
 }  // namespace Pancake
