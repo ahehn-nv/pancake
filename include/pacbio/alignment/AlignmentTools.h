@@ -35,7 +35,8 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
 
 Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
                                         const std::string& queryVariants,
-                                        const std::string& targetVariants);
+                                        const std::string& targetVariants,
+                                        bool throwOnPartiallyMaskedIndels);
 
 /// \brief For a given query position finds the corresponding target position based
 ///         on a provided CIGAR string.

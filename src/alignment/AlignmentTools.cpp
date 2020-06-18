@@ -590,7 +590,8 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
 
 Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
                                         const std::string& queryVariants,
-                                        const std::string& targetVariants)
+                                        const std::string& targetVariants,
+                                        bool throwOnPartiallyMaskedIndels)
 {
 
     int32_t aVarPos = 0;
@@ -653,7 +654,7 @@ Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
                     ++numMasked;
                 }
             }
-            if (numMasked > 0 && numMasked < opLen) {
+            if (throwOnPartiallyMaskedIndels && numMasked > 0 && numMasked < opLen) {
                 std::ostringstream oss;
                 oss << "Some positions in an insertion variant are masked, but not all. CIGAR op: "
                     << op.Length() << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
@@ -662,9 +663,7 @@ Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
                     << queryVariants.substr(aVarPos, opLen) << "'";
                 throw std::runtime_error(oss.str());
             }
-            if (numMasked == 0) {
-                diffs.numI += opLen;
-            }
+            diffs.numI += (opLen - numMasked);
             aVarPos += opLen;
 
         } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION) {
@@ -683,7 +682,7 @@ Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
                     ++numMasked;
                 }
             }
-            if (numMasked > 0 && numMasked < opLen) {
+            if (throwOnPartiallyMaskedIndels && numMasked > 0 && numMasked < opLen) {
                 std::ostringstream oss;
                 oss << "Some positions in an insertion variant are masked, but not all. CIGAR op: "
                     << op.Length() << op.TypeToChar(op.Type()) << ", aVarPos = " << aVarPos
@@ -692,9 +691,7 @@ Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
                     << targetVariants.substr(bVarPos, opLen) << "'";
                 throw std::runtime_error(oss.str());
             }
-            if (numMasked == 0) {
-                diffs.numD += opLen;
-            }
+            diffs.numD += (opLen - numMasked);
             bVarPos += opLen;
 
         } else if (op.Type() == PacBio::BAM::CigarOperationType::SOFT_CLIP) {
