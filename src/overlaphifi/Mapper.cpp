@@ -635,11 +635,30 @@ void Mapper::NormalizeAndExtractVariantsInPlace_(
     int32_t querySubLen = ovl->ASpan();
     const char* targetSub = tseq.c_str();
     int32_t targetSubLen = tseq.size();
-    auto& tempCigar = ovl->Cigar;
-    tempCigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, tempCigar);
-    ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
-                         maskHomopolymers, maskSimpleRepeats, ovl->Avars, ovl->Bvars, diffsPerBase,
-                         diffsPerEvent);
+    auto& cigar = ovl->Cigar;
+
+    // If the B-read is reversed, then we need to reverse and left-align the CIGAR string
+    // to be consistent with the other alignments which were in forward.
+    // The reason is that in the rest of the workflow up to this point we treated the
+    // query as either fwd or reverse, but finally we actually take query as FWD in the output.
+    // Normalization needs to happen in this context, so that all left-aligned indels line up.
+    if (ovl->Brev) {
+        auto tempCigar = ovl->Cigar;
+        std::reverse(tempCigar.begin(), tempCigar.end());
+        auto qseq =
+            FetchTargetSubsequence_(Aseq, Alen, ovl->AstartFwd(), ovl->AendFwd(), ovl->Brev);
+
+        tempCigar = NormalizeCigar(qseq.c_str(), ovl->ASpan(), Bseq + ovl->BstartFwd(),
+                                   ovl->BSpan(), tempCigar);
+        std::reverse(tempCigar.begin(), tempCigar.end());
+        std::swap(cigar, tempCigar);
+
+    } else {
+        cigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, cigar);
+    }
+
+    ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, cigar, maskHomopolymers,
+                         maskSimpleRepeats, ovl->Avars, ovl->Bvars, diffsPerBase, diffsPerEvent);
 }
 
 void NormalizeAndExtractVariantsInPlaceDeprecated_(
