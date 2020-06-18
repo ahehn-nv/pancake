@@ -157,6 +157,11 @@ private:
         bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
         std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
+    static void NormalizeAndExtractVariantsInPlace_(
+        OverlapPtr& ovl, const PacBio::Pancake::FastaSequenceCached& targetSeq,
+        const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
+        bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats);
+
     /// \brief Filters overlaps based on the number of seeds, identity, mapped span or length.
     ///
     /// \param overlaps A vector of overlaps to filter.
