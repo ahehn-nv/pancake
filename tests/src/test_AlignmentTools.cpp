@@ -657,4 +657,131 @@ TEST(Test_AlignmentTools_ConvertM5ToCigar, ArrayOfTests_RoundTrip)
         }
     }
 }
+
+TEST(Test_AlignmentTools_NormalizeCigar, ArrayOfTests)
+{
+    /*
+     * Tests here are identical to Test_AlignmentTools_NormalizeAlignmentInPlace, with the only addition of a test
+     * that throws.
+    */
+
+    // clang-format off
+    std::vector<std::tuple<std::string, std::string, std::string, std::string, std::string, bool>> testData = {
+        {"Empty input", "", "", "", "", false},
+
+        {"Exact match",
+                        // Query.
+                        "ACTG",
+                        // Target.
+                        "ACTG",
+                        // Input CIGAR.
+                        "4=",
+                        // Normalized CIGAR.
+                        "4=",
+                        false},
+
+        {"Just a mismatch",
+                        "CAC",
+                        "CGC",
+                        "1=1X1=",
+                        "1=1X1=",
+                        false},
+
+        {"Simple normalization with 1 indel and 1 mismatch",
+                        /*
+                         * Input:
+                         *  TTGACACT
+                         *  ||| X|||
+                         *  TTG-TACT
+                         * Expected alignment.
+                         *  TTGACACT
+                         *  |||X |||
+                         *  TTGT-ACT
+                        */
+                        "TTGACACT", "TTGTACT", "3=1I1X3=", "3=1X1I3=", false},
+        {"Simple with two deletions in the query",
+                        /*
+                         * Input:
+                         *  AC--TAAC
+                         *  ||  ||||
+                         *  ACTATAAC
+                         * Expected:
+                         *  ACTA-A-C
+                         *  |||| | |
+                         *  ACTATAAC
+                        */
+                        "ACTAAC", "ACTATAAC", "2=2D4=", "4=1D1=1D1=", false},
+        {"Test reverse complement alignment of the previous one. Shows that left alignment is not symmetric.",
+                        /*
+                         * Input:
+                         *  GTTATAGT
+                         *  ||||  ||
+                         *  GTTA--GT
+                         * Expected:
+                         *  GTTATAGT
+                         *  ||||  ||
+                         *  GTTA--GT
+                        */
+                        "GTTATAGT", "GTTAGT", "4=2I2=", "4=2I2=", false},
+
+        {"Test shifting of gaps on the query",
+                        /*
+                         * Input:
+                         *  -C--CGT
+                         *   |  | |
+                         *  CCGAC-T
+                         * Expected:
+                         *  CCG---T
+                         *  |||   |
+                         *  CCGAC-T
+                        */
+                        "CCGT", "CCGACT", "1D1=2D1=1I1=", "3=2D1=", false},
+
+        {"Test shifting of gaps on the target",
+                        /*
+                         * Input:
+                         *  ATAT-AGCCGGC
+                         *  |||| |   |||
+                         *  ATATTA---GGC
+                         * Expected:
+                         *  ATAT-AGCCGGC
+                         *  |||| ||  | |
+                         *  ATATTAG--G-C
+                        */
+                        "ATATAGCCGGC", "ATATTAGGC", "4=1D1=3I3=", "4=1D2=2I1=1I1=", false},
+
+        {"Bad input CIGAR string, should throw",
+                        "ACTG", "ACTG", "10=", "", true},
+    };
+
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const std::string testName = std::get<0>(data);
+        const std::string& query = std::get<1>(data);
+        const std::string& target = std::get<2>(data);
+        const PacBio::BAM::Cigar inputCigar(std::get<3>(data));
+        const PacBio::BAM::Cigar expectedCigar(std::get<4>(data));
+        const bool shouldThrow = std::get<5>(data);
+
+        // Name the test.
+        SCOPED_TRACE("NormalizeAlignmentInPlace-" + testName);
+
+        // Run.
+        if (shouldThrow) {
+            EXPECT_THROW(
+                {
+                    const PacBio::BAM::Cigar result = PacBio::Pancake::NormalizeCigar(
+                        query.c_str(), query.size(), target.c_str(), target.size(), inputCigar);
+                },
+                std::runtime_error);
+        } else {
+            const PacBio::BAM::Cigar result = PacBio::Pancake::NormalizeCigar(
+                query.c_str(), query.size(), target.c_str(), target.size(), inputCigar);
+            // Evaluate.
+            EXPECT_EQ(expectedCigar, result);
+        }
+    }
+}
 }

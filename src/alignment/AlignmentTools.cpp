@@ -944,5 +944,19 @@ Data::Cigar ConvertM5ToCigar(const std::string& queryAln, const std::string& tar
     return cigar;
 }
 
+Data::Cigar NormalizeCigar(const char* query, int64_t queryLen, const char* target,
+                           int64_t targetLen, const Data::Cigar& cigar)
+{
+    std::string queryAln;
+    std::string targetAln;
+
+    PacBio::Pancake::ConvertCigarToM5(query, queryLen, target, targetLen, cigar, queryAln,
+                                      targetAln);
+
+    NormalizeAlignmentInPlace(queryAln, targetAln);
+
+    return PacBio::Pancake::ConvertM5ToCigar(queryAln, targetAln);
+}
+
 }  // namespace Pancake
 }  // namespace PacBio
