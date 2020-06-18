@@ -561,12 +561,17 @@ OverlapPtr Mapper::AlignOverlap_(
         PacBio::Pancake::Alignment::DiffCounts diffsPerBase;
         PacBio::Pancake::Alignment::DiffCounts diffsPerEvent;
         if (ret->Brev) {
+            const char* querySub = reverseQuerySeq.c_str() + (ret->Alen - ret->Aend);
+            int32_t querySubLen = ret->ASpan();
+            const char* targetSub = targetSeq.Bases() + ret->BstartFwd();
+            int32_t targetSubLen = ret->BSpan();
             auto tempCigar = ret->Cigar;
             std::reverse(tempCigar.begin(), tempCigar.end());
-            ExtractVariantString(reverseQuerySeq.c_str() + (ret->Alen - ret->Aend), ret->ASpan(),
-                                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(), tempCigar,
+
+            ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
                                  maskHomopolymers, maskSimpleRepeats, ret->Avars, ret->Bvars,
                                  diffsPerBase, diffsPerEvent);
+
             ret->Avars = Pancake::ReverseComplement(ret->Avars, 0, ret->Avars.size());
             ret->Bvars = Pancake::ReverseComplement(ret->Bvars, 0, ret->Bvars.size());
 
@@ -575,10 +580,16 @@ OverlapPtr Mapper::AlignOverlap_(
             //                 tempCigar, OverlapWriterBase::PrintOverlapAsM4(
             //                             ret, querySeq.Name(), targetSeq.Name(), true, false));
         } else {
-            ExtractVariantString(querySeq.Bases() + ret->Astart, ret->ASpan(),
-                                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(), ret->Cigar,
+            const char* querySub = querySeq.Bases() + ret->Astart;
+            int32_t querySubLen = ret->ASpan();
+            const char* targetSub = targetSeq.Bases() + ret->BstartFwd();
+            int32_t targetSubLen = ret->BSpan();
+            const auto& tempCigar = ret->Cigar;
+
+            ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
                                  maskHomopolymers, maskSimpleRepeats, ret->Avars, ret->Bvars,
                                  diffsPerBase, diffsPerEvent);
+
             // ValidateCigar(querySeq.Bases() + ret->Astart, ret->ASpan(),
             //                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(),
             //                 ret->Cigar, OverlapWriterBase::PrintOverlapAsM4(
