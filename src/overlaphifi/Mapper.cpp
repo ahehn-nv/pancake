@@ -661,67 +661,67 @@ void Mapper::NormalizeAndExtractVariantsInPlace_(
                          maskSimpleRepeats, ovl->Avars, ovl->Bvars, diffsPerBase, diffsPerEvent);
 }
 
-void NormalizeAndExtractVariantsInPlaceDeprecated_(
-    OverlapPtr& ovl, const PacBio::Pancake::FastaSequenceCached& targetSeq,
-    const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
-    bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats)
-{
-    // Extract the variant strings.
-    if (ovl->Cigar.empty()) {
-        return;
-    }
+// void NormalizeAndExtractVariantsInPlaceDeprecated_(
+//     OverlapPtr& ovl, const PacBio::Pancake::FastaSequenceCached& targetSeq,
+//     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
+//     bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats)
+// {
+//     // Extract the variant strings.
+//     if (ovl->Cigar.empty()) {
+//         return;
+//     }
 
-    /// This works, but is slower because it requires to copy the target sequence every time.
-    /// Since we already have the reversed query, we can simply reverse the CIGAR string and provide
-    /// the reversed query, as below.
-    // auto tseq = FetchTargetSubsequence_(targetSeq, ovl->BstartFwd(), ovl->BendFwd(), ovl->Brev);
-    // ovl->VariantString = ExtractVariantString(querySeq.Bases() + ovl->Astart, ovl->ASpan(), tseq.c_str(), tseq.size(),
-    //               ovl->Cigar, false, false);
+//     /// This works, but is slower because it requires to copy the target sequence every time.
+//     /// Since we already have the reversed query, we can simply reverse the CIGAR string and provide
+//     /// the reversed query, as below.
+//     // auto tseq = FetchTargetSubsequence_(targetSeq, ovl->BstartFwd(), ovl->BendFwd(), ovl->Brev);
+//     // ovl->VariantString = ExtractVariantString(querySeq.Bases() + ovl->Astart, ovl->ASpan(), tseq.c_str(), tseq.size(),
+//     //               ovl->Cigar, false, false);
 
-    PacBio::Pancake::Alignment::DiffCounts diffsPerBase;
-    PacBio::Pancake::Alignment::DiffCounts diffsPerEvent;
+//     PacBio::Pancake::Alignment::DiffCounts diffsPerBase;
+//     PacBio::Pancake::Alignment::DiffCounts diffsPerEvent;
 
-    if (ovl->Brev) {
-        // Get the correct subsequences as C-strings.
-        const char* querySub = reverseQuerySeq.c_str() + (ovl->Alen - ovl->Aend);
-        int32_t querySubLen = ovl->ASpan();
-        const char* targetSub = targetSeq.Bases() + ovl->BstartFwd();
-        int32_t targetSubLen = ovl->BSpan();
-        // Reverse the CIGAR (it was generated earlier by reversing the target).
-        auto tempCigar = ovl->Cigar;
-        std::reverse(tempCigar.begin(), tempCigar.end());
+//     if (ovl->Brev) {
+//         // Get the correct subsequences as C-strings.
+//         const char* querySub = reverseQuerySeq.c_str() + (ovl->Alen - ovl->Aend);
+//         int32_t querySubLen = ovl->ASpan();
+//         const char* targetSub = targetSeq.Bases() + ovl->BstartFwd();
+//         int32_t targetSubLen = ovl->BSpan();
+//         // Reverse the CIGAR (it was generated earlier by reversing the target).
+//         auto tempCigar = ovl->Cigar;
+//         std::reverse(tempCigar.begin(), tempCigar.end());
 
-        // Normalize the CIGAR operations.
-        tempCigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, tempCigar);
-        ovl->Cigar = tempCigar;
-        std::reverse(ovl->Cigar.begin(), ovl->Cigar.end());
+//         // Normalize the CIGAR operations.
+//         tempCigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, tempCigar);
+//         ovl->Cigar = tempCigar;
+//         std::reverse(ovl->Cigar.begin(), ovl->Cigar.end());
 
-        // Extract variants for the updated CIGAR.
-        ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
-                             maskHomopolymers, maskSimpleRepeats, ovl->Avars, ovl->Bvars,
-                             diffsPerBase, diffsPerEvent);
+//         // Extract variants for the updated CIGAR.
+//         ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
+//                              maskHomopolymers, maskSimpleRepeats, ovl->Avars, ovl->Bvars,
+//                              diffsPerBase, diffsPerEvent);
 
-        ovl->Avars = Pancake::ReverseComplement(ovl->Avars, 0, ovl->Avars.size());
-        ovl->Bvars = Pancake::ReverseComplement(ovl->Bvars, 0, ovl->Bvars.size());
-    } else {
-        // Get the correct subsequences as C-strings.
-        const char* querySub = querySeq.Bases() + ovl->Astart;
-        int32_t querySubLen = ovl->ASpan();
-        const char* targetSub = targetSeq.Bases() + ovl->BstartFwd();
-        int32_t targetSubLen = ovl->BSpan();
-        auto& tempCigar = ovl->Cigar;
-        // Normalize the CIGAR operations.
-        tempCigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, tempCigar);
-        // Extract variants for the updated CIGAR.
-        ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
-                             maskHomopolymers, maskSimpleRepeats, ovl->Avars, ovl->Bvars,
-                             diffsPerBase, diffsPerEvent);
-    }
+//         ovl->Avars = Pancake::ReverseComplement(ovl->Avars, 0, ovl->Avars.size());
+//         ovl->Bvars = Pancake::ReverseComplement(ovl->Bvars, 0, ovl->Bvars.size());
+//     } else {
+//         // Get the correct subsequences as C-strings.
+//         const char* querySub = querySeq.Bases() + ovl->Astart;
+//         int32_t querySubLen = ovl->ASpan();
+//         const char* targetSub = targetSeq.Bases() + ovl->BstartFwd();
+//         int32_t targetSubLen = ovl->BSpan();
+//         auto& tempCigar = ovl->Cigar;
+//         // Normalize the CIGAR operations.
+//         tempCigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, tempCigar);
+//         // Extract variants for the updated CIGAR.
+//         ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
+//                              maskHomopolymers, maskSimpleRepeats, ovl->Avars, ovl->Bvars,
+//                              diffsPerBase, diffsPerEvent);
+//     }
 
-    const auto& diffs = diffsPerBase;
-    diffs.Identity(noSNPs, noIndels, ovl->Identity, ovl->EditDistance);
-    ovl->Score = -diffs.numEq;
-}
+//     const auto& diffs = diffsPerBase;
+//     diffs.Identity(noSNPs, noIndels, ovl->Identity, ovl->EditDistance);
+//     ovl->Score = -diffs.numEq;
+// }
 
 void Mapper::DebugWriteSeedHits_(const std::string& outPath, const std::vector<SeedHit>& hits,
                                  int32_t seedLen, const std::string& queryName, int64_t queryLen,
