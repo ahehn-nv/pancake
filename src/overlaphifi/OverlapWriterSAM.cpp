@@ -54,11 +54,11 @@ void OverlapWriterSAM::WriteHeader(const PacBio::Pancake::SeqDBReaderCachedBlock
 
 void OverlapWriterSAM::Write(const OverlapPtr& ovl,
                              const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
-                             const PacBio::Pancake::FastaSequenceId& querySeq, bool isFlipped)
+                             const PacBio::Pancake::FastaSequenceId& querySeq)
 {
     // It's important to know if the overlap was flipped because then the query and target
     // names should be swapped.
-    if (isFlipped) {
+    if (ovl->IsFlipped) {
         const auto& targetSeq = targetSeqs.GetSequence(ovl->Aid);
         // Don't look for the actual headers unless required. Saves the cost of a search.
         const auto& qName = writeIds_ ? "" : targetSeq.Name();
@@ -76,11 +76,11 @@ void OverlapWriterSAM::Write(const OverlapPtr& ovl,
 
 void OverlapWriterSAM::Write(const OverlapPtr& ovl,
                              const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
-                             const PacBio::Pancake::FastaSequenceCached& querySeq, bool isFlipped)
+                             const PacBio::Pancake::FastaSequenceCached& querySeq)
 {
     // It's important to know if the overlap was flipped because then the query and target
     // names should be swapped.
-    if (isFlipped) {
+    if (ovl->IsFlipped) {
         const auto& targetSeq = targetSeqs.GetSequence(ovl->Aid);
         // Don't look for the actual headers unless required. Saves the cost of a search.
         const auto& qName = writeIds_ ? "" : targetSeq.Name();

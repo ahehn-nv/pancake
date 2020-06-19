@@ -29,11 +29,11 @@ void OverlapWriterM4::WriteHeader(const PacBio::Pancake::SeqDBReaderCachedBlock&
 
 void OverlapWriterM4::Write(const OverlapPtr& ovl,
                             const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
-                            const PacBio::Pancake::FastaSequenceId& querySeq, bool isFlipped)
+                            const PacBio::Pancake::FastaSequenceId& querySeq)
 {
     // It's important to know if the overlap was flipped because then the query and target
     // names should be swapped.
-    if (isFlipped) {
+    if (ovl->IsFlipped) {
         // Don't look for the actual headers unless required. Saves the cost of a search.
         const auto& qName = writeIds_ ? "" : targetSeqs.GetSequence(ovl->Aid).Name();
         const auto& tName = writeIds_ ? "" : querySeq.Name();
@@ -48,11 +48,11 @@ void OverlapWriterM4::Write(const OverlapPtr& ovl,
 
 void OverlapWriterM4::Write(const OverlapPtr& ovl,
                             const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
-                            const PacBio::Pancake::FastaSequenceCached& querySeq, bool isFlipped)
+                            const PacBio::Pancake::FastaSequenceCached& querySeq)
 {
     // It's important to know if the overlap was flipped because then the query and target
     // names should be swapped.
-    if (isFlipped) {
+    if (ovl->IsFlipped) {
         // Don't look for the actual headers unless required. Saves the cost of a search.
         const auto& qName = writeIds_ ? "" : targetSeqs.GetSequence(ovl->Aid).Name();
         const auto& tName = writeIds_ ? "" : querySeq.Name();

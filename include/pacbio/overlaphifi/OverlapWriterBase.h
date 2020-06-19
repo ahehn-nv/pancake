@@ -22,11 +22,11 @@ public:
     virtual ~OverlapWriterBase() {}
 
     virtual void Write(const OverlapPtr& ovl, const PacBio::Pancake::SeqDBReaderCached& targetSeqs,
-                       const PacBio::Pancake::FastaSequenceId& querySeq, bool isFlipped) = 0;
+                       const PacBio::Pancake::FastaSequenceId& querySeq) = 0;
 
     virtual void Write(const OverlapPtr& ovl,
                        const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
-                       const PacBio::Pancake::FastaSequenceCached& querySeq, bool isFlipped) = 0;
+                       const PacBio::Pancake::FastaSequenceCached& querySeq) = 0;
 
     virtual void WriteHeader(const PacBio::Pancake::SeqDBReaderCached& targetSeqs) = 0;
 
