@@ -26,7 +26,7 @@ void Worker(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqDBReader,
             const PacBio::Pancake::SeqDBReaderCachedBlock& querySeqDBReader,
             const PacBio::Pancake::SeedDBReaderCachedBlock& querySeedDBReader,
             const OverlapHifiSettings& /*settings*/, const PacBio::Pancake::Mapper& mapper,
-            int64_t freqCutoff, int32_t start, int32_t end,
+            int64_t freqCutoff, bool generateFlippedOverlaps, int32_t start, int32_t end,
             std::vector<PacBio::Pancake::MapperResult>& results)
 {
     int32_t numRecords = querySeqDBReader.records().size();
@@ -41,7 +41,8 @@ void Worker(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqDBReader,
     for (int32_t i = start; i < end; ++i) {
         const auto& querySeq = querySeqDBReader.records()[i];
         const auto& querySeeds = querySeedDBReader.GetSeedsForSequence(querySeq.Id());
-        results[i] = mapper.Map(targetSeqDBReader, index, querySeq, querySeeds, freqCutoff);
+        results[i] = mapper.Map(targetSeqDBReader, index, querySeq, querySeeds, freqCutoff,
+                                generateFlippedOverlaps);
     }
 }
 
@@ -216,8 +217,8 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                 faf.ProduceWith(Worker, std::cref(targetSeqDBReader), std::cref(index),
                                 std::cref(querySeqDBReader), std::cref(querySeedDBReader),
                                 std::cref(settings), std::cref(mappers[i]), freqCutoff,
-                                submittedCount, submittedCount + recordsPerThread[i],
-                                std::ref(results));
+                                settings.WriteReverseOverlaps, submittedCount,
+                                submittedCount + recordsPerThread[i], std::ref(results));
                 submittedCount += recordsPerThread[i];
             }
             faf.Finalize();
@@ -228,12 +229,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                 const auto& querySeq = querySeqDBReader.records()[i];
 
                 for (const auto& ovl : result.overlaps) {
-                    writer->Write(ovl, targetSeqDBReader, querySeq, false);
-
-                    if (settings.WriteReverseOverlaps) {
-                        auto newOvl = CreateFlippedOverlap(ovl);
-                        writer->Write(newOvl, targetSeqDBReader, querySeq, true);
-                    }
+                    writer->Write(ovl, targetSeqDBReader, querySeq);
                 }
             }
 

@@ -51,8 +51,8 @@ static const int32_t MASK_DEGREE = 3;
 MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                          const PacBio::Pancake::SeedIndex& index,
                          const PacBio::Pancake::FastaSequenceCached& querySeq,
-                         const PacBio::Pancake::SequenceSeedsCached& querySeeds,
-                         int64_t freqCutoff) const
+                         const PacBio::Pancake::SequenceSeedsCached& querySeeds, int64_t freqCutoff,
+                         bool generateFlippedOverlap) const
 {
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Mapping query ID = " << querySeq.Id() << ", header = " << querySeq.Name();
@@ -96,10 +96,11 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 #endif
 
     TicToc ttAlign;
-    overlaps = AlignOverlaps_(targetSeqs, querySeq, overlaps, settings_.AlignmentBandwidth,
-                              settings_.AlignmentMaxD, settings_.UseTraceback,
-                              settings_.NoSNPsInIdentity, settings_.NoIndelsInIdentity,
-                              settings_.MaskHomopolymers, settings_.MaskSimpleRepeats, sesScratch_);
+    overlaps =
+        AlignOverlaps_(targetSeqs, querySeq, overlaps, settings_.AlignmentBandwidth,
+                       settings_.AlignmentMaxD, settings_.UseTraceback, settings_.NoSNPsInIdentity,
+                       settings_.NoIndelsInIdentity, settings_.MaskHomopolymers,
+                       settings_.MaskSimpleRepeats, generateFlippedOverlap, sesScratch_);
     ttAlign.Stop();
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Overlaps after alignment: " << overlaps.size();
@@ -357,7 +358,7 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::vector<OverlapPtr>& overlaps,
     double alignBandwidth, double alignMaxDiff, bool useTraceback, bool noSNPs, bool noIndels,
-    bool maskHomopolymers, bool maskSimpleRepeats,
+    bool maskHomopolymers, bool maskSimpleRepeats, bool generateFlippedOverlap,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
     std::vector<OverlapPtr> ret;
@@ -366,21 +367,43 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
 
     for (size_t i = 0; i < overlaps.size(); ++i) {
         const auto& targetSeq = targetSeqs.GetSequence(overlaps[i]->Bid);
-        auto newOverlap = AlignOverlap_(targetSeq, querySeq, reverseQuerySeq, overlaps[i],
-                                        alignBandwidth, alignMaxDiff, useTraceback, noSNPs,
-                                        noIndels, maskHomopolymers, maskSimpleRepeats, sesScratch);
-        if (newOverlap == nullptr) {
-            continue;
+        OverlapPtr newOverlap = AlignOverlap_(
+            targetSeq, querySeq, reverseQuerySeq, overlaps[i], alignBandwidth, alignMaxDiff,
+            useTraceback, noSNPs, noIndels, maskHomopolymers, maskSimpleRepeats, sesScratch);
+
+        OverlapPtr newOverlapFlipped = nullptr;
+        if (generateFlippedOverlap) {
+            newOverlapFlipped =
+                GenerateFlippedOverlap_(targetSeq, querySeq, reverseQuerySeq, newOverlap, noSNPs,
+                                        noIndels, maskHomopolymers, maskSimpleRepeats);
         }
-        ret.emplace_back(std::move(newOverlap));
+
+        if (generateFlippedOverlap && newOverlap != nullptr && newOverlapFlipped == nullptr) {
+            throw std::runtime_error(
+                "Problem generating the flipped overlap, it's nullptr! Before flipping: " +
+                OverlapWriterBase::PrintOverlapAsM4(newOverlap, "", "", true, false));
+        }
+
+        if (newOverlap != nullptr) {
+            ret.emplace_back(std::move(newOverlap));
+        }
+        if (newOverlapFlipped != nullptr) {
+            ret.emplace_back(std::move(newOverlapFlipped));
+        }
     }
+
     return ret;
 }
 
 std::string Mapper::FetchTargetSubsequence_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
                                             int32_t seqStart, int32_t seqEnd, bool revCmp)
 {
-    const int32_t seqLen = targetSeq.Size();
+    return FetchTargetSubsequence_(targetSeq.Bases(), targetSeq.Size(), seqStart, seqEnd, revCmp);
+}
+
+std::string Mapper::FetchTargetSubsequence_(const char* seq, int32_t seqLen, int32_t seqStart,
+                                            int32_t seqEnd, bool revCmp)
+{
     if (seqEnd == seqStart) {
         return {};
     }
@@ -393,7 +416,7 @@ std::string Mapper::FetchTargetSubsequence_(const PacBio::Pancake::FastaSequence
         throw std::runtime_error(oss.str());
     }
     seqEnd = (seqEnd == 0) ? seqLen : seqEnd;
-    std::string ret(targetSeq.Bases() + seqStart, seqEnd - seqStart);
+    std::string ret(seq + seqStart, seqEnd - seqStart);
     if (revCmp) {
         ret = PacBio::Pancake::ReverseComplement(ret, 0, ret.size());
     }
@@ -549,46 +572,8 @@ OverlapPtr Mapper::AlignOverlap_(
                           sesResultRight.cigar.end());
     }
 
-    // Extract the variant strings.
-    if (ret->Cigar.size() > 0) {
-        /// This works, but is slower because it requires to copy the target sequence every time.
-        /// Since we already have the reversed query, we can simply reverse the CIGAR string and provide
-        /// the reversed query, as below.
-        // auto tseq = FetchTargetSubsequence_(targetSeq, ret->BstartFwd(), ret->BendFwd(), ret->Brev);
-        // ret->VariantString = ExtractVariantString(querySeq.Bases() + ret->Astart, ret->ASpan(), tseq.c_str(), tseq.size(),
-        //               ret->Cigar, false, false);
-
-        PacBio::Pancake::Alignment::DiffCounts diffsPerBase;
-        PacBio::Pancake::Alignment::DiffCounts diffsPerEvent;
-        if (ret->Brev) {
-            auto tempCigar = ret->Cigar;
-            std::reverse(tempCigar.begin(), tempCigar.end());
-            ExtractVariantString(reverseQuerySeq.c_str() + (ret->Alen - ret->Aend), ret->ASpan(),
-                                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(), tempCigar,
-                                 maskHomopolymers, maskSimpleRepeats, ret->Avars, ret->Bvars,
-                                 diffsPerBase, diffsPerEvent);
-            ret->Avars = Pancake::ReverseComplement(ret->Avars, 0, ret->Avars.size());
-            ret->Bvars = Pancake::ReverseComplement(ret->Bvars, 0, ret->Bvars.size());
-
-            // ValidateCigar(reverseQuerySeq.c_str() + (ret->Alen - ret->Aend), ret->ASpan(),
-            //                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(),
-            //                 tempCigar, OverlapWriterBase::PrintOverlapAsM4(
-            //                             ret, querySeq.Name(), targetSeq.Name(), true, false));
-        } else {
-            ExtractVariantString(querySeq.Bases() + ret->Astart, ret->ASpan(),
-                                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(), ret->Cigar,
-                                 maskHomopolymers, maskSimpleRepeats, ret->Avars, ret->Bvars,
-                                 diffsPerBase, diffsPerEvent);
-            // ValidateCigar(querySeq.Bases() + ret->Astart, ret->ASpan(),
-            //                 targetSeq.Bases() + ret->BstartFwd(), ret->BSpan(),
-            //                 ret->Cigar, OverlapWriterBase::PrintOverlapAsM4(
-            //                             ret, querySeq.Name(), targetSeq.Name(), false, false));
-        }
-
-        const auto& diffs = diffsPerBase;
-        diffs.Identity(noSNPs, noIndels, ret->Identity, ret->EditDistance);
-        ret->Score = -diffs.numEq;
-    }
+    NormalizeAndExtractVariantsInPlace_(ret, targetSeq, querySeq, reverseQuerySeq, noSNPs, noIndels,
+                                        maskHomopolymers, maskSimpleRepeats);
 
 #ifdef PANCAKE_DEBUG_ALN
     PBLOG_INFO << "Final: " << OverlapWriterBase::PrintOverlapAsM4(ret, "", "", true, false);
@@ -596,6 +581,147 @@ OverlapPtr Mapper::AlignOverlap_(
 
     return ret;
 }
+
+OverlapPtr Mapper::GenerateFlippedOverlap_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
+                                           const PacBio::Pancake::FastaSequenceCached& querySeq,
+                                           const std::string reverseQuerySeq, const OverlapPtr& ovl,
+                                           bool noSNPs, bool noIndels, bool maskHomopolymers,
+                                           bool maskSimpleRepeats)
+{
+
+    if (ovl == nullptr) {
+        return nullptr;
+    }
+
+    auto ret = CreateFlippedOverlap(ovl);
+
+    NormalizeAndExtractVariantsInPlace_(ret, targetSeq, querySeq, reverseQuerySeq, noSNPs, noIndels,
+                                        maskHomopolymers, maskSimpleRepeats);
+
+    return ret;
+}
+
+void Mapper::NormalizeAndExtractVariantsInPlace_(
+    OverlapPtr& ovl, const PacBio::Pancake::FastaSequenceCached& targetSeq,
+    const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
+    bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats)
+{
+    // Extract the variant strings.
+    if (ovl->Cigar.empty()) {
+        return;
+    }
+
+    const char* Aseq = querySeq.Bases();
+    int32_t Alen = querySeq.Size();
+    const char* Bseq = targetSeq.Bases();
+    int32_t Blen = targetSeq.Size();
+
+    if (ovl->IsFlipped) {
+        Aseq = targetSeq.Bases();
+        Alen = targetSeq.Size();
+        Bseq = querySeq.Bases();
+        Blen = querySeq.Size();
+    }
+
+    // / This works, but is slower because it requires to copy the target sequence every time.
+    // / Since we already have the reversed query, we can simply reverse the CIGAR string and provide
+    // / the reversed query, as below.
+    PacBio::Pancake::Alignment::DiffCounts diffsPerBase;
+    PacBio::Pancake::Alignment::DiffCounts diffsPerEvent;
+
+    auto tseq = FetchTargetSubsequence_(Bseq, Blen, ovl->BstartFwd(), ovl->BendFwd(), ovl->Brev);
+
+    const char* querySub = Aseq + ovl->Astart;
+    int32_t querySubLen = ovl->ASpan();
+    const char* targetSub = tseq.c_str();
+    int32_t targetSubLen = tseq.size();
+    auto& cigar = ovl->Cigar;
+
+    // If the B-read is reversed, then we need to reverse and left-align the CIGAR string
+    // to be consistent with the other alignments which were in forward.
+    // The reason is that in the rest of the workflow up to this point we treated the
+    // query as either fwd or reverse, but finally we actually take query as FWD in the output.
+    // Normalization needs to happen in this context, so that all left-aligned indels line up.
+    if (ovl->Brev) {
+        auto tempCigar = ovl->Cigar;
+        std::reverse(tempCigar.begin(), tempCigar.end());
+        auto qseq =
+            FetchTargetSubsequence_(Aseq, Alen, ovl->AstartFwd(), ovl->AendFwd(), ovl->Brev);
+
+        tempCigar = NormalizeCigar(qseq.c_str(), ovl->ASpan(), Bseq + ovl->BstartFwd(),
+                                   ovl->BSpan(), tempCigar);
+        std::reverse(tempCigar.begin(), tempCigar.end());
+        std::swap(cigar, tempCigar);
+
+    } else {
+        cigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, cigar);
+    }
+
+    ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, cigar, maskHomopolymers,
+                         maskSimpleRepeats, ovl->Avars, ovl->Bvars, diffsPerBase, diffsPerEvent);
+}
+
+// void NormalizeAndExtractVariantsInPlaceDeprecated_(
+//     OverlapPtr& ovl, const PacBio::Pancake::FastaSequenceCached& targetSeq,
+//     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
+//     bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats)
+// {
+//     // Extract the variant strings.
+//     if (ovl->Cigar.empty()) {
+//         return;
+//     }
+
+//     /// This works, but is slower because it requires to copy the target sequence every time.
+//     /// Since we already have the reversed query, we can simply reverse the CIGAR string and provide
+//     /// the reversed query, as below.
+//     // auto tseq = FetchTargetSubsequence_(targetSeq, ovl->BstartFwd(), ovl->BendFwd(), ovl->Brev);
+//     // ovl->VariantString = ExtractVariantString(querySeq.Bases() + ovl->Astart, ovl->ASpan(), tseq.c_str(), tseq.size(),
+//     //               ovl->Cigar, false, false);
+
+//     PacBio::Pancake::Alignment::DiffCounts diffsPerBase;
+//     PacBio::Pancake::Alignment::DiffCounts diffsPerEvent;
+
+//     if (ovl->Brev) {
+//         // Get the correct subsequences as C-strings.
+//         const char* querySub = reverseQuerySeq.c_str() + (ovl->Alen - ovl->Aend);
+//         int32_t querySubLen = ovl->ASpan();
+//         const char* targetSub = targetSeq.Bases() + ovl->BstartFwd();
+//         int32_t targetSubLen = ovl->BSpan();
+//         // Reverse the CIGAR (it was generated earlier by reversing the target).
+//         auto tempCigar = ovl->Cigar;
+//         std::reverse(tempCigar.begin(), tempCigar.end());
+
+//         // Normalize the CIGAR operations.
+//         tempCigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, tempCigar);
+//         ovl->Cigar = tempCigar;
+//         std::reverse(ovl->Cigar.begin(), ovl->Cigar.end());
+
+//         // Extract variants for the updated CIGAR.
+//         ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
+//                              maskHomopolymers, maskSimpleRepeats, ovl->Avars, ovl->Bvars,
+//                              diffsPerBase, diffsPerEvent);
+
+//         ovl->Avars = Pancake::ReverseComplement(ovl->Avars, 0, ovl->Avars.size());
+//         ovl->Bvars = Pancake::ReverseComplement(ovl->Bvars, 0, ovl->Bvars.size());
+//     } else {
+//         // Get the correct subsequences as C-strings.
+//         const char* querySub = querySeq.Bases() + ovl->Astart;
+//         int32_t querySubLen = ovl->ASpan();
+//         const char* targetSub = targetSeq.Bases() + ovl->BstartFwd();
+//         int32_t targetSubLen = ovl->BSpan();
+//         auto& tempCigar = ovl->Cigar;
+//         // Normalize the CIGAR operations.
+//         tempCigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, tempCigar);
+//         // Extract variants for the updated CIGAR.
+//         ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, tempCigar,
+//                              maskHomopolymers, maskSimpleRepeats, ovl->Avars, ovl->Bvars,
+//                              diffsPerBase, diffsPerEvent);
+//     }
+
+//     const auto& diffs = diffsPerBase;
+//     diffs.Identity(noSNPs, noIndels, ovl->Identity, ovl->EditDistance);
+//     ovl->Score = -diffs.numEq;
+// }
 
 void Mapper::DebugWriteSeedHits_(const std::string& outPath, const std::vector<SeedHit>& hits,
                                  int32_t seedLen, const std::string& queryName, int64_t queryLen,

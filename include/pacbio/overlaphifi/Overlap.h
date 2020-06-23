@@ -66,6 +66,9 @@ public:
     std::string Avars;
     std::string Bvars;
 
+    // Important to mark whether an overlap was flipped, because the Aid and Bid contexts change.
+    bool IsFlipped = false;
+
 public:
     Overlap() = default;
     ~Overlap() = default;
@@ -73,7 +76,8 @@ public:
     Overlap(int32_t _Aid, int32_t _Bid, float _Score, float _Identity, bool _Arev, int32_t _Astart,
             int32_t _Aend, int32_t _Alen, bool _Brev, int32_t _Bstart, int32_t _Bend, int32_t _Blen,
             int32_t _EditDistance, int32_t _NumSeeds, OverlapType _Atype, OverlapType _Btype,
-            const PacBio::BAM::Cigar& _Cigar, const std::string& _Avars, const std::string& _Bvars)
+            const PacBio::BAM::Cigar& _Cigar, const std::string& _Avars, const std::string& _Bvars,
+            bool _IsFlipped)
         : Aid(_Aid)
         , Arev(_Arev)
         , Astart(_Astart)
@@ -93,6 +97,7 @@ public:
         , Cigar(_Cigar)
         , Avars(_Avars)
         , Bvars(_Bvars)
+        , IsFlipped(_IsFlipped)
     {
     }
 
@@ -106,6 +111,8 @@ public:
 
     void Flip()
     {
+        IsFlipped = !IsFlipped;
+
         std::swap(Aid, Bid);
         std::swap(Arev, Brev);
         std::swap(Alen, Blen);
@@ -159,23 +166,22 @@ public:
                EditDistance == rhs.EditDistance && NumSeeds == rhs.NumSeeds && Atype == rhs.Atype &&
                Btype == rhs.Btype && Arev == rhs.Arev && Astart == rhs.Astart && Aend == rhs.Aend &&
                Alen == rhs.Aend && Brev == rhs.Brev && Bstart == rhs.Bstart && Bend == rhs.Bend &&
-               Blen == rhs.Bend && Cigar == rhs.Cigar && Avars == rhs.Avars && Bvars == rhs.Bvars;
+               Blen == rhs.Bend && Cigar == rhs.Cigar && Avars == rhs.Avars && Bvars == rhs.Bvars &&
+               IsFlipped == rhs.IsFlipped;
     }
 };
 
 inline std::unique_ptr<Overlap> createOverlap() { return std::unique_ptr<Overlap>(new Overlap()); }
 
-inline std::unique_ptr<Overlap> createOverlap(int32_t Aid, int32_t Bid, float score, float identity,
-                                              bool Arev, int32_t Astart, int32_t Aend, int32_t Alen,
-                                              bool Brev, int32_t Bstart, int32_t Bend, int32_t Blen,
-                                              int32_t EditDistance, int32_t NumSeeds,
-                                              OverlapType Atype, OverlapType Btype,
-                                              const PacBio::BAM::Cigar& Cigar,
-                                              const std::string& Avars, const std::string& Bvars)
+inline std::unique_ptr<Overlap> createOverlap(
+    int32_t Aid, int32_t Bid, float score, float identity, bool Arev, int32_t Astart, int32_t Aend,
+    int32_t Alen, bool Brev, int32_t Bstart, int32_t Bend, int32_t Blen, int32_t EditDistance,
+    int32_t NumSeeds, OverlapType Atype, OverlapType Btype, const PacBio::BAM::Cigar& Cigar,
+    const std::string& Avars, const std::string& Bvars, bool IsFlipped)
 {
     return std::unique_ptr<Overlap>(new Overlap(Aid, Bid, score, identity, Arev, Astart, Aend, Alen,
                                                 Brev, Bstart, Bend, Blen, EditDistance, NumSeeds,
-                                                Atype, Btype, Cigar, Avars, Bvars));
+                                                Atype, Btype, Cigar, Avars, Bvars, IsFlipped));
 }
 
 inline std::unique_ptr<Overlap> createOverlap(int32_t Aid, int32_t Bid, float score, float identity,
@@ -186,7 +192,7 @@ inline std::unique_ptr<Overlap> createOverlap(int32_t Aid, int32_t Bid, float sc
 {
     return std::unique_ptr<Overlap>(new Overlap(Aid, Bid, score, identity, Arev, Astart, Aend, Alen,
                                                 Brev, Bstart, Bend, Blen, EditDistance, NumSeeds,
-                                                Atype, Btype, {}, {}, {}));
+                                                Atype, Btype, {}, {}, {}, false));
 }
 
 inline std::unique_ptr<Overlap> createOverlap(const std::unique_ptr<Overlap>& ovl)
@@ -194,7 +200,7 @@ inline std::unique_ptr<Overlap> createOverlap(const std::unique_ptr<Overlap>& ov
     return std::unique_ptr<Overlap>(new Overlap(
         ovl->Aid, ovl->Bid, ovl->Score, ovl->Identity, ovl->Arev, ovl->Astart, ovl->Aend, ovl->Alen,
         ovl->Brev, ovl->Bstart, ovl->Bend, ovl->Blen, ovl->EditDistance, ovl->NumSeeds, ovl->Atype,
-        ovl->Btype, ovl->Cigar, ovl->Avars, ovl->Bvars));
+        ovl->Btype, ovl->Cigar, ovl->Avars, ovl->Bvars, ovl->IsFlipped));
 }
 
 inline OverlapPtr CreateFlippedOverlap(const OverlapPtr& ovl)

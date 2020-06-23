@@ -18,6 +18,8 @@ void EdlibAlignmentDiffCounts(const unsigned char* aln, int32_t alnLen, int32_t&
 void CigarDiffCounts(const PacBio::BAM::Cigar& cigar, int32_t& numEq, int32_t& numX, int32_t& numI,
                      int32_t& numD);
 
+Alignment::DiffCounts CigarDiffCounts(const PacBio::BAM::Cigar& cigar);
+
 void AppendToCigar(PacBio::BAM::Cigar& cigar, PacBio::BAM::CigarOperationType newOp,
                    int32_t newLen);
 
@@ -35,12 +37,24 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
 
 Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
                                         const std::string& queryVariants,
-                                        const std::string& targetVariants);
+                                        const std::string& targetVariants,
+                                        bool throwOnPartiallyMaskedIndels);
 
 /// \brief For a given query position finds the corresponding target position based
 ///         on a provided CIGAR string.
 ///         Lineraly scans through all CIGAR operations to perform the mapping.
 int32_t FindTargetPosFromCigar(const BAM::Cigar& cigar, int32_t queryPos);
+
+void NormalizeAlignmentInPlace(std::string& queryAln, std::string& targetAln);
+
+void ConvertCigarToM5(const char* query, int64_t queryLen, const char* target, int64_t targetLen,
+                      const Data::Cigar& cigar, std::string& retQueryAln,
+                      std::string& retTargetAln);
+
+Data::Cigar ConvertM5ToCigar(const std::string& queryAln, const std::string& targetAln);
+
+Data::Cigar NormalizeCigar(const char* query, int64_t queryLen, const char* target,
+                           int64_t targetLen, const Data::Cigar& cigar);
 
 }  // namespace Pancake
 }  // namespace PacBio

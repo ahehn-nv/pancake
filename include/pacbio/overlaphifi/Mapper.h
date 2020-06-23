@@ -50,8 +50,8 @@ public:
     MapperResult Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                      const PacBio::Pancake::SeedIndex& index,
                      const PacBio::Pancake::FastaSequenceCached& querySeq,
-                     const PacBio::Pancake::SequenceSeedsCached& querySeeds,
-                     int64_t freqCutoff) const;
+                     const PacBio::Pancake::SequenceSeedsCached& querySeeds, int64_t freqCutoff,
+                     bool generateFlippedOverlap) const;
 
 private:
     OverlapHifiSettings settings_;
@@ -132,7 +132,7 @@ private:
         const PacBio::Pancake::FastaSequenceCached& querySeq,
         const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff,
         bool useTraceback, bool noSNPs, bool noIndels, bool maskHomopolymers,
-        bool maskSimpleRepeats,
+        bool maskSimpleRepeats, bool generateFlippedOverlap,
         std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
     /// \brief Performs alignment and alignment extension of a single overlap. Uses the
@@ -156,6 +156,17 @@ private:
         const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTraceback,
         bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
         std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
+
+    static void NormalizeAndExtractVariantsInPlace_(
+        OverlapPtr& ovl, const PacBio::Pancake::FastaSequenceCached& targetSeq,
+        const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
+        bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats);
+
+    static OverlapPtr GenerateFlippedOverlap_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
+                                              const PacBio::Pancake::FastaSequenceCached& querySeq,
+                                              const std::string reverseQuerySeq,
+                                              const OverlapPtr& ovl, bool noSNPs, bool noIndels,
+                                              bool maskHomopolymers, bool maskSimpleRepeats);
 
     /// \brief Filters overlaps based on the number of seeds, identity, mapped span or length.
     ///
@@ -209,6 +220,9 @@ private:
     static std::string FetchTargetSubsequence_(
         const PacBio::Pancake::FastaSequenceCached& targetSeq, int32_t seqStart, int32_t seqEnd,
         bool revCmp);
+
+    static std::string FetchTargetSubsequence_(const char* seq, int32_t seqLen, int32_t seqStart,
+                                               int32_t seqEnd, bool revCmp);
 };
 
 }  // namespace Pancake
