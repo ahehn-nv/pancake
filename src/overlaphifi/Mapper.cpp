@@ -659,6 +659,10 @@ void Mapper::NormalizeAndExtractVariantsInPlace_(
 
     ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, cigar, maskHomopolymers,
                          maskSimpleRepeats, ovl->Avars, ovl->Bvars, diffsPerBase, diffsPerEvent);
+
+    const auto& diffs = diffsPerBase;
+    diffs.Identity(noSNPs, noIndels, ovl->Identity, ovl->EditDistance);
+    ovl->Score = -diffs.numEq;
 }
 
 // void NormalizeAndExtractVariantsInPlaceDeprecated_(
