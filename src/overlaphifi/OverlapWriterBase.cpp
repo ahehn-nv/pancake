@@ -152,7 +152,8 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, co
     int32_t tEnd = ovl->BendFwd();
     const int32_t tIsRev = ovl->Brev;
     const int32_t tLen = ovl->Blen;
-    std::string AtypeStr = OverlapTypeToString(ovl->Atype);
+    std::string AtypeStr = OverlapTypeToStringSingleChar(ovl->Atype);
+    std::string BtypeStr = OverlapTypeToStringSingleChar(ovl->Btype);
     int32_t flag = tIsRev ? 16 : 0;
     int32_t mapq = 60;
     std::string seq = (ovl->Brev) ? ReverseComplement(query, queryLen, 0, queryLen)
@@ -198,6 +199,7 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, co
     }
 
     fprintf(fpOut, "\t*\t0\t0\t%s\t%s", seq.c_str(), qual.c_str());
+    fprintf(fpOut, "\tAT:Z:%s\tBT:Z:%s", AtypeStr.c_str(), BtypeStr.c_str());
     fprintf(fpOut, "\n");
 }
 
