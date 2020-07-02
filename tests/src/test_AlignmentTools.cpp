@@ -904,7 +904,7 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
         {"Left clipping, simple. Clip larger than buffer size.", "1000X100=1I100=", 30, 15, "100=1I100=", 1000, 1000, 0, 0},
         {"Left clipping, simple, insertions.", "100I100=1I100=", 30, 15, "100=1I100=", 100, 0, 0, 0},
         {"Left clipping, simple, deletions.", "100D100=1I100=", 30, 15, "100=1I100=", 0, 100, 0, 0},
-        {"Left clipping, simple, mixed ops.", "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 15, 8, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 2, 3, 0, 0},
+
         /*
            Maches:     1     3     4        5     7     12    14    15    16
            Diffs:   1     2     4     5  6     8     9     11    13    15    18
@@ -925,6 +925,27 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
                             Window: 8= and 7!=
 
         */
+        {"Left clipping, simple, mixed ops.", "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 15, 8, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 2, 3, 0, 0},
+
+        /*
+            These are completely symmetric to the left-clipping test case.
+        */
+        {"Right clipping, simple. Clip larger than buffer size.", "100=1I100=1000X", 30, 15, "100=1I100=", 0, 0, 1000, 1000},
+        {"Right clipping, simple, insertions.", "100=1I100=100I", 30, 15, "100=1I100=", 0, 0, 100, 0},
+        {"Right clipping, simple, deletions.", "100=1I100=100D", 30, 15, "100=1I100=", 0, 0, 0, 100},
+        {"Right clipping, simple, mixed ops.", "100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=1D1=1X", 15, 8, "100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=", 0, 0, 2, 3},
+
+        /*
+            This has the same ops, symetrically, on the left and on the right.
+        */
+        {"Mixed clipping, simple, mixed ops.", "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=1D1=1X", 15, 8, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=", 2, 3, 2, 3},
+
+        {"Remove leading errors.", "1I1000=", 30, 15, "1000=", 1, 0, 0, 0},
+        {"Remove trailing errors.", "1000=1X", 30, 15, "1000=", 0, 0, 1, 1},
+        {"Remove leading and trailing errors.", "1I1000=1X", 30, 15, "1000=", 1, 0, 1, 1},
+
+        {"Completely bad alignment.", "1000X", 30, 15, "", 0, 0, 0, 0},
+
     };
     // clang-format on
 
