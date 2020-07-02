@@ -1051,7 +1051,7 @@ void TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
             //           << ", posTarget = " << posTarget << "\n";
             // This happens only after the window has been filled.
             if (currWindowSize >= windowSize) {
-                std::cerr << "Window full and sliding.\n";
+                // std::cerr << "Window full and sliding.\n";
                 // const uint64_t lastBit = (winBuffer & lastBitMask) ? 1 : 0;
                 const auto& windowOpPair = buff[buffStart];
                 const int32_t lastOpId = windowOpPair.first;
@@ -1063,8 +1063,8 @@ void TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
                 // Check if we found our target window.
                 if (lastOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH &&
                     matchCount >= minMatches) {
-                    std::cerr << "Found a break! lastOpId = " << lastOpId
-                              << ", lastOpInternalId = " << lastOpInternalId << "\n";
+                    // std::cerr << "Found a break! lastOpId = " << lastOpId
+                    //           << ", lastOpInternalId = " << lastOpInternalId << "\n";
                     // foundOpRemaining =
                     //     PacBio::Data::CigarOperation(lastOpType, lastOpLen - lastOpInternalId);
                     foundOpId = lastOpId;
