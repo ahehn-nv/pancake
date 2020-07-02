@@ -4,6 +4,8 @@
 
 #include <array>
 #include <cstring>
+#include <deque>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -1009,6 +1011,132 @@ Data::Cigar NormalizeCigar(const char* query, int64_t queryLen, const char* targ
     NormalizeAlignmentInPlace(queryAln, targetAln);
 
     return PacBio::Pancake::ConvertM5ToCigar(queryAln, targetAln);
+}
+
+void TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minMatches,
+               PacBio::BAM::Cigar& trimmedCigar, int32_t& clippedFrontQuery,
+               int32_t& clippedFrontTarget, int32_t& clippedBackQuery, int32_t& clippedBackTarget)
+{
+
+    clippedFrontQuery = 0;
+    clippedFrontTarget = 0;
+    clippedBackQuery = 0;
+    clippedBackTarget = 0;
+    int64_t numAdded = 0;
+    int32_t matchCount = 0;
+    uint64_t winBuffer = 0x0;
+    const uint64_t lastBitMask = 1 << (windowSize - 1);
+    bool foundFront = false;
+
+    trimmedCigar.clear();
+    PacBio::Data::CigarOperation firstOp;
+    int32_t secondOpId = 0;
+    // The pair is <idOfTheOpEventInTheOriginalCigar, posWithinTheOp>.
+    std::deque<std::pair<int32_t, int32_t>> windowOps;
+
+    for (int32_t opId = 0; opId < static_cast<int32_t>(cigar.size()); ++opId) {
+        const auto& op = cigar[opId];
+        int32_t opLen = op.Length();
+        for (int32_t i = 0; i < opLen; ++i) {
+            std::cerr << "[opId = " << opId << ", i = " << i
+                      << "] windowOps.size() = " << windowOps.size()
+                      << ", front.opId = " << (windowOps.size() > 0 ? windowOps.front().first : -1)
+                      << ", front.opInternalId = "
+                      << (windowOps.size() > 0 ? windowOps.front().second : -1) << "\n";
+            // This happens only after the window has been filled.
+            if (static_cast<int32_t>(windowOps.size()) >= windowSize) {
+                std::cerr << "Window full and sliding.\n";
+                // const uint64_t lastBit = (winBuffer & lastBitMask) ? 1 : 0;
+                const auto windowOpPair = windowOps.front();
+                const int32_t lastOpId = windowOpPair.first;
+                const int32_t lastOpInternalId = windowOpPair.second;
+                const auto lastOpType = cigar[lastOpId].Type();
+                const int32_t lastOpLen = cigar[lastOpId].Length();
+                windowOps.pop_front();
+
+                // Check if we found our target window.
+                if (lastOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH &&
+                    matchCount >= minMatches) {
+                    std::cerr << "Found a break! lastOpId = " << lastOpId
+                              << ", lastOpInternalId = " << lastOpInternalId << "\n";
+                    firstOp =
+                        PacBio::Data::CigarOperation(lastOpType, lastOpLen - lastOpInternalId);
+                    secondOpId = lastOpId + 1;
+                    foundFront = true;
+                    break;
+                }
+
+                // Move window down.
+                if (lastOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
+                    ++clippedFrontQuery;
+                    ++clippedFrontTarget;
+                } else if (lastOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+                    --matchCount;
+                    ++clippedFrontQuery;
+                    ++clippedFrontTarget;
+                } else if (lastOpType == PacBio::BAM::CigarOperationType::INSERTION) {
+                    --matchCount;
+                    ++clippedFrontQuery;
+                } else if (lastOpType == PacBio::BAM::CigarOperationType::DELETION) {
+                    --matchCount;
+                    ++clippedFrontTarget;
+                }
+            }
+
+            // Add to the window.
+            windowOps.emplace_back(std::make_pair(opId, i));
+            if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
+                // winBuffer = (winBuffer << 1) | 0x01;
+                ++matchCount;
+            }
+
+            // } else if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH ||
+            //            op.Type() == PacBio::BAM::CigarOperationType::INSERTION ||
+            //            op.Type() == PacBio::BAM::CigarOperationType::DELETION) {
+            //     // winBuffer = (winBuffer << 1) | 0x00;
+            // } else {
+            //     throw std::runtime_error("Unsupported operation '" +
+            //                              std::to_string(op.TypeToChar(op.Type())) +
+            //                              "' in TrimCigar.");
+            // }
+            // ++numAdded;
+
+            // if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH) {
+            //     winBuffer = (winBuffer << 1) | 0x01;
+            //     ++matchCount;
+            //     ++clippedFrontQuery;
+            //     ++clippedFrontTarget;
+            // } else if (op.Type() == PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH) {
+            //     winBuffer = (winBuffer << 1) | 0x00;
+            //     ++clippedFrontQuery;
+            //     ++clippedFrontTarget;
+            // } else if (op.Type() == PacBio::BAM::CigarOperationType::INSERTION) {
+            //     winBuffer = (winBuffer << 1) | 0x00;
+            //     ++clippedFrontQuery;
+            // } else if (op.Type() == PacBio::BAM::CigarOperationType::DELETION) {
+            //     winBuffer = (winBuffer << 1) | 0x00;
+            //     ++clippedFrontTarget;
+            // } else {
+            //     throw std::runtime_error("Unsupported operation '" +
+            //                              std::to_string(op.TypeToChar(op.Type())) +
+            //                              "' in TrimCigar.");
+            // }
+            // matchCount -= lastBit;
+            // ++numAdded;
+        }
+        if (foundFront) {
+            break;
+        }
+    }
+
+    std::cerr << "secondOpId = " << secondOpId << "\n";
+    std::cerr << "clippedFrontQuery = " << clippedFrontQuery << "\n";
+    std::cerr << "clippedFrontTarget = " << clippedFrontTarget << "\n";
+    trimmedCigar.clear();
+    if (firstOp.Length() > 0) {
+        trimmedCigar.emplace_back(firstOp);
+    }
+    trimmedCigar.insert(trimmedCigar.end(), cigar.begin() + secondOpId, cigar.end());
 }
 
 }  // namespace Pancake

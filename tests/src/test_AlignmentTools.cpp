@@ -893,4 +893,49 @@ TEST(Test_AlignmentTools_NormalizeCigar, ArrayOfTests)
         }
     }
 }
+
+TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
+{
+    // clang-format off
+    // <cigar, windowSize, minMatches, expectedTrimmedCigar, expectedClippedFrontQuery, expectedClippedFrontTarget, expectedClippedBackQuery, expectedClippedBackTarget>
+    std::vector<std::tuple<std::string, std::string, int32_t, int32_t, std::string, int32_t, int32_t, int32_t, int32_t>> testData {
+        // {"Empty input", "", 0, 0, "", 0, 0, 0, 0},
+        {"Left clipping, small", "5X100=1I100=", 30, 15, "100=1I100=", 5, 5, 0, 0},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const std::string testName = std::get<0>(data);
+        const PacBio::BAM::Cigar cigar(std::get<1>(data));
+        const int32_t windowSize = std::get<2>(data);
+        const int32_t minMatches = std::get<3>(data);
+        // const PacBio::BAM::Cigar expectedTrimmedCigar(std::get<4>(data));
+        // Keep the expected Cigar as string so that we can easily see the diff.
+        const std::string expectedTrimmedCigar(std::get<4>(data));
+        const int32_t expectedClippedFrontQuery = std::get<5>(data);
+        const int32_t expectedClippedFrontTarget = std::get<6>(data);
+        const int32_t expectedClippedBackQuery = std::get<7>(data);
+        const int32_t expectedClippedBackTarget = std::get<8>(data);
+
+        // Name the test.
+        SCOPED_TRACE("TrimCigar-" + testName);
+
+        PacBio::BAM::Cigar resultsCigar;
+        int32_t resultsClippedFrontQuery = 0;
+        int32_t resultsClippedFrontTarget = 0;
+        int32_t resultsClippedBackQuery = 0;
+        int32_t resultsClippedBackTarget = 0;
+
+        PacBio::Pancake::TrimCigar(cigar, windowSize, minMatches, resultsCigar,
+                                   resultsClippedFrontQuery, resultsClippedFrontTarget,
+                                   resultsClippedBackQuery, resultsClippedBackTarget);
+
+        EXPECT_EQ(expectedTrimmedCigar, resultsCigar.ToStdString());
+        EXPECT_EQ(expectedClippedFrontQuery, resultsClippedFrontQuery);
+        EXPECT_EQ(expectedClippedFrontTarget, resultsClippedFrontTarget);
+        EXPECT_EQ(expectedClippedBackQuery, resultsClippedBackQuery);
+        EXPECT_EQ(expectedClippedBackTarget, resultsClippedBackTarget);
+    }
+}
 }
