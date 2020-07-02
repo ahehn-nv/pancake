@@ -899,8 +899,32 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
     // clang-format off
     // <cigar, windowSize, minMatches, expectedTrimmedCigar, expectedClippedFrontQuery, expectedClippedFrontTarget, expectedClippedBackQuery, expectedClippedBackTarget>
     std::vector<std::tuple<std::string, std::string, int32_t, int32_t, std::string, int32_t, int32_t, int32_t, int32_t>> testData {
-        // {"Empty input", "", 0, 0, "", 0, 0, 0, 0},
-        {"Left clipping, small", "5X100=1I100=", 30, 15, "100=1I100=", 5, 5, 0, 0},
+        {"Empty input", "", 0, 0, "", 0, 0, 0, 0},
+        {"Left clipping, simple, mismatches. Clip smaller than buffer size.", "5X100=1I100=", 30, 15, "100=1I100=", 5, 5, 0, 0},
+        {"Left clipping, simple. Clip larger than buffer size.", "1000X100=1I100=", 30, 15, "100=1I100=", 1000, 1000, 0, 0},
+        {"Left clipping, simple, insertions.", "100I100=1I100=", 30, 15, "100=1I100=", 100, 0, 0, 0},
+        {"Left clipping, simple, deletions.", "100D100=1I100=", 30, 15, "100=1I100=", 0, 100, 0, 0},
+        {"Left clipping, simple, mixed ops.", "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 15, 8, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 2, 3, 0, 0},
+        /*
+           Maches:     1     3     4        5     7     12    14    15    16
+           Diffs:   1     2     4     5  6     8     9     11    13    15    18
+                    1X 1= 1D 2= 2D 1= 1X 1D 1= 2I 2= 1X 5= 2D 1= 2I 1= 2X 1= 3I
+
+                    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2
+                    0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 3
+                    X = D = = D D = X D = I I = = X = = = = = D D = I I = X X = I I I
+                    |___________________________| | | | |
+                    Window: 7= and 8!=            | | | |
+                      |___________________________| | | |
+                      Window: 7= and 8!=            | | |
+                        |___________________________| | |
+                        Window: 7= and 8!=            | |
+                          |___________________________| |
+                          Window: 8= and 7!=            |
+                            |___________________________|
+                            Window: 8= and 7!=
+
+        */
     };
     // clang-format on
 
@@ -920,6 +944,7 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
 
         // Name the test.
         SCOPED_TRACE("TrimCigar-" + testName);
+        std::cerr << testName << "\n";
 
         PacBio::BAM::Cigar resultsCigar;
         int32_t resultsClippedFrontQuery = 0;
