@@ -636,6 +636,21 @@ OverlapPtr Mapper::AlignOverlap_(
                           sesResultRight.cigar.end());
     }
 
+    if (ret->Cigar.size() > 0) {
+        PacBio::BAM::Cigar newCigar;
+        int32_t clippedFrontQuery = 0;
+        int32_t clippedFrontTarget = 0;
+        int32_t clippedBackQuery = 0;
+        int32_t clippedBackTarget = 0;
+        TrimCigar(ret->Cigar, 30, 15, newCigar, clippedFrontQuery, clippedFrontTarget,
+                  clippedBackQuery, clippedBackTarget);
+        ret->Astart += clippedFrontQuery;
+        ret->Bstart += clippedFrontTarget;
+        ret->Aend -= clippedBackQuery;
+        ret->Bend -= clippedBackTarget;
+        std::swap(ret->Cigar, newCigar);
+    }
+
     NormalizeAndExtractVariantsInPlace_(ret, targetSeq, querySeq, reverseQuerySeq, noSNPs, noIndels,
                                         maskHomopolymers, maskSimpleRepeats, maskHomopolymerSNPs,
                                         maskHomopolymersArbitrary);
