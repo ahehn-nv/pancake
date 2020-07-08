@@ -6,6 +6,7 @@
 #include <pacbio/pancake/ContiguousFilePart.h>
 #include <pacbio/seqdb/Range.h>
 #include <pacbio/util/CommonTypes.h>
+#include <pacbio/util/Conversion.h>
 #include <cstdint>
 #include <fstream>
 #include <lib/flat_hash_map/flat_hash_map.hpp>
@@ -80,6 +81,9 @@ public:
     const SeqDBSequenceLine& GetSeqLine(const std::string& header) const;
     const SeqDBBlockLine& GetBlockLine(int32_t blockId) const;
     const SeqDBFileLine& GetFileLine(int32_t fileId) const;
+
+    const HeaderLookupType& GetHeaderLookup() const;
+    bool IsHeaderLookupConstructed() const;
 
     /// \brief Checks that the fileLines, seqLines and blockLines are not empty.
     ///        Throws if they are.
@@ -189,6 +193,21 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> FilterSeqDBIndexCache(
     const int64_t sampledBases, const int64_t randomSeed, const FilterListType& filterType,
     const std::unordered_set<std::string>& filterList, const bool doNormalization,
     const int32_t normBlockSize, const std::string& outIndexFilename = "");
+
+/// \brief Takes a sequence header and returns the ID of the sequence. In case the header is already
+///         a numeric ID stored as a string, this function will only parse the number. Otherwise, it will
+///         look-up the name in the SeqDB.
+///
+/// \param header The sequence header to be converted to ID.
+/// \param headerIsNumeric If true, then the function will consider the header string as a string
+///                         that contains only a number, and parse this number as the ID.
+/// \param seqDBCache The SeqDB index which contains the header to ID mapping. It should have been
+///                     initialized using "seqDBCache->ConstructHeaderLookup()" before the call to this function.
+///
+/// \returns ID of the sequence with the specified name. Otherwise, it throws if the name cannot be found,
+///             or if the ID cannot be parsed.
+int32_t GetSequenceIdFromHeader(const std::string& header, bool headerIsNumeric,
+                                const Pancake::SeqDBIndexCache& seqDBCache);
 
 }  // namespace Pancake
 }  // namespace PacBio

@@ -412,6 +412,10 @@ const SeqDBFileLine& SeqDBIndexCache::GetFileLine(int32_t fileId) const
     return fileLines[fileId];
 }
 
+const HeaderLookupType& SeqDBIndexCache::GetHeaderLookup() const { return headerToOrdinalId_; }
+
+bool SeqDBIndexCache::IsHeaderLookupConstructed() const { return headerToOrdinalIdConstructed_; }
+
 std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     const std::shared_ptr<PacBio::Pancake::SeqDBIndexCache>& seqDBIndexCache, int32_t blockId)
 {
@@ -663,6 +667,25 @@ std::unique_ptr<PacBio::Pancake::SeqDBIndexCache> FilterSeqDBIndexCache(
     }
 
     return filteredSeqDBCache;
+}
+
+int32_t GetSequenceIdFromHeader(const std::string& header, bool headerIsNumeric,
+                                const Pancake::SeqDBIndexCache& seqDBCache)
+{
+    if (headerIsNumeric) {
+        int32_t ret = -1;
+        bool rv = ConvertStringToInt(header, ret);
+        if (rv == false) {
+            throw std::runtime_error(
+                "Could not convert read name '" + header +
+                "' to numeric ID. Perhaps you need to specify a SeqDB for aliasing? Overlap: ");
+        }
+        return ret;
+    } else {
+        const auto& sl = seqDBCache.GetSeqLine(header);
+        return sl.seqId;
+    }
+    return -1;
 }
 
 }  // namespace Pancake
