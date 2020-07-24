@@ -106,3 +106,46 @@ TEST(ExtendOverlapFlanks, NormalWithAllowedDist0)
     // Evaluate.
     EXPECT_EQ(expected, results);
 }
+
+TEST(RoundTrip, ParsingOverlapType)
+{
+    /*
+     * If parsing of the overlap types went fine, then the output should be the same
+    */
+    // Inputs.
+    std::vector<std::string> inOverlaps = {
+        "000000000 000000001 -1807 100.00 0 181 1988 1988 0 0 1807 1989 3",
+        "000000001 000000002 -642 99.84 0 0 642 1989 0 1347 1989 1989 5",
+        "000000001 000000002 -1000 100.00 0 0 1000 1000 0 1000 2000 3000 c",
+        "000000001 000000002 -1000 100.00 0 0 1000 1000 0 1000 2000 3000 contained",
+        "000000001 000000002 -1000 100.00 0 1000 2000 3000 0 0 1000 1000 contains",
+        "000000001 000000002 -1000 100.00 0 1000 2000 3000 0 0 1000 1000 C",
+        "000000001 000000002 -1000 100.00 0 1000 2000 3000 0 1000 2000 3000 u",
+        "000000001 000000002 -1000 100.00 0 1000 2000 3000 0 1000 2000 3000 something_unknown",
+    };
+
+    // Expected results.
+    // Since we're just printing as M4, the 'type' column uses the legacy long type name.
+    std::vector<std::string> expected = {
+        "000000000 000000001 -1807 100.00 0 181 1988 1988 0 0 1807 1989 3",
+        "000000001 000000002 -642 99.84 0 0 642 1989 0 1347 1989 1989 5",
+        "000000001 000000002 -1000 100.00 0 0 1000 1000 0 1000 2000 3000 contained",
+        "000000001 000000002 -1000 100.00 0 0 1000 1000 0 1000 2000 3000 contained",
+        "000000001 000000002 -1000 100.00 0 1000 2000 3000 0 0 1000 1000 contains",
+        "000000001 000000002 -1000 100.00 0 1000 2000 3000 0 0 1000 1000 contains",
+        "000000001 000000002 -1000 100.00 0 1000 2000 3000 0 1000 2000 3000 u",
+        "000000001 000000002 -1000 100.00 0 1000 2000 3000 0 1000 2000 3000 *",
+    };
+
+    // for (size_t i = 0; i < inOverlaps
+    std::vector<std::string> results;
+    for (const auto& inLine : inOverlaps) {
+        auto ovl = PacBio::Pancake::ParseM4OverlapFromString(inLine);
+        std::string resultStr =
+            PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
+        results.emplace_back(resultStr);
+    }
+
+    // Evaluate.
+    EXPECT_EQ(expected, results);
+}
