@@ -212,26 +212,9 @@ OverlapType OverlapTypeFromString(const std::string& typeStr)
         type = OverlapType::FivePrime;
     } else if (typeStr == "3") {
         type = OverlapType::ThreePrime;
-    } else if (typeStr == "contained") {
+    } else if (typeStr == "contained" || typeStr == "c") {
         type = OverlapType::Contained;
-    } else if (typeStr == "contains") {
-        type = OverlapType::Contains;
-    } else if (typeStr == "u") {
-        type = OverlapType::Internal;
-    }
-    return type;
-}
-
-OverlapType OverlapTypeFromStringSingleChar(const std::string& typeStr)
-{
-    OverlapType type = OverlapType::Unknown;
-    if (typeStr == "5") {
-        type = OverlapType::FivePrime;
-    } else if (typeStr == "3") {
-        type = OverlapType::ThreePrime;
-    } else if (typeStr == "c") {
-        type = OverlapType::Contained;
-    } else if (typeStr == "C") {
+    } else if (typeStr == "contains" || typeStr == "C") {
         type = OverlapType::Contains;
     } else if (typeStr == "u") {
         type = OverlapType::Internal;
