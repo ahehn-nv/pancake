@@ -37,7 +37,6 @@ OverlapPtr ParseM4OverlapFromString(const std::string& line);
 std::string OverlapTypeToString(const OverlapType& type);
 std::string OverlapTypeToStringSingleChar(const OverlapType& type);
 OverlapType OverlapTypeFromString(const std::string& typeStr);
-OverlapType OverlapTypeFromStringSingleChar(const std::string& typeStr);
 
 class Overlap
 {
