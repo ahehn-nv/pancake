@@ -3,7 +3,7 @@
 #ifndef PANCAKE_OVERLAPHIFI_SEEDINDEX_H
 #define PANCAKE_OVERLAPHIFI_SEEDINDEX_H
 
-#include <pacbio/overlaphifi/SeedHit.h>
+#include <pacbio/pancake/SeedHit.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
 #include <cstdint>

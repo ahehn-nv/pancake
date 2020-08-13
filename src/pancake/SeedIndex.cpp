@@ -1,7 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <lib/kxsort/kxsort.h>
-#include <pacbio/overlaphifi/SeedIndex.h>
+#include <pacbio/pancake/SeedIndex.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/util/TicToc.h>
 #include <pbcopper/logging/Logging.h>

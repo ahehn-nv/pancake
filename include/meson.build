@@ -94,8 +94,6 @@ if not meson.is_subproject()
       'pacbio/overlaphifi/OverlapWriterM4.h',
       'pacbio/overlaphifi/OverlapWriterPAF.h',
       'pacbio/overlaphifi/OverlapWriterSAM.h',
-      'pacbio/overlaphifi/SeedHit.h',
-      'pacbio/overlaphifi/SeedIndex.h',
       ]),
       subdir : 'pacbio/overlaphifi')
 
@@ -104,6 +102,8 @@ if not meson.is_subproject()
     files([
       'pacbio/pancake/ContiguousFilePart.h',
       'pacbio/pancake/Overlap.h',
+      'pacbio/pancake/SeedHit.h',
+      'pacbio/pancake/SeedIndex.h',
       ]),
       subdir : 'pacbio/pancake')
 
