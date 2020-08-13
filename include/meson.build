@@ -84,7 +84,6 @@ if not meson.is_subproject()
   # pacbio/overlaphifi
   install_headers(
     files([
-      'pacbio/overlaphifi/Mapper.h',
       'pacbio/overlaphifi/Secondary.h',
       'pacbio/overlaphifi/OverlapHifiSettings.h',
       'pacbio/overlaphifi/OverlapWriterBase.h',
@@ -101,6 +100,7 @@ if not meson.is_subproject()
   install_headers(
     files([
       'pacbio/pancake/ContiguousFilePart.h',
+      'pacbio/pancake/MapperHiFi.h',
       'pacbio/pancake/Overlap.h',
       'pacbio/pancake/SeedHit.h',
       'pacbio/pancake/SeedIndex.h',

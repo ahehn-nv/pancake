@@ -1,9 +1,9 @@
 // Authors: Ivan Sovic
 
 #include "overlaphifi/OverlapHifiWorkflow.h"
-#include <pacbio/overlaphifi/Mapper.h>
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
 #include <pacbio/overlaphifi/OverlapWriterFactory.h>
+#include <pacbio/pancake/MapperHiFi.h>
 #include <pacbio/pancake/SeedIndex.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
