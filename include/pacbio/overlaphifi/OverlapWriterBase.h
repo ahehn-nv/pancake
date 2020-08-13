@@ -3,7 +3,7 @@
 #ifndef PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_BASE_H
 #define PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_BASE_H
 
-#include <pacbio/overlaphifi/Overlap.h>
+#include <pacbio/pancake/Overlap.h>
 #include <pacbio/seqdb/FastaSequenceId.h>
 #include <pacbio/seqdb/SeqDBReaderCached.h>
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>

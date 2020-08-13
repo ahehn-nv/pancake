@@ -4,9 +4,9 @@
 #define PANCAKE_OVERLAPHIFI_OVERLAPPER_H
 
 #include <pacbio/alignment/SesResults.h>
-#include <pacbio/overlaphifi/Overlap.h>
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
 #include <pacbio/overlaphifi/SeedIndex.h>
+#include <pacbio/pancake/Overlap.h>
 #include <pacbio/seeddb/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
 #include <pacbio/seeddb/SequenceSeedsCached.h>
