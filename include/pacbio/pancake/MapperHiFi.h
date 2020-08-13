@@ -92,8 +92,8 @@ private:
     static std::vector<OverlapPtr> FormDiagonalAnchors_(
         const std::vector<SeedHit>& sortedHits,
         const PacBio::Pancake::FastaSequenceCached& querySeq,
-        const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t chainBandwidth,
-        int32_t minNumSeeds, int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps);
+        const PacBio::Pancake::SeedIndex& index, int32_t chainBandwidth, int32_t minNumSeeds,
+        int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps);
 
     static std::vector<OverlapPtr> FormAnchors2_(
         const std::vector<SeedHit>& sortedHits,
@@ -118,7 +118,7 @@ private:
     static OverlapPtr MakeOverlap_(
         const std::vector<SeedHit>& sortedHits,
         const PacBio::Pancake::FastaSequenceCached& querySeq,
-        const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t num_seeds,
+        const PacBio::Pancake::SeedIndex& index, int32_t num_seeds,
         int32_t minTargetPosId, int32_t maxTargetPosId);
 
     /// \brief Performs alignment and alignment extension of a given vector of overlaps.

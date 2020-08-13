@@ -61,6 +61,9 @@ class SeedIndex
 public:
     SeedIndex(std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBCache,
               std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds);
+    SeedIndex(const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
+              const std::vector<int32_t>& sequenceLengths,
+              std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds);
     ~SeedIndex();
 
     void ComputeFrequencyStats(double percentileCutoff, int64_t& retFreqMax, double& retFreqAvg,
@@ -71,15 +74,25 @@ public:
     bool CollectHits(const PacBio::Pancake::SeedDB::SeedRaw* querySeeds, int64_t querySeedsSize,
                      std::vector<SeedHit>& hits, int64_t freqCutoff) const;
 
-    const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& GetCache() const
+    const std::vector<int32_t> GetSequenceLengths() const { return sequenceLengths_; }
+
+    int32_t GetSequenceLength(int32_t seqId) const
     {
-        return seedDBCache_;
+        // Sanity check for the sequence ID.
+        if (seqId < 0 || seqId >= static_cast<int32_t>(sequenceLengths_.size())) {
+            std::ostringstream oss;
+            oss << "Invalid seqId. seqId = " << seqId
+                << ", sequenceLengths_.size() = " << sequenceLengths_.size();
+            throw std::runtime_error(oss.str());
+        }
+        return sequenceLengths_[seqId];
     }
 
 private:
-    std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> seedDBCache_;
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> seeds_;
     SeedHashType hash_;
+    PacBio::Pancake::SeedDB::SeedDBParameters seedParams_;
+    std::vector<int32_t> sequenceLengths_;
 
     void BuildHash_();
 };

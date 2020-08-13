@@ -80,7 +80,7 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
     // PBLOG_INFO << "Hits: " << hits.size();
 
     TicToc ttChain;
-    auto overlaps = FormDiagonalAnchors_(hits, querySeq, index.GetCache(), settings_.ChainBandwidth,
+    auto overlaps = FormDiagonalAnchors_(hits, querySeq, index, settings_.ChainBandwidth,
                                          settings_.MinNumSeeds, settings_.MinChainSpan,
                                          settings_.SkipSelfHits, settings_.SkipSymmetricOverlaps);
     ttChain.Stop();
@@ -195,7 +195,7 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 
 OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
                                 const PacBio::Pancake::FastaSequenceCached& querySeq,
-                                const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache,
+                                const PacBio::Pancake::SeedIndex& index,
                                 int32_t numSeeds, int32_t minTargetPosId, int32_t maxTargetPosId)
 {
 
@@ -216,8 +216,7 @@ OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
     const float identity = 0.0;
     const int32_t editDist = -1;
 
-    const auto& sl = indexCache->GetSeedsLine(targetId);
-    const int32_t targetLen = sl.numBases;
+    const int32_t targetLen = index.GetSequenceLength(targetId);
 
     return createOverlap(querySeq.Id(), targetId, score, identity, 0, beginHit.queryPos,
                          endHit.queryPos, querySeq.Size(), beginHit.targetRev, beginHit.targetPos,
@@ -227,8 +226,8 @@ OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
 
 std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
     const std::vector<SeedHit>& sortedHits, const PacBio::Pancake::FastaSequenceCached& querySeq,
-    const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t chainBandwidth,
-    int32_t minNumSeeds, int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps)
+    const PacBio::Pancake::SeedIndex& index, int32_t chainBandwidth, int32_t minNumSeeds,
+    int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps)
 {
 #ifdef PANCAKE_DEBUG
     std::cerr << "[Function: " << __FUNCTION__ << "]\n";
@@ -273,7 +272,7 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
         if (currHit.targetId != prevHit.targetId || currHit.targetRev != prevHit.targetRev ||
             diagDiff > chainBandwidth) {
             auto ovl =
-                MakeOverlap_(sortedHits, querySeq, indexCache, i - beginId, minPosId, maxPosId);
+                MakeOverlap_(sortedHits, querySeq, index, i - beginId, minPosId, maxPosId);
             beginId = i;
             beginDiag = currDiag;
 
@@ -458,7 +457,7 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(const std::vector<SeedHit>& sorted
                       finalLast);
 
         // Make the overlap.
-        auto ovl = MakeOverlap_(lisHits, querySeq, index.GetCache(), (finalLast - finalFirst),
+        auto ovl = MakeOverlap_(lisHits, querySeq, index, (finalLast - finalFirst),
                                 finalFirst, finalLast - 1);
         return ovl;
     };
