@@ -6,8 +6,8 @@
 #include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/pancake/Overlap.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
-#include <pacbio/seqdb/SeqDBReaderCached.h>
-#include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
+#include <pacbio/pancake/SeqDBReaderCached.h>
+#include <pacbio/pancake/SeqDBReaderCachedBlock.h>
 #include <pacbio/util/Util.h>
 #include <cstdint>
 #include <memory>

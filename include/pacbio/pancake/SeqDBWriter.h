@@ -4,8 +4,8 @@
 #define PANCAKE_SEQDB_WRITER_COMPRESSED_H
 
 #include <pacbio/pancake/CompressedSequence.h>
-#include <pacbio/seqdb/SeqDBIndexCache.h>
-#include <pacbio/seqdb/SeqDBWriterBase.h>
+#include <pacbio/pancake/SeqDBIndexCache.h>
+#include <pacbio/pancake/SeqDBWriterBase.h>
 #include <pacbio/util/Util.h>
 #include <cstdint>
 #include <memory>

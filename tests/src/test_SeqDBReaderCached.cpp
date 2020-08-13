@@ -2,7 +2,7 @@
 
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
-#include <pacbio/seqdb/SeqDBReaderCached.h>
+#include <pacbio/pancake/SeqDBReaderCached.h>
 #include <sstream>
 
 TEST(SeqDBReaderCached, IterateThroughSecondBlock)

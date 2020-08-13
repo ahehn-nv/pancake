@@ -14,10 +14,10 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 
+#include <pacbio/pancake/SeqDBIndexCache.h>
+#include <pacbio/pancake/SeqDBReader.h>
+#include <pacbio/pancake/SeqDBWriter.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
-#include <pacbio/seqdb/SeqDBIndexCache.h>
-#include <pacbio/seqdb/SeqDBReader.h>
-#include <pacbio/seqdb/SeqDBWriter.h>
 #include <pacbio/util/TicToc.h>
 #include <pacbio/util/Util.h>
 

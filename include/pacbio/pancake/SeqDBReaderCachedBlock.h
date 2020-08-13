@@ -12,8 +12,8 @@
 
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/FastaSequenceId.h>
-#include <pacbio/seqdb/SeqDBIndexCache.h>
-#include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
+#include <pacbio/pancake/SeqDBIndexCache.h>
+#include <pacbio/pancake/SeqDBReaderCachedBlock.h>
 #include <memory>
 #include <string>
 #include <vector>

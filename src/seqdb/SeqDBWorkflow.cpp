@@ -1,7 +1,7 @@
 // Authors: Ivan Sovic
 
 #include "seqdb/SeqDBWorkflow.h"
-#include <pacbio/seqdb/SeqDBWriter.h>
+#include <pacbio/pancake/SeqDBWriter.h>
 #include <pacbio/util/FileIO.h>
 #include <pbbam/BamReader.h>
 #include <pbbam/DataSet.h>

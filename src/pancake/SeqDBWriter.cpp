@@ -1,7 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <pacbio/pancake/CompressedSequence.h>
-#include <pacbio/seqdb/SeqDBWriter.h>
+#include <pacbio/pancake/SeqDBWriter.h>
 #include <pacbio/util/Util.h>
 #include <cmath>
 #include <iostream>

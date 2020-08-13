@@ -4,8 +4,8 @@
 #define PANCAKE_SEQDB_READER_H
 
 #include <pacbio/pancake/FastaSequenceId.h>
-#include <pacbio/seqdb/SeqDBReaderBase.h>
-#include <pacbio/seqdb/SeqDBWriterBase.h>
+#include <pacbio/pancake/SeqDBReaderBase.h>
+#include <pacbio/pancake/SeqDBWriterBase.h>
 #include <pacbio/util/Util.h>
 #include <memory>
 #include <ostream>

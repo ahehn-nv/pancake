@@ -12,8 +12,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include <pacbio/seqdb/SeqDBIndexCache.h>
-#include <pacbio/seqdb/SeqDBReader.h>
+#include <pacbio/pancake/SeqDBIndexCache.h>
+#include <pacbio/pancake/SeqDBReader.h>
 #include <pacbio/util/RunLengthEncoding.h>
 #include <pbbam/BamReader.h>
 #include <pbbam/DataSet.h>

@@ -4,9 +4,9 @@
 #include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/pancake/Minimizers.h>
 #include <pacbio/pancake/Seed.h>
+#include <pacbio/pancake/SeqDBIndexCache.h>
+#include <pacbio/pancake/SeqDBReaderCachedBlock.h>
 #include <pacbio/seeddb/SeedDBWriter.h>
-#include <pacbio/seqdb/SeqDBIndexCache.h>
-#include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
 #include "seeddb/SeedDBSettings.h"
 
 #include <pbcopper/parallel/FireAndForget.h>

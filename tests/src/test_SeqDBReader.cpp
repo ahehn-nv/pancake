@@ -3,7 +3,7 @@
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
 #include <pacbio/pancake/FastaSequenceId.h>
-#include <pacbio/seqdb/SeqDBReader.h>
+#include <pacbio/pancake/SeqDBReader.h>
 #include <pbbam/FastaReader.h>
 #include <pbbam/FastaSequence.h>
 #include <sstream>

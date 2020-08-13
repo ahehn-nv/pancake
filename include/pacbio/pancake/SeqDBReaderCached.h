@@ -4,8 +4,8 @@
 #define PANCAKE_SEQDB_READER_CACHED_H
 
 #include <pacbio/pancake/FastaSequenceId.h>
-#include <pacbio/seqdb/SeqDBIndexCache.h>
-#include <pacbio/seqdb/SeqDBReaderCached.h>
+#include <pacbio/pancake/SeqDBIndexCache.h>
+#include <pacbio/pancake/SeqDBReaderCached.h>
 #include <memory>
 #include <string>
 
