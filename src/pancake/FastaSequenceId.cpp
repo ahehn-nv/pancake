@@ -1,6 +1,6 @@
 // Author: Ivan Sovic
 
-#include <pacbio/seqdb/FastaSequenceId.h>
+#include <pacbio/pancake/FastaSequenceId.h>
 
 #include <cassert>
 #include <cstdio>

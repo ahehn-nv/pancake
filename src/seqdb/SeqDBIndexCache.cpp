@@ -1,7 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <pacbio/seqdb/SeqDBIndexCache.h>
-#include <pacbio/seqdb/Util.h>
+#include <pacbio/util/Util.h>
 #include <array>
 #include <iostream>
 #include <limits>

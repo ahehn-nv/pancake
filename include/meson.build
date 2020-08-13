@@ -99,19 +99,27 @@ if not meson.is_subproject()
   # pacbio/pancake
   install_headers(
     files([
+      'pacbio/pancake/CompressedSequence.h',
       'pacbio/pancake/ContiguousFilePart.h',
+      'pacbio/pancake/FastaSequenceCached.h',
+      'pacbio/pancake/FastaSequenceId.h',
+      'pacbio/pancake/Lookups.h',
       'pacbio/pancake/MapperHiFi.h',
+      'pacbio/pancake/Minimizers.h',
       'pacbio/pancake/Overlap.h',
+      'pacbio/pancake/Range.h',
+      'pacbio/pancake/Seed.h',
       'pacbio/pancake/SeedHit.h',
       'pacbio/pancake/SeedIndex.h',
+      'pacbio/pancake/SequenceSeeds.h',
+      'pacbio/pancake/SequenceSeedsCached.h',
+      'pacbio/pancake/Twobit.h',
       ]),
       subdir : 'pacbio/pancake')
 
   # pacbio/seeddb
   install_headers(
     files([
-      'pacbio/seeddb/Minimizers.h',
-      'pacbio/seeddb/Seed.h',
       'pacbio/seeddb/SeedDBIndexCache.h',
       'pacbio/seeddb/SeedDBParameters.h',
       'pacbio/seeddb/SeedDBReader.h',
@@ -119,19 +127,12 @@ if not meson.is_subproject()
       'pacbio/seeddb/SeedDBReaderCachedBlock.h',
       'pacbio/seeddb/SeedDBReaderRawBlock.h',
       'pacbio/seeddb/SeedDBWriter.h',
-      'pacbio/seeddb/SequenceSeeds.h',
-      'pacbio/seeddb/SequenceSeedsCached.h',
       ]),
       subdir : 'pacbio/seeddb')
 
   # pacbio/seqdb
   install_headers(
     files([
-      'pacbio/seqdb/CompressedSequence.h',
-      'pacbio/seqdb/FastaSequenceCached.h',
-      'pacbio/seqdb/FastaSequenceId.h',
-      'pacbio/seqdb/Lookups.h',
-      'pacbio/seqdb/Range.h',
       'pacbio/seqdb/SeqDBIndexCache.h',
       'pacbio/seqdb/SeqDBReader.h',
       'pacbio/seqdb/SeqDBReaderBase.h',
@@ -139,8 +140,6 @@ if not meson.is_subproject()
       'pacbio/seqdb/SeqDBReaderCachedBlock.h',
       'pacbio/seqdb/SeqDBWriter.h',
       'pacbio/seqdb/SeqDBWriterBase.h',
-      'pacbio/seqdb/Twobit.h',
-      'pacbio/seqdb/Util.h',
       ]),
       subdir : 'pacbio/seqdb')
 
@@ -152,6 +151,7 @@ if not meson.is_subproject()
       'pacbio/util/FileIO.h',
       'pacbio/util/RunLengthEncoding.h',
       'pacbio/util/TicToc.h',
+      'pacbio/util/Util.h',
       ]),
       subdir : 'pacbio/util')
 

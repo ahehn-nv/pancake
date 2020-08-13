@@ -3,12 +3,12 @@
 #ifndef PANCAKE_SEEDDB_WRITER_COMPRESSED_H
 #define PANCAKE_SEEDDB_WRITER_COMPRESSED_H
 
+#include <pacbio/pancake/FastaSequenceCached.h>
+#include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
 #include <pacbio/seeddb/SeedDBParameters.h>
-#include <pacbio/seqdb/FastaSequenceCached.h>
-#include <pacbio/seqdb/FastaSequenceId.h>
-#include <pacbio/seqdb/Util.h>
 #include <pacbio/util/CommonTypes.h>
+#include <pacbio/util/Util.h>
 #include <cstdint>
 #include <memory>
 #include <string>

@@ -3,10 +3,10 @@
 #ifndef PANCAKE_SEQDB_WRITER_COMPRESSED_H
 #define PANCAKE_SEQDB_WRITER_COMPRESSED_H
 
-#include <pacbio/seqdb/CompressedSequence.h>
+#include <pacbio/pancake/CompressedSequence.h>
 #include <pacbio/seqdb/SeqDBIndexCache.h>
 #include <pacbio/seqdb/SeqDBWriterBase.h>
-#include <pacbio/seqdb/Util.h>
+#include <pacbio/util/Util.h>
 #include <cstdint>
 #include <memory>
 #include <string>

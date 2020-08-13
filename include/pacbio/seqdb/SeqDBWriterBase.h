@@ -3,7 +3,7 @@
 #ifndef PANCAKE_SEQDB_WRITER_BASE_H
 #define PANCAKE_SEQDB_WRITER_BASE_H
 
-#include <pacbio/seqdb/CompressedSequence.h>
+#include <pacbio/pancake/CompressedSequence.h>
 #include <ostream>
 #include <string>
 

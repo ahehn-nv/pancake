@@ -5,12 +5,12 @@
 
 #include <pacbio/alignment/SesResults.h>
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
+#include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/Overlap.h>
+#include <pacbio/pancake/Seed.h>
 #include <pacbio/pancake/SeedIndex.h>
-#include <pacbio/seeddb/Seed.h>
+#include <pacbio/pancake/SequenceSeedsCached.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
-#include <pacbio/seeddb/SequenceSeedsCached.h>
-#include <pacbio/seqdb/FastaSequenceCached.h>
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
 #include <pacbio/util/CommonTypes.h>
 #include <cstdint>

@@ -1,10 +1,10 @@
 // Authors: Ivan Sovic
 
+#include <pacbio/pancake/Twobit.h>
 #include <pacbio/seqdb/SeqDBReader.h>
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
-#include <pacbio/seqdb/Twobit.h>
-#include <pacbio/seqdb/Util.h>
 #include <pacbio/util/RunLengthEncoding.h>
+#include <pacbio/util/Util.h>
 #include <iostream>
 #include <sstream>
 

@@ -3,7 +3,7 @@
 #ifndef PANCAKE_UTIL_H
 #define PANCAKE_UTIL_H
 
-#include <pacbio/seqdb/Lookups.h>
+#include <pacbio/pancake/Lookups.h>
 #include <cstdio>
 #include <memory>
 #include <sstream>

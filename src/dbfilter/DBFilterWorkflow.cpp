@@ -18,8 +18,8 @@
 #include <pacbio/seqdb/SeqDBIndexCache.h>
 #include <pacbio/seqdb/SeqDBReader.h>
 #include <pacbio/seqdb/SeqDBWriter.h>
-#include <pacbio/seqdb/Util.h>
 #include <pacbio/util/TicToc.h>
+#include <pacbio/util/Util.h>
 
 #include "DBFilterSettings.h"
 

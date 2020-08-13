@@ -1,7 +1,7 @@
 // Authors: Ivan Sovic
 
-#include <pacbio/seqdb/Lookups.h>
-#include <pacbio/seqdb/Twobit.h>
+#include <pacbio/pancake/Lookups.h>
+#include <pacbio/pancake/Twobit.h>
 #include <cmath>
 #include <sstream>
 

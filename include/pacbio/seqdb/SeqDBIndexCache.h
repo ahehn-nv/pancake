@@ -4,7 +4,7 @@
 #define PANCAKE_SEQDB_INDEX_CACHE_H
 
 #include <pacbio/pancake/ContiguousFilePart.h>
-#include <pacbio/seqdb/Range.h>
+#include <pacbio/pancake/Range.h>
 #include <pacbio/util/CommonTypes.h>
 #include <pacbio/util/Conversion.h>
 #include <cstdint>

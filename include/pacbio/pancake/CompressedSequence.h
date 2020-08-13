@@ -3,8 +3,8 @@
 #ifndef PANCAKE_COMPRESSED_SEQUENCE_H
 #define PANCAKE_COMPRESSED_SEQUENCE_H
 
-#include <pacbio/seqdb/Range.h>
-#include <pacbio/seqdb/Twobit.h>
+#include <pacbio/pancake/Range.h>
+#include <pacbio/pancake/Twobit.h>
 #include <cstdint>
 #include <memory>
 #include <vector>

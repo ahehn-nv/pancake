@@ -7,9 +7,9 @@
 #include <pacbio/overlaphifi/OverlapWriterBase.h>
 #include <pacbio/overlaphifi/Secondary.h>
 #include <pacbio/pancake/MapperHiFi.h>
-#include <pacbio/seqdb/Util.h>
 #include <pacbio/util/RunLengthEncoding.h>
 #include <pacbio/util/TicToc.h>
+#include <pacbio/util/Util.h>
 #include <pbcopper/logging/Logging.h>
 #include <pbcopper/third-party/edlib.h>
 #include <algorithm>

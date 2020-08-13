@@ -10,8 +10,8 @@
 #ifndef PANCAKE_SEQDB_READER_CACHED_BLOCK_H
 #define PANCAKE_SEQDB_READER_CACHED_BLOCK_H
 
-#include <pacbio/seqdb/FastaSequenceCached.h>
-#include <pacbio/seqdb/FastaSequenceId.h>
+#include <pacbio/pancake/FastaSequenceCached.h>
+#include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/seqdb/SeqDBIndexCache.h>
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
 #include <memory>

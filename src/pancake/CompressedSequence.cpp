@@ -1,6 +1,6 @@
 // Authors: Ivan Sovic
 
-#include <pacbio/seqdb/CompressedSequence.h>
+#include <pacbio/pancake/CompressedSequence.h>
 
 namespace PacBio {
 namespace Pancake {

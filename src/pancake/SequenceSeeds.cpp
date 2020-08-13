@@ -1,6 +1,6 @@
 // Author: Ivan Sovic
 
-#include <pacbio/seeddb/SequenceSeeds.h>
+#include <pacbio/pancake/SequenceSeeds.h>
 #include <cassert>
 #include <cstdio>
 #include <exception>

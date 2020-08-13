@@ -3,7 +3,7 @@
 #ifndef PANCAKE_SEQDB_READER_CACHED_H
 #define PANCAKE_SEQDB_READER_CACHED_H
 
-#include <pacbio/seqdb/FastaSequenceId.h>
+#include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/seqdb/SeqDBIndexCache.h>
 #include <pacbio/seqdb/SeqDBReaderCached.h>
 #include <memory>

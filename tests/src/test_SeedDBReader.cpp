@@ -2,10 +2,10 @@
 
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
-#include <pacbio/seeddb/Minimizers.h>
+#include <pacbio/pancake/FastaSequenceId.h>
+#include <pacbio/pancake/Minimizers.h>
+#include <pacbio/pancake/SequenceSeeds.h>
 #include <pacbio/seeddb/SeedDBReader.h>
-#include <pacbio/seeddb/SequenceSeeds.h>
-#include <pacbio/seqdb/FastaSequenceId.h>
 #include <pacbio/seqdb/SeqDBReader.h>
 #include <pacbio/util/CommonTypes.h>
 #include <sstream>

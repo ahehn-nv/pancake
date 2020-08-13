@@ -3,7 +3,7 @@
 #ifndef PANCAKE_SEQDB_READER_BASE_H
 #define PANCAKE_SEQDB_READER_BASE_H
 
-#include <pacbio/seqdb/FastaSequenceId.h>
+#include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/seqdb/SeqDBIndexCache.h>
 #include <string>
 #include <vector>

@@ -4,8 +4,8 @@
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
 #include <pacbio/overlaphifi/OverlapWriterFactory.h>
 #include <pacbio/pancake/MapperHiFi.h>
+#include <pacbio/pancake/Seed.h>
 #include <pacbio/pancake/SeedIndex.h>
-#include <pacbio/seeddb/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
 #include <pacbio/seeddb/SeedDBReaderCachedBlock.h>
 #include <pacbio/seeddb/SeedDBReaderRawBlock.h>

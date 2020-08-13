@@ -1,10 +1,10 @@
 // Authors: Ivan Sovic
 
 #include "seeddb/SeedDBWorkflow.h"
-#include <pacbio/seeddb/Minimizers.h>
-#include <pacbio/seeddb/Seed.h>
+#include <pacbio/pancake/FastaSequenceId.h>
+#include <pacbio/pancake/Minimizers.h>
+#include <pacbio/pancake/Seed.h>
 #include <pacbio/seeddb/SeedDBWriter.h>
-#include <pacbio/seqdb/FastaSequenceId.h>
 #include <pacbio/seqdb/SeqDBIndexCache.h>
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
 #include "seeddb/SeedDBSettings.h"

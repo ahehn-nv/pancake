@@ -3,7 +3,7 @@
 #ifndef PANCAKE_OVERLAPHIFI_OVERLAP_H
 #define PANCAKE_OVERLAPHIFI_OVERLAP_H
 
-#include <pacbio/seqdb/Util.h>
+#include <pacbio/util/Util.h>
 #include <pbbam/Cigar.h>
 #include <algorithm>
 #include <cstdint>

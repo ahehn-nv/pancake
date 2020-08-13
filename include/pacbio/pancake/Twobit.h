@@ -3,7 +3,7 @@
 #ifndef PANCAKE_TWOBIT_H
 #define PANCAKE_TWOBIT_H
 
-#include <pacbio/seqdb/Range.h>
+#include <pacbio/pancake/Range.h>
 #include <string>
 #include <vector>
 

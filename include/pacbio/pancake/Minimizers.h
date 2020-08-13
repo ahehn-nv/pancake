@@ -3,7 +3,7 @@
 #ifndef PANCAKE_SEEDDB_MINIMIZERS_H
 #define PANCAKE_SEEDDB_MINIMIZERS_H
 
-#include <pacbio/seeddb/Seed.h>
+#include <pacbio/pancake/Seed.h>
 #include <pacbio/util/CommonTypes.h>
 #include <array>
 #include <cstdint>

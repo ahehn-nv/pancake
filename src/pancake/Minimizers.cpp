@@ -8,9 +8,9 @@
  *      Author: Ivan Sovic
  */
 
-#include <pacbio/seeddb/Minimizers.h>
-#include <pacbio/seeddb/Seed.h>
-#include <pacbio/seqdb/Lookups.h>
+#include <pacbio/pancake/Lookups.h>
+#include <pacbio/pancake/Minimizers.h>
+#include <pacbio/pancake/Seed.h>
 #include <pacbio/util/CommonTypes.h>
 #include <deque>
 #include <iostream>

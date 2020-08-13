@@ -4,8 +4,8 @@
 #define PANCAKE_SEEDDB_INDEX_CACHE_H
 
 #include <pacbio/pancake/ContiguousFilePart.h>
+#include <pacbio/pancake/Range.h>
 #include <pacbio/seeddb/SeedDBParameters.h>
-#include <pacbio/seqdb/Range.h>
 #include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <fstream>

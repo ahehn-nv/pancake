@@ -4,9 +4,9 @@
 #define PANCAKE_SEEDDB_READER_RAW_BLOCK_H
 
 #include <pacbio/pancake/ContiguousFilePart.h>
-#include <pacbio/seeddb/Seed.h>
+#include <pacbio/pancake/Seed.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>
-#include <pacbio/seqdb/Util.h>
+#include <pacbio/util/Util.h>
 #include <memory>
 #include <string>
 #include <vector>
