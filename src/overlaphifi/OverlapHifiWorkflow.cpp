@@ -2,8 +2,8 @@
 
 #include "overlaphifi/OverlapHifiWorkflow.h"
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
-#include <pacbio/overlaphifi/OverlapWriterFactory.h>
 #include <pacbio/pancake/MapperHiFi.h>
+#include <pacbio/pancake/OverlapWriterFactory.h>
 #include <pacbio/pancake/Seed.h>
 #include <pacbio/pancake/SeedIndex.h>
 #include <pacbio/seeddb/SeedDBIndexCache.h>

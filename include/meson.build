@@ -86,13 +86,6 @@ if not meson.is_subproject()
     files([
       'pacbio/overlaphifi/Secondary.h',
       'pacbio/overlaphifi/OverlapHifiSettings.h',
-      'pacbio/overlaphifi/OverlapWriterBase.h',
-      'pacbio/overlaphifi/OverlapWriterFactory.h',
-      'pacbio/overlaphifi/OverlapWriterFormat.h',
-      'pacbio/overlaphifi/OverlapWriterIPAOvl.h',
-      'pacbio/overlaphifi/OverlapWriterM4.h',
-      'pacbio/overlaphifi/OverlapWriterPAF.h',
-      'pacbio/overlaphifi/OverlapWriterSAM.h',
       ]),
       subdir : 'pacbio/overlaphifi')
 
@@ -107,6 +100,13 @@ if not meson.is_subproject()
       'pacbio/pancake/MapperHiFi.h',
       'pacbio/pancake/Minimizers.h',
       'pacbio/pancake/Overlap.h',
+      'pacbio/pancake/OverlapWriterBase.h',
+      'pacbio/pancake/OverlapWriterFactory.h',
+      'pacbio/pancake/OverlapWriterFormat.h',
+      'pacbio/pancake/OverlapWriterIPAOvl.h',
+      'pacbio/pancake/OverlapWriterM4.h',
+      'pacbio/pancake/OverlapWriterPAF.h',
+      'pacbio/pancake/OverlapWriterSAM.h',
       'pacbio/pancake/Range.h',
       'pacbio/pancake/Seed.h',
       'pacbio/pancake/SeedHit.h',

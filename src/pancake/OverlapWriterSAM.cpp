@@ -1,6 +1,6 @@
 // Authors: Ivan Sovic
 
-#include <pacbio/overlaphifi/OverlapWriterSAM.h>
+#include <pacbio/pancake/OverlapWriterSAM.h>
 
 namespace PacBio {
 namespace Pancake {

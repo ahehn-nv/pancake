@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-#include <pacbio/overlaphifi/OverlapWriterFormat.h>
+#include <pacbio/pancake/OverlapWriterFormat.h>
 #include <pbcopper/cli2/CLI.h>
 
 namespace PacBio {

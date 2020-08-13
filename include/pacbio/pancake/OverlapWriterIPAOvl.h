@@ -1,11 +1,11 @@
 // Author: Ivan Sovic
 
-#ifndef PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_SAM_H
-#define PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_SAM_H
+#ifndef PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_IPA_OVL_H
+#define PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_IPA_OVL_H
 
-#include <pacbio/overlaphifi/OverlapWriterBase.h>
 #include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/pancake/Overlap.h>
+#include <pacbio/pancake/OverlapWriterBase.h>
 #include <pacbio/seqdb/SeqDBReaderCached.h>
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
 #include <pacbio/util/Util.h>
@@ -17,11 +17,11 @@
 namespace PacBio {
 namespace Pancake {
 
-class OverlapWriterSAM : public OverlapWriterBase
+class OverlapWriterIPAOvl : public OverlapWriterBase
 {
 public:
-    OverlapWriterSAM(FILE* fpOut, bool writeIds, bool writeCigar);
-    ~OverlapWriterSAM();
+    OverlapWriterIPAOvl(FILE* fpOut, bool writeIds, bool writeCigar);
+    ~OverlapWriterIPAOvl();
 
     void WriteHeader(const PacBio::Pancake::SeqDBReaderCached& targetSeqs) override;
 

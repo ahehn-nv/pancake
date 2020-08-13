@@ -3,9 +3,9 @@
 #ifndef PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_FACTORY_H
 #define PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_FACTORY_H
 
-#include <pacbio/overlaphifi/OverlapWriterBase.h>
-#include <pacbio/overlaphifi/OverlapWriterFormat.h>
-#include <pacbio/overlaphifi/OverlapWriterIPAOvl.h>
+#include <pacbio/pancake/OverlapWriterBase.h>
+#include <pacbio/pancake/OverlapWriterFormat.h>
+#include <pacbio/pancake/OverlapWriterIPAOvl.h>
 #include <memory>
 
 namespace PacBio {

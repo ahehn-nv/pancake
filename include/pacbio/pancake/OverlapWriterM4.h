@@ -3,9 +3,9 @@
 #ifndef PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_M4_H
 #define PANCAKE_OVERLAPHIFI_OVERLAP_WRITER_M4_H
 
-#include <pacbio/overlaphifi/OverlapWriterBase.h>
 #include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/pancake/Overlap.h>
+#include <pacbio/pancake/OverlapWriterBase.h>
 #include <pacbio/seqdb/SeqDBReaderCached.h>
 #include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
 #include <pacbio/util/Util.h>
