@@ -3,9 +3,9 @@
 #ifndef PANCAKE_SEEDDB_READER_CACHED_BLOCK_H
 #define PANCAKE_SEEDDB_READER_CACHED_BLOCK_H
 
+#include <pacbio/pancake/SeedDBIndexCache.h>
+#include <pacbio/pancake/SeedDBReaderCachedBlock.h>
 #include <pacbio/pancake/SequenceSeedsCached.h>
-#include <pacbio/seeddb/SeedDBIndexCache.h>
-#include <pacbio/seeddb/SeedDBReaderCachedBlock.h>
 #include <pacbio/util/CommonTypes.h>
 #include <pacbio/util/Util.h>
 #include <memory>

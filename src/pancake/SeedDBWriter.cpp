@@ -1,7 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <pacbio/pancake/FastaSequenceCached.h>
-#include <pacbio/seeddb/SeedDBWriter.h>
+#include <pacbio/pancake/SeedDBWriter.h>
 #include <pacbio/util/Util.h>
 #include <cmath>
 #include <iostream>

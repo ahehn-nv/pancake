@@ -1,7 +1,7 @@
 // Authors: Ivan Sovic
 
-#include <pacbio/seeddb/SeedDBReader.h>
-#include <pacbio/seeddb/SeedDBReaderRawBlock.h>
+#include <pacbio/pancake/SeedDBReader.h>
+#include <pacbio/pancake/SeedDBReaderRawBlock.h>
 #include <functional>
 #include <iostream>
 #include <sstream>

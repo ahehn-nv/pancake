@@ -5,12 +5,12 @@
 #include <pacbio/pancake/MapperHiFi.h>
 #include <pacbio/pancake/OverlapWriterFactory.h>
 #include <pacbio/pancake/Seed.h>
+#include <pacbio/pancake/SeedDBIndexCache.h>
+#include <pacbio/pancake/SeedDBReaderCachedBlock.h>
+#include <pacbio/pancake/SeedDBReaderRawBlock.h>
 #include <pacbio/pancake/SeedIndex.h>
 #include <pacbio/pancake/SeqDBIndexCache.h>
 #include <pacbio/pancake/SeqDBReaderCached.h>
-#include <pacbio/seeddb/SeedDBIndexCache.h>
-#include <pacbio/seeddb/SeedDBReaderCachedBlock.h>
-#include <pacbio/seeddb/SeedDBReaderRawBlock.h>
 #include <pacbio/util/TicToc.h>
 #include <pbcopper/logging/LogLevel.h>
 #include <pbcopper/logging/Logging.h>

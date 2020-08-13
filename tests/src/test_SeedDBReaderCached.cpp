@@ -2,8 +2,8 @@
 
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
+#include <pacbio/pancake/SeedDBReaderCached.h>
 #include <pacbio/pancake/SequenceSeeds.h>
-#include <pacbio/seeddb/SeedDBReaderCached.h>
 #include <sstream>
 
 TEST(SeedDBReaderCached, IterateThroughFirstBlock)

@@ -1,6 +1,6 @@
 // Authors: Ivan Sovic
 
-#include <pacbio/seeddb/SeedDBIndexCache.h>
+#include <pacbio/pancake/SeedDBIndexCache.h>
 #include <pacbio/util/Util.h>
 #include <pbcopper/utility/StringUtils.h>
 #include <limits>

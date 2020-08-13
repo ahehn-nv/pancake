@@ -111,6 +111,12 @@ if not meson.is_subproject()
       'pacbio/pancake/Seed.h',
       'pacbio/pancake/SeedHit.h',
       'pacbio/pancake/SeedIndex.h',
+      'pacbio/pancake/SeedDBIndexCache.h',
+      'pacbio/pancake/SeedDBReader.h',
+      'pacbio/pancake/SeedDBReaderCached.h',
+      'pacbio/pancake/SeedDBReaderCachedBlock.h',
+      'pacbio/pancake/SeedDBReaderRawBlock.h',
+      'pacbio/pancake/SeedDBWriter.h',
       'pacbio/pancake/SeqDBIndexCache.h',
       'pacbio/pancake/SeqDBReader.h',
       'pacbio/pancake/SeqDBReaderBase.h',
@@ -127,13 +133,7 @@ if not meson.is_subproject()
   # pacbio/seeddb
   install_headers(
     files([
-      'pacbio/seeddb/SeedDBIndexCache.h',
       'pacbio/seeddb/SeedDBParameters.h',
-      'pacbio/seeddb/SeedDBReader.h',
-      'pacbio/seeddb/SeedDBReaderCached.h',
-      'pacbio/seeddb/SeedDBReaderCachedBlock.h',
-      'pacbio/seeddb/SeedDBReaderRawBlock.h',
-      'pacbio/seeddb/SeedDBWriter.h',
       ]),
       subdir : 'pacbio/seeddb')
 

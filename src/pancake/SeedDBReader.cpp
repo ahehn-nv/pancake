@@ -1,6 +1,6 @@
 // Authors: Ivan Sovic
 
-#include <pacbio/seeddb/SeedDBReader.h>
+#include <pacbio/pancake/SeedDBReader.h>
 #include <cmath>
 #include <fstream>
 #include <iostream>

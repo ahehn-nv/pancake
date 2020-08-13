@@ -8,10 +8,10 @@
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/Overlap.h>
 #include <pacbio/pancake/Seed.h>
+#include <pacbio/pancake/SeedDBIndexCache.h>
 #include <pacbio/pancake/SeedIndex.h>
 #include <pacbio/pancake/SeqDBReaderCachedBlock.h>
 #include <pacbio/pancake/SequenceSeedsCached.h>
-#include <pacbio/seeddb/SeedDBIndexCache.h>
 #include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <memory>

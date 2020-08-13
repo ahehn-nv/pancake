@@ -5,7 +5,7 @@
 
 #include <pacbio/pancake/ContiguousFilePart.h>
 #include <pacbio/pancake/Seed.h>
-#include <pacbio/seeddb/SeedDBIndexCache.h>
+#include <pacbio/pancake/SeedDBIndexCache.h>
 #include <pacbio/util/Util.h>
 #include <memory>
 #include <string>

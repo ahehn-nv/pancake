@@ -3,8 +3,8 @@
 #ifndef PANCAKE_SEEDDB_READER_CACHED_H
 #define PANCAKE_SEEDDB_READER_CACHED_H
 
+#include <pacbio/pancake/SeedDBIndexCache.h>
 #include <pacbio/pancake/SequenceSeeds.h>
-#include <pacbio/seeddb/SeedDBIndexCache.h>
 #include <pacbio/util/Util.h>
 #include <memory>
 #include <ostream>
