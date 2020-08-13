@@ -20,6 +20,7 @@
 
 namespace PacBio {
 namespace Pancake {
+namespace OverlapHiFi {
 
 class MapperResult
 {
@@ -247,6 +248,7 @@ private:
                                                int32_t seqEnd, bool revCmp);
 };
 
+}  // namespace OverlapHiFi
 }  // namespace Pancake
 }  // namespace PacBio
 

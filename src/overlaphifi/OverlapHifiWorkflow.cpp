@@ -25,9 +25,9 @@ void Worker(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqDBReader,
             const PacBio::Pancake::SeedIndex& index,
             const PacBio::Pancake::SeqDBReaderCachedBlock& querySeqDBReader,
             const PacBio::Pancake::SeedDBReaderCachedBlock& querySeedDBReader,
-            const OverlapHifiSettings& /*settings*/, const PacBio::Pancake::Mapper& mapper,
+            const OverlapHifiSettings& /*settings*/, const OverlapHiFi::Mapper& mapper,
             int64_t freqCutoff, bool generateFlippedOverlaps, int32_t start, int32_t end,
-            std::vector<PacBio::Pancake::MapperResult>& results)
+            std::vector<OverlapHiFi::MapperResult>& results)
 {
     int32_t numRecords = querySeqDBReader.records().size();
     if (start < 0 || end < 0 || start > end || start > numRecords || end > numRecords) {
@@ -135,9 +135,9 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     PBLOG_INFO << "Beginning to map the sequences.";
     PBLOG_INFO << "Using " << settings.NumThreads << " threads.";
-    std::vector<Mapper> mappers;
+    std::vector<OverlapHiFi::Mapper> mappers;
     for (size_t i = 0; i < settings.NumThreads; ++i) {
-        mappers.emplace_back(Mapper(settings));
+        mappers.emplace_back(OverlapHiFi::Mapper(settings));
     }
     TicToc ttMap;
 
@@ -198,7 +198,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
             TicToc ttQueryBlockMapping;
             const int32_t numRecords = static_cast<int32_t>(querySeqDBReader.records().size());
             // Storage for the results of the batch run.
-            std::vector<PacBio::Pancake::MapperResult> results(numRecords);
+            std::vector<OverlapHiFi::MapperResult> results(numRecords);
             // No empty threads (e.g. reduce the requested number, if small record input)
             const int32_t actualThreadCount =
                 std::min(static_cast<int32_t>(settings.NumThreads), numRecords);

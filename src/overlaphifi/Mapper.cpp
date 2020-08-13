@@ -21,6 +21,7 @@
 
 namespace PacBio {
 namespace Pancake {
+namespace OverlapHiFi {
 
 // #define PANCAKE_DEBUG
 // #define PANCAKE_DEBUG_ALN
@@ -801,5 +802,6 @@ PacBio::Pancake::Int128t Mapper::PackSeedHitWithDiagonalTo128_(const SeedHit& sh
     return ret;
 }
 
+}  // namespace OverlapHiFi
 }  // namespace Pancake
 }  // namespace PacBio
