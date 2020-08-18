@@ -76,6 +76,10 @@ public:
 
     const std::vector<int32_t> GetSequenceLengths() const { return sequenceLengths_; }
 
+    const PacBio::Pancake::SeedDB::SeedDBParameters& GetSeedParams() const {
+        return seedParams_;
+    }
+
     int32_t GetSequenceLength(int32_t seqId) const
     {
         // Sanity check for the sequence ID.
