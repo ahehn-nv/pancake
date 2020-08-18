@@ -6,6 +6,12 @@ if not meson.is_subproject()
 
   #'pacbio/Version.h',
 
+  install_headers(
+    files([
+      'lib/math.hpp',
+      ]),
+      subdir : 'lib/')
+
   # lib/flat_hash_map
   install_headers(
     files([
