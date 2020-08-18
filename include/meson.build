@@ -22,6 +22,13 @@ if not meson.is_subproject()
       ]),
       subdir : 'lib/intervaltree')
 
+  # lib/istl
+  install_headers(
+    files([
+      'lib/istl/lis.hpp',
+      ]),
+      subdir : 'lib/istl')
+
   # lib/kxsort
   install_headers(
     files([
