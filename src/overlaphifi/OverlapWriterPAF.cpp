@@ -37,7 +37,7 @@ void OverlapWriterPAF::Write(const OverlapPtr& ovl,
         // Don't look for the actual headers unless required. Saves the cost of a search.
         const auto& qName = writeIds_ ? "" : targetSeqs.GetSequence(ovl->Aid).Name();
         const auto& tName = writeIds_ ? "" : querySeq.Name();
-        PrintOverlapAsM4(fpOut_, ovl, qName, tName, writeIds_, writeCigar_);
+        PrintOverlapAsPAF(fpOut_, ovl, qName, tName, writeIds_, writeCigar_);
     } else {
         // Don't look for the actual headers unless required. Saves the cost of a search.
         const auto& qName = writeIds_ ? "" : querySeq.Name();
@@ -56,7 +56,7 @@ void OverlapWriterPAF::Write(const OverlapPtr& ovl,
         // Don't look for the actual headers unless required. Saves the cost of a search.
         const auto& qName = writeIds_ ? "" : targetSeqs.GetSequence(ovl->Aid).Name();
         const auto& tName = writeIds_ ? "" : querySeq.Name();
-        PrintOverlapAsM4(fpOut_, ovl, qName, tName, writeIds_, writeCigar_);
+        PrintOverlapAsPAF(fpOut_, ovl, qName, tName, writeIds_, writeCigar_);
 
     } else {
         // Don't look for the actual headers unless required. Saves the cost of a search.
