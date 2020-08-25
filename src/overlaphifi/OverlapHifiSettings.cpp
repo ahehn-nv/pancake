@@ -47,7 +47,7 @@ R"({
 const CLI_v2::Option OutFormat{
 R"({
     "names" : ["out-fmt"],
-    "choices" : ["m4", "ipa"],
+    "choices" : ["m4", "ipa", "paf", "sam"],
     "type" : "string",
     "default" : "m4",
     "description" : "Select the output format."
@@ -251,6 +251,8 @@ OverlapWriterFormat ParseOutFormat(const std::string& val)
         return OverlapWriterFormat::M4;
     } else if (val == "ipa") {
         return OverlapWriterFormat::IPAOvl;
+    } else if (val == "paf") {
+        return OverlapWriterFormat::PAF;
     } else if (val == "sam") {
         return OverlapWriterFormat::SAM;
     }

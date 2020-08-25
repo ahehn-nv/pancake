@@ -10,6 +10,7 @@ enum class OverlapWriterFormat
 {
     IPAOvl,
     M4,
+    PAF,
     SAM,
     Unknown
 };

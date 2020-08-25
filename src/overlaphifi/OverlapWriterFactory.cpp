@@ -2,6 +2,7 @@
 
 #include <pacbio/overlaphifi/OverlapWriterFactory.h>
 #include <pacbio/overlaphifi/OverlapWriterM4.h>
+#include <pacbio/overlaphifi/OverlapWriterPAF.h>
 #include <pacbio/overlaphifi/OverlapWriterSAM.h>
 
 namespace PacBio {
@@ -15,6 +16,9 @@ std::unique_ptr<OverlapWriterBase> OverlapWriterFactory(OverlapWriterFormat writ
             new OverlapWriterIPAOvl(fpOut, writeIds, writeCigar));
     } else if (writerType == OverlapWriterFormat::M4) {
         return std::unique_ptr<OverlapWriterBase>(new OverlapWriterM4(fpOut, writeIds, writeCigar));
+    } else if (writerType == OverlapWriterFormat::PAF) {
+        return std::unique_ptr<OverlapWriterBase>(
+            new OverlapWriterPAF(fpOut, writeIds, writeCigar));
     } else if (writerType == OverlapWriterFormat::SAM) {
         return std::unique_ptr<OverlapWriterBase>(
             new OverlapWriterSAM(fpOut, writeIds, writeCigar));
