@@ -36,6 +36,8 @@ public:
                                      const std::string& Bname, bool writeIds, bool writeCigar);
     static void PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
                                  const std::string& Bname, bool writeIds, bool writeCigar);
+    static void PrintOverlapAsPAF(FILE* fpOut, const OverlapPtr& ovl, const std::string& Aname,
+                                  const std::string& Bname, bool writeIds, bool writeCigar);
     static void PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, const char* seq,
                                   int64_t seqLen, const std::string& Aname,
                                   const std::string& Bname, bool writeIds, bool writeCigar);

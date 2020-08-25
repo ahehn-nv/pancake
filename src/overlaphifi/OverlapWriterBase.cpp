@@ -133,6 +133,79 @@ void OverlapWriterBase::PrintOverlapAsM4(FILE* fpOut, const OverlapPtr& ovl,
     fprintf(fpOut, "\n");
 }
 
+void OverlapWriterBase::PrintOverlapAsPAF(FILE* fpOut, const OverlapPtr& ovl,
+                                          const std::string& Aname, const std::string& Bname,
+                                          bool writeIds, bool writeCigar)
+{
+    double identity = static_cast<double>(ovl->Identity);
+    if (identity == 0.0 && ovl->EditDistance >= 0.0) {
+        const double editDist = ovl->EditDistance;
+        const double qSpan = ovl->ASpan();
+        const double tSpan = ovl->BSpan();
+        const double identityQ = (qSpan != 0) ? ((qSpan - editDist) / qSpan) : -2.0;
+        const double identityT = (tSpan != 0) ? ((tSpan - editDist) / tSpan) : -2.0;
+        identity = std::min(identityQ, identityT);
+    }
+
+    // The format specifies coordinates always in the FWD strand.
+    int32_t tStart = ovl->BstartFwd();
+    int32_t tEnd = ovl->BendFwd();
+    const int32_t tIsRev = ovl->Brev;
+    const int32_t tLen = ovl->Blen;
+    std::string AtypeStr = OverlapTypeToStringSingleChar(ovl->Atype);
+    std::string BtypeStr = OverlapTypeToStringSingleChar(ovl->Btype);
+    int32_t mapq = 60;
+
+    if (writeIds) {
+        fprintf(fpOut, "%09d\t%d\t%d\t%d\t%c\t%09d\t%d\t%d\t%d\t%d\t%d\t%d", ovl->Aid, ovl->Alen,
+                ovl->Astart, ovl->Aend, (tIsRev ? '-' : '+'), ovl->Bid, ovl->Blen, tStart, tEnd,
+                ovl->ASpan(), ovl->BSpan(), mapq);
+    } else {
+        fprintf(fpOut, "%s\t%d\t%d\t%d\t%c\t%s\t%d\t%d\t%d\t%d\t%d\t%d", Aname.c_str(), ovl->Alen,
+                ovl->Astart, ovl->Aend, (tIsRev ? '-' : '+'), Bname.c_str(), ovl->Blen, tStart,
+                tEnd, ovl->ASpan(), ovl->BSpan(), mapq);
+    }
+
+    fprintf(fpOut, "\tNM:i:%d\tIT:f:%.4lf\tSC:i:%d", ovl->EditDistance, 100.0 * identity,
+            static_cast<int32_t>(ovl->Score));
+    fprintf(fpOut, "\tAT:Z:%s\tBT:Z:%s", AtypeStr.c_str(), BtypeStr.c_str());
+
+    if (writeCigar) {
+        fprintf(fpOut, "\tcg:Z:");
+        if (ovl->Cigar.empty()) {
+            fprintf(fpOut, "*");
+        } else {
+            for (const auto& op : ovl->Cigar) {
+                fprintf(fpOut, "%u%c", op.Length(), ConstexprTypeToChar(op.Type()));
+            }
+        }
+    }
+
+    if (ovl->Avars.empty()) {
+        fprintf(fpOut, "\tVQ:Z:*");
+    } else {
+        if (ovl->Arev) {
+            auto vars = Pancake::ReverseComplement(ovl->Avars, 0, ovl->Avars.size());
+            fprintf(fpOut, "\tVQ:Z:%s", vars.c_str());
+        } else {
+            fprintf(fpOut, "\tVQ:Z:%s", ovl->Avars.c_str());
+        }
+    }
+
+    if (ovl->Bvars.empty()) {
+        fprintf(fpOut, "\tVT:Z:*");
+    } else {
+        if (ovl->Brev) {
+            auto vars = Pancake::ReverseComplement(ovl->Bvars, 0, ovl->Bvars.size());
+            fprintf(fpOut, "\tVT:Z:%s", vars.c_str());
+        } else {
+            fprintf(fpOut, "\tVT:Z:%s", ovl->Bvars.c_str());
+        }
+    }
+
+    fprintf(fpOut, "\n");
+}
+
 void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, const char* query,
                                           int64_t queryLen, const std::string& Aname,
                                           const std::string& Bname, bool writeIds, bool writeCigar)
