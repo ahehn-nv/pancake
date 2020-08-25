@@ -374,6 +374,13 @@ SAM output format - with traceback.
   read1-fwd	16	read4-rev	1	60	27=1X152=	*	0	0	ATTATTGGCTCACTCTTACTCAGCCTTATTGTGGCAATGGTCATGAAGCGCAATAAAACCGTATAACATCTCTCTGTGCGCAGTACTTCCTGTATTATTGTGGTGGCGGTCGATATGCGCACTGGCAAAAAAACGGGCTTGAATATCGTTGAAACCCTTTAACAAAGCACAGGAGCGTGC	*	AT:Z:c	BT:Z:c
   read4-rev	16	read1-fwd	1	60	152=1X27=	*	0	0	GCACGCTCCTGTGCTTTGTTAAAGGGTTTCAACGATATTCAAGCCCGTTTTTTTGCCAGTGCGCATATCGACCGCCACCACAATAATACAGGAAGTACTGCGCACAGAGAGATGTTATACGGTTTTATTGCGCTTCATGACCATTGCCACAACAAGGCTGAGTAAGAGTGAGCCAATAAT	*	AT:Z:c	BT:Z:c
 
+PAF output format - with traceback.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt paf
+  read1-fwd	180	0	180	-	read4-rev	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:152=1X27=	VQ:Z:T	VT:Z:G
+  read4-rev	180	0	180	-	read1-fwd	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:27=1X152=	VQ:Z:G	VT:Z:T
+
 
 
 M4 output format - no traceback.
@@ -400,6 +407,12 @@ SAM output format - no traceback.
   read1-fwd	16	read4-rev	1	60	*	*	0	0	ATTATTGGCTCACTCTTACTCAGCCTTATTGTGGCAATGGTCATGAAGCGCAATAAAACCGTATAACATCTCTCTGTGCGCAGTACTTCCTGTATTATTGTGGTGGCGGTCGATATGCGCACTGGCAAAAAAACGGGCTTGAATATCGTTGAAACCCTTTAACAAAGCACAGGAGCGTGC	*	AT:Z:c	BT:Z:c
   read4-rev	16	read1-fwd	1	60	*	*	0	0	GCACGCTCCTGTGCTTTGTTAAAGGGTTTCAACGATATTCAAGCCCGTTTTTTTGCCAGTGCGCATATCGACCGCCACCACAATAATACAGGAAGTACTGCGCACAGAGAGATGTTATACGGTTTTATTGCGCTTCATGACCATTGCCACAACAAGGCTGAGTAAGAGTGAGCCAATAAT	*	AT:Z:c	BT:Z:c
 
+PAF output format - no traceback.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt paf
+  read1-fwd	180	0	180	-	read4-rev	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	VQ:Z:*	VT:Z:*
+  read4-rev	180	0	180	-	read1-fwd	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	VQ:Z:*	VT:Z:*
 
 
 M4 output format - with traceback. Writing IDs.
@@ -426,6 +439,19 @@ SAM output format - with traceback. Writing IDs.
   000000000	16	000000001	1	60	27=1X152=	*	0	0	ATTATTGGCTCACTCTTACTCAGCCTTATTGTGGCAATGGTCATGAAGCGCAATAAAACCGTATAACATCTCTCTGTGCGCAGTACTTCCTGTATTATTGTGGTGGCGGTCGATATGCGCACTGGCAAAAAAACGGGCTTGAATATCGTTGAAACCCTTTAACAAAGCACAGGAGCGTGC	*	AT:Z:c	BT:Z:c
   000000001	16	000000000	1	60	152=1X27=	*	0	0	GCACGCTCCTGTGCTTTGTTAAAGGGTTTCAACGATATTCAAGCCCGTTTTTTTGCCAGTGCGCATATCGACCGCCACCACAATAATACAGGAAGTACTGCGCACAGAGAGATGTTATACGGTTTTATTGCGCTTCATGACCATTGCCACAACAAGGCTGAGTAAGAGTGAGCCAATAAT	*	AT:Z:c	BT:Z:c
 
+PAF output format - with traceback. Writing IDs.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --write-ids --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt paf
+  000000000	180	0	180	-	000000001	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:152=1X27=	VQ:Z:T	VT:Z:G
+  000000001	180	0	180	-	000000000	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:27=1X152=	VQ:Z:G	VT:Z:T
+
+PAF output format, generating symetric overlaps - with traceback. Writing IDs.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --write-ids --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt paf --skip-sym --write-rev
+  000000001	180	0	180	-	000000000	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:27=1X152=	VQ:Z:G	VT:Z:T
+  000000000	180	0	180	-	000000001	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:152=1X27=	VQ:Z:T	VT:Z:G
 
 ##########################################
 ### Testing masking of variant strings ###
