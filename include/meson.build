@@ -15,6 +15,13 @@ if not meson.is_subproject()
       ]),
       subdir : 'lib/flat_hash_map')
 
+  # lib/intervaltree
+  install_headers(
+    files([
+      'lib/intervaltree/IntervalTree.h',
+      ]),
+      subdir : 'lib/intervaltree')
+
   # lib/kxsort
   install_headers(
     files([
