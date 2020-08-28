@@ -246,6 +246,13 @@ R"({
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::MaskSimpleRepeats};
 
+const CLI_v2::Option MarkSecondary{
+R"({
+    "names" : ["mark-secondary"],
+    "description" : "Mask homopolymer errors when traceback is generated. This will impact identity calculation.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::MarkSecondary};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -300,6 +307,7 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , UseTraceback{options[OptionNames::UseTraceback]}
     , MaskHomopolymers{options[OptionNames::MaskHomopolymers]}
     , MaskSimpleRepeats{options[OptionNames::MaskSimpleRepeats]}
+    , MarkSecondary{options[OptionNames::MarkSecondary]}
 {
     if ((NoSNPsInIdentity || NoIndelsInIdentity || MaskHomopolymers || MaskSimpleRepeats) &&
         (UseTraceback == false)) {
@@ -370,6 +378,7 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::UseTraceback,
         OptionNames::MaskHomopolymers,
         OptionNames::MaskSimpleRepeats,
+        OptionNames::MarkSecondary,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

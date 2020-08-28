@@ -50,6 +50,7 @@ struct OverlapHifiSettings
         static const bool MaskHomopolymers = false;
         static const bool MaskSimpleRepeats = false;
         static const OverlapWriterFormat OutFormat = OverlapWriterFormat::M4;
+        static const bool MarkSecondary = false;
     };
 
     std::string TargetDBPrefix;
@@ -89,6 +90,7 @@ struct OverlapHifiSettings
     bool MaskHomopolymers = Defaults::MaskHomopolymers;
     bool MaskSimpleRepeats = Defaults::MaskSimpleRepeats;
     OverlapWriterFormat OutFormat = Defaults::OutFormat;
+    bool MarkSecondary = Defaults::MarkSecondary;
 
     OverlapHifiSettings();
     OverlapHifiSettings(const PacBio::CLI_v2::Results& options);
