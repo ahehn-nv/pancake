@@ -9,28 +9,40 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <unordered_map>
+#include <vector>
+
+namespace PacBio {
+namespace Pancake {
 
 using IntervalTreeInt32 =
     IntervalTree<int32_t, int32_t>;  // First: interval scalar type, Second: value type.
 using IntervalVectorInt32 = IntervalTreeInt32::interval_vector;
 using IntervalInt32 = IntervalTreeInt32::interval;
 
-namespace PacBio {
-namespace Pancake {
+struct OverlapPriority
+{
+    int32_t priority = 0;
+    bool isSupplementary = false;
+};
 
-void FlagSecondaryAndSupplementary(std::vector<OverlapPtr>& overlaps, double allowedOverlapFraction,
-                                   double minSecondaryScoreFraction);
+std::vector<OverlapPriority> FlagSecondaryAndSupplementary(std::vector<OverlapPtr>& overlaps,
+                                                           double allowedOverlapFraction,
+                                                           double minSecondaryScoreFraction);
 
 void CreateRegionIntervalTrees(const std::vector<OverlapPtr>& overlaps,
+                               const std::vector<OverlapPriority>& priorities,
                                std::function<bool(int32_t a)> CompPriority,
                                IntervalVectorInt32& queryIntervals, IntervalTreeInt32& queryTrees,
                                std::unordered_map<int32_t, IntervalVectorInt32>& targetIntervals,
                                std::unordered_map<int32_t, IntervalTreeInt32>& targetTrees);
 
-bool CheckRegionSupplementary(const std::vector<OverlapPtr>& chainedRegions,
-                              const OverlapPtr& currentRegion, IntervalTreeInt32& queryTrees,
+bool CheckRegionSupplementary(const std::vector<OverlapPtr>& overlaps, const OverlapPtr& currentOvl,
+                              IntervalTreeInt32& queryTrees,
                               std::unordered_map<int32_t, IntervalTreeInt32>& targetTrees,
                               double allowedOverlapFraction);
+
+int32_t CalcIntervalOverlap(int32_t s1, int32_t e1, int32_t s2, int32_t e2);
 
 }  // namespace Pancake
 }  // namespace PacBio
