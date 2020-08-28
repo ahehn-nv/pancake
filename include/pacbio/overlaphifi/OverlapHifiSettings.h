@@ -51,6 +51,8 @@ struct OverlapHifiSettings
         static const bool MaskSimpleRepeats = false;
         static const OverlapWriterFormat OutFormat = OverlapWriterFormat::M4;
         static const bool MarkSecondary = false;
+        static constexpr double SecondaryAllowedOverlapFraction = 0.50;
+        static constexpr double SecondaryMinScoreFraction = 0.80;
     };
 
     std::string TargetDBPrefix;
@@ -91,6 +93,8 @@ struct OverlapHifiSettings
     bool MaskSimpleRepeats = Defaults::MaskSimpleRepeats;
     OverlapWriterFormat OutFormat = Defaults::OutFormat;
     bool MarkSecondary = Defaults::MarkSecondary;
+    double SecondaryAllowedOverlapFraction = Defaults::SecondaryAllowedOverlapFraction;
+    double SecondaryMinScoreFraction = Defaults::SecondaryMinScoreFraction;
 
     OverlapHifiSettings();
     OverlapHifiSettings(const PacBio::CLI_v2::Results& options);
