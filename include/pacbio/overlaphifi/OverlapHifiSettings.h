@@ -36,6 +36,7 @@ struct OverlapHifiSettings
         static const bool NoIndelsInIdentity = 0.0;
         static const int64_t MinMappedLength = 1000;
         static const bool SkipSymmetricOverlaps = false;
+        static const bool SkipSelfHits = false;
         static const bool OneHitPerTarget = false;
         static const bool WriteReverseOverlaps = false;
         static const bool WriteIds = false;
@@ -74,6 +75,7 @@ struct OverlapHifiSettings
     bool NoIndelsInIdentity = Defaults::NoIndelsInIdentity;
     int64_t MinMappedLength = Defaults::MinMappedLength;
     bool SkipSymmetricOverlaps = Defaults::SkipSymmetricOverlaps;
+    bool SkipSelfHits = Defaults::SkipSelfHits;
     bool OneHitPerTarget = Defaults::OneHitPerTarget;
     bool WriteReverseOverlaps = Defaults::WriteReverseOverlaps;
     bool WriteIds = Defaults::WriteIds;
