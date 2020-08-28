@@ -29,7 +29,7 @@ std::vector<OverlapPriority> FlagSecondaryAndSupplementary(std::vector<OverlapPt
         priorities[i].isSupplementary = false;
     }
 
-    const double topScore = static_cast<double>(overlaps.front()->Score);
+    const double topScore = std::abs(static_cast<double>(overlaps.front()->Score));
     const double minSecondaryScore = topScore * minSecondaryScoreFraction;
 
     IntervalVectorInt32 queryIntervals;
@@ -50,7 +50,7 @@ std::vector<OverlapPriority> FlagSecondaryAndSupplementary(std::vector<OverlapPt
         if (alnPriority.priority == 0) {
             continue;
         }
-        const double score = static_cast<double>(aln->Score);
+        const double score = std::abs(static_cast<double>(aln->Score));
 
         if (CheckRegionSupplementary(overlaps, aln, queryTrees, targetTrees,
                                      allowedOverlapFraction)) {
