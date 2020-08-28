@@ -288,7 +288,6 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , NoSNPsInIdentity{options[OptionNames::NoSNPsInIdentity]}
     , NoIndelsInIdentity{options[OptionNames::NoIndelsInIdentity]}
     , MinMappedLength{options[OptionNames::MinMappedLength]}
-    , SkipSymmetricOverlaps{options[OptionNames::SkipSymmetricOverlaps]}
     , OneHitPerTarget{options[OptionNames::OneHitPerTarget]}
     , WriteReverseOverlaps{options[OptionNames::WriteReverseOverlaps]}
     , WriteIds{options[OptionNames::WriteIds]}
@@ -324,6 +323,12 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     if (static_cast<bool>(options[OptionNames::AllowSelfHits]) == false &&
         QueryDBPrefix == TargetDBPrefix) {
         SkipSelfHits = true;
+    }
+
+    SkipSymmetricOverlaps = false;
+    if (static_cast<bool>(options[OptionNames::SkipSymmetricOverlaps]) &&
+        QueryDBPrefix == TargetDBPrefix) {
+        SkipSymmetricOverlaps = true;
     }
 }
 

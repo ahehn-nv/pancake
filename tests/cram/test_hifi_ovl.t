@@ -139,10 +139,10 @@ Test writing IDs instead of headers. Other than that, the same as the Perfect ma
   000000002 000000001 -15000 100.00 0 0 15000 15000 1 0 15000 15000 contained
   000000002 000000000 -5000 100.00 0 0 5000 15000 1 0 5000 11811 5
 
-##############################################
-### Test allowing the output of self hits. ###
-##############################################
-Normal run with default options. This should not output self hits.
+####################################################################
+### Test allowing the output of self hits and symmetric overlaps ###
+####################################################################
+Normal run with default options. This should not output self hits and will not skip symmetric overlaps.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile10-single-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0
@@ -164,6 +164,24 @@ Self-hits NOT allowed, but different query and target DBs are used so Aid == Bid
   > ${BIN_DIR}/pancake seqdb reads2 ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile10-single-ovl.fasta
   > ${BIN_DIR}/pancake seeddb reads2.seqdb reads2
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads1 reads2 0 0 0
+  m64030_190330_071939/101844710/ccs m64030_190330_071939/101844710/ccs -11811 100.00 0 0 11811 11811 0 0 11811 11811 contained
+  m64030_190330_071939/101844710/ccs m64030_190330_071939/60686570/ccs -9053 99.74 0 0 9077 11811 0 981 10059 10059 5
+  m64030_190330_071939/60686570/ccs m64030_190330_071939/60686570/ccs -10059 100.00 0 0 10059 10059 0 0 10059 10059 contained
+  m64030_190330_071939/60686570/ccs m64030_190330_071939/101844710/ccs -9053 99.74 0 981 10059 10059 0 0 9077 11811 3
+
+Skip symmetric overlaps.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile10-single-ovl.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --skip-sym reads reads 0 0 0
+  m64030_190330_071939/60686570/ccs m64030_190330_071939/101844710/ccs -9053 99.74 0 981 10059 10059 0 0 9077 11811 3
+
+Even though '--skip-sym' is specified, do not skip symmetric overlaps because different query and target DBs are provided.
+Also, because the DBs are different, the quasi-"self" hits are allowed.
+  $ ${BIN_DIR}/pancake seqdb reads1 ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile10-single-ovl.fasta
+  > ${BIN_DIR}/pancake seeddb reads1.seqdb reads1
+  > ${BIN_DIR}/pancake seqdb reads2 ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile10-single-ovl.fasta
+  > ${BIN_DIR}/pancake seeddb reads2.seqdb reads2
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 --skip-sym reads1 reads2 0 0 0
   m64030_190330_071939/101844710/ccs m64030_190330_071939/101844710/ccs -11811 100.00 0 0 11811 11811 0 0 11811 11811 contained
   m64030_190330_071939/101844710/ccs m64030_190330_071939/60686570/ccs -9053 99.74 0 0 9077 11811 0 981 10059 10059 5
   m64030_190330_071939/60686570/ccs m64030_190330_071939/60686570/ccs -10059 100.00 0 0 10059 10059 0 0 10059 10059 contained
