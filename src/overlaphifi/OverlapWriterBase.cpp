@@ -166,6 +166,8 @@ void OverlapWriterBase::PrintOverlapAsPAF(FILE* fpOut, const OverlapPtr& ovl,
                 tEnd, ovl->ASpan(), ovl->BSpan(), mapq);
     }
 
+    fprintf(fpOut, "\ttp:A:%c", (ovl->IsSecondary ? 'S' : 'P'));
+
     fprintf(fpOut, "\tNM:i:%d\tIT:f:%.4lf\tSC:i:%d", ovl->EditDistance, 100.0 * identity,
             static_cast<int32_t>(ovl->Score));
     fprintf(fpOut, "\tAT:Z:%s\tBT:Z:%s", AtypeStr.c_str(), BtypeStr.c_str());
