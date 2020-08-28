@@ -158,6 +158,13 @@ R"({
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::SkipSymmetricOverlaps};
 
+const CLI_v2::Option AllowSelfHits{
+R"({
+    "names" : ["allow-self-hits"],
+    "description" : "If both the query and the target DBs are the same and Aid == Bid then this is a self-hit. This option enables the output of such overlaps.",
+    "type" : "bool"
+})", false};
+
 const CLI_v2::Option OneHitPerTarget{
 R"({
     "names" : ["one-hit-per-target"],
@@ -312,6 +319,12 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
         throw std::runtime_error("Unknown output format: '" +
                                  std::string(options[OptionNames::OutFormat]) + "'.");
     }
+
+    SkipSelfHits = false;
+    if (static_cast<bool>(options[OptionNames::AllowSelfHits]) == false &&
+        QueryDBPrefix == TargetDBPrefix) {
+        SkipSelfHits = true;
+    }
 }
 
 PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
@@ -339,6 +352,7 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::NoIndelsInIdentity,
         OptionNames::MinMappedLength,
         OptionNames::SkipSymmetricOverlaps,
+        OptionNames::AllowSelfHits,
         OptionNames::OneHitPerTarget,
         OptionNames::WriteReverseOverlaps,
         OptionNames::WriteIds,

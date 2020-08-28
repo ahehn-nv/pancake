@@ -77,8 +77,8 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 
     TicToc ttChain;
     auto overlaps = FormDiagonalAnchors_(hits, querySeq, index.GetCache(), settings_.ChainBandwidth,
-                                         settings_.MinNumSeeds, settings_.MinChainSpan, true,
-                                         settings_.SkipSymmetricOverlaps);
+                                         settings_.MinNumSeeds, settings_.MinChainSpan,
+                                         settings_.SkipSelfHits, settings_.SkipSymmetricOverlaps);
     ttChain.Stop();
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Formed diagonal anchors: " << overlaps.size();
@@ -184,6 +184,9 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
     const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t chainBandwidth,
     int32_t minNumSeeds, int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps)
 {
+#ifdef PANCAKE_DEBUG
+    std::cerr << "[Function: " << __FUNCTION__ << "]\n";
+#endif
 
     if (sortedHits.empty()) {
         return {};
@@ -213,10 +216,12 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
             (static_cast<uint64_t>(sortedHits[i].queryPos));
 
 #ifdef PANCAKE_DEBUG
-        PBLOG_INFO << "[hit " << i << "] tid = " << currHit.targetId
-                   << ", trev = " << currHit.targetRev << ", tpos = " << currHit.targetPos
-                   << ", qpos = " << currHit.queryPos << ", flag = " << currHit.flags
-                   << "; minPosId = " << minPosId << ", maxPosId = " << maxPosId;
+        std::cerr << "[hit " << i << "] tid = " << currHit.targetId
+                  << ", trev = " << currHit.targetRev << ", tpos = " << currHit.targetPos
+                  << ", qpos = " << currHit.queryPos << ", flag = " << currHit.flags
+                  << ", diag = " << currDiag << ", beginDiag = " << beginDiag
+                  << ", diagDiff = " << diagDiff << "; minPosId = " << minPosId
+                  << ", maxPosId = " << maxPosId << "\n";
 #endif
 
         if (currHit.targetId != prevHit.targetId || currHit.targetRev != prevHit.targetRev ||
@@ -227,13 +232,12 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
             beginDiag = currDiag;
 
 #ifdef PANCAKE_DEBUG
-            PBLOG_INFO << "ovl->NumSeeds = " << ovl->NumSeeds << " (" << minNumSeeds
-                       << "), minChainSpan = " << minChainSpan
-                       << ", ovl->ASpan() = " << ovl->ASpan() << ", ovl->BSpan() = " << ovl->BSpan()
-                       << ", skipSelfHits = " << skipSelfHits << ", ovl->Aid = " << ovl->Aid
-                       << ", ovl->Bid = " << ovl->Bid
-                       << ", skipSymmetricOverlaps = " << skipSymmetricOverlaps;
-            PBLOG_INFO << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
+            std::cerr << "ovl->NumSeeds = " << ovl->NumSeeds << " (" << minNumSeeds
+                      << "), minChainSpan = " << minChainSpan << ", ovl->ASpan() = " << ovl->ASpan()
+                      << ", ovl->BSpan() = " << ovl->BSpan() << ", skipSelfHits = " << skipSelfHits
+                      << ", ovl->Aid = " << ovl->Aid << ", ovl->Bid = " << ovl->Bid
+                      << ", skipSymmetricOverlaps = " << skipSymmetricOverlaps << "\n";
+            std::cerr << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false) << "\n";
 #endif
 
             // Add a new overlap.
@@ -264,11 +268,11 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
             MakeOverlap_(sortedHits, querySeq, indexCache, beginId, numHits, minPosId, maxPosId);
 
 #ifdef PANCAKE_DEBUG
-        PBLOG_INFO << "ovl->NumSeeds = " << ovl->NumSeeds << " (" << minNumSeeds
-                   << "), minChainSpan = " << minChainSpan << ", ovl->ASpan() = " << ovl->ASpan()
-                   << ", ovl->BSpan() = " << ovl->BSpan() << ", skipSelfHits = " << skipSelfHits
-                   << ", ovl->Aid = " << ovl->Aid << ", ovl->Bid = " << ovl->Bid
-                   << ", skipSymmetricOverlaps = " << skipSymmetricOverlaps;
+        std::cerr << "ovl->NumSeeds = " << ovl->NumSeeds << " (" << minNumSeeds
+                  << "), minChainSpan = " << minChainSpan << ", ovl->ASpan() = " << ovl->ASpan()
+                  << ", ovl->BSpan() = " << ovl->BSpan() << ", skipSelfHits = " << skipSelfHits
+                  << ", ovl->Aid = " << ovl->Aid << ", ovl->Bid = " << ovl->Bid
+                  << ", skipSymmetricOverlaps = " << skipSymmetricOverlaps << "\n";
 #endif
 
         // Add a new overlap.
@@ -499,7 +503,7 @@ OverlapPtr Mapper::AlignOverlap_(
 
 #ifdef PANCAKE_DEBUG_ALN
         PBLOG_INFO << "dMax = " << dMax << ", bandwidth = " << bandwidth;
-        PBLOG_INFO << "Right: diffs = " << sesResultRight.diffs;
+        PBLOG_INFO << "Right: diffs = " << sesResultRight.numDiffs;
         PBLOG_INFO << "After right: "
                    << OverlapWriterBase::PrintOverlapAsM4(ret, "", "", true, false);
 #endif
