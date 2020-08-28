@@ -6,6 +6,7 @@
 #include <pacbio/alignment/SesDistanceBanded.h>
 #include <pacbio/overlaphifi/Mapper.h>
 #include <pacbio/overlaphifi/OverlapWriterBase.h>
+#include <pacbio/overlaphifi/Secondary.h>
 #include <pacbio/seqdb/Util.h>
 #include <pacbio/util/RunLengthEncoding.h>
 #include <pacbio/util/TicToc.h>
@@ -104,7 +105,38 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
                               settings_.UseTraceback, settings_.NoSNPsInIdentity,
                               settings_.NoIndelsInIdentity, settings_.MaskHomopolymers,
                               settings_.MaskSimpleRepeats, sesScratch_);
-    // If required, generage flipped overlaps (instead of aligning), and normalize.
+    ttAlign.Stop();
+
+    TicToc ttMarkSecondary;
+    if (settings_.MarkSecondary) {
+        // Sort all overlaps in descending order of the score.
+        std::sort(overlaps.begin(), overlaps.end(), [](const auto& a, const auto& b) {
+            return std::abs(a->Score) > std::abs(b->Score);
+        });
+
+        // Flag the secondary and supplementary overlaps.
+        std::vector<OverlapPriority> overlapPriorities =
+            FlagSecondaryAndSupplementary(overlaps, settings_.SecondaryAllowedOverlapFraction,
+                                          settings_.SecondaryMinScoreFraction);
+
+        // Generate a new, filtered list of overlaps. The non-primary, non-secondary and non-supplementary
+        // alignments are filtered out.
+        std::vector<OverlapPtr> newOverlaps;
+        for (size_t i = 0; i < overlaps.size(); ++i) {
+            if (overlapPriorities[i].priority > 1) {
+                continue;
+            }
+            auto& ovl = overlaps[i];
+            ovl->IsSupplementary = overlapPriorities[i].isSupplementary;
+            ovl->IsSecondary = (overlapPriorities[i].priority > 0);
+            newOverlaps.emplace_back(std::move(overlaps[i]));
+        }
+        std::swap(overlaps, newOverlaps);
+    }
+    ttMarkSecondary.Stop();
+
+    // Generating flipped overlaps.
+    TicToc ttFlip;
     if (generateFlippedOverlap) {
         std::vector<OverlapPtr> flippedOverlaps = GenerateFlippedOverlaps_(
             targetSeqs, querySeq, reverseQuerySeq, overlaps, settings_.NoSNPsInIdentity,
@@ -113,7 +145,7 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
             overlaps.emplace_back(std::move(flippedOverlaps[i]));
         }
     }
-    ttAlign.Stop();
+    ttFlip.Stop();
 
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Overlaps after alignment: " << overlaps.size();
