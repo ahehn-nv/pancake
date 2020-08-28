@@ -426,8 +426,8 @@ PAF output format - with traceback.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
   > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt paf
-  read1-fwd	180	0	180	-	read4-rev	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:152=1X27=	VQ:Z:T	VT:Z:G
-  read4-rev	180	0	180	-	read1-fwd	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:27=1X152=	VQ:Z:G	VT:Z:T
+  read1-fwd	180	0	180	-	read4-rev	180	0	180	180	180	60	tp:A:P	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:152=1X27=	VQ:Z:T	VT:Z:G
+  read4-rev	180	0	180	-	read1-fwd	180	0	180	180	180	60	tp:A:P	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:27=1X152=	VQ:Z:G	VT:Z:T
 
 
 
@@ -459,8 +459,8 @@ PAF output format - no traceback.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
   > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt paf
-  read1-fwd	180	0	180	-	read4-rev	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	VQ:Z:*	VT:Z:*
-  read4-rev	180	0	180	-	read1-fwd	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	VQ:Z:*	VT:Z:*
+  read1-fwd	180	0	180	-	read4-rev	180	0	180	180	180	60	tp:A:P	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	VQ:Z:*	VT:Z:*
+  read4-rev	180	0	180	-	read1-fwd	180	0	180	180	180	60	tp:A:P	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	VQ:Z:*	VT:Z:*
 
 
 M4 output format - with traceback. Writing IDs.
@@ -491,15 +491,15 @@ PAF output format - with traceback. Writing IDs.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
   > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --write-ids --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt paf
-  000000000	180	0	180	-	000000001	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:152=1X27=	VQ:Z:T	VT:Z:G
-  000000001	180	0	180	-	000000000	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:27=1X152=	VQ:Z:G	VT:Z:T
+  000000000	180	0	180	-	000000001	180	0	180	180	180	60	tp:A:P	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:152=1X27=	VQ:Z:T	VT:Z:G
+  000000001	180	0	180	-	000000000	180	0	180	180	180	60	tp:A:P	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:27=1X152=	VQ:Z:G	VT:Z:T
 
 PAF output format, generating symetric overlaps - with traceback. Writing IDs.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile12-simple_errors_2-reads.fasta
   > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --write-ids --traceback --write-cigar --min-map-len 0 --min-anchor-span 20 --aln-bw 0.10 --aln-diff-rate 0.10 --out-fmt paf --skip-sym --write-rev
-  000000001	180	0	180	-	000000000	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:27=1X152=	VQ:Z:G	VT:Z:T
-  000000000	180	0	180	-	000000001	180	0	180	180	180	60	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:152=1X27=	VQ:Z:T	VT:Z:G
+  000000001	180	0	180	-	000000000	180	0	180	180	180	60	tp:A:P	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:27=1X152=	VQ:Z:G	VT:Z:T
+  000000000	180	0	180	-	000000001	180	0	180	180	180	60	tp:A:P	NM:i:1	IT:f:99.4444	SC:i:-179	AT:Z:c	BT:Z:c	cg:Z:152=1X27=	VQ:Z:T	VT:Z:G
 
 ##########################################
 ### Testing masking of variant strings ###
@@ -557,3 +557,27 @@ Test identity recomputation after masking.
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --skip-sym --write-rev --out-fmt ipa --min-idt 99.0
   000258100 000000002 -9511 100.0000 0 0 9514 10599 1 0 9512 13810 5 5 u 662=1D4902=1I3388=1I256=1I303= tga a *
   000000002 000258100 -9511 100.0000 0 0 9512 13810 1 0 9514 10599 5 5 u 301=1D257=1D3385=1D4901=1I667= a tga *
+
+
+########################################################
+### Test mapping of reads to reference with flagging ###
+### of secondary alignments.                         ###
+########################################################
+The read maps to ctg.000000F fully, and only partially to ctg.000000F. The partial mapping is too short and
+is not flagged as secondary.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/mapping/test-1-no-secondary-aln.reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake seqdb ref ${PROJECT_DIR}/test-data/mapping/test-1-no-secondary-aln.ref.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 ref.seqdb ref
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 ref reads 0 0 0 --out-fmt paf --mark-secondary
+  hap1/186/0_12695	12695	0	12695	+	ctg.000000F:114000-128000	14001	602	13301	12695	12699	60	tp:A:P	NM:i:25	IT:f:99.8031	SC:i:-12670	AT:Z:c	BT:Z:C	VQ:Z:*	VT:Z:*
+
+The read maps to ctg.000000F fully, and only partially to ctg.000000F. The partial mapping is too short and
+is not flagged as secondary.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/mapping/test-2-secondary-aln.reads.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 reads.seqdb reads
+  > ${BIN_DIR}/pancake seqdb ref ${PROJECT_DIR}/test-data/mapping/test-2-secondary-aln.ref.fasta
+  > ${BIN_DIR}/pancake seeddb -k 15 -w 10 -s 0 ref.seqdb ref
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 ref reads 0 0 0 --out-fmt paf --mark-secondary
+  hap1/1/0_11225	11225	0	11225	-	ctg.000000F:124200-136500	12301	697	11922	11225	11225	60	tp:A:P	NM:i:18	IT:f:99.8396	SC:i:-11207	AT:Z:c	BT:Z:C	VQ:Z:*	VT:Z:*
+  hap1/1/0_11225	11225	0	11225	+	ctg.000001F:66000-77700	11701	213	11435	11225	11222	60	tp:A:S	NM:i:64	IT:f:99.4298	SC:i:-11158	AT:Z:c	BT:Z:C	VQ:Z:*	VT:Z:*
