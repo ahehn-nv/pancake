@@ -16,7 +16,8 @@ namespace PacBio {
 namespace Pancake {
 
 using IntervalTreeInt32 =
-    IntervalTree<int32_t, int32_t>;  // First: interval scalar type, Second: value type.
+    interval_tree::IntervalTree<int32_t,
+                                int32_t>;  // First: interval scalar type, Second: value type.
 using IntervalVectorInt32 = IntervalTreeInt32::interval_vector;
 using IntervalInt32 = IntervalTreeInt32::interval;
 
