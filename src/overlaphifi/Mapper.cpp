@@ -70,7 +70,7 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 
     TicToc ttSortHits;
     std::sort(hits.begin(), hits.end(), [](const auto& a, const auto& b) {
-        return PackSeedHitWithDiagonalTo128_(a) < PackSeedHitWithDiagonalTo128_(b);
+        return PackSeedHitWithDiagonalToTuple(a) < PackSeedHitWithDiagonalToTuple(b);
     });
     ttSortHits.Stop();
 
