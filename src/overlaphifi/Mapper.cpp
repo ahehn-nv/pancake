@@ -688,15 +688,9 @@ void Mapper::NormalizeAndExtractVariantsInPlace_(
     // query as either fwd or reverse, but finally we actually take query as FWD in the output.
     // Normalization needs to happen in this context, so that all left-aligned indels line up.
     if (ovl->Brev) {
-        auto tempCigar = ovl->Cigar;
-        std::reverse(tempCigar.begin(), tempCigar.end());
-        auto qseq =
-            FetchTargetSubsequence_(Aseq, Alen, ovl->AstartFwd(), ovl->AendFwd(), ovl->Brev);
-
-        tempCigar = NormalizeCigar(qseq.c_str(), ovl->ASpan(), Bseq + ovl->BstartFwd(),
-                                   ovl->BSpan(), tempCigar);
-        std::reverse(tempCigar.begin(), tempCigar.end());
-        std::swap(cigar, tempCigar);
+        auto tseq =
+            FetchTargetSubsequence_(Bseq, Blen, ovl->BstartFwd(), ovl->BendFwd(), ovl->Brev);
+        cigar = NormalizeCigar(querySub, querySubLen, tseq.c_str(), targetSubLen, cigar);
 
     } else {
         cigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, cigar);
