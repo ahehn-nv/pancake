@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+#define USE_INTERVAL_TREE_NAMESPACE
+
 #ifdef USE_INTERVAL_TREE_NAMESPACE
 namespace interval_tree {
 #endif
