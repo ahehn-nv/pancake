@@ -246,6 +246,28 @@ R"({
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::MaskSimpleRepeats};
 
+const CLI_v2::Option MarkSecondary{
+R"({
+    "names" : ["mark-secondary"],
+    "description" : "Mask homopolymer errors when traceback is generated. This will impact identity calculation.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::MarkSecondary};
+
+
+const CLI_v2::Option SecondaryAllowedOverlapFraction{
+R"({
+    "names" : ["secondary-min-ovl-frac"],
+    "description" : "Minimum amount overlap with primary alignment to call an alignment secondary.",
+    "type" : "double"
+})", OverlapHifiSettings::Defaults::SecondaryAllowedOverlapFraction};
+
+const CLI_v2::Option SecondaryMinScoreFraction{
+R"({
+    "names" : ["secondary-min-score-frac"],
+    "description" : "Minimum secondary-to-primary score ratio.",
+    "type" : "double"
+})", OverlapHifiSettings::Defaults::SecondaryMinScoreFraction};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -300,6 +322,9 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , UseTraceback{options[OptionNames::UseTraceback]}
     , MaskHomopolymers{options[OptionNames::MaskHomopolymers]}
     , MaskSimpleRepeats{options[OptionNames::MaskSimpleRepeats]}
+    , MarkSecondary{options[OptionNames::MarkSecondary]}
+    , SecondaryAllowedOverlapFraction{options[OptionNames::SecondaryAllowedOverlapFraction]}
+    , SecondaryMinScoreFraction{options[OptionNames::SecondaryMinScoreFraction]}
 {
     if ((NoSNPsInIdentity || NoIndelsInIdentity || MaskHomopolymers || MaskSimpleRepeats) &&
         (UseTraceback == false)) {
@@ -370,6 +395,9 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::UseTraceback,
         OptionNames::MaskHomopolymers,
         OptionNames::MaskSimpleRepeats,
+        OptionNames::MarkSecondary,
+        OptionNames::SecondaryAllowedOverlapFraction,
+        OptionNames::SecondaryMinScoreFraction,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

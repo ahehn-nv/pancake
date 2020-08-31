@@ -35,6 +35,7 @@ pancake_cpp_sources = files([
     'dbfilter/DBFilterWorkflow.cpp',
     'overlaphifi/Mapper.cpp',
     'overlaphifi/Overlap.cpp',
+    'overlaphifi/Secondary.cpp',
     'overlaphifi/OverlapHifiSettings.cpp',
     'overlaphifi/OverlapHifiWorkflow.cpp',
     'overlaphifi/OverlapWriterBase.cpp',

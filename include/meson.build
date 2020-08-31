@@ -15,6 +15,13 @@ if not meson.is_subproject()
       ]),
       subdir : 'lib/flat_hash_map')
 
+  # lib/intervaltree
+  install_headers(
+    files([
+      'lib/intervaltree/IntervalTree.h',
+      ]),
+      subdir : 'lib/intervaltree')
+
   # lib/kxsort
   install_headers(
     files([
@@ -79,6 +86,7 @@ if not meson.is_subproject()
     files([
       'pacbio/overlaphifi/Mapper.h',
       'pacbio/overlaphifi/Overlap.h',
+      'pacbio/overlaphifi/Secondary.h',
       'pacbio/overlaphifi/OverlapHifiSettings.h',
       'pacbio/overlaphifi/OverlapWriterBase.h',
       'pacbio/overlaphifi/OverlapWriterFactory.h',

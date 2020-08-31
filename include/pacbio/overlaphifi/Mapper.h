@@ -118,6 +118,7 @@ private:
     ///         A thin wrapper around AlignOverlap_, simply calls it for each overlap.
     /// \param targetSeqs A cached sequence reader, to allow random access to sequence data.
     /// \param querySeq The query sequence.
+    /// \param reverseQuerySeq Reverse complemented query sequence.
     /// \param overlaps A vector of all overlaps to align.
     /// \param alignBandwidth The maximum allowed bandwidth for alignment. Used for the banded
     ///                       O(nd) algorithm
@@ -125,15 +126,40 @@ private:
     ///                     This is a parameter of the O(nd) algorithm.
     /// \param useTraceback Runs alignment with traceback, for more accurate
     ///                     identity computation (in terms of mismatches) and CIGAR construction.
+    /// \param noSNPs Ignore SNPs when computing the alignment identity.
+    /// \param noIndels Ignore indels when computing the alignment identity.
+    /// \param maskHomopolymers Ignore homopolymer errors when computing the alignment identity.
+    ///                             Also, converts them to lowercase in the variant strings.
+    /// \param maskSimpleRepeats Ignores indel errors in simple repeats, such as di-nuc.
+    /// \param sesScratch The memory scratch space for alignment. Providing a pointer to default
+    ///                     constructed object is enough.
     /// \returns A new vector of overlaps with alignment information and modified coordinates.
     ///
     static std::vector<OverlapPtr> AlignOverlaps_(
         const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
-        const PacBio::Pancake::FastaSequenceCached& querySeq,
+        const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
         const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff,
         bool useTraceback, bool noSNPs, bool noIndels, bool maskHomopolymers,
-        bool maskSimpleRepeats, bool generateFlippedOverlap,
+        bool maskSimpleRepeats,
         std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
+
+    /// \brief Generates a set of flipped overlaps from a given set of overlaps. A flipped overlap
+    ///         is when the A-read and B-read change places, but the A-read is still always kept in
+    ///         the forward orientation.
+    /// \param targetSeqs A cached sequence reader, to allow random access to sequence data.
+    /// \param querySeq The query sequence.
+    /// \param reverseQuerySeq Reverse complemented query sequence.
+    /// \param overlaps A vector of all overlaps to align.
+    /// \param noSNPs Ignore SNPs when computing the alignment identity.
+    /// \param noIndels Ignore indels when computing the alignment identity.
+    /// \param maskHomopolymers Ignore homopolymer errors when computing the alignment identity.
+    ///                             Also, converts them to lowercase in the variant strings.
+    /// \param maskSimpleRepeats Ignores indel errors in simple repeats, such as di-nuc.
+    static std::vector<OverlapPtr> GenerateFlippedOverlaps_(
+        const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
+        const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
+        const std::vector<OverlapPtr>& overlaps, bool noSNPs, bool noIndels, bool maskHomopolymers,
+        bool maskSimpleRepeats);
 
     /// \brief Performs alignment and alignment extension of a single overlap. Uses the
     ///        banded O(nd) algorithm to align the overlap. The edit distance is
@@ -161,12 +187,6 @@ private:
         OverlapPtr& ovl, const PacBio::Pancake::FastaSequenceCached& targetSeq,
         const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
         bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats);
-
-    static OverlapPtr GenerateFlippedOverlap_(const PacBio::Pancake::FastaSequenceCached& targetSeq,
-                                              const PacBio::Pancake::FastaSequenceCached& querySeq,
-                                              const std::string reverseQuerySeq,
-                                              const OverlapPtr& ovl, bool noSNPs, bool noIndels,
-                                              bool maskHomopolymers, bool maskSimpleRepeats);
 
     /// \brief Filters overlaps based on the number of seeds, identity, mapped span or length.
     ///
