@@ -263,7 +263,7 @@ R"({
 
 const CLI_v2::Option SecondaryMinScoreFraction{
 R"({
-    "names" : ["secondary-min"],
+    "names" : ["secondary-min-score-frac"],
     "description" : "Minimum secondary-to-primary score ratio.",
     "type" : "double"
 })", OverlapHifiSettings::Defaults::SecondaryMinScoreFraction};
