@@ -548,23 +548,22 @@ OP      END     A   B       Valid   Description
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads1.weird_masking_issue.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --skip-sym --write-rev --out-fmt ipa
-  000000571 000000551 -8276 99.9275 0 0 8287 10491 1 0 8284 8714 5 5 u 383=1I1238=1I2=1I928=1I76=1D58=1X5=1D64=1I779=1I680=1D165=1D544=1I443=1I730=1I590=1D368=1D121=1I463=1D639= ttTcTGgcctG AcCagcCa *
-  000000551 000000571 -8276 99.9275 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D119=1I370=1I589=1D730=1D442=1D545=1I165=1I680=1D780=1D61=1I8=1X57=1I75=1D930=1D1=1D1237=1D385= AcCagcCa ttTcTGgcctG *
+  000000571 000000551 -8276 99.9275 0 0 8287 10491 1 0 8284 8714 5 5 u 385=1I1237=1I1=1I930=1I75=1D57=1X8=1D61=1I780=1I680=1D165=1D545=1I442=1I730=1I589=1D370=1D119=1I463=1D639= ttTcTGgcctG AcCagcCa *
+  000000551 000000571 -8276 99.9275 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D121=1I368=1I590=1D730=1D443=1D544=1I165=1I680=1D779=1D64=1I5=1X58=1I76=1D928=1D2=1D1238=1D383= AcCagcCa ttTcTGgcctG *
 
 Exactly the same test as one above, but the HP SNP is masked so the identity is slightly higher.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads1.weird_masking_issue.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --mask-hp-snps --skip-sym --write-rev --out-fmt ipa
-  000000571 000000551 -8276 99.9396 0 0 8287 10491 1 0 8284 8714 5 5 u 383=1I1238=1I2=1I928=1I76=1D58=1X5=1D64=1I779=1I680=1D165=1D544=1I443=1I730=1I590=1D368=1D121=1I463=1D639= ttTctGgcctG AcCagcca *
-  000000551 000000571 -8276 99.9396 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D119=1I370=1I589=1D730=1D442=1D545=1I165=1I680=1D780=1D61=1I8=1X57=1I75=1D930=1D1=1D1237=1D385= AcCagcca ttTctGgcctG *
+  000000571 000000551 -8276 99.9396 0 0 8287 10491 1 0 8284 8714 5 5 u 385=1I1237=1I1=1I930=1I75=1D57=1X8=1D61=1I780=1I680=1D165=1D545=1I442=1I730=1I589=1D370=1D119=1I463=1D639= ttTctGgcctG AcCagcca *
+  000000551 000000571 -8276 99.9396 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D121=1I368=1I590=1D730=1D443=1D544=1I165=1I680=1D779=1D64=1I5=1X58=1I76=1D928=1D2=1D1238=1D383= AcCagcca ttTctGgcctG *
 
 Test identity recomputation after masking.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads3.masking_and_identity.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --skip-sym --write-rev --out-fmt ipa --min-idt 99.0
-  000258100 000000002 -9511 100.0000 0 0 9514 10599 1 0 9512 13810 5 5 u 662=1D4902=1I3388=1I256=1I303= tga a *
-  000000002 000258100 -9511 100.0000 0 0 9512 13810 1 0 9514 10599 5 5 u 301=1D257=1D3385=1D4901=1I667= a tga *
-
+  000258100 000000002 -9511 100.0000 0 0 9514 10599 1 0 9512 13810 5 5 u 667=1D4901=1I3385=1I257=1I301= tga a *
+  000000002 000258100 -9511 100.0000 0 0 9512 13810 1 0 9514 10599 5 5 u 303=1D256=1D3388=1D4902=1I662= a tga *
 
 ########################################################
 ### Test mapping of reads to reference with flagging ###
