@@ -41,6 +41,13 @@ public:
     int32_t queryPos : 32;
 };
 
+inline std::tuple<int32_t, int32_t, int32_t, int32_t> PackSeedHitWithDiagonalToTuple(
+    const SeedHit& sh)
+{
+    return std::make_tuple(((sh.targetId << 1) | sh.targetRev), (sh.targetPos - sh.queryPos),
+                           sh.targetPos, sh.queryPos);
+}
+
 }  // namespace Pancake
 }  // namespace PacBio
 
