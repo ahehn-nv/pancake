@@ -24,6 +24,11 @@ struct OverlapPriority
 {
     int32_t priority = 0;
     bool isSupplementary = false;
+
+    bool operator==(const OverlapPriority& b) const
+    {
+        return priority == b.priority && isSupplementary == b.isSupplementary;
+    }
 };
 
 std::vector<OverlapPriority> FlagSecondaryAndSupplementary(std::vector<OverlapPtr>& overlaps,
