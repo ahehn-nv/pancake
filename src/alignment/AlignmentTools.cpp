@@ -314,8 +314,9 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
 
 void ExtractVariantString(const char* query, int64_t queryLen, const char* target,
                           int64_t targetLen, const PacBio::BAM::Cigar& cigar, bool maskHomopolymers,
-                          bool maskSimpleRepeats, std::string& retQueryVariants,
-                          std::string& retTargetVariants, Alignment::DiffCounts& retDiffsPerBase,
+                          bool maskSimpleRepeats, bool maskHomopolymerSNPs,
+                          std::string& retQueryVariants, std::string& retTargetVariants,
+                          Alignment::DiffCounts& retDiffsPerBase,
                           Alignment::DiffCounts& retDiffsPerEvent)
 {
     int64_t queryPos = 0;
@@ -345,6 +346,7 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
 
     for (int32_t i = 0; i < numCigarOps; ++i) {
         const auto& op = cigar[i];
+        const int32_t opLen = op.Length();
 
         if (queryPos > queryLen || targetPos > targetLen) {
             std::ostringstream oss;
@@ -390,17 +392,62 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
                 throw std::runtime_error(oss.str());
             }
 
-            // Store the target allele first, then the query allele.
-            for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
-                varStrTarget[varStrTargetPos + pos] = target[targetPos + pos];
-                varStrQuery[varStrQueryPos + pos] = query[queryPos + pos];
+            bool isMasked = false;
+            if (maskHomopolymerSNPs) {
+                auto IsSequenceHP = [](const char* seq, const int32_t len) {
+                    int32_t baseSwitches = 0;
+                    char prevBase = seq[0];
+                    for (int64_t pos = 0; pos < len; ++pos) {
+                        if (seq[pos] != prevBase) {
+                            ++baseSwitches;
+                            prevBase = seq[pos];
+                            break;
+                        }
+                    }
+                    return baseSwitches == 0;
+                };
+                bool isQueryHP = IsSequenceHP(query + queryPos, op.Length());
+                bool isTargetHP = IsSequenceHP(target + targetPos, op.Length());
+
+                // If the query variant sequence is a homopolymer, then check if it matches
+                // one base before or after it:
+                //  Q: TTTTT
+                //     |||X|
+                //  T: TTTGT
+                if (isQueryHP && ((queryPos > 0 && query[queryPos - 1] == query[queryPos]) ||
+                                  ((queryPos + opLen) < queryLen &&
+                                   query[queryPos + opLen - 1] == query[queryPos + opLen]))) {
+                    isMasked = true;
+                }
+                // Same for the target sequence.
+                //  Q: TTTGT
+                //     |||X|
+                //  T: TTTTT
+                if (isTargetHP && ((targetPos > 0 && target[targetPos - 1] == target[targetPos]) ||
+                                   ((targetPos + opLen) < targetLen &&
+                                    target[targetPos + opLen - 1] == target[targetPos + opLen]))) {
+                    isMasked = true;
+                }
             }
+
+            if (isMasked) {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrTarget[varStrTargetPos + pos] = std::tolower(target[targetPos + pos]);
+                    varStrQuery[varStrQueryPos + pos] = std::tolower(query[queryPos + pos]);
+                }
+            } else {
+                for (int64_t pos = 0; pos < static_cast<int64_t>(op.Length()); ++pos) {
+                    varStrTarget[varStrTargetPos + pos] = target[targetPos + pos];
+                    varStrQuery[varStrQueryPos + pos] = query[queryPos + pos];
+                }
+                // Compute diffs.
+                diffsPerBase.numX += op.Length();
+                diffsPerEvent.numX += op.Length();
+            }
+
             varStrQueryPos += op.Length();
             varStrTargetPos += op.Length();
 
-            // Compute diffs.
-            diffsPerBase.numX += op.Length();
-            diffsPerEvent.numX += op.Length();
             // Move down.
             queryPos += op.Length();
             targetPos += op.Length();

@@ -246,6 +246,13 @@ R"({
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::MaskSimpleRepeats};
 
+const CLI_v2::Option MaskHomopolymerSNPs{
+R"({
+    "names" : ["mask-hp-snps"],
+    "description" : "Mask mismatches which occur in the homopolymer sequences. Applied only when traceback is generated. This will impact identity calculation.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::MaskHomopolymerSNPs};
+
 const CLI_v2::Option MarkSecondary{
 R"({
     "names" : ["mark-secondary"],
@@ -322,14 +329,18 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , UseTraceback{options[OptionNames::UseTraceback]}
     , MaskHomopolymers{options[OptionNames::MaskHomopolymers]}
     , MaskSimpleRepeats{options[OptionNames::MaskSimpleRepeats]}
+    , MaskHomopolymerSNPs{options[OptionNames::MaskHomopolymerSNPs]}
     , MarkSecondary{options[OptionNames::MarkSecondary]}
     , SecondaryAllowedOverlapFraction{options[OptionNames::SecondaryAllowedOverlapFraction]}
     , SecondaryMinScoreFraction{options[OptionNames::SecondaryMinScoreFraction]}
 {
-    if ((NoSNPsInIdentity || NoIndelsInIdentity || MaskHomopolymers || MaskSimpleRepeats) &&
+    if ((NoSNPsInIdentity || NoIndelsInIdentity || MaskHomopolymers || MaskSimpleRepeats ||
+         MaskHomopolymerSNPs) &&
         (UseTraceback == false)) {
         throw std::runtime_error(
             "The '--no-snps', '--no-indels', '--mask-hp' and '--mask-rep' can only be used "
+            "The '--no-snps', '--no-indels', '--mask-hp', '--mask-hp-snps' and '--mask-rep' can "
+            "only be used "
             "together with the '--traceback' "
             "option.");
     }
@@ -395,6 +406,7 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::UseTraceback,
         OptionNames::MaskHomopolymers,
         OptionNames::MaskSimpleRepeats,
+        OptionNames::MaskHomopolymerSNPs,
         OptionNames::MarkSecondary,
         OptionNames::SecondaryAllowedOverlapFraction,
         OptionNames::SecondaryMinScoreFraction,

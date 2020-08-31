@@ -335,11 +335,12 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
         std::string resultTargetVariants;
         PacBio::Pancake::Alignment::DiffCounts resultDiffsPerBase;
         PacBio::Pancake::Alignment::DiffCounts resultDiffsPerEvent;
+        const bool maskHomopolymerSNPs = false;
 
         // Run.
         PacBio::Pancake::ExtractVariantString(
             data.query.c_str(), data.query.size(), data.target.c_str(), data.target.size(), cigar,
-            data.maskHomopolymers, data.maskSimpleRepeats, resultQueryVariants,
+            data.maskHomopolymers, data.maskSimpleRepeats, maskHomopolymerSNPs, resultQueryVariants,
             resultTargetVariants, resultDiffsPerBase, resultDiffsPerEvent);
 
         // Evaluate.
