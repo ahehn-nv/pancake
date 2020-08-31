@@ -74,11 +74,10 @@ std::vector<OverlapPriority> FlagSecondaryAndSupplementary(std::vector<OverlapPt
             queryTrees = IntervalTreeInt32(std::move(queryIntervalsCopy));
 
             // Add the new supplementary mapping to the target trees.
-            int32_t encodedTargetId = (aln->Bid << 1) | static_cast<int32_t>(aln->Brev);
-            targetIntervals[encodedTargetId].emplace_back(
+            targetIntervals[aln->Bid].emplace_back(
                 IntervalInt32(aln->BstartFwd(), aln->BendFwd() - 1, i));
-            auto targetIntervalsCopy = targetIntervals[encodedTargetId];
-            targetTrees[encodedTargetId] = IntervalTreeInt32(std::move(targetIntervalsCopy));
+            auto targetIntervalsCopy = targetIntervals[aln->Bid];
+            targetTrees[aln->Bid] = IntervalTreeInt32(std::move(targetIntervalsCopy));
 
         } else if (score >= minSecondaryScore) {
             // This is a secondary mapping.
@@ -130,8 +129,7 @@ void CreateRegionIntervalTrees(const std::vector<OverlapPtr>& overlaps,
         // Accumulate the intervals.
         queryIntervals.emplace_back(IntervalInt32(aln->AstartFwd(), aln->AendFwd() - 1, i));
 
-        int32_t encodedTargetId = (aln->Bid << 1) | static_cast<int32_t>(aln->Brev);
-        targetIntervals[encodedTargetId].emplace_back(
+        targetIntervals[aln->Bid].emplace_back(
             IntervalInt32(aln->BstartFwd(), aln->BendFwd() - 1, i));
     }
 
@@ -237,7 +235,6 @@ bool CheckRegionSupplementary(const std::vector<OverlapPtr>& overlaps, const Ove
     if (isSupplementary == false) {
         return false;
     }
-
     return true;
 }
 
