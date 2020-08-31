@@ -149,92 +149,77 @@ bool CheckRegionSupplementary(const std::vector<OverlapPtr>& overlaps, const Ove
                               std::unordered_map<int32_t, IntervalTreeInt32>& targetTrees,
                               double allowedOverlapFraction)
 {
-    bool isSupplementary = true;
-
     /////////////////////////////////////////////////////
     /// Check the query coordinate space for overlaps ///
     /////////////////////////////////////////////////////
     // Find if the current alignment has any overlaps in the query coordinate space.
     auto foundQueryIntervals =
         queryTrees.findOverlapping(currentOvl->AstartFwd(), currentOvl->AendFwd() - 1);
-    if (allowedOverlapFraction > 0.0) {  // For speed.
-        for (const auto& interval : foundQueryIntervals) {
-            auto& otherAln = overlaps[interval.value];
-            // Amount of overlap in the query coordinates, as a fraction.
-            int32_t ovlQuery = CalcIntervalOverlap(currentOvl->AstartFwd(), currentOvl->AendFwd(),
-                                                   otherAln->AstartFwd(), otherAln->AendFwd());
-            double ovlQueryFrac =
-                static_cast<double>(ovlQuery) /
-                static_cast<double>(std::min(currentOvl->ASpan(), otherAln->ASpan()));
-            // Amount of overlap in the target coordinates, as a fraction.
-            int32_t ovlTarget = CalcIntervalOverlap(currentOvl->BstartFwd(), currentOvl->BendFwd(),
-                                                    otherAln->BstartFwd(), otherAln->BendFwd());
-            double ovlTargetFrac =
-                static_cast<double>(ovlTarget) /
-                static_cast<double>(std::min(currentOvl->BSpan(), otherAln->BSpan()));
-            // The two mappings shouldn't overlap by more than the allowed fraction in both the query and target coordinates.
-            if (ovlQueryFrac <= allowedOverlapFraction && ovlTargetFrac <= allowedOverlapFraction) {
-                continue;
-            }
-            // If it's above the allowed limit, this is not a valid supplementary.
-            isSupplementary = false;
-            break;
-        }
-    } else {
-        if (foundQueryIntervals.size()) {
-            isSupplementary = false;
-        }
-    }
-    // If we found a too large overlap fraction between the current region and another one,
-    // this is not a supplementary mapping.
-    if (isSupplementary == false) {
+    if (allowedOverlapFraction <= 0.0 && foundQueryIntervals.size()) {
+        // For speed, if no overlap between mappings is allowed but some are found, return.
         return false;
+    }
+    for (const auto& interval : foundQueryIntervals) {
+        auto& otherAln = overlaps[interval.value];
+
+        // Amount of overlap in the query coordinates, as a fraction.
+        int32_t ovlQuery = CalcIntervalOverlap(currentOvl->AstartFwd(), currentOvl->AendFwd(),
+                                               otherAln->AstartFwd(), otherAln->AendFwd());
+        double ovlQueryFrac = static_cast<double>(ovlQuery) /
+                              static_cast<double>(std::min(currentOvl->ASpan(), otherAln->ASpan()));
+
+        // Amount of overlap in the target coordinates, as a fraction.
+        int32_t ovlTarget = CalcIntervalOverlap(currentOvl->BstartFwd(), currentOvl->BendFwd(),
+                                                otherAln->BstartFwd(), otherAln->BendFwd());
+        double ovlTargetFrac =
+            static_cast<double>(ovlTarget) /
+            static_cast<double>(std::min(currentOvl->BSpan(), otherAln->BSpan()));
+
+        // The two mappings shouldn't overlap by more than the allowed fraction in either the
+        // query and target coordinates if one of them is supplementary.
+        if (ovlQueryFrac > allowedOverlapFraction || ovlTargetFrac > allowedOverlapFraction) {
+            return false;
+        }
     }
 
     //////////////////////////////////////////////////////
     /// Check the target coordinate space for overlaps ///
     //////////////////////////////////////////////////////
     auto itTrees = targetTrees.find(currentOvl->Bid);
-    if (itTrees != targetTrees.end()) {
-        auto foundTargetIntervals =
-            itTrees->second.findOverlapping(currentOvl->BstartFwd(), currentOvl->BendFwd() - 1);
-        if (allowedOverlapFraction > 0.0) {  // For speed.
-            for (const auto& interval : foundTargetIntervals) {
-                auto& otherAln = overlaps[interval.value];
-                // Amount of overlap in the query coordinates, as a fraction.
-                int32_t ovlQuery =
-                    CalcIntervalOverlap(currentOvl->AstartFwd(), currentOvl->AendFwd(),
-                                        otherAln->AstartFwd(), otherAln->AendFwd());
-                double ovlQueryFrac =
-                    static_cast<double>(ovlQuery) /
-                    static_cast<double>(std::min(currentOvl->ASpan(), otherAln->ASpan()));
-                // Amount of overlap in the target coordinates, as a fraction.
-                int32_t ovlTarget =
-                    CalcIntervalOverlap(currentOvl->BstartFwd(), currentOvl->BendFwd(),
-                                        otherAln->BstartFwd(), otherAln->BendFwd());
-                double ovlTargetFrac =
-                    static_cast<double>(ovlTarget) /
-                    static_cast<double>(std::min(currentOvl->BSpan(), otherAln->BSpan()));
-                // The two mappings shouldn't overlap by more than the allowed fraction in both the query and target coordinates.
-                if (ovlQueryFrac <= allowedOverlapFraction &&
-                    ovlTargetFrac <= allowedOverlapFraction) {
-                    continue;
-                }
-                // If it's above the allowed limit, this is not a valid supplementary.
-                isSupplementary = false;
-                break;
-            }
-        } else {
-            if (foundTargetIntervals.size()) {
-                isSupplementary = false;
-            }
-        }
+    if (itTrees == targetTrees.end()) {
+        // No overlaps in query and no overlaps in target becuase the target
+        // was not previously added to the tree.
+        return true;
     }
-    // If we found a too large overlap fraction between the current region and another one,
-    // this is not a supplementary mapping.
-    if (isSupplementary == false) {
+    auto foundTargetIntervals =
+        itTrees->second.findOverlapping(currentOvl->BstartFwd(), currentOvl->BendFwd() - 1);
+    if (allowedOverlapFraction <= 0.0 && foundTargetIntervals.size()) {
+        // For speed, if no overlap between mappings is allowed but some are found, return.
         return false;
     }
+    for (const auto& interval : foundTargetIntervals) {
+        auto& otherAln = overlaps[interval.value];
+
+        // Amount of overlap in the query coordinates, as a fraction.
+        int32_t ovlQuery = CalcIntervalOverlap(currentOvl->AstartFwd(), currentOvl->AendFwd(),
+                                               otherAln->AstartFwd(), otherAln->AendFwd());
+        double ovlQueryFrac = static_cast<double>(ovlQuery) /
+                              static_cast<double>(std::min(currentOvl->ASpan(), otherAln->ASpan()));
+
+        // Amount of overlap in the target coordinates, as a fraction.
+        int32_t ovlTarget = CalcIntervalOverlap(currentOvl->BstartFwd(), currentOvl->BendFwd(),
+                                                otherAln->BstartFwd(), otherAln->BendFwd());
+        double ovlTargetFrac =
+            static_cast<double>(ovlTarget) /
+            static_cast<double>(std::min(currentOvl->BSpan(), otherAln->BSpan()));
+
+        // The two mappings shouldn't overlap by more than the allowed fraction in either the
+        // query and target coordinates if one of them is supplementary.
+        if (ovlQueryFrac > allowedOverlapFraction || ovlTargetFrac > allowedOverlapFraction) {
+            return false;
+        }
+    }
+
     return true;
 }
 
