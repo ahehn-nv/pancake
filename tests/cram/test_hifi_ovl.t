@@ -562,8 +562,15 @@ Test identity recomputation after masking.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads3.masking_and_identity.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --skip-sym --write-rev --out-fmt ipa --min-idt 99.0
-  000258100 000000002 -9511 100.0000 0 0 9514 10599 1 0 9512 13810 5 5 u 667=1D4901=1I3385=1I257=1I301= tga a *
-  000000002 000258100 -9511 100.0000 0 0 9512 13810 1 0 9514 10599 5 5 u 303=1D256=1D3388=1D4902=1I662= a tga *
+  000258100 000000002 -9511 100.0000 0 0 9514 10599 1 0 9512 13810 5 5 u 662=1D4902=1I3388=1I256=1I303= tga a *
+  000000002 000258100 -9511 100.0000 0 0 9512 13810 1 0 9514 10599 5 5 u 301=1D257=1D3385=1D4901=1I667= a tga *
+
+Test masking of indels at the very beginning, when the front of the sequence is a HP.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads4.mask_indels_at_front.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --skip-sym --write-rev --out-fmt ipa
+  001235617 000125429 -6445 99.9690 0 0 6461 21031 0 12793 19250 19250 5 3 u 1=1D758=1D103=1I158=1X87=1D304=1I73=1D32=1D323=1I84=1I123=1I98=1I175=1D204=1I12=1D5=1I64=1I61=1D54=1X54=1I1150=1D807=1I1416=1I98=1I94=1I53=1D54= cAggtcccgaTaTaat ttTtataaaAtt *
+  000125429 001235617 -6445 99.9690 0 12793 19250 19250 0 0 6461 21031 3 5 u 1=1I758=1I103=1D158=1X87=1I304=1D73=1I32=1I323=1D84=1D123=1D98=1D175=1I204=1D12=1I5=1D64=1D61=1I54=1X54=1D1150=1I807=1D1416=1D98=1D94=1D53=1I54= ttTtataaaAtt cAggtcccgaTaTaat *
 
 ########################################################
 ### Test mapping of reads to reference with flagging ###
