@@ -49,6 +49,7 @@ struct OverlapHifiSettings
         static const bool UseTraceback = false;
         static const bool MaskHomopolymers = false;
         static const bool MaskSimpleRepeats = false;
+        static const bool MaskHomopolymerSNPs = false;
         static const OverlapWriterFormat OutFormat = OverlapWriterFormat::M4;
         static const bool MarkSecondary = false;
         static constexpr double SecondaryAllowedOverlapFraction = 0.50;
@@ -91,6 +92,7 @@ struct OverlapHifiSettings
     bool UseTraceback = Defaults::UseTraceback;
     bool MaskHomopolymers = Defaults::MaskHomopolymers;
     bool MaskSimpleRepeats = Defaults::MaskSimpleRepeats;
+    bool MaskHomopolymerSNPs = Defaults::MaskHomopolymerSNPs;
     OverlapWriterFormat OutFormat = Defaults::OutFormat;
     bool MarkSecondary = Defaults::MarkSecondary;
     double SecondaryAllowedOverlapFraction = Defaults::SecondaryAllowedOverlapFraction;
