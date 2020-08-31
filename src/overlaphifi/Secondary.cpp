@@ -17,20 +17,30 @@ std::vector<OverlapPriority> FlagSecondaryAndSupplementary(std::vector<OverlapPt
 
     std::vector<OverlapPriority> priorities(overlaps.size());
 
-    // Mark every region except the first as secondary.
-    priorities.front().priority = 0;
-    priorities.front().isSupplementary = false;
-    for (size_t i = 1; i < overlaps.size(); ++i) {
+    // Find the maximum score.
+    size_t maxScoreId = 0;
+    for (size_t i = 0; i < overlaps.size(); ++i) {
         auto& ovl = overlaps[i];
         if (ovl == nullptr) {
             throw std::runtime_error("Overlap is nullptr in FlagSecondaryAndSupplementary!");
         }
+        if (std::abs(ovl->Score) > std::abs(overlaps[maxScoreId]->Score)) {
+            maxScoreId = i;
+        }
+    }
+    const double topScore = std::abs(static_cast<double>(overlaps[maxScoreId]->Score));
+    const double minSecondaryScore = topScore * minSecondaryScoreFraction;
+
+    // Mark every region except the maximum as secondary.
+    priorities[maxScoreId].priority = 0;
+    priorities[maxScoreId].isSupplementary = false;
+    for (size_t i = 0; i < priorities.size(); ++i) {
+        if (i == maxScoreId) {
+            continue;
+        }
         priorities[i].priority = 1;
         priorities[i].isSupplementary = false;
     }
-
-    const double topScore = std::abs(static_cast<double>(overlaps.front()->Score));
-    const double minSecondaryScore = topScore * minSecondaryScoreFraction;
 
     IntervalVectorInt32 queryIntervals;
     std::unordered_map<int32_t, IntervalVectorInt32> targetIntervals;
