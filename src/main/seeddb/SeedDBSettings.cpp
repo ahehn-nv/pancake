@@ -1,6 +1,6 @@
 // Author: Ivan Sovic
 
-#include "seeddb/SeedDBSettings.h"
+#include "main/seeddb/SeedDBSettings.h"
 #include <pacbio/Version.h>
 #include <limits>
 

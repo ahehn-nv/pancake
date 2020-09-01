@@ -11,11 +11,11 @@
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
 #include "dbfilter/DBFilterSettings.h"
 #include "dbfilter/DBFilterWorkflow.h"
-#include "overlaphifi/OverlapHifiWorkflow.h"
-#include "seeddb/SeedDBSettings.h"
-#include "seeddb/SeedDBWorkflow.h"
-#include "seqdb/SeqDBSettings.h"
-#include "seqdb/SeqDBWorkflow.h"
+#include "main/overlaphifi/OverlapHifiWorkflow.h"
+#include "main/seeddb/SeedDBSettings.h"
+#include "main/seeddb/SeedDBWorkflow.h"
+#include "main/seqdb/SeqDBSettings.h"
+#include "main/seqdb/SeqDBWorkflow.h"
 #include "seqfetch/SeqFetchSettings.h"
 #include "seqfetch/SeqFetchWorkflow.h"
 
