@@ -253,13 +253,19 @@ R"({
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::MaskHomopolymerSNPs};
 
+const CLI_v2::Option MaskHomopolymersArbitrary{
+R"({
+    "names" : ["mask-hp-arbitrary"],
+    "description" : "Allows arbitrary bases to be inserted into the HP stretches (the bases don't have to match the HP). Only used in combination with '--mask-hp'.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::MaskHomopolymersArbitrary};
+
 const CLI_v2::Option MarkSecondary{
 R"({
     "names" : ["mark-secondary"],
     "description" : "Mask homopolymer errors when traceback is generated. This will impact identity calculation.",
     "type" : "bool"
 })", OverlapHifiSettings::Defaults::MarkSecondary};
-
 
 const CLI_v2::Option SecondaryAllowedOverlapFraction{
 R"({
@@ -330,16 +336,18 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , MaskHomopolymers{options[OptionNames::MaskHomopolymers]}
     , MaskSimpleRepeats{options[OptionNames::MaskSimpleRepeats]}
     , MaskHomopolymerSNPs{options[OptionNames::MaskHomopolymerSNPs]}
+    , MaskHomopolymersArbitrary{options[OptionNames::MaskHomopolymersArbitrary]}
     , MarkSecondary{options[OptionNames::MarkSecondary]}
     , SecondaryAllowedOverlapFraction{options[OptionNames::SecondaryAllowedOverlapFraction]}
     , SecondaryMinScoreFraction{options[OptionNames::SecondaryMinScoreFraction]}
 {
     if ((NoSNPsInIdentity || NoIndelsInIdentity || MaskHomopolymers || MaskSimpleRepeats ||
-         MaskHomopolymerSNPs) &&
+         MaskHomopolymerSNPs || MaskHomopolymersArbitrary) &&
         (UseTraceback == false)) {
         throw std::runtime_error(
             "The '--no-snps', '--no-indels', '--mask-hp' and '--mask-rep' can only be used "
-            "The '--no-snps', '--no-indels', '--mask-hp', '--mask-hp-snps' and '--mask-rep' can "
+            "The '--no-snps', '--no-indels', '--mask-hp', '--mask-hp-snps', '--mask-hp-arbitrary' "
+            "and '--mask-rep' can "
             "only be used "
             "together with the '--traceback' "
             "option.");
@@ -347,6 +355,10 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     if (NoSNPsInIdentity && NoIndelsInIdentity) {
         PBLOG_WARN << "Both --no-snps and --no-indels options are specified, which means that all "
                       "identity values will be 100%.";
+    }
+    if (MaskHomopolymersArbitrary == true && MaskHomopolymers == false) {
+        throw std::runtime_error(
+            "Option '--mask-hp-arbitrary' can only be used together with '--mask-hp'.");
     }
 
     OutFormat = ParseOutFormat(options[OptionNames::OutFormat]);
@@ -407,6 +419,7 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::MaskHomopolymers,
         OptionNames::MaskSimpleRepeats,
         OptionNames::MaskHomopolymerSNPs,
+        OptionNames::MaskHomopolymersArbitrary,
         OptionNames::MarkSecondary,
         OptionNames::SecondaryAllowedOverlapFraction,
         OptionNames::SecondaryMinScoreFraction,

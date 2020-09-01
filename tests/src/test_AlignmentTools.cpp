@@ -92,6 +92,7 @@ public:
     bool maskHomopolymers;
     bool maskSimpleRepeats;
     bool maskHomopolymerSNPs;
+    bool maskHomopolymersArbitrary;
     std::string expectedQueryVariants;
     std::string expectedTargetVariants;
     PacBio::Pancake::Alignment::DiffCounts expectedDiffsPerBase;
@@ -102,7 +103,7 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
 {
     // clang-format off
     std::vector<ExtractVariantStringTestCase> testData = {
-        ExtractVariantStringTestCase{"Empty input", "", "", "", false, false, false, "", "", {}, {}},
+        ExtractVariantStringTestCase{"Empty input", "", "", "", false, false, false, false, "", "", {}, {}},
 
         /*
         * Q: GGA-T-CAGTTTT AT--ATACAC
@@ -113,16 +114,16 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
         * There is one insertion event of 2bp and one deletion event of 2bp. Both are in simple repeats.
         */
         ExtractVariantStringTestCase{"Simple test case",
-                                     "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", false, false, false, "GATAC", "GTCAT", {14, 1, 4, 4}, {14, 1, 3, 3}},
+                                     "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", false, false, false, false, "GATAC", "GTCAT", {14, 1, 4, 4}, {14, 1, 3, 3}},
 
         ExtractVariantStringTestCase{"Test case with HP masking",
-                                     "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", true, false, false, "gATAC", "GtCAT", {14, 1, 3, 3}, {14, 1, 2, 2}},
+                                     "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", true, false, false, false, "gATAC", "GtCAT", {14, 1, 3, 3}, {14, 1, 2, 2}},
 
         ExtractVariantStringTestCase{"Test case with simple repeat masking",
-                                     "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", false, true, false, "GATac", "GTCat", {14, 1, 2, 2}, {14, 1, 2, 2}},
+                                     "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", false, true, false, false, "GATac", "GTCat", {14, 1, 2, 2}, {14, 1, 2, 2}},
 
         ExtractVariantStringTestCase{"Test case with HP and simple repeat masking",
-                                     "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", true, true, false, "gATac", "GtCat", {14, 1, 1, 1}, {14, 1, 1, 1}},
+                                     "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", true, true, false, false, "gATac", "GtCat", {14, 1, 1, 1}, {14, 1, 1, 1}},
 
         /*
          * This test case ("GCAC', "GAC") detected a false masking bug in the code. The HP masking used
@@ -131,66 +132,100 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
          * like I originally thought). So it should be vice versa.
         */
         ExtractVariantStringTestCase{"Small HP masking test 1 - insertion, should not masking",
-                                     "GCAC", "GAC", "1=1I2=", true, true, false, "C", "", {3, 0, 1, 0}, {3, 0, 1, 0}},
+                                     "GCAC", "GAC", "1=1I2=", true, true, false, false, "C", "", {3, 0, 1, 0}, {3, 0, 1, 0}},
         ExtractVariantStringTestCase{"Small HP masking test 1 - deletion, should not masking",
-                                     "GAC", "GCAC", "1=1D2=", true, true, false, "", "C", {3, 0, 0, 1}, {3, 0, 0, 1}},
+                                     "GAC", "GCAC", "1=1D2=", true, true, false, false, "", "C", {3, 0, 0, 1}, {3, 0, 0, 1}},
         /*
          * This is extracted around the same variant (from the dataset), but in the other direction.
          * There were no issues in this direction.
         */
         ExtractVariantStringTestCase{"Small HP masking test 2 - insertion, should not masking",
-                                     "TGCC", "TCC", "1=1I2=", true, true, false, "G", "", {3, 0, 1, 0}, {3, 0, 1, 0}},
+                                     "TGCC", "TCC", "1=1I2=", true, true, false, false, "G", "", {3, 0, 1, 0}, {3, 0, 1, 0}},
         ExtractVariantStringTestCase{"Small HP masking test 2 - deletion, should not masking",
-                                     "TCC", "TGCC", "1=1D2=", true, true, false, "", "G", {3, 0, 0, 1}, {3, 0, 0, 1}},
+                                     "TCC", "TGCC", "1=1D2=", true, true, false, false, "", "G", {3, 0, 0, 1}, {3, 0, 0, 1}},
 
         /*
          * Test HP insertion masking systematically.
         */
         ExtractVariantStringTestCase{"Simple HP masking test 3a - insertion, no masking",
-                                     "AAACAAA", "AAAAAA", "3=1I3=", true, true, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
+                                     "AAACAAA", "AAAAAA", "3=1I3=", true, true, false, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
         ExtractVariantStringTestCase{"Simple HP masking test 3b - insertion, should mask",
-                                     "AAACCAA", "AAACAA", "3=1I3=", true, true, false, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
+                                     "AAACCAA", "AAACAA", "3=1I3=", true, true, false, false, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
         ExtractVariantStringTestCase{"Simple HP masking test 3c - insertion, no masking",
-                                     "AAACACA", "AAAACA", "3=1I3=", true, true, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
+                                     "AAACACA", "AAAACA", "3=1I3=", true, true, false, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
         ExtractVariantStringTestCase{"Simple HP masking test 3d - insertion, no masking",
-                                     "AAACAAC", "AAAAAC", "3=1I3=", true, true, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
+                                     "AAACAAC", "AAAAAC", "3=1I3=", true, true, false, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
         ExtractVariantStringTestCase{"Simple HP masking test 3e - insertion, no masking",
-                                     "AACCAAA", "AACAAA", "3=1I3=", true, true, false, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
+                                     "AACCAAA", "AACAAA", "3=1I3=", true, true, false, false, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
         ExtractVariantStringTestCase{"Simple HP masking test 3f - insertion, no masking",
-                                     "ACACAAA", "ACAAAA", "3=1I3=", true, true, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
+                                     "ACACAAA", "ACAAAA", "3=1I3=", true, true, false, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
         ExtractVariantStringTestCase{"Simple HP masking test 3g - insertion, no masking",
-                                     "CAACAAA", "CAAAAA", "3=1I3=", true, true, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
+                                     "CAACAAA", "CAAAAA", "3=1I3=", true, true, false, false, "C", "", {6, 0, 1, 0}, {6, 0, 1, 0}},
         ExtractVariantStringTestCase{"Simple HP masking test 3h - no indels, perfect match",
-                                     "AAACAAA", "AAACAAA", "7=", true, true, false, "", "", {7, 0, 0, 0}, {7, 0, 0, 0}},
+                                     "AAACAAA", "AAACAAA", "7=", true, true, false, false, "", "", {7, 0, 0, 0}, {7, 0, 0, 0}},
+        // Test masking of arbitrary indels in HPs.
+        ExtractVariantStringTestCase{"Simple HP masking test 3i - insertion, should mask because we now allow arbitrary indels in HP events.",
+                                     "AAACAAA", "AAAAAA", "3=1I3=", true, true, false, true, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 3j - insertion, should mask",
+                                     "AAACCAA", "AAACAA", "3=1I3=", true, true, false, true, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 3k - insertion, should mask because we now allow arbitrary indels in HP events.",
+                                     "AAACACA", "AAAACA", "3=1I3=", true, true, false, true, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 3l - insertion, should mask because we now allow arbitrary indels in HP events.",
+                                     "AAACAAC", "AAAAAC", "3=1I3=", true, true, false, true, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 3m - insertion, should mask",
+                                     "AACCAAA", "AACAAA", "3=1I3=", true, true, false, true, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 3n - insertion, should mask because we now allow arbitrary indels in HP events.",
+                                     "ACACAAA", "ACAAAA", "3=1I3=", true, true, false, true, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 3o - insertion, should mask because we now allow arbitrary indels in HP events.",
+                                     "CAACAAA", "CAAAAA", "3=1I3=", true, true, false, true, "c", "", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 3p - no indels, perfect match",
+                                     "AAACAAA", "AAACAAA", "7=", true, true, false, true, "", "", {7, 0, 0, 0}, {7, 0, 0, 0}},
+
         /*
          * Test HP deletion masking systematically.
         */
         ExtractVariantStringTestCase{"Simple HP masking test 4a - deletion, no masking",
-                                     "AAAAAA", "AAACAAA", "3=1D3=", true, true, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
+                                     "AAAAAA", "AAACAAA", "3=1D3=", true, true, false, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
         ExtractVariantStringTestCase{"Simple HP masking test 4b - deletion, should mask",
-                                     "AAACAA", "AAACCAA", "3=1D3=", true, true, false, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
+                                     "AAACAA", "AAACCAA", "3=1D3=", true, true, false, false, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
         ExtractVariantStringTestCase{"Simple HP masking test 4c - deletion, no masking",
-                                     "AAAACA", "AAACACA", "3=1D3=", true, true, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
+                                     "AAAACA", "AAACACA", "3=1D3=", true, true, false, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
         ExtractVariantStringTestCase{"Simple HP masking test 4d - deletion, no masking",
-                                     "AAAAAC", "AAACAAC", "3=1D3=", true, true, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
+                                     "AAAAAC", "AAACAAC", "3=1D3=", true, true, false, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
         ExtractVariantStringTestCase{"Simple HP masking test 4e - deletion, no masking",
-                                     "AACAAA", "AACCAAA", "3=1D3=", true, true, false, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
+                                     "AACAAA", "AACCAAA", "3=1D3=", true, true, false, false, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
         ExtractVariantStringTestCase{"Simple HP masking test 4f - deletion, no masking",
-                                     "ACAAAA", "ACACAAA", "3=1D3=", true, true, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
+                                     "ACAAAA", "ACACAAA", "3=1D3=", true, true, false, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
         ExtractVariantStringTestCase{"Simple HP masking test 4g - deletion, no masking",
-                                     "CAAAAA", "CAACAAA", "3=1D3=", true, true, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
+                                     "CAAAAA", "CAACAAA", "3=1D3=", true, true, false, false, "", "C", {6, 0, 0, 1}, {6, 0, 0, 1}},
         ExtractVariantStringTestCase{"Simple HP masking test 4h - no indels, perfect match",
-                                     "AAACAAA", "AAACAAA", "7=", true, true, false, "", "", {7, 0, 0, 0}, {7, 0, 0, 0}},
+                                     "AAACAAA", "AAACAAA", "7=", true, true, false, false, "", "", {7, 0, 0, 0}, {7, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 4i - deletion, should mask because we now allow arbitrary indels in HP events.",
+                                     "AAAAAA", "AAACAAA", "3=1D3=", true, true, false, true, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 4j - deletion, should mask",
+                                     "AAACAA", "AAACCAA", "3=1D3=", true, true, false, true, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 4k - deletion, should mask because we now allow arbitrary indels in HP events.",
+                                     "AAAACA", "AAACACA", "3=1D3=", true, true, false, true, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 4l - deletion, should mask because we now allow arbitrary indels in HP events.",
+                                     "AAAAAC", "AAACAAC", "3=1D3=", true, true, false, true, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 4m - deletion, no masking",
+                                     "AACAAA", "AACCAAA", "3=1D3=", true, true, false, true, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 4n - deletion, should mask because we now allow arbitrary indels in HP events.",
+                                     "ACAAAA", "ACACAAA", "3=1D3=", true, true, false, true, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 4o - deletion, should mask because we now allow arbitrary indels in HP events.",
+                                     "CAAAAA", "CAACAAA", "3=1D3=", true, true, false, true, "", "c", {6, 0, 0, 0}, {6, 0, 0, 0}},
+        ExtractVariantStringTestCase{"Simple HP masking test 4p - no indels, perfect match",
+                                     "AAACAAA", "AAACAAA", "7=", true, true, false, true, "", "", {7, 0, 0, 0}, {7, 0, 0, 0}},
 
         /*
          * Test simple releat insertion masking systematically.
         */
         ExtractVariantStringTestCase{"Simple repeat masking test 5a - no indel, perfect match",
-                                     "AAAAAAATCAAAAAAA", "AAAAAAATCAAAAAAA", "16=", true, true, false, "", "", {16, 0, 0, 0}, {16, 0, 0, 0}},
+                                     "AAAAAAATCAAAAAAA", "AAAAAAATCAAAAAAA", "16=", true, true, false, false, "", "", {16, 0, 0, 0}, {16, 0, 0, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking test 5b - insertion, no masking",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAAAAAAAAAAAAA",      // AAAAAAA--AAAAAAA
-                                     "7=2I7=", true, true, false, "TC", "", {14, 0, 2, 0}, {14, 0, 1, 0}},
+                                     "7=2I7=", true, true, false, false, "TC", "", {14, 0, 2, 0}, {14, 0, 1, 0}},
         /*
          * Sliding window for insertion masking - slide a TC event accross the target, while the query has a TC insertion.
          * Only in some cases should masking pick up.
@@ -198,47 +233,47 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5a - insertion, should not mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "ATCAAAAAAAAAAA",      // ATCAAAA--AAAAAAA
-                                     "1=2X4=2I7=", true, true, false, "AATC", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
+                                     "1=2X4=2I7=", true, true, false, false, "AATC", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5b - insertion, should not mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AATCAAAAAAAAAA",      // AATCAAA--AAAAAAA
-                                     "2=2X3=2I7=", true, true, false, "AATC", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
+                                     "2=2X3=2I7=", true, true, false, false, "AATC", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5c - insertion, should not mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAATCAAAAAAAAA",      // AAATCAA--AAAAAAA
-                                     "3=2X2=2I7=", true, true, false, "AATC", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
+                                     "3=2X2=2I7=", true, true, false, false, "AATC", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5d - insertion, should not mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAAATCAAAAAAAA",      // AAAATCA--AAAAAAA
-                                     "4=2X1=2I7=", true, true, false, "AATC", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
+                                     "4=2X1=2I7=", true, true, false, false, "AATC", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5e - insertion, should mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAAAATCAAAAAAA",      // AAAAATC--AAAAAAA
-                                     "5=2X2I7=", true, true, false, "AAtc", "TC", {12, 2, 0, 0}, {12, 2, 0, 0}},
+                                     "5=2X2I7=", true, true, false, false, "AAtc", "TC", {12, 2, 0, 0}, {12, 2, 0, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5f - insertion, should not mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAAAAATCAAAAAA",      // AAAAAAT--CAAAAAA
-                                     "6=1X2I1X6=", true, true, false, "ATCA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
+                                     "6=1X2I1X6=", true, true, false, false, "ATCA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5g - insertion, should mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAAAAAATCAAAAA",      // AAAAAAA--TCAAAAA
-                                     "7=2I2X5=", true, true, false, "tcAA", "TC", {12, 2, 0, 0}, {12, 2, 0, 0}},
+                                     "7=2I2X5=", true, true, false, false, "tcAA", "TC", {12, 2, 0, 0}, {12, 2, 0, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5h - insertion, should not mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAAAAAAATCAAAA",      // AAAAAAA--ATCAAAA
-                                     "7=2I1=2X4=", true, true, false, "TCAA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
+                                     "7=2I1=2X4=", true, true, false, false, "TCAA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5i - insertion, should not mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAAAAAAAATCAAA",      // AAAAAAA--AATCAAA
-                                     "7=2I2=2X3=", true, true, false, "TCAA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
+                                     "7=2I2=2X3=", true, true, false, false, "TCAA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5j - insertion, should not mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAAAAAAAAATCAA",      // AAAAAAA--AAATCAA
-                                     "7=2I3=2X2=", true, true, false, "TCAA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
+                                     "7=2I3=2X2=", true, true, false, false, "TCAA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 5k - insertion, should not mask",
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
                                      "AAAAAAAAAAATCA",      // AAAAAAA--AAAATCA
-                                     "7=2I4=2X1=", true, true, false, "TCAA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
+                                     "7=2I4=2X1=", true, true, false, false, "TCAA", "TC", {12, 2, 2, 0}, {12, 2, 1, 0}},
         /*
          * Sliding window for deletion masking - slide a TC event accross the query, while the target has a TC insertion.
          * Only in some cases should masking pick up.
@@ -246,85 +281,85 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6a - insertion, should not mask",
                                      "ATCAAAAAAAAAAA",      // ATCAAAA--AAAAAAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "1=2X4=2D7=", true, true, false, "TC", "AATC", {12, 2, 0, 2}, {12, 2, 0, 1}},
+                                     "1=2X4=2D7=", true, true, false, false, "TC", "AATC", {12, 2, 0, 2}, {12, 2, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6b - deletion, should not mask",
                                      "AATCAAAAAAAAAA",      // AATCAAA--AAAAAAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "2=2X3=2D7=", true, true, false, "TC", "AATC", {12, 2, 0, 2}, {12, 2, 0, 1}},
+                                     "2=2X3=2D7=", true, true, false, false, "TC", "AATC", {12, 2, 0, 2}, {12, 2, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6c - deletion, should not mask",
                                      "AAATCAAAAAAAAA",      // AAATCAA--AAAAAAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "3=2X2=2D7=", true, true, false, "TC", "AATC", {12, 2, 0, 2}, {12, 2, 0, 1}},
+                                     "3=2X2=2D7=", true, true, false, false, "TC", "AATC", {12, 2, 0, 2}, {12, 2, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6d - deletion, should not mask",
                                      "AAAATCAAAAAAAA",      // AAAATCA--AAAAAAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "4=2X1=2D7=", true, true, false, "TC", "AATC", {12, 2, 0, 2}, {12, 2, 0, 1}},
+                                     "4=2X1=2D7=", true, true, false, false, "TC", "AATC", {12, 2, 0, 2}, {12, 2, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6e - deletion, should mask",
                                      "AAAAATCAAAAAAA",      // AAAAATC--AAAAAAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "5=2X2D7=", true, true, false, "TC", "AAtc", {12, 2, 0, 0}, {12, 2, 0, 0}},
+                                     "5=2X2D7=", true, true, false, false, "TC", "AAtc", {12, 2, 0, 0}, {12, 2, 0, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6f - deletion, should not mask",
                                      "AAAAAATCAAAAAA",      // AAAAAAT--CAAAAAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "6=1X2D1X6=", true, true, false, "TC", "ATCA", {12, 2, 0, 2}, {12, 2, 0, 1}},
+                                     "6=1X2D1X6=", true, true, false, false, "TC", "ATCA", {12, 2, 0, 2}, {12, 2, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6g - deletion, should mask",
                                      "AAAAAAATCAAAAA",      // AAAAAAA--TCAAAAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "7=2D2X5=", true, true, false, "TC", "tcAA", {12, 2, 0, 0}, {12, 2, 0, 0}},
+                                     "7=2D2X5=", true, true, false, false, "TC", "tcAA", {12, 2, 0, 0}, {12, 2, 0, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6h - deletion, should not mask",
                                      "AAAAAAAATCAAAA",      // AAAAAAA--ATCAAAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "7=2D1=2X4=", true, true, false, "TC", "TCAA", {12, 2, 0, 2}, {12, 2, 0, 1}},
+                                     "7=2D1=2X4=", true, true, false, false, "TC", "TCAA", {12, 2, 0, 2}, {12, 2, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6i - deletion, should not mask",
                                      "AAAAAAAAATCAAA",      // AAAAAAA--AATCAAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "7=2D2=2X3=", true, true, false, "TC", "TCAA", {12, 2, 0, 2}, {12, 2, 0, 1}},
+                                     "7=2D2=2X3=", true, true, false, false, "TC", "TCAA", {12, 2, 0, 2}, {12, 2, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6j - deletion, should not mask",
                                      "AAAAAAAAAATCAA",      // AAAAAAA--AAATCAA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "7=2D3=2X2=", true, true, false, "TC", "TCAA", {12, 2, 0, 2}, {12, 2, 0, 1}},
+                                     "7=2D3=2X2=", true, true, false, false, "TC", "TCAA", {12, 2, 0, 2}, {12, 2, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking sliding window test 6k - deletion, should not mask",
                                      "AAAAAAAAAAATCA",      // AAAAAAA--AAAATCA
                                      "AAAAAAATCAAAAAAA",    // AAAAAAATCAAAAAAA
-                                     "7=2D4=2X1=", true, true, false, "TC", "TCAA", {12, 2, 0, 2}, {12, 2, 0, 1}},
+                                     "7=2D4=2X1=", true, true, false, false, "TC", "TCAA", {12, 2, 0, 2}, {12, 2, 0, 1}},
         /*
          * Test simple repeat masking in the same sequence (query).
         */
         ExtractVariantStringTestCase{"Simple repeat masking in same sequence window test 7a - should not mask",
                                      "AAAAAAATCTAAAAAA",    // AAAAAAATCTAAAAAA
                                      "AAAAAAAAAAAAAA",      // AAAAAAA--AAAAAAA
-                                     "7=2I1X6=", true, true, false, "TCT", "A", {13, 1, 2, 0}, {13, 1, 1, 0}},
+                                     "7=2I1X6=", true, true, false, false, "TCT", "A", {13, 1, 2, 0}, {13, 1, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking in same sequence window test 7b - should mask",
                                      "AAAAAAATCTCAAAAA",    // AAAAAAATCTCAAAAA
                                      "AAAAAAAAAAAAAA",      // AAAAAAA--AAAAAAA
-                                     "7=2I2X5=", true, true, false, "tcTC", "AA", {12, 2, 0, 0}, {12, 2, 0, 0}},
+                                     "7=2I2X5=", true, true, false, false, "tcTC", "AA", {12, 2, 0, 0}, {12, 2, 0, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking in same sequence window test 7c - should not mask",
                                      "AAAAAATTCAAAAAAA",    // AAAAAATTCAAAAAA
                                      "AAAAAAAAAAAAAA",      // AAAAAAA--AAAAAAA
-                                     "6=1X2I7=", true, true, false, "TTC", "A", {13, 1, 2, 0}, {13, 1, 1, 0}},
+                                     "6=1X2I7=", true, true, false, false, "TTC", "A", {13, 1, 2, 0}, {13, 1, 1, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking in same sequence window test 7d - should mask",
                                      "AAAAATCTCAAAAAAA",    // AAAAAAATCTCAAAAA
                                      "AAAAAAAAAAAAAA",      // AAAAAAA--AAAAAAA
-                                     "5=2X2I7=", true, true, false, "TCtc", "AA", {12, 2, 0, 0}, {12, 2, 0, 0}},
+                                     "5=2X2I7=", true, true, false, false, "TCtc", "AA", {12, 2, 0, 0}, {12, 2, 0, 0}},
         /*
          * Test simple repeat masking in the same sequence (target).
         */
         ExtractVariantStringTestCase{"Simple repeat masking in same sequence window test 8a - should not mask",
                                      "AAAAAAAAAAAAAA",      // AAAAAAA--AAAAAAA
                                      "AAAAAAATCTAAAAAA",    // AAAAAAATCTAAAAAA
-                                     "7=2D1X6=", true, true, false, "A", "TCT", {13, 1, 0, 2}, {13, 1, 0, 1}},
+                                     "7=2D1X6=", true, true, false, false, "A", "TCT", {13, 1, 0, 2}, {13, 1, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking in same sequence window test 8b - should mask",
                                      "AAAAAAAAAAAAAA",      // AAAAAAA--AAAAAAA
                                      "AAAAAAATCTCAAAAA",    // AAAAAAATCTCAAAAA
-                                     "7=2D2X5=", true, true, false, "AA", "tcTC", {12, 2, 0, 0}, {12, 2, 0, 0}},
+                                     "7=2D2X5=", true, true, false, false, "AA", "tcTC", {12, 2, 0, 0}, {12, 2, 0, 0}},
         ExtractVariantStringTestCase{"Simple repeat masking in same sequence window test 8c - should not mask",
                                      "AAAAAAAAAAAAAA",      // AAAAAAA--AAAAAAA
                                      "AAAAAATTCAAAAAAA",    // AAAAAATTCAAAAAA
-                                     "6=1X2D7=", true, true, false, "A", "TTC", {13, 1, 0, 2}, {13, 1, 0, 1}},
+                                     "6=1X2D7=", true, true, false, false, "A", "TTC", {13, 1, 0, 2}, {13, 1, 0, 1}},
         ExtractVariantStringTestCase{"Simple repeat masking in same sequence window test 8d - should mask",
                                      "AAAAAAAAAAAAAA",      // AAAAAAA--AAAAAAA
                                      "AAAAATCTCAAAAAAA",    // AAAAAAATCTCAAAAA
-                                     "5=2X2D7=", true, true, false, "AA", "TCtc", {12, 2, 0, 0}, {12, 2, 0, 0}},
+                                     "5=2X2D7=", true, true, false, false, "AA", "TCtc", {12, 2, 0, 0}, {12, 2, 0, 0}},
 
         /*
          * Test masking of SNPs in HP regions. The SNP is in the target.
@@ -332,35 +367,35 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
         ExtractVariantStringTestCase{"SNP internal to the homopolymer. Should be masked. (target)",
                                      "AAAAAAAAAAAAAAA",
                                      "AAAAAAATAAAAAAA",
-                                     "7=1X7=", false, false, true, "a", "t", {14, 0, 0, 0}, {14, 0, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "a", "t", {14, 0, 0, 0}, {14, 0, 0, 0}},
         ExtractVariantStringTestCase{"SNP at the right boundary of the homopolymer. Should be masked. (target)",
                                      "AAAAAAAACCCCCCC",
                                      "AAAAAAATCCCCCCC",
-                                     "7=1X7=", false, false, true, "a", "t", {14, 0, 0, 0}, {14, 0, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "a", "t", {14, 0, 0, 0}, {14, 0, 0, 0}},
         ExtractVariantStringTestCase{"SNP at the left boundary of the homopolymer. Should be masked. (target)",
                                      "CCCCCCCAAAAAAAA",
                                      "CCCCCCCTAAAAAAA",
-                                     "7=1X7=", false, false, true, "a", "t", {14, 0, 0, 0}, {14, 0, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "a", "t", {14, 0, 0, 0}, {14, 0, 0, 0}},
         ExtractVariantStringTestCase{"SNP adjacent to the homopolymer, but not a homopolymer. (target)",
                                      "AAAAAAACGCGCGCG",
                                      "AAAAAAATGCGCGCG",
-                                     "7=1X7=", false, false, true, "C", "T", {14, 1, 0, 0}, {14, 1, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "C", "T", {14, 1, 0, 0}, {14, 1, 0, 0}},
         ExtractVariantStringTestCase{"Cross-HP SNP. Should be masked. (target)",
                                      "AAAAAAAACCCCCCC",
                                      "AAAAAAACCCCCCCC",
-                                     "7=1X7=", false, false, true, "a", "c", {14, 0, 0, 0}, {14, 0, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "a", "c", {14, 0, 0, 0}, {14, 0, 0, 0}},
         ExtractVariantStringTestCase{"SNP next to an insertion. (target)",
                                      "AAAAAAACCCCCCC",  // AAAAAA-ACCCCCCC
                                      "AAAAAAATCCCCCCC", // AAAAAAATCCCCCCC
-                                     "6=1D1X7=", false, false, true, "a", "At", {13, 0, 0, 1}, {13, 0, 0, 1}},
+                                     "6=1D1X7=", false, false, true, false, "a", "At", {13, 0, 0, 1}, {13, 0, 0, 1}},
         ExtractVariantStringTestCase{"SNP next to a deletion. (target)",
                                      "AAAAAAAACCCCCCC", // AAAAAAAACCCCCCC
                                      "AAAAAATCCCCCCC",  // AAAAAA-TCCCCCCC
-                                     "6=1I1X7=", false, false, true, "Aa", "t", {13, 0, 1, 0}, {13, 0, 1, 0}},
+                                     "6=1I1X7=", false, false, true, false, "Aa", "t", {13, 0, 1, 0}, {13, 0, 1, 0}},
         ExtractVariantStringTestCase{"SNP in a very short HP. (target)",
                                      "ACTTG", // AAAAAAAACCCCCCC
                                      "ACCTG",  // AAAAAA-TCCCCCCC
-                                     "2=1X2=", false, false, true, "t", "c", {4, 0, 0, 0}, {4, 0, 0, 0}},
+                                     "2=1X2=", false, false, true, false, "t", "c", {4, 0, 0, 0}, {4, 0, 0, 0}},
 
         /*
          * Test masking of SNPs in HP regions. The SNP is in the query. Same as above, just swapped query and target values.
@@ -368,35 +403,35 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
         ExtractVariantStringTestCase{"SNP internal to the homopolymer. Should be masked. (query)",
                                      "AAAAAAATAAAAAAA",
                                      "AAAAAAAAAAAAAAA",
-                                     "7=1X7=", false, false, true, "t", "a", {14, 0, 0, 0}, {14, 0, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "t", "a", {14, 0, 0, 0}, {14, 0, 0, 0}},
         ExtractVariantStringTestCase{"SNP at the right boundary of the homopolymer. Should be masked. (query)",
                                      "AAAAAAATCCCCCCC",
                                      "AAAAAAAACCCCCCC",
-                                     "7=1X7=", false, false, true, "t", "a", {14, 0, 0, 0}, {14, 0, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "t", "a", {14, 0, 0, 0}, {14, 0, 0, 0}},
         ExtractVariantStringTestCase{"SNP at the left boundary of the homopolymer. Should be masked. (query)",
                                      "CCCCCCCTAAAAAAA",
                                      "CCCCCCCAAAAAAAA",
-                                     "7=1X7=", false, false, true, "t", "a", {14, 0, 0, 0}, {14, 0, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "t", "a", {14, 0, 0, 0}, {14, 0, 0, 0}},
         ExtractVariantStringTestCase{"SNP adjacent to the homopolymer, but not a homopolymer. (query)",
                                      "AAAAAAATGCGCGCG",
                                      "AAAAAAACGCGCGCG",
-                                     "7=1X7=", false, false, true, "T", "C", {14, 1, 0, 0}, {14, 1, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "T", "C", {14, 1, 0, 0}, {14, 1, 0, 0}},
         ExtractVariantStringTestCase{"Cross-HP SNP. Should be masked. (query)",
                                      "AAAAAAACCCCCCCC",
                                      "AAAAAAAACCCCCCC",
-                                     "7=1X7=", false, false, true, "c", "a", {14, 0, 0, 0}, {14, 0, 0, 0}},
+                                     "7=1X7=", false, false, true, false, "c", "a", {14, 0, 0, 0}, {14, 0, 0, 0}},
         ExtractVariantStringTestCase{"SNP next to an insertion. (query)",
                                      "AAAAAAATCCCCCCC", // AAAAAAATCCCCCCC
                                      "AAAAAAACCCCCCC",  // AAAAAA-ACCCCCCC
-                                     "6=1I1X7=", false, false, true, "At", "a", {13, 0, 1, 0}, {13, 0, 1, 0}},
+                                     "6=1I1X7=", false, false, true, false, "At", "a", {13, 0, 1, 0}, {13, 0, 1, 0}},
         ExtractVariantStringTestCase{"SNP next to a deletion. (query)",
                                      "AAAAAATCCCCCCC",  // AAAAAA-TCCCCCCC
                                      "AAAAAAAACCCCCCC", // AAAAAAAACCCCCCC
-                                     "6=1D1X7=", false, false, true, "t", "Aa", {13, 0, 0, 1}, {13, 0, 0, 1}},
+                                     "6=1D1X7=", false, false, true, false, "t", "Aa", {13, 0, 0, 1}, {13, 0, 0, 1}},
         ExtractVariantStringTestCase{"SNP in a very short HP. (query)",
                                      "ACCTG",  // AAAAAA-TCCCCCCC
                                      "ACTTG", // AAAAAAAACCCCCCC
-                                     "2=1X2=", false, false, true, "c", "t", {4, 0, 0, 0}, {4, 0, 0, 0}},
+                                     "2=1X2=", false, false, true, false, "c", "t", {4, 0, 0, 0}, {4, 0, 0, 0}},
     };
     // clang-format on
 
@@ -413,7 +448,8 @@ TEST(Test_AlignmentTools_ExtractVariantString, ArrayOfTests)
         PacBio::Pancake::ExtractVariantString(
             data.query.c_str(), data.query.size(), data.target.c_str(), data.target.size(), cigar,
             data.maskHomopolymers, data.maskSimpleRepeats, data.maskHomopolymerSNPs,
-            resultQueryVariants, resultTargetVariants, resultDiffsPerBase, resultDiffsPerEvent);
+            data.maskHomopolymersArbitrary, resultQueryVariants, resultTargetVariants,
+            resultDiffsPerBase, resultDiffsPerEvent);
 
         // Evaluate.
         EXPECT_EQ(data.expectedQueryVariants, resultQueryVariants);

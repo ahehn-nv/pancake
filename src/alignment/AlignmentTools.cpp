@@ -315,8 +315,8 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
 void ExtractVariantString(const char* query, int64_t queryLen, const char* target,
                           int64_t targetLen, const PacBio::BAM::Cigar& cigar, bool maskHomopolymers,
                           bool maskSimpleRepeats, bool maskHomopolymerSNPs,
-                          std::string& retQueryVariants, std::string& retTargetVariants,
-                          Alignment::DiffCounts& retDiffsPerBase,
+                          bool maskHomopolymersArbitrary, std::string& retQueryVariants,
+                          std::string& retTargetVariants, Alignment::DiffCounts& retDiffsPerBase,
                           Alignment::DiffCounts& retDiffsPerEvent)
 {
     int64_t queryPos = 0;
@@ -481,6 +481,9 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
                 if (baseSwitches == 0 &&
                     ((queryPos > 0 && query[queryPos - 1] == prevBase) ||
                      ((queryPos + 1) < queryLen && query[queryPos + 1] == prevBase) ||
+                     (maskHomopolymersArbitrary && queryPos > 0 && (queryPos + 1) < queryLen &&
+                      query[queryPos - 1] ==
+                          query[queryPos + 1]) ||  // Insertion of different base into a HP.
                      (target[targetPos] == prevBase) ||
                      (targetPos > 0 && target[targetPos - 1] == prevBase))) {
                     isMasked = true;
@@ -556,6 +559,9 @@ void ExtractVariantString(const char* query, int64_t queryLen, const char* targe
                 if (baseSwitches == 0 &&
                     ((targetPos > 0 && target[targetPos - 1] == prevBase) ||
                      ((targetPos + 1) < targetLen && target[targetPos + 1] == prevBase) ||
+                     (maskHomopolymersArbitrary && targetPos > 0 && (targetPos + 1) < targetLen &&
+                      target[targetPos - 1] ==
+                          target[targetPos + 1]) ||  // Insertion of different base into a HP.
                      (query[queryPos] == prevBase) ||
                      (queryPos > 0 && query[queryPos - 1] == prevBase))) {
                     isMasked = true;

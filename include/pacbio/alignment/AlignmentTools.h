@@ -32,8 +32,8 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
 void ExtractVariantString(const char* query, int64_t queryLen, const char* target,
                           int64_t targetLen, const PacBio::BAM::Cigar& cigar, bool maskHomopolymers,
                           bool maskSimpleRepeats, bool maskHomopolymerSNPs,
-                          std::string& retQueryVariants, std::string& retTargetVariants,
-                          Alignment::DiffCounts& retDiffsPerBase,
+                          bool maskHomopolymersArbitrary, std::string& retQueryVariants,
+                          std::string& retTargetVariants, Alignment::DiffCounts& retDiffsPerBase,
                           Alignment::DiffCounts& retDiffsPerEvent);
 
 Alignment::DiffCounts ComputeDiffCounts(const PacBio::BAM::Cigar& cigar,
