@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <pacbio/overlaphifi/Secondary.h>
+#include <pacbio/pancake/Secondary.h>
 #include <string>
 #include <tuple>
 #include <vector>

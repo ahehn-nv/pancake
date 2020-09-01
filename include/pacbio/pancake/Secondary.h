@@ -4,7 +4,7 @@
 #define PANCAKE_OVERLAPHIFI_SECONDARY_H
 
 #include <lib/intervaltree/IntervalTree.h>
-#include <pacbio/overlaphifi/Overlap.h>
+#include <pacbio/pancake/Overlap.h>
 #include <algorithm>
 #include <cstdint>
 #include <functional>
