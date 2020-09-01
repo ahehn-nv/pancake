@@ -140,7 +140,7 @@ private:
         const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
         const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff,
         bool useTraceback, bool noSNPs, bool noIndels, bool maskHomopolymers,
-        bool maskSimpleRepeats, bool maskHomopolymerSNPs,
+        bool maskSimpleRepeats, bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary,
         std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
     /// \brief Generates a set of flipped overlaps from a given set of overlaps. A flipped overlap
@@ -159,7 +159,7 @@ private:
         const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
         const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
         const std::vector<OverlapPtr>& overlaps, bool noSNPs, bool noIndels, bool maskHomopolymers,
-        bool maskSimpleRepeats, bool maskHomopolymerSNPs);
+        bool maskSimpleRepeats, bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary);
 
     /// \brief Performs alignment and alignment extension of a single overlap. Uses the
     ///        banded O(nd) algorithm to align the overlap. The edit distance is
@@ -181,14 +181,14 @@ private:
         const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
         const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTraceback,
         bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
-        bool maskHomopolymerSNPs,
+        bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary,
         std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
     static void NormalizeAndExtractVariantsInPlace_(
         OverlapPtr& ovl, const PacBio::Pancake::FastaSequenceCached& targetSeq,
         const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
         bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
-        bool maskHomopolymerSNPs);
+        bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary);
 
     /// \brief Filters overlaps based on the number of seeds, identity, mapped span or length.
     ///
