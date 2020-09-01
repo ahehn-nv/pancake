@@ -6,7 +6,7 @@
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/pancake/SeedDBIndexCache.h>
-#include <pacbio/seeddb/SeedDBParameters.h>
+#include <pacbio/pancake/SeedDBParameters.h>
 #include <pacbio/util/CommonTypes.h>
 #include <pacbio/util/Util.h>
 #include <cstdint>

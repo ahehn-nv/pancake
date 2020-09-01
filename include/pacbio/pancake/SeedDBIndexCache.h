@@ -5,7 +5,7 @@
 
 #include <pacbio/pancake/ContiguousFilePart.h>
 #include <pacbio/pancake/Range.h>
-#include <pacbio/seeddb/SeedDBParameters.h>
+#include <pacbio/pancake/SeedDBParameters.h>
 #include <pacbio/util/CommonTypes.h>
 #include <cstdint>
 #include <fstream>

@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string>
 
-#include <pacbio/seeddb/SeedDBParameters.h>
+#include <pacbio/pancake/SeedDBParameters.h>
 #include <pbcopper/cli2/CLI.h>
 
 namespace PacBio {
