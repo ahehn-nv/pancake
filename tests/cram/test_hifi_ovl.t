@@ -548,15 +548,23 @@ OP      END     A   B       Valid   Description
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads1.weird_masking_issue.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --skip-sym --write-rev --out-fmt ipa
-  000000571 000000551 -8276 99.9517 0 0 8287 10491 1 0 8284 8714 5 5 u 385=1I1237=1I1=1I930=1I75=1D57=1X8=1D61=1I780=1I680=1D165=1D545=1I442=1I730=1I589=1D370=1D119=1I463=1D639= ttTcTGgcctg AccagcCa *
-  000000551 000000571 -8276 99.9517 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D121=1I368=1I590=1D730=1D443=1D544=1I165=1I680=1D779=1D64=1I5=1X58=1I76=1D928=1D2=1D1238=1D383= AccagcCa ttTcTGgcctg *
+  000000571 000000551 -8276 99.9275 0 0 8287 10491 1 0 8284 8714 5 5 u 385=1I1237=1I1=1I930=1I75=1D57=1X8=1D61=1I780=1I680=1D165=1D545=1I442=1I730=1I589=1D370=1D119=1I463=1D639= ttTcTGgcctG AcCagcCa *
+  000000551 000000571 -8276 99.9275 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D121=1I368=1I590=1D730=1D443=1D544=1I165=1I680=1D779=1D64=1I5=1X58=1I76=1D928=1D2=1D1238=1D383= AcCagcCa ttTcTGgcctG *
 
 Exactly the same test as one above, but the HP SNP is masked so the identity is slightly higher.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads1.weird_masking_issue.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --mask-hp-snps --skip-sym --write-rev --out-fmt ipa
-  000000571 000000551 -8276 99.9638 0 0 8287 10491 1 0 8284 8714 5 5 u 385=1I1237=1I1=1I930=1I75=1D57=1X8=1D61=1I780=1I680=1D165=1D545=1I442=1I730=1I589=1D370=1D119=1I463=1D639= ttTctGgcctg Accagcca *
-  000000551 000000571 -8276 99.9638 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D121=1I368=1I590=1D730=1D443=1D544=1I165=1I680=1D779=1D64=1I5=1X58=1I76=1D928=1D2=1D1238=1D383= Accagcca ttTctGgcctg *
+  000000571 000000551 -8276 99.9396 0 0 8287 10491 1 0 8284 8714 5 5 u 385=1I1237=1I1=1I930=1I75=1D57=1X8=1D61=1I780=1I680=1D165=1D545=1I442=1I730=1I589=1D370=1D119=1I463=1D639= ttTctGgcctG AcCagcca *
+  000000551 000000571 -8276 99.9396 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D121=1I368=1I590=1D730=1D443=1D544=1I165=1I680=1D779=1D64=1I5=1X58=1I76=1D928=1D2=1D1238=1D383= AcCagcca ttTctGgcctG *
+
+Also exactly the same as 2 tests above, but with masking of arbitrary HP indels.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads1.weird_masking_issue.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-hp-arbitrary --mask-repeats --skip-sym --write-rev --out-fmt ipa
+  000000571 000000551 -8276 99.9517 0 0 8287 10491 1 0 8284 8714 5 5 u 385=1I1237=1I1=1I930=1I75=1D57=1X8=1D61=1I780=1I680=1D165=1D545=1I442=1I730=1I589=1D370=1D119=1I463=1D639= ttTcTGgcctg AccagcCa *
+  000000551 000000571 -8276 99.9517 0 0 8284 8714 1 0 8287 10491 5 5 u 639=1I463=1D121=1I368=1I590=1D730=1D443=1D544=1I165=1I680=1D779=1D64=1I5=1X58=1I76=1D928=1D2=1D1238=1D383= AccagcCa ttTcTGgcctg *
+
 
 Test identity recomputation after masking.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads3.masking_and_identity.fasta
@@ -569,6 +577,13 @@ Test masking of indels at the very beginning, when the front of the sequence is 
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads4.mask_indels_at_front.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-repeats --skip-sym --write-rev --out-fmt ipa
+  001235617 000125429 -6445 99.9380 0 0 6461 21031 0 12793 19250 19250 5 3 u 1=1D758=1D103=1I158=1X87=1D304=1I73=1D32=1D323=1I84=1I123=1I98=1I175=1D204=1I12=1D5=1I64=1I61=1D54=1X54=1I1150=1D807=1I1416=1I98=1I94=1I53=1D54= cAggtcccgaTaTaat TtTtataaaAtt *
+  000125429 001235617 -6445 99.9380 0 12793 19250 19250 0 0 6461 21031 3 5 u 1=1I758=1I103=1D158=1X87=1I304=1D73=1I32=1I323=1D84=1D123=1D98=1D175=1I204=1D12=1I5=1D64=1D61=1I54=1X54=1D1150=1I807=1D1416=1D98=1D94=1D53=1I54= TtTtataaaAtt cAggtcccgaTaTaat *
+
+Test masking of indels at the very beginning, when the front of the sequence is a HP. Same as before, but mask arbitrary indels in HPs as well.
+  $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/varstr/reads4.mask_indels_at_front.fasta
+  > ${BIN_DIR}/pancake seeddb reads.seqdb reads
+  > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 --traceback --write-cigar --mask-hp --mask-hp-arbitrary --mask-repeats --skip-sym --write-rev --out-fmt ipa
   001235617 000125429 -6445 99.9690 0 0 6461 21031 0 12793 19250 19250 5 3 u 1=1D758=1D103=1I158=1X87=1D304=1I73=1D32=1D323=1I84=1I123=1I98=1I175=1D204=1I12=1D5=1I64=1I61=1D54=1X54=1I1150=1D807=1I1416=1I98=1I94=1I53=1D54= cAggtcccgaTataat ttTtataaaAtt *
   000125429 001235617 -6445 99.9690 0 12793 19250 19250 0 0 6461 21031 3 5 u 1=1I758=1I103=1D158=1X87=1I304=1D73=1I32=1I323=1D84=1D123=1D98=1D175=1I204=1D12=1I5=1D64=1D61=1I54=1X54=1D1150=1I807=1D1416=1D98=1D94=1D53=1I54= ttTtataaaAtt cAggtcccgaTataat *
 
