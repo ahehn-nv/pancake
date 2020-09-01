@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <pacbio/overlaphifi/Overlap.h>
-#include <pacbio/overlaphifi/OverlapWriterBase.h>
+#include <pacbio/pancake/Overlap.h>
+#include <pacbio/pancake/OverlapWriterBase.h>
 #include <vector>
 
 std::vector<std::string> WrapRunHeuristicExtendOverlapFlanks(

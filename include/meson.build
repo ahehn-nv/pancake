@@ -84,65 +84,52 @@ if not meson.is_subproject()
   # pacbio/overlaphifi
   install_headers(
     files([
-      'pacbio/overlaphifi/Mapper.h',
-      'pacbio/overlaphifi/Overlap.h',
-      'pacbio/overlaphifi/Secondary.h',
       'pacbio/overlaphifi/OverlapHifiSettings.h',
-      'pacbio/overlaphifi/OverlapWriterBase.h',
-      'pacbio/overlaphifi/OverlapWriterFactory.h',
-      'pacbio/overlaphifi/OverlapWriterFormat.h',
-      'pacbio/overlaphifi/OverlapWriterIPAOvl.h',
-      'pacbio/overlaphifi/OverlapWriterM4.h',
-      'pacbio/overlaphifi/OverlapWriterPAF.h',
-      'pacbio/overlaphifi/OverlapWriterSAM.h',
-      'pacbio/overlaphifi/SeedHit.h',
-      'pacbio/overlaphifi/SeedIndex.h',
       ]),
       subdir : 'pacbio/overlaphifi')
 
   # pacbio/pancake
   install_headers(
     files([
+      'pacbio/pancake/CompressedSequence.h',
       'pacbio/pancake/ContiguousFilePart.h',
+      'pacbio/pancake/FastaSequenceCached.h',
+      'pacbio/pancake/FastaSequenceId.h',
+      'pacbio/pancake/Lookups.h',
+      'pacbio/pancake/MapperHiFi.h',
+      'pacbio/pancake/Minimizers.h',
+      'pacbio/pancake/Overlap.h',
+      'pacbio/pancake/OverlapWriterBase.h',
+      'pacbio/pancake/OverlapWriterFactory.h',
+      'pacbio/pancake/OverlapWriterFormat.h',
+      'pacbio/pancake/OverlapWriterIPAOvl.h',
+      'pacbio/pancake/OverlapWriterM4.h',
+      'pacbio/pancake/OverlapWriterPAF.h',
+      'pacbio/pancake/OverlapWriterSAM.h',
+      'pacbio/pancake/Range.h',
+      'pacbio/pancake/Secondary.h',
+      'pacbio/pancake/Seed.h',
+      'pacbio/pancake/SeedHit.h',
+      'pacbio/pancake/SeedIndex.h',
+      'pacbio/pancake/SeedDBIndexCache.h',
+      'pacbio/pancake/SeedDBParameters.h',
+      'pacbio/pancake/SeedDBReader.h',
+      'pacbio/pancake/SeedDBReaderCached.h',
+      'pacbio/pancake/SeedDBReaderCachedBlock.h',
+      'pacbio/pancake/SeedDBReaderRawBlock.h',
+      'pacbio/pancake/SeedDBWriter.h',
+      'pacbio/pancake/SeqDBIndexCache.h',
+      'pacbio/pancake/SeqDBReader.h',
+      'pacbio/pancake/SeqDBReaderBase.h',
+      'pacbio/pancake/SeqDBReaderCached.h',
+      'pacbio/pancake/SeqDBReaderCachedBlock.h',
+      'pacbio/pancake/SeqDBWriter.h',
+      'pacbio/pancake/SeqDBWriterBase.h',
+      'pacbio/pancake/SequenceSeeds.h',
+      'pacbio/pancake/SequenceSeedsCached.h',
+      'pacbio/pancake/Twobit.h',
       ]),
       subdir : 'pacbio/pancake')
-
-  # pacbio/seeddb
-  install_headers(
-    files([
-      'pacbio/seeddb/Minimizers.h',
-      'pacbio/seeddb/Seed.h',
-      'pacbio/seeddb/SeedDBIndexCache.h',
-      'pacbio/seeddb/SeedDBParameters.h',
-      'pacbio/seeddb/SeedDBReader.h',
-      'pacbio/seeddb/SeedDBReaderCached.h',
-      'pacbio/seeddb/SeedDBReaderCachedBlock.h',
-      'pacbio/seeddb/SeedDBReaderRawBlock.h',
-      'pacbio/seeddb/SeedDBWriter.h',
-      'pacbio/seeddb/SequenceSeeds.h',
-      'pacbio/seeddb/SequenceSeedsCached.h',
-      ]),
-      subdir : 'pacbio/seeddb')
-
-  # pacbio/seqdb
-  install_headers(
-    files([
-      'pacbio/seqdb/CompressedSequence.h',
-      'pacbio/seqdb/FastaSequenceCached.h',
-      'pacbio/seqdb/FastaSequenceId.h',
-      'pacbio/seqdb/Lookups.h',
-      'pacbio/seqdb/Range.h',
-      'pacbio/seqdb/SeqDBIndexCache.h',
-      'pacbio/seqdb/SeqDBReader.h',
-      'pacbio/seqdb/SeqDBReaderBase.h',
-      'pacbio/seqdb/SeqDBReaderCached.h',
-      'pacbio/seqdb/SeqDBReaderCachedBlock.h',
-      'pacbio/seqdb/SeqDBWriter.h',
-      'pacbio/seqdb/SeqDBWriterBase.h',
-      'pacbio/seqdb/Twobit.h',
-      'pacbio/seqdb/Util.h',
-      ]),
-      subdir : 'pacbio/seqdb')
 
   # pacbio/alignment
   install_headers(
@@ -152,6 +139,7 @@ if not meson.is_subproject()
       'pacbio/util/FileIO.h',
       'pacbio/util/RunLengthEncoding.h',
       'pacbio/util/TicToc.h',
+      'pacbio/util/Util.h',
       ]),
       subdir : 'pacbio/util')
 

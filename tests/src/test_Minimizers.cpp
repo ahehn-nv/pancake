@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <pacbio/seeddb/Minimizers.h>
-#include <pacbio/seeddb/Seed.h>
+#include <pacbio/pancake/Minimizers.h>
+#include <pacbio/pancake/Seed.h>
 #include <pacbio/util/CommonTypes.h>
 // #include <iostream>
 

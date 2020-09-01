@@ -2,8 +2,8 @@
 
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
-#include <pacbio/seqdb/SeqDBReader.h>
-#include <pacbio/seqdb/SeqDBReaderCachedBlock.h>
+#include <pacbio/pancake/SeqDBReader.h>
+#include <pacbio/pancake/SeqDBReaderCachedBlock.h>
 #include <iostream>
 
 TEST(SeqDBReaderCachedBlock, BatchCompareWithSeqDBReader_UncompressedInput)

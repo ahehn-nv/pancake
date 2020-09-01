@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <pacbio/seqdb/Twobit.h>
+#include <pacbio/pancake/Twobit.h>
 #include <tuple>
 
 void HelperRoundTrip_DecompressCPPStyle(const std::string& inBases, int32_t numBases,

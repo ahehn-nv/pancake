@@ -2,8 +2,8 @@
 
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
-#include <pacbio/overlaphifi/SeedIndex.h>
-#include <pacbio/seeddb/Seed.h>
+#include <pacbio/pancake/Seed.h>
+#include <pacbio/pancake/SeedIndex.h>
 #include <pacbio/util/CommonTypes.h>
 #include <sstream>
 #include <tuple>

@@ -2,9 +2,9 @@
 
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
-#include <pacbio/seeddb/SeedDBReader.h>
-#include <pacbio/seeddb/SeedDBReaderCachedBlock.h>
-#include <pacbio/seeddb/SequenceSeeds.h>
+#include <pacbio/pancake/SeedDBReader.h>
+#include <pacbio/pancake/SeedDBReaderCachedBlock.h>
+#include <pacbio/pancake/SequenceSeeds.h>
 #include <pacbio/util/CommonTypes.h>
 #include <sstream>
 
