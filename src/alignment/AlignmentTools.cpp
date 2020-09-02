@@ -1080,8 +1080,11 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
                 if (matchCount >= minMatches &&
                     (clipOnFirstMatch == false ||
                      startOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH)) {
-                    // std::cerr << "Found a break! lastOpId = " << lastOpId
-                    //           << ", lastOpInternalId = " << lastOpInternalId << "\n";
+                    // std::cerr << "currWindowSize = " << currWindowSize
+                    //           << ", windowSize = " << windowSize << ", matchCount = " << matchCount
+                    //           << ", minMatches = " << minMatches << "\n";
+                    // std::cerr << "Found a break! lastOpId = " << startOpId
+                    //           << ", lastOpInternalId = " << startOpInternalId << "\n";
                     // foundOpRemaining =
                     //     PacBio::Data::CigarOperation(lastOpType, lastOpLen - lastOpInternalId);
                     foundOpId = startOpId;
