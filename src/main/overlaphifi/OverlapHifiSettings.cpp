@@ -281,6 +281,27 @@ R"({
     "type" : "double"
 })", OverlapHifiSettings::Defaults::SecondaryMinScoreFraction};
 
+const CLI_v2::Option TrimAlignment{
+R"({
+    "names" : ["trim"],
+    "description" : "Applies window-based trimming of the front and end of the alignment. Can be used only in combination with '--traceback'.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::TrimAlignment};
+
+const CLI_v2::Option TrimWindowSize{
+R"({
+    "names" : ["trim-window-size"],
+    "description" : "Window size for trimming.",
+    "type" : "int"
+})", OverlapHifiSettings::Defaults::TrimWindowSize};
+
+const CLI_v2::Option TrimWindowMatchFraction{
+R"({
+    "names" : ["trim-match-frac"],
+    "description" : "Minimum fraction in a trimming window of match bases to stop trimming.",
+    "type" : "double"
+})", OverlapHifiSettings::Defaults::TrimWindowMatchFraction};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -340,6 +361,9 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , MarkSecondary{options[OptionNames::MarkSecondary]}
     , SecondaryAllowedOverlapFraction{options[OptionNames::SecondaryAllowedOverlapFraction]}
     , SecondaryMinScoreFraction{options[OptionNames::SecondaryMinScoreFraction]}
+    , TrimAlignment{options[OptionNames::TrimAlignment]}
+    , TrimWindowSize{options[OptionNames::TrimWindowSize]}
+    , TrimWindowMatchFraction{options[OptionNames::TrimWindowMatchFraction]}
 {
     if ((NoSNPsInIdentity || NoIndelsInIdentity || MaskHomopolymers || MaskSimpleRepeats ||
          MaskHomopolymerSNPs || MaskHomopolymersArbitrary) &&
@@ -423,6 +447,9 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::MarkSecondary,
         OptionNames::SecondaryAllowedOverlapFraction,
         OptionNames::SecondaryMinScoreFraction,
+        OptionNames::TrimAlignment,
+        OptionNames::TrimWindowSize,
+        OptionNames::TrimWindowMatchFraction,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,
