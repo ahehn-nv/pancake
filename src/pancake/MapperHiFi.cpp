@@ -647,7 +647,7 @@ OverlapPtr Mapper::AlignOverlap_(
         int32_t clippedBackQuery = 0;
         int32_t clippedBackTarget = 0;
         TrimCigar(ret->Cigar, trimWindowSize, std::max(1.0, trimWindowSize * trimMatchFraction),
-                  newCigar, clippedFrontQuery, clippedFrontTarget, clippedBackQuery,
+                  true, newCigar, clippedFrontQuery, clippedFrontTarget, clippedBackQuery,
                   clippedBackTarget);
         ret->Astart += clippedFrontQuery;
         ret->Bstart += clippedFrontTarget;

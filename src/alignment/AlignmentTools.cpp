@@ -1014,9 +1014,9 @@ Data::Cigar NormalizeCigar(const char* query, int64_t queryLen, const char* targ
 }
 
 bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minMatches,
-               PacBio::BAM::Cigar& retTrimmedCigar, int32_t& retClippedFrontQuery,
-               int32_t& retClippedFrontTarget, int32_t& retClippedBackQuery,
-               int32_t& retClippedBackTarget)
+               bool clipOnFirstMatch, PacBio::BAM::Cigar& retTrimmedCigar,
+               int32_t& retClippedFrontQuery, int32_t& retClippedFrontTarget,
+               int32_t& retClippedBackQuery, int32_t& retClippedBackTarget)
 {
     // Reset the return values.
     retClippedFrontQuery = 0;
@@ -1031,7 +1031,7 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
     int32_t clippedBackTarget = 0;
 
     const auto ProcessCigarOp = [](const PacBio::BAM::Cigar& cigar, int32_t opId,
-                                   int32_t windowSize, int32_t minMatches,
+                                   int32_t windowSize, int32_t minMatches, bool clipOnFirstMatch,
                                    std::array<std::pair<int32_t, int32_t>, 512>& buff,
                                    int32_t& buffStart, int32_t& buffEnd, int32_t& matchCount,
                                    // PacBio::Data::CigarOperation& foundOpRemaining,
@@ -1074,12 +1074,12 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
                 const int32_t startOpId = windowOpPair.first;
                 const int32_t startOpInternalId = windowOpPair.second;
                 const auto startOpType = cigar[startOpId].Type();
-                const int32_t startOpLen = cigar[startOpId].Length();
                 buffStart = (buffStart + 1) % buffSize;
 
                 // Check if we found our target window.
-                if (startOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH &&
-                    matchCount >= minMatches) {
+                if (matchCount >= minMatches &&
+                    (clipOnFirstMatch == false ||
+                     startOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH)) {
                     // std::cerr << "Found a break! lastOpId = " << lastOpId
                     //           << ", lastOpInternalId = " << lastOpInternalId << "\n";
                     // foundOpRemaining =
@@ -1137,9 +1137,9 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
         bool foundGoodWindow = false;
 
         for (int32_t opId = 0; opId < static_cast<int32_t>(cigar.size()); ++opId) {
-            foundGoodWindow =
-                ProcessCigarOp(cigar, opId, windowSize, minMatches, buff, buffStart, buffEnd,
-                               matchCount, foundOpId, foundOpInternalId, posQuery, posTarget);
+            foundGoodWindow = ProcessCigarOp(cigar, opId, windowSize, minMatches, clipOnFirstMatch,
+                                             buff, buffStart, buffEnd, matchCount, foundOpId,
+                                             foundOpInternalId, posQuery, posTarget);
             if (foundGoodWindow) {
                 break;
             }
@@ -1174,9 +1174,9 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
         bool foundGoodWindow = false;
 
         for (int32_t opId = (static_cast<int32_t>(cigar.size()) - 1); opId >= 0; --opId) {
-            foundGoodWindow =
-                ProcessCigarOp(cigar, opId, windowSize, minMatches, buff, buffStart, buffEnd,
-                               matchCount, foundOpId, foundOpInternalId, posQuery, posTarget);
+            foundGoodWindow = ProcessCigarOp(cigar, opId, windowSize, minMatches, clipOnFirstMatch,
+                                             buff, buffStart, buffEnd, matchCount, foundOpId,
+                                             foundOpInternalId, posQuery, posTarget);
             if (foundGoodWindow) {
                 break;
             }

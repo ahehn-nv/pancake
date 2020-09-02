@@ -898,12 +898,12 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
 {
     // clang-format off
     // <cigar, windowSize, minMatches, expectedTrimmedCigar, expectedClippedFrontQuery, expectedClippedFrontTarget, expectedClippedBackQuery, expectedClippedBackTarget>
-    std::vector<std::tuple<std::string, std::string, int32_t, int32_t, std::string, int32_t, int32_t, int32_t, int32_t>> testData {
-        {"Empty input", "", 0, 0, "", 0, 0, 0, 0},
-        {"Left clipping, simple, mismatches. Clip smaller than buffer size.", "5X100=1I100=", 30, 15, "100=1I100=", 5, 5, 0, 0},
-        {"Left clipping, simple. Clip larger than buffer size.", "1000X100=1I100=", 30, 15, "100=1I100=", 1000, 1000, 0, 0},
-        {"Left clipping, simple, insertions.", "100I100=1I100=", 30, 15, "100=1I100=", 100, 0, 0, 0},
-        {"Left clipping, simple, deletions.", "100D100=1I100=", 30, 15, "100=1I100=", 0, 100, 0, 0},
+    std::vector<std::tuple<std::string, std::string, int32_t, int32_t, bool, std::string, int32_t, int32_t, int32_t, int32_t>> testData {
+        {"Empty input", "", 0, 0, true, "", 0, 0, 0, 0},
+        {"Left clipping, simple, mismatches. Clip smaller than buffer size.", "5X100=1I100=", 30, 15, true, "100=1I100=", 5, 5, 0, 0},
+        {"Left clipping, simple. Clip larger than buffer size.", "1000X100=1I100=", 30, 15, true, "100=1I100=", 1000, 1000, 0, 0},
+        {"Left clipping, simple, insertions.", "100I100=1I100=", 30, 15, true, "100=1I100=", 100, 0, 0, 0},
+        {"Left clipping, simple, deletions.", "100D100=1I100=", 30, 15, true, "100=1I100=", 0, 100, 0, 0},
 
         /*
            Maches:     1     3     4        5     7     12    14    15    16
@@ -925,26 +925,26 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
                             Window: 8= and 7!=
 
         */
-        {"Left clipping, simple, mixed ops.", "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 15, 8, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 2, 3, 0, 0},
+        {"Left clipping, simple, mixed ops.", "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 15, 8, true, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 2, 3, 0, 0},
 
         /*
             These are completely symmetric to the left-clipping test case.
         */
-        {"Right clipping, simple. Clip larger than buffer size.", "100=1I100=1000X", 30, 15, "100=1I100=", 0, 0, 1000, 1000},
-        {"Right clipping, simple, insertions.", "100=1I100=100I", 30, 15, "100=1I100=", 0, 0, 100, 0},
-        {"Right clipping, simple, deletions.", "100=1I100=100D", 30, 15, "100=1I100=", 0, 0, 0, 100},
-        {"Right clipping, simple, mixed ops.", "100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=1D1=1X", 15, 8, "100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=", 0, 0, 2, 3},
+        {"Right clipping, simple. Clip larger than buffer size.", "100=1I100=1000X", 30, 15, true, "100=1I100=", 0, 0, 1000, 1000},
+        {"Right clipping, simple, insertions.", "100=1I100=100I", 30, 15, true, "100=1I100=", 0, 0, 100, 0},
+        {"Right clipping, simple, deletions.", "100=1I100=100D", 30, 15, true, "100=1I100=", 0, 0, 0, 100},
+        {"Right clipping, simple, mixed ops.", "100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=1D1=1X", 15, 8, true, "100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=", 0, 0, 2, 3},
 
         /*
             This has the same ops, symetrically, on the left and on the right.
         */
-        {"Mixed clipping, simple, mixed ops.", "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=1D1=1X", 15, 8, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=", 2, 3, 2, 3},
+        {"Mixed clipping, simple, mixed ops.", "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=1D1=1X", 15, 8, true, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=", 2, 3, 2, 3},
 
-        {"Remove leading errors.", "1I1000=", 30, 15, "1000=", 1, 0, 0, 0},
-        {"Remove trailing errors.", "1000=1X", 30, 15, "1000=", 0, 0, 1, 1},
-        {"Remove leading and trailing errors.", "1I1000=1X", 30, 15, "1000=", 1, 0, 1, 1},
+        {"Remove leading errors.", "1I1000=", 30, 15, true, "1000=", 1, 0, 0, 0},
+        {"Remove trailing errors.", "1000=1X", 30, 15, true, "1000=", 0, 0, 1, 1},
+        {"Remove leading and trailing errors.", "1I1000=1X", 30, 15, true, "1000=", 1, 0, 1, 1},
 
-        {"Completely bad alignment.", "1000X", 30, 15, "", 0, 0, 0, 0},
+        {"Completely bad alignment.", "1000X", 30, 15, true, "", 0, 0, 0, 0},
 
     };
     // clang-format on
@@ -955,13 +955,14 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
         const PacBio::BAM::Cigar cigar(std::get<1>(data));
         const int32_t windowSize = std::get<2>(data);
         const int32_t minMatches = std::get<3>(data);
+        const bool clipOnFirstMatch = std::get<4>(data);
         // const PacBio::BAM::Cigar expectedTrimmedCigar(std::get<4>(data));
         // Keep the expected Cigar as string so that we can easily see the diff.
-        const std::string expectedTrimmedCigar(std::get<4>(data));
-        const int32_t expectedClippedFrontQuery = std::get<5>(data);
-        const int32_t expectedClippedFrontTarget = std::get<6>(data);
-        const int32_t expectedClippedBackQuery = std::get<7>(data);
-        const int32_t expectedClippedBackTarget = std::get<8>(data);
+        const std::string expectedTrimmedCigar(std::get<5>(data));
+        const int32_t expectedClippedFrontQuery = std::get<6>(data);
+        const int32_t expectedClippedFrontTarget = std::get<7>(data);
+        const int32_t expectedClippedBackQuery = std::get<8>(data);
+        const int32_t expectedClippedBackTarget = std::get<9>(data);
 
         // Name the test.
         SCOPED_TRACE("TrimCigar-" + testName);
@@ -973,7 +974,7 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
         int32_t resultsClippedBackQuery = 0;
         int32_t resultsClippedBackTarget = 0;
 
-        PacBio::Pancake::TrimCigar(cigar, windowSize, minMatches, resultsCigar,
+        PacBio::Pancake::TrimCigar(cigar, windowSize, minMatches, clipOnFirstMatch, resultsCigar,
                                    resultsClippedFrontQuery, resultsClippedFrontTarget,
                                    resultsClippedBackQuery, resultsClippedBackTarget);
 
