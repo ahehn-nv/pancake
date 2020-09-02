@@ -106,7 +106,8 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
         settings_.AlignmentMaxD, settings_.UseTraceback, settings_.NoSNPsInIdentity,
         settings_.NoIndelsInIdentity, settings_.MaskHomopolymers, settings_.MaskSimpleRepeats,
         settings_.MaskHomopolymerSNPs, settings_.MaskHomopolymersArbitrary, settings_.TrimAlignment,
-        settings_.TrimWindowSize, settings_.TrimWindowMatchFraction, sesScratch_);
+        settings_.TrimWindowSize, settings_.TrimWindowMatchFraction, settings_.TrimToFirstMatch,
+        sesScratch_);
     ttAlign.Stop();
 
     TicToc ttMarkSecondary;
@@ -412,18 +413,18 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff,
     bool useTraceback, bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
     bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary, bool trimAlignment,
-    int32_t trimWindowSize, double trimMatchFraction,
+    int32_t trimWindowSize, double trimMatchFraction, bool trimToFirstMatch,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
     std::vector<OverlapPtr> ret;
 
     for (size_t i = 0; i < overlaps.size(); ++i) {
         const auto& targetSeq = targetSeqs.GetSequence(overlaps[i]->Bid);
-        OverlapPtr newOverlap =
-            AlignOverlap_(targetSeq, querySeq, reverseQuerySeq, overlaps[i], alignBandwidth,
-                          alignMaxDiff, useTraceback, noSNPs, noIndels, maskHomopolymers,
-                          maskSimpleRepeats, maskHomopolymerSNPs, maskHomopolymersArbitrary,
-                          trimAlignment, trimWindowSize, trimMatchFraction, sesScratch);
+        OverlapPtr newOverlap = AlignOverlap_(
+            targetSeq, querySeq, reverseQuerySeq, overlaps[i], alignBandwidth, alignMaxDiff,
+            useTraceback, noSNPs, noIndels, maskHomopolymers, maskSimpleRepeats,
+            maskHomopolymerSNPs, maskHomopolymersArbitrary, trimAlignment, trimWindowSize,
+            trimMatchFraction, trimToFirstMatch, sesScratch);
         if (newOverlap != nullptr) {
             ret.emplace_back(std::move(newOverlap));
         }
@@ -495,7 +496,7 @@ OverlapPtr Mapper::AlignOverlap_(
     const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTraceback,
     bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
     bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary, bool trimAlignment,
-    int32_t trimWindowSize, double trimMatchFraction,
+    int32_t trimWindowSize, double trimMatchFraction, bool trimToFirstMatch,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
 
@@ -647,8 +648,8 @@ OverlapPtr Mapper::AlignOverlap_(
         int32_t clippedBackQuery = 0;
         int32_t clippedBackTarget = 0;
         TrimCigar(ret->Cigar, trimWindowSize, std::max(1.0, trimWindowSize * trimMatchFraction),
-                  true, newCigar, clippedFrontQuery, clippedFrontTarget, clippedBackQuery,
-                  clippedBackTarget);
+                  trimToFirstMatch, newCigar, clippedFrontQuery, clippedFrontTarget,
+                  clippedBackQuery, clippedBackTarget);
         ret->Astart += clippedFrontQuery;
         ret->Bstart += clippedFrontTarget;
         ret->Aend -= clippedBackQuery;
