@@ -57,7 +57,7 @@ struct OverlapHifiSettings
         static constexpr double SecondaryMinScoreFraction = 0.80;
         static const bool TrimAlignment = false;
         static const int32_t TrimWindowSize = 30;
-        static constexpr double TrimWindowMatchFraction = 0.50;
+        static constexpr double TrimWindowMatchFraction = 0.75;
     };
 
     std::string TargetDBPrefix;
