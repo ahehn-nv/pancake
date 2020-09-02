@@ -57,9 +57,10 @@ Data::Cigar ConvertM5ToCigar(const std::string& queryAln, const std::string& tar
 Data::Cigar NormalizeCigar(const char* query, int64_t queryLen, const char* target,
                            int64_t targetLen, const Data::Cigar& cigar);
 
-void TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minMatches,
-               PacBio::BAM::Cigar& trimmedCigar, int32_t& clippedFrontQuery,
-               int32_t& clippedFrontTarget, int32_t& clippedBackQuery, int32_t& clippedBackTarget);
+bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minMatches,
+               PacBio::BAM::Cigar& retTrimmedCigar, int32_t& retClippedFrontQuery,
+               int32_t& retClippedFrontTarget, int32_t& retClippedBackQuery,
+               int32_t& retClippedBackTarget);
 
 }  // namespace Pancake
 }  // namespace PacBio
