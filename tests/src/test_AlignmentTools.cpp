@@ -903,8 +903,24 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
 
         {"Completely bad alignment.", "1000X", 30, 15, true, "", 0, 0, 0, 0},
         {"Remove leading errors.", "1I1000=", 30, 15, true, "1000=", 1, 0, 0, 0},
-        {"Remove trailing errors.", "1000=1X", 30, 15, true, "1000=", 0, 0, 1, 1},
+        {"Remove trailing errors, trim to match.", "1000=1X", 30, 15, true, "1000=", 0, 0, 1, 1},
+        {"Remove trailing errors, trim to any op.", "1000=1X", 30, 15, false, "1000=1X", 0, 0, 0, 0},
+        {"Remove leading errors, trim to match.", "1X1000=", 30, 15, true, "1000=", 1, 1, 0, 0},
+        {"Remove leading errors, trim to any op.", "1X1000=", 30, 15, false, "1X1000=", 0, 0, 0, 0},
         {"Remove leading and trailing errors.", "1I1000=1X", 30, 15, true, "1000=", 1, 0, 1, 1},
+
+        {"Remove trailing errors with mixed matches, trim to match.", "1000=1X1=1X", 30, 15, true, "1000=1X1=", 0, 0, 1, 1},
+        {"Remove trailing errors with mixed matches, trim to any op.", "1000=1X1=1X", 30, 15, false, "1000=1X1=1X", 0, 0, 0, 0},
+
+        {"Large match portion followed with a trailing 1D. Trim to first match.", "5026=1D", 30, 15, true, "5026=", 0, 0, 0, 1},
+        {"Large match portion followed with a trailing 1D. Trim to non-match ops allowed.", "5026=1D", 30, 15, false, "5026=1D", 0, 0, 0, 0},
+        {"Large match portion prefixed with a leading 1D. Trim to first match.", "1D5026=", 30, 15, true, "5026=", 0, 1, 0, 0},
+        {"Large match portion prefixed with a leading 1D. Trim to non-match ops allowed.", "1D5026=", 30, 15, false, "1D5026=", 0, 0, 0, 0},
+
+        {"Large match portion followed with a trailing 1I. Trim to first match.", "5026=1I", 30, 15, true, "5026=", 0, 0, 1, 0},
+        {"Large match portion followed with a trailing 1I. Trim to non-match ops allowed.", "5026=1I", 30, 15, false, "5026=1I", 0, 0, 0, 0},
+        {"Large match portion prefixed with a leading 1I. Trim to first match.", "1I5026=", 30, 15, true, "5026=", 1, 0, 0, 0},
+        {"Large match portion prefixed with a leading 1I. Trim to non-match ops allowed.", "1I5026=", 30, 15, false, "1I5026=", 0, 0, 0, 0},
 
         /*
             These test clipping on the right side.
@@ -1017,7 +1033,6 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
         const int32_t windowSize = std::get<2>(data);
         const int32_t minMatches = std::get<3>(data);
         const bool clipOnFirstMatch = std::get<4>(data);
-        // const PacBio::BAM::Cigar expectedTrimmedCigar(std::get<4>(data));
         // Keep the expected Cigar as string so that we can easily see the diff.
         const std::string expectedTrimmedCigar(std::get<5>(data));
         const int32_t expectedClippedFrontQuery = std::get<6>(data);
@@ -1027,7 +1042,7 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
 
         // Name the test.
         SCOPED_TRACE("TrimCigar-" + testName);
-        std::cerr << testName << "\n";
+        std::cerr << "\n" << testName << "\n";
 
         PacBio::BAM::Cigar resultsCigar;
         int32_t resultsClippedFrontQuery = 0;
