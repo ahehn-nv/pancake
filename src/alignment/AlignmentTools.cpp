@@ -1079,8 +1079,9 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
                 // Check if we found our target window.
                 if (matchCount >= minMatches &&
                     (clipOnFirstMatch == false ||
-                     startOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH)) {
-                    // std::cerr << "currWindowSize = " << currWindowSize
+                     (clipOnFirstMatch &&
+                      startOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH))) {
+                    // std::cerr << "[i = " << i << "] currWindowSize = " << currWindowSize
                     //           << ", windowSize = " << windowSize << ", matchCount = " << matchCount
                     //           << ", minMatches = " << minMatches << "\n";
                     // std::cerr << "Found a break! lastOpId = " << startOpId
@@ -1128,6 +1129,11 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
     PacBio::Data::CigarOperation suffixOp;
     int32_t infixOpIdEnd = 0;
 
+    int32_t prefixOpId = 0;
+    int32_t prefixOpInternalId = 0;
+    int32_t suffixOpId = 0;
+    int32_t suffixOpInternalId = 0;
+
     // Find clipping of the front part.
     {
         int32_t buffStart = 0;
@@ -1158,6 +1164,8 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
         // separately, as a "prefixOp". Other operations (except the last one) will be included
         // in their entirety. These are called "infix" operations.
         const auto& foundOp = cigar[foundOpId];
+        prefixOpId = foundOpId;
+        prefixOpInternalId = foundOpInternalId;
         prefixOp = PacBio::Data::CigarOperation(
             foundOp.Type(), static_cast<int32_t>(foundOp.Length()) - foundOpInternalId);
         infixOpIdStart = foundOpId + 1;
@@ -1195,8 +1203,9 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
         // separately, as a "suffixOp". Other operations (except the first one) will be included
         // in their entirety. These are called "infix" operations.
         const auto& foundOp = cigar[foundOpId];
-        suffixOp = PacBio::Data::CigarOperation(
-            foundOp.Type(), static_cast<int32_t>(foundOp.Length()) - foundOpInternalId);
+        suffixOpId = foundOpId;
+        suffixOpInternalId = static_cast<int32_t>(foundOp.Length()) - foundOpInternalId;
+        suffixOp = PacBio::Data::CigarOperation(foundOp.Type(), suffixOpInternalId);
         infixOpIdEnd = foundOpId;
         clippedBackQuery = posQuery;
         clippedBackTarget = posTarget;
@@ -1204,12 +1213,21 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
 
     // Create the new trimmed CIGAR string.
     retTrimmedCigar.clear();
-    if (prefixOp.Length() > 0) {
-        retTrimmedCigar.emplace_back(prefixOp);
-    }
-    if (infixOpIdEnd > infixOpIdStart) {
-        retTrimmedCigar.insert(retTrimmedCigar.end(), cigar.begin() + infixOpIdStart,
-                               cigar.begin() + infixOpIdEnd);
+    if (prefixOpId == suffixOpId) {
+        // There is no infix and start and end operation are the same.
+        const auto& foundOp = cigar[prefixOpId];
+        auto newOp =
+            PacBio::Data::CigarOperation(foundOp.Type(), suffixOpInternalId - prefixOpInternalId);
+        retTrimmedCigar.emplace_back(newOp);
+
+    } else {
+        if (prefixOp.Length() > 0) {
+            retTrimmedCigar.emplace_back(prefixOp);
+        }
+        if (infixOpIdEnd > infixOpIdStart) {
+            retTrimmedCigar.insert(retTrimmedCigar.end(), cigar.begin() + infixOpIdStart,
+                                   cigar.begin() + infixOpIdEnd);
+        }
         if (suffixOp.Length() > 0) {
             retTrimmedCigar.emplace_back(suffixOp);
         }
