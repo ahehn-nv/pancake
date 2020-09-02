@@ -302,6 +302,13 @@ R"({
     "type" : "double"
 })", OverlapHifiSettings::Defaults::TrimWindowMatchFraction};
 
+const CLI_v2::Option TrimToFirstMatch{
+R"({
+    "names" : ["trim-to-first-match"],
+    "description" : "When trimming is applied, this option ensures that the first non-trimmed base will be a match operation. Can be used only in combination with '--trim'.",
+    "type" : "bool"
+})", OverlapHifiSettings::Defaults::TrimToFirstMatch};
+
 // clang-format on
 
 }  // namespace OptionNames
@@ -364,6 +371,7 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     , TrimAlignment{options[OptionNames::TrimAlignment]}
     , TrimWindowSize{options[OptionNames::TrimWindowSize]}
     , TrimWindowMatchFraction{options[OptionNames::TrimWindowMatchFraction]}
+    , TrimToFirstMatch{options[OptionNames::TrimToFirstMatch]}
 {
     if ((NoSNPsInIdentity || NoIndelsInIdentity || MaskHomopolymers || MaskSimpleRepeats ||
          MaskHomopolymerSNPs || MaskHomopolymersArbitrary) &&
@@ -401,6 +409,11 @@ OverlapHifiSettings::OverlapHifiSettings(const PacBio::CLI_v2::Results& options)
     if (static_cast<bool>(options[OptionNames::SkipSymmetricOverlaps]) &&
         QueryDBPrefix == TargetDBPrefix) {
         SkipSymmetricOverlaps = true;
+    }
+
+    if (TrimToFirstMatch == true && TrimAlignment == false) {
+        throw std::runtime_error(
+            "The '--trim-to-first-match' option can only be used when '--trim' is specified.");
     }
 }
 
@@ -450,6 +463,7 @@ PacBio::CLI_v2::Interface OverlapHifiSettings::CreateCLI()
         OptionNames::TrimAlignment,
         OptionNames::TrimWindowSize,
         OptionNames::TrimWindowMatchFraction,
+        OptionNames::TrimToFirstMatch,
     });
     i.AddPositionalArguments({
         OptionNames::TargetDBPrefix,

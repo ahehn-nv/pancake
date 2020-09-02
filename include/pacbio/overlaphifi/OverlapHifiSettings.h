@@ -58,6 +58,7 @@ struct OverlapHifiSettings
         static const bool TrimAlignment = false;
         static const int32_t TrimWindowSize = 30;
         static constexpr double TrimWindowMatchFraction = 0.75;
+        static const bool TrimToFirstMatch = false;
     };
 
     std::string TargetDBPrefix;
@@ -105,6 +106,7 @@ struct OverlapHifiSettings
     bool TrimAlignment = Defaults::TrimAlignment;
     int32_t TrimWindowSize = Defaults::TrimWindowSize;
     double TrimWindowMatchFraction = Defaults::TrimWindowMatchFraction;
+    bool TrimToFirstMatch = Defaults::TrimToFirstMatch;
 
     OverlapHifiSettings();
     OverlapHifiSettings(const PacBio::CLI_v2::Results& options);
