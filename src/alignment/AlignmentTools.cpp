@@ -4,8 +4,6 @@
 
 #include <array>
 #include <cstring>
-#include <deque>
-#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -1013,11 +1011,22 @@ Data::Cigar NormalizeCigar(const char* query, int64_t queryLen, const char* targ
     return PacBio::Pancake::ConvertM5ToCigar(queryAln, targetAln);
 }
 
-bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minMatches,
-               bool clipOnFirstMatch, PacBio::BAM::Cigar& retTrimmedCigar,
+bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const int32_t minMatches,
+               const bool clipOnFirstMatch, PacBio::BAM::Cigar& retTrimmedCigar,
                int32_t& retClippedFrontQuery, int32_t& retClippedFrontTarget,
                int32_t& retClippedBackQuery, int32_t& retClippedBackTarget)
 {
+    // Hardcode the max window size so that we can allocate on stack.
+    static const int32_t MAX_WINDOW_SIZE = 512;
+
+    // Sanity check.
+    if (windowSize >= MAX_WINDOW_SIZE) {
+        std::ostringstream oss;
+        oss << "Too large window size. Requested: " << windowSize
+            << ", max allowed: " << MAX_WINDOW_SIZE;
+        throw std::runtime_error(oss.str());
+    }
+
     // Reset the return values.
     retClippedFrontQuery = 0;
     retClippedFrontTarget = 0;
@@ -1030,8 +1039,9 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
     int32_t clippedBackQuery = 0;
     int32_t clippedBackTarget = 0;
 
-    const auto ProcessCigarOp = [](const PacBio::BAM::Cigar& cigar, int32_t opId,
-                                   int32_t windowSize, int32_t minMatches, bool clipOnFirstMatch,
+    const auto ProcessCigarOp = [](const PacBio::BAM::Cigar& cigar, const int32_t opId,
+                                   const int32_t windowSize, const int32_t minMatches,
+                                   const bool clipOnFirstMatch,
                                    std::array<std::pair<int32_t, int32_t>, 512>& buff,
                                    int32_t& buffStart, int32_t& buffEnd, int32_t& matchCount,
                                    // PacBio::Data::CigarOperation& foundOpRemaining,
@@ -1042,7 +1052,7 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
          * The circular buffer represents the window.
          * Every base of the CIGAR event is processed and added separately to the window, and the
          * amount of matches in the window are maintained.
-         * Once the window is filled to it's size, we check if it's valid or it needs to be trimmed.
+         * Once the window is filled to its size, we check if it is valid or it needs to be trimmed.
          * \returns true if a valid window was found. Also, the ID of the CIGAR operation and the
          *          internal ID of that CIGAR operation are returned via parameters.
         */
@@ -1054,21 +1064,8 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
             const int32_t currWindowSize =
                 (buffEnd >= buffStart) ? (buffEnd - buffStart) : (buffSize - buffStart + buffEnd);
 
-            // std::cerr << "[opId = " << opId << ", i = " << i
-            //           << "] currWindowSize = " << currWindowSize << ", buffStart = " << buffStart
-            //           << ", buffEnd = " << buffEnd << ", buffSize = " << buffSize
-            //           << ", buff[buffStart].opId = " << buff[buffStart].first
-            //           << ", buff[buffStart].opInternalId = " << buff[buffStart].second
-            //           << ", buff[buffStart].opType = "
-            //           << cigar[buff[buffStart].first].TypeToChar(
-            //                  cigar[buff[buffStart].first].Type())
-            //           << ", matchCount = " << matchCount << ", posQuery = " << posQuery
-            //           << ", posTarget = " << posTarget << "\n";
             // This happens only after the window has been filled.
             if (currWindowSize >= windowSize) {
-                // std::cerr << "Window full and sliding.\n";
-                // const uint64_t lastBit = (winBuffer & lastBitMask) ? 1 : 0;
-
                 // Get the start operation, which will be pushed outside of the window.
                 const auto& windowOpPair = buff[buffStart];
                 const int32_t startOpId = windowOpPair.first;
@@ -1081,13 +1078,6 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
                     (clipOnFirstMatch == false ||
                      (clipOnFirstMatch &&
                       startOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH))) {
-                    // std::cerr << "[i = " << i << "] currWindowSize = " << currWindowSize
-                    //           << ", windowSize = " << windowSize << ", matchCount = " << matchCount
-                    //           << ", minMatches = " << minMatches << "\n";
-                    // std::cerr << "Found a break! lastOpId = " << startOpId
-                    //           << ", lastOpInternalId = " << startOpInternalId << "\n";
-                    // foundOpRemaining =
-                    //     PacBio::Data::CigarOperation(lastOpType, lastOpLen - lastOpInternalId);
                     foundOpId = startOpId;
                     foundOpInternalId = startOpInternalId;
                     return true;
@@ -1106,6 +1096,10 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
                     ++posQuery;
                 } else if (startOpType == PacBio::BAM::CigarOperationType::DELETION) {
                     ++posTarget;
+                } else {
+                    throw std::runtime_error(
+                        "Unsupported CIGAR operation when trimming the alignment: '" +
+                        Data::CigarOperation::TypeToChar(startOpType) + "'");
                 }
             }
 
@@ -1121,7 +1115,7 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
     };
 
     // Circular buffer.
-    std::array<std::pair<int32_t, int32_t>, 512> buff;
+    std::array<std::pair<int32_t, int32_t>, MAX_WINDOW_SIZE> buff;
 
     // Clipping information.
     PacBio::Data::CigarOperation prefixOp;
@@ -1155,7 +1149,7 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
         }
 
         // If we cannot find a good window, just return.
-        // This means that we looped through the entire CIGAR string, and it was bad in it's entirety.
+        // This means that we looped through the entire CIGAR string, and it was bad in its entirety.
         if (foundGoodWindow == false) {
             return false;
         }
