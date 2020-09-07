@@ -643,17 +643,13 @@ OverlapPtr Mapper::AlignOverlap_(
 
     if (trimAlignment && ret->Cigar.size() > 0) {
         PacBio::BAM::Cigar newCigar;
-        int32_t clippedFrontQuery = 0;
-        int32_t clippedFrontTarget = 0;
-        int32_t clippedBackQuery = 0;
-        int32_t clippedBackTarget = 0;
+        TrimmingInfo trimInfo;
         TrimCigar(ret->Cigar, trimWindowSize, std::max(1.0, trimWindowSize * trimMatchFraction),
-                  trimToFirstMatch, newCigar, clippedFrontQuery, clippedFrontTarget,
-                  clippedBackQuery, clippedBackTarget);
-        ret->Astart += clippedFrontQuery;
-        ret->Bstart += clippedFrontTarget;
-        ret->Aend -= clippedBackQuery;
-        ret->Bend -= clippedBackTarget;
+                  trimToFirstMatch, newCigar, trimInfo);
+        ret->Astart += trimInfo.queryFront;
+        ret->Bstart += trimInfo.targetFront;
+        ret->Aend -= trimInfo.queryBack;
+        ret->Bend -= trimInfo.targetBack;
         std::swap(ret->Cigar, newCigar);
     }
 

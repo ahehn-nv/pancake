@@ -1013,8 +1013,7 @@ Data::Cigar NormalizeCigar(const char* query, int64_t queryLen, const char* targ
 
 bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const int32_t minMatches,
                const bool clipOnFirstMatch, PacBio::BAM::Cigar& retTrimmedCigar,
-               int32_t& retClippedFrontQuery, int32_t& retClippedFrontTarget,
-               int32_t& retClippedBackQuery, int32_t& retClippedBackTarget)
+               TrimmingInfo& retTrimming)
 {
     // Hardcode the max window size so that we can allocate on stack.
     static const int32_t MAX_WINDOW_SIZE = 512;
@@ -1028,16 +1027,11 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
     }
 
     // Reset the return values.
-    retClippedFrontQuery = 0;
-    retClippedFrontTarget = 0;
-    retClippedBackQuery = 0;
-    retClippedBackTarget = 0;
+    retTrimming = TrimmingInfo();
     retTrimmedCigar.clear();
 
-    int32_t clippedFrontQuery = 0;
-    int32_t clippedFrontTarget = 0;
-    int32_t clippedBackQuery = 0;
-    int32_t clippedBackTarget = 0;
+    // Tempoprary storage until the end, so that we don't return partial results.
+    TrimmingInfo trimInfo;
 
     const auto ProcessCigarOp = [](const PacBio::BAM::Cigar& cigar, const int32_t opId,
                                    const int32_t windowSize, const int32_t minMatches,
@@ -1099,7 +1093,7 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
                 } else {
                     throw std::runtime_error(
                         "Unsupported CIGAR operation when trimming the alignment: '" +
-                        Data::CigarOperation::TypeToChar(startOpType) + "'");
+                        std::string(Data::CigarOperation::TypeToChar(startOpType), 1) + "'");
                 }
             }
 
@@ -1163,8 +1157,8 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
         prefixOp = PacBio::Data::CigarOperation(
             foundOp.Type(), static_cast<int32_t>(foundOp.Length()) - foundOpInternalId);
         infixOpIdStart = foundOpId + 1;
-        clippedFrontQuery = posQuery;
-        clippedFrontTarget = posTarget;
+        trimInfo.queryFront = posQuery;
+        trimInfo.targetFront = posTarget;
     }
 
     // Find clipping of the back part.
@@ -1201,8 +1195,8 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
         suffixOpInternalId = static_cast<int32_t>(foundOp.Length()) - foundOpInternalId;
         suffixOp = PacBio::Data::CigarOperation(foundOp.Type(), suffixOpInternalId);
         infixOpIdEnd = foundOpId;
-        clippedBackQuery = posQuery;
-        clippedBackTarget = posTarget;
+        trimInfo.queryBack = posQuery;
+        trimInfo.targetBack = posTarget;
     }
 
     // Create the new trimmed CIGAR string.
@@ -1228,10 +1222,7 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
     }
 
     // Set the clipping results.
-    retClippedFrontQuery = clippedFrontQuery;
-    retClippedFrontTarget = clippedFrontTarget;
-    retClippedBackQuery = clippedBackQuery;
-    retClippedBackTarget = clippedBackTarget;
+    retTrimming = trimInfo;
 
     return true;
 }
