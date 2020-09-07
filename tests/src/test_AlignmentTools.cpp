@@ -1043,4 +1043,47 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
         EXPECT_EQ(expectedTrimmingInfo, resultsTrimming);
     }
 }
+
+TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests_ShouldThrow)
+{
+    // clang-format off
+    std::vector<std::tuple<std::string, std::string, int32_t, int32_t, bool, bool, std::string, PacBio::Pancake::TrimmingInfo>> testData {
+        {"Window size is too large, 1000bp and max is 512bp.", "1I1000=", 1000, 15, true, true, "1000=", {1, 0, 0, 0}},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const std::string testName = std::get<0>(data);
+        const PacBio::BAM::Cigar cigar(std::get<1>(data));
+        const int32_t windowSize = std::get<2>(data);
+        const int32_t minMatches = std::get<3>(data);
+        const bool clipOnFirstMatch = std::get<4>(data);
+        // Keep the expected Cigar as string so that we can easily see the diff.
+        const bool exptectedThrow = std::get<5>(data);
+        const std::string expectedTrimmedCigar(std::get<6>(data));
+        const auto& expectedTrimmingInfo = std::get<7>(data);
+
+        // Name the test.
+        SCOPED_TRACE("TrimCigar-" + testName);
+
+        PacBio::BAM::Cigar resultsCigar;
+        TrimmingInfo resultsTrimming;
+
+        if (exptectedThrow) {
+            EXPECT_THROW(
+                {
+                    PacBio::Pancake::TrimCigar(cigar, windowSize, minMatches, clipOnFirstMatch,
+                                               resultsCigar, resultsTrimming);
+                },
+                std::runtime_error);
+
+        } else {
+            PacBio::Pancake::TrimCigar(cigar, windowSize, minMatches, clipOnFirstMatch,
+                                       resultsCigar, resultsTrimming);
+            EXPECT_EQ(expectedTrimmedCigar, resultsCigar.ToStdString());
+            EXPECT_EQ(expectedTrimmingInfo, resultsTrimming);
+        }
+    }
+}
 }
