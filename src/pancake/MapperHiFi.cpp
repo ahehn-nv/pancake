@@ -105,7 +105,9 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
         targetSeqs, querySeq, reverseQuerySeq, overlaps, settings_.AlignmentBandwidth,
         settings_.AlignmentMaxD, settings_.UseTraceback, settings_.NoSNPsInIdentity,
         settings_.NoIndelsInIdentity, settings_.MaskHomopolymers, settings_.MaskSimpleRepeats,
-        settings_.MaskHomopolymerSNPs, settings_.MaskHomopolymersArbitrary, sesScratch_);
+        settings_.MaskHomopolymerSNPs, settings_.MaskHomopolymersArbitrary, settings_.TrimAlignment,
+        settings_.TrimWindowSize, settings_.TrimWindowMatchFraction, settings_.TrimToFirstMatch,
+        sesScratch_);
     ttAlign.Stop();
 
     TicToc ttMarkSecondary;
@@ -410,7 +412,8 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
     const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff,
     bool useTraceback, bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
-    bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary,
+    bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary, bool trimAlignment,
+    int32_t trimWindowSize, double trimMatchFraction, bool trimToFirstMatch,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
     std::vector<OverlapPtr> ret;
@@ -420,7 +423,8 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
         OverlapPtr newOverlap = AlignOverlap_(
             targetSeq, querySeq, reverseQuerySeq, overlaps[i], alignBandwidth, alignMaxDiff,
             useTraceback, noSNPs, noIndels, maskHomopolymers, maskSimpleRepeats,
-            maskHomopolymerSNPs, maskHomopolymersArbitrary, sesScratch);
+            maskHomopolymerSNPs, maskHomopolymersArbitrary, trimAlignment, trimWindowSize,
+            trimMatchFraction, trimToFirstMatch, sesScratch);
         if (newOverlap != nullptr) {
             ret.emplace_back(std::move(newOverlap));
         }
@@ -491,7 +495,8 @@ OverlapPtr Mapper::AlignOverlap_(
     const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
     const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTraceback,
     bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
-    bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary,
+    bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary, bool trimAlignment,
+    int32_t trimWindowSize, double trimMatchFraction, bool trimToFirstMatch,
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch)
 {
 
@@ -634,6 +639,18 @@ OverlapPtr Mapper::AlignOverlap_(
                       sesResultRight.cigar.front().Length());
         ret->Cigar.insert(ret->Cigar.end(), sesResultRight.cigar.begin() + 1,
                           sesResultRight.cigar.end());
+    }
+
+    if (trimAlignment && ret->Cigar.size() > 0) {
+        PacBio::BAM::Cigar newCigar;
+        TrimmingInfo trimInfo;
+        TrimCigar(ret->Cigar, trimWindowSize, std::max(1.0, trimWindowSize * trimMatchFraction),
+                  trimToFirstMatch, newCigar, trimInfo);
+        ret->Astart += trimInfo.queryFront;
+        ret->Bstart += trimInfo.targetFront;
+        ret->Aend -= trimInfo.queryBack;
+        ret->Bend -= trimInfo.targetBack;
+        std::swap(ret->Cigar, newCigar);
     }
 
     NormalizeAndExtractVariantsInPlace_(ret, targetSeq, querySeq, reverseQuerySeq, noSNPs, noIndels,

@@ -10,6 +10,19 @@
 namespace PacBio {
 namespace Pancake {
 
+struct TrimmingInfo
+{
+    int32_t queryFront = 0;
+    int32_t targetFront = 0;
+    int32_t queryBack = 0;
+    int32_t targetBack = 0;
+};
+inline bool operator==(const TrimmingInfo& lhs, const TrimmingInfo& rhs)
+{
+    return lhs.queryFront == rhs.queryFront && lhs.queryBack == rhs.queryBack &&
+           lhs.targetFront == rhs.targetFront && lhs.targetBack == rhs.targetBack;
+}
+
 PacBio::BAM::Cigar EdlibAlignmentToCigar(const unsigned char* aln, int32_t alnLen);
 
 void EdlibAlignmentDiffCounts(const unsigned char* aln, int32_t alnLen, int32_t& numEq,
@@ -56,6 +69,10 @@ Data::Cigar ConvertM5ToCigar(const std::string& queryAln, const std::string& tar
 
 Data::Cigar NormalizeCigar(const char* query, int64_t queryLen, const char* target,
                            int64_t targetLen, const Data::Cigar& cigar);
+
+bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minMatches,
+               bool clipOnFirstMatch, PacBio::BAM::Cigar& retTrimmedCigar,
+               TrimmingInfo& retTrimming);
 
 }  // namespace Pancake
 }  // namespace PacBio

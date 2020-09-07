@@ -55,6 +55,10 @@ struct OverlapHifiSettings
         static const bool MarkSecondary = false;
         static constexpr double SecondaryAllowedOverlapFraction = 0.50;
         static constexpr double SecondaryMinScoreFraction = 0.80;
+        static const bool TrimAlignment = false;
+        static const int32_t TrimWindowSize = 30;
+        static constexpr double TrimWindowMatchFraction = 0.75;
+        static const bool TrimToFirstMatch = false;
     };
 
     std::string TargetDBPrefix;
@@ -99,6 +103,10 @@ struct OverlapHifiSettings
     bool MarkSecondary = Defaults::MarkSecondary;
     double SecondaryAllowedOverlapFraction = Defaults::SecondaryAllowedOverlapFraction;
     double SecondaryMinScoreFraction = Defaults::SecondaryMinScoreFraction;
+    bool TrimAlignment = Defaults::TrimAlignment;
+    int32_t TrimWindowSize = Defaults::TrimWindowSize;
+    double TrimWindowMatchFraction = Defaults::TrimWindowMatchFraction;
+    bool TrimToFirstMatch = Defaults::TrimToFirstMatch;
 
     OverlapHifiSettings();
     OverlapHifiSettings(const PacBio::CLI_v2::Results& options);

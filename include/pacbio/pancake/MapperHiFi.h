@@ -142,6 +142,7 @@ private:
         const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff,
         bool useTraceback, bool noSNPs, bool noIndels, bool maskHomopolymers,
         bool maskSimpleRepeats, bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary,
+        bool trimAlignment, int32_t trimWindowSize, double trimMatchFraction, bool trimToFirstMatch,
         std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
     /// \brief Generates a set of flipped overlaps from a given set of overlaps. A flipped overlap
@@ -182,7 +183,8 @@ private:
         const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
         const OverlapPtr& ovl, double alignBandwidth, double alignMaxDiff, bool useTraceback,
         bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
-        bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary,
+        bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary, bool trimAlignment,
+        int32_t trimWindowSize, double trimMatchFraction, bool trimToFirstMatch,
         std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch);
 
     static void NormalizeAndExtractVariantsInPlace_(

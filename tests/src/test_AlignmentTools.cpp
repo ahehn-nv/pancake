@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <fstream>
-#include <iostream>
 #include <sstream>
 #include <tuple>
 #include <vector>
@@ -641,9 +640,6 @@ TEST(Test_AlignmentTools_NormalizeAlignmentInPlace, ArrayOfTests)
         std::string resultQueryAln = queryAln;
         std::string resultTargetAln = targetAln;
 
-        // std::cerr << "Q: " << queryAln << "\n"
-        //           << "T: " << targetAln << "\n";
-
         // Run.
         if (shouldThrow) {
             EXPECT_THROW(
@@ -651,13 +647,10 @@ TEST(Test_AlignmentTools_NormalizeAlignmentInPlace, ArrayOfTests)
                 std::runtime_error);
         } else {
             PacBio::Pancake::NormalizeAlignmentInPlace(resultQueryAln, resultTargetAln);
-            // std::cerr << "Q: " << resultQueryAln << "\n"
-            //           << "T: " << resultTargetAln << "\n";
             // Evaluate.
             EXPECT_EQ(expectedQueryAln, resultQueryAln);
             EXPECT_EQ(expectedTargetAln, resultTargetAln);
         }
-        // std::cerr << "Test done.\n----------------------\n";
     }
 }
 
@@ -890,6 +883,206 @@ TEST(Test_AlignmentTools_NormalizeCigar, ArrayOfTests)
                 query.c_str(), query.size(), target.c_str(), target.size(), inputCigar);
             // Evaluate.
             EXPECT_EQ(expectedCigar, result);
+        }
+    }
+}
+
+TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests)
+{
+    // clang-format off
+    // <cigar, windowSize, minMatches, expectedTrimmedCigar, expectedClippedFrontQuery, expectedClippedFrontTarget, expectedClippedBackQuery, expectedClippedBackTarget>
+    std::vector<std::tuple<std::string, std::string, int32_t, int32_t, bool, std::string, PacBio::Pancake::TrimmingInfo>> testData {
+        {"Empty input", "", 0, 0, true, "", {0, 0, 0, 0}},
+
+        {"Completely bad alignment.", "1000X", 30, 15, true, "", {0, 0, 0, 0}},
+        {"Remove leading errors.", "1I1000=", 30, 15, true, "1000=", {1, 0, 0, 0}},
+        {"Remove trailing errors, trim to match.", "1000=1X", 30, 15, true, "1000=", {0, 0, 1, 1}},
+        {"Remove trailing errors, trim to any op.", "1000=1X", 30, 15, false, "1000=1X", {0, 0, 0, 0}},
+        {"Remove leading errors, trim to match.", "1X1000=", 30, 15, true, "1000=", {1, 1, 0, 0}},
+        {"Remove leading errors, trim to any op.", "1X1000=", 30, 15, false, "1X1000=", {0, 0, 0, 0}},
+        {"Remove leading and trailing errors.", "1I1000=1X", 30, 15, true, "1000=", {1, 0, 1, 1}},
+
+        {"Remove trailing errors with mixed matches, trim to match.", "1000=1X1=1X", 30, 15, true, "1000=1X1=", {0, 0, 1, 1}},
+        {"Remove trailing errors with mixed matches, trim to any op.", "1000=1X1=1X", 30, 15, false, "1000=1X1=1X", {0, 0, 0, 0}},
+
+        {"Large match portion followed with a trailing 1D. Trim to first match.", "5026=1D", 30, 15, true, "5026=", {0, 0, 0, 1}},
+        {"Large match portion followed with a trailing 1D. Trim to non-match ops allowed.", "5026=1D", 30, 15, false, "5026=1D", {0, 0, 0, 0}},
+        {"Large match portion prefixed with a leading 1D. Trim to first match.", "1D5026=", 30, 15, true, "5026=", {0, 1, 0, 0}},
+        {"Large match portion prefixed with a leading 1D. Trim to non-match ops allowed.", "1D5026=", 30, 15, false, "1D5026=", {0, 0, 0, 0}},
+
+        {"Large match portion followed with a trailing 1I. Trim to first match.", "5026=1I", 30, 15, true, "5026=", {0, 0, 1, 0}},
+        {"Large match portion followed with a trailing 1I. Trim to non-match ops allowed.", "5026=1I", 30, 15, false, "5026=1I", {0, 0, 0, 0}},
+        {"Large match portion prefixed with a leading 1I. Trim to first match.", "1I5026=", 30, 15, true, "5026=", {1, 0, 0, 0}},
+        {"Large match portion prefixed with a leading 1I. Trim to non-match ops allowed.", "1I5026=", 30, 15, false, "1I5026=", {0, 0, 0, 0}},
+
+        /*
+            These test clipping on the right side.
+        */
+        {"Left clipping in a small window, 5bp with required 5bp matches, trim to first match op.",
+                    "5X100=1I100=", 5, 5, true, "100=1I100=", {5, 5, 0, 0}},
+        {"Left clipping in a small window, 5bp with required 5bp matches, trim to non-match ops allowed.",
+                    "5X100=1I100=", 5, 5, false, "100=1I100=", {5, 5, 0, 0}},
+        ///
+        {"Left clipping in a small window, 5bp with required 3bp matches, trim to first match op.",
+                    "5X100=1I100=", 5, 3, true, "100=1I100=", {5, 5, 0, 0}},
+        {"Left clipping in a small window, 5bp with required 3bp matches, trim to non-match ops allowed.",
+                    "5X100=1I100=", 5, 3, false, "2X100=1I100=", {3, 3, 0, 0}},
+        ///
+        {"Left clipping in a larger window, 30bp with required 15bp matches, trim to first match op.",
+                    "5X100=1I100=", 30, 15, true, "100=1I100=", {5, 5, 0, 0}},
+        {"Left clipping in a larger window, 30bp with required 15bp matches, trim to non-match ops allowed. Window is large enough so that the leading 5X is not clipped.",
+                    "5X100=1I100=", 30, 15, false, "5X100=1I100=", {0, 0, 0, 0}},
+        ///
+        {"Left clipping. Leading diff is larger than window size, trim to first match op.",
+                    "1000X100=1I100=", 30, 15, true, "100=1I100=", {1000, 1000, 0, 0}},
+        {"Left clipping, simple. Clip larger than window size, trim to non-match ops allowed.",
+                    "1000X100=1I100=", 30, 15, false, "15X100=1I100=", {985, 985, 0, 0}},
+        ///
+        {"Left clipping of insertions, trim to first match op.",
+                    "100I100=1I100=", 30, 15, true, "100=1I100=", {100, 0, 0, 0}},
+        {"Left clipping of insertions, trim to non-match ops allowed.",
+                    "100I100=1I100=", 30, 15, false, "15I100=1I100=", {85, 0, 0, 0}},
+        ///
+        {"Left clipping of deletions, trim to first match op.",
+                    "100D100=1I100=", 30, 15, true, "100=1I100=", {0, 100, 0, 0}},
+        {"Left clipping of deletions, trim to non-match ops allowed.",
+                    "100D100=1I100=", 30, 15, false, "15D100=1I100=", {0, 85, 0, 0}},
+
+        /*
+            These are completely symmetric to the left-clipping test case.
+        */
+        {"Right clipping in a small window, 5bp with required 5bp matches, trim to first match op.",
+                    "100=1I100=5X", 5, 5, true, "100=1I100=", {0, 0, 5, 5}},
+        {"Right clipping in a small window, 5bp with required 5bp matches, trim to non-match ops allowed.",
+                    "100=1I100=5X", 5, 5, false, "100=1I100=", {0, 0, 5, 5}},
+        ///
+        {"Right clipping in a small window, 5bp with required 3bp matches, trim to first match op.",
+                    "100=1I100=5X", 5, 3, true, "100=1I100=", {0, 0, 5, 5}},
+        {"Right clipping in a small window, 5bp with required 3bp matches, trim to non-match ops allowed.",
+                    "100=1I100=5X", 5, 3, false, "100=1I100=2X", {0, 0, 3, 3}},
+        ///
+        {"Right clipping in a larger window, 30bp with required 15bp matches, trim to first match op.",
+                    "100=1I100=5X", 30, 15, true, "100=1I100=", {0, 0, 5, 5}},
+        {"Right clipping in a larger window, 30bp with required 15bp matches, trim to non-match ops allowed. Window is large enough so that the leading 5X is not clipped.",
+                    "100=1I100=5X", 30, 15, false, "100=1I100=5X", {0, 0, 0, 0}},
+        ///
+        {"Right clipping. Leading diff is larger than window size, trim to first match op.",
+                    "100=1I100=1000X", 30, 15, true, "100=1I100=", {0, 0, 1000, 1000}},
+        {"Right clipping, simple. Clip larger than window size, trim to non-match ops allowed.",
+                    "100=1I100=1000X", 30, 15, false, "100=1I100=15X", {0, 0, 985, 985}},
+        ///
+        {"Right clipping of insertions, trim to first match op.",
+                    "100=1I100=100I", 30, 15, true, "100=1I100=", {0, 0, 100, 0}},
+        {"Right clipping of insertions, trim to non-match ops allowed.",
+                    "100=1I100=100I", 30, 15, false, "100=1I100=15I", {0, 0, 85, 0}},
+        ///
+        {"Right clipping of deletions, trim to first match op.",
+                    "100=1I100=100D", 30, 15, true, "100=1I100=", {0, 0, 0, 100}},
+        {"Right clipping of deletions, trim to non-match ops allowed.",
+                    "100=1I100=100D", 30, 15, false, "100=1I100=15D", {0, 0, 0, 85}},
+
+        /* Following test runs a more complex example.
+           Maches:     1     3     4        5     7     12    14    15    16
+           Diffs:   1     2     4     5  6     8     9     11    13    15    18
+                    1X 1= 1D 2= 2D 1= 1X 1D 1= 2I 2= 1X 5= 2D 1= 2I 1= 2X 1= 3I
+
+                    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2
+                    0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 3
+                    X = D = = D D = X D = I I = = X = = = = = D D = I I = X X = I I I
+                    |___________________________| | | | |
+                    Window: 7= and 8!=            | | | |
+                      |___________________________| | | |
+                      Window: 7= and 8!=            | | |
+                        |___________________________| | |
+                        Window: 7= and 8!=            | |
+                          |___________________________| |
+                          Window: 8= and 7!=            |
+                            |___________________________|
+                            Window: 8= and 7!=
+
+        */
+        {"Left clipping, simple, mixed ops.",
+                    "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", 15, 8, true, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=", {2, 3, 0, 0}},
+        // Same as the left clipping case, but flipped
+        {"Right clipping, simple, mixed ops.",
+                    "100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=1D1=1X", 15, 8, true, "100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=", {0, 0, 2, 3}},
+
+        /*
+            This test case contains a bunch of diffs at the front and a bunch of diffs at the back.
+            The diffs at front and back are the same and symmetric.
+            The actual diffs are the same as in the above test cases.
+        */
+        {"Clipping on front and back, mixed ops. Smaller window - 15bp with 8bp matches required.",
+                    "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=1D1=1X", 15, 8, true, "2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=", {2, 3, 2, 3}},
+        {"Clipping on front and back, mixed ops. Larger window - 80bp with 80bp matches required.",
+                    "1X1=1D2=2D1=1X1D1=2I2=1X5=2D1=2I1=2X1=3I100=1I100=1I100=3I1=2X1=2I1=2D5=1X2=2I1=1D1X1=2D2=1D1=1X", 80, 80, true, "100=1I100=1I100=", {27, 26, 27, 26}},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const std::string testName = std::get<0>(data);
+        const PacBio::BAM::Cigar cigar(std::get<1>(data));
+        const int32_t windowSize = std::get<2>(data);
+        const int32_t minMatches = std::get<3>(data);
+        const bool clipOnFirstMatch = std::get<4>(data);
+        // Keep the expected Cigar as string so that we can easily see the diff.
+        const std::string expectedTrimmedCigar(std::get<5>(data));
+        const auto& expectedTrimmingInfo = std::get<6>(data);
+
+        // Name the test.
+        SCOPED_TRACE("TrimCigar-" + testName);
+
+        PacBio::BAM::Cigar resultsCigar;
+        TrimmingInfo resultsTrimming;
+
+        PacBio::Pancake::TrimCigar(cigar, windowSize, minMatches, clipOnFirstMatch, resultsCigar,
+                                   resultsTrimming);
+
+        EXPECT_EQ(expectedTrimmedCigar, resultsCigar.ToStdString());
+        EXPECT_EQ(expectedTrimmingInfo, resultsTrimming);
+    }
+}
+
+TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests_ShouldThrow)
+{
+    // clang-format off
+    std::vector<std::tuple<std::string, std::string, int32_t, int32_t, bool, bool, std::string, PacBio::Pancake::TrimmingInfo>> testData {
+        {"Window size is too large, 1000bp and max is 512bp.", "1I1000=", 1000, 15, true, true, "1000=", {1, 0, 0, 0}},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const std::string testName = std::get<0>(data);
+        const PacBio::BAM::Cigar cigar(std::get<1>(data));
+        const int32_t windowSize = std::get<2>(data);
+        const int32_t minMatches = std::get<3>(data);
+        const bool clipOnFirstMatch = std::get<4>(data);
+        // Keep the expected Cigar as string so that we can easily see the diff.
+        const bool exptectedThrow = std::get<5>(data);
+        const std::string expectedTrimmedCigar(std::get<6>(data));
+        const auto& expectedTrimmingInfo = std::get<7>(data);
+
+        // Name the test.
+        SCOPED_TRACE("TrimCigar-" + testName);
+
+        PacBio::BAM::Cigar resultsCigar;
+        TrimmingInfo resultsTrimming;
+
+        if (exptectedThrow) {
+            EXPECT_THROW(
+                {
+                    PacBio::Pancake::TrimCigar(cigar, windowSize, minMatches, clipOnFirstMatch,
+                                               resultsCigar, resultsTrimming);
+                },
+                std::runtime_error);
+
+        } else {
+            PacBio::Pancake::TrimCigar(cigar, windowSize, minMatches, clipOnFirstMatch,
+                                       resultsCigar, resultsTrimming);
+            EXPECT_EQ(expectedTrimmedCigar, resultsCigar.ToStdString());
+            EXPECT_EQ(expectedTrimmingInfo, resultsTrimming);
         }
     }
 }
