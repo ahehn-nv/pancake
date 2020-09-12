@@ -122,13 +122,13 @@ void SeedIndex::ComputeFrequencyStats(double percentileCutoff, int64_t& retFreqM
     kx::radix_sort(freqs.begin(), freqs.end());
 
     // Find the percentile cutoff ID.
-    double numKeys = numValidKeys;
-    int64_t cutoffId = std::floor(numKeys * (1.0 - percentileCutoff));
+    const double numKeysDouble = numValidKeys;
+    const int64_t cutoffId = std::max(0.0, std::floor(numKeysDouble * (1.0 - percentileCutoff)));
 
     // Return values.
     retFreqMax = freqs.back();
-    retFreqCutoff = freqs[cutoffId];
-    retFreqAvg = sumFreqs / numKeys;
+    retFreqCutoff = (cutoffId >= numValidKeys) ? (freqs[numValidKeys - 1] + 1) : freqs[cutoffId];
+    retFreqAvg = sumFreqs / numKeysDouble;
     retFreqMedian = (static_cast<double>(freqs[numValidKeys / 2]) +
                      static_cast<double>(freqs[(numValidKeys - 1) / 2])) /
                     2.0;
