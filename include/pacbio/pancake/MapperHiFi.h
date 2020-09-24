@@ -212,7 +212,7 @@ private:
     static std::vector<OverlapPtr> FilterOverlaps_(const std::vector<OverlapPtr>& overlaps,
                                                    int32_t minNumSeeds, float minIdentity,
                                                    int32_t minMappedSpan, int32_t minQueryLen,
-                                                   int32_t minTargetLen,
+                                                   int32_t minTargetLen, int32_t diagonalBandwidth,
                                                    int32_t allowedDovetailDist,
                                                    int32_t allowedExtendDist, int32_t bestN);
     /// \brief  Filters multiple overlaps for the same query-target pair, for example tandem repeats,
