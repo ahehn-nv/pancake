@@ -95,6 +95,12 @@ private:
         const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t chainBandwidth,
         int32_t minNumSeeds, int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps);
 
+    static std::vector<OverlapPtr> FormAnchors2_(
+        const std::vector<SeedHit>& sortedHits,
+        const PacBio::Pancake::FastaSequenceCached& querySeq,
+        const PacBio::Pancake::SeedIndex& index, int32_t chainBandwidth, int32_t minNumSeeds,
+        int32_t minChainSpan, int32_t minMatch, bool skipSelfHits, bool skipSymmetricOverlaps);
+
     /// \brief  Helper function used by FormDiagonalAnchors_ which creates a new overlap object
     ///         based on the minimum and maximum hit IDs.
     /// \param sortedHits Hits should be sorted in the following order of priority:
