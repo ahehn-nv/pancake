@@ -138,6 +138,14 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
     }
     ttMarkSecondary.Stop();
 
+    // Filter the overlaps.
+    TicToc ttFilter;
+    overlaps = FilterOverlaps_(
+        overlaps, settings_.MinNumSeeds, settings_.MinIdentity, settings_.MinMappedLength,
+        settings_.MinQueryLen, settings_.MinTargetLen, settings_.ChainBandwidth,
+        settings_.AllowedDovetailDist, settings_.AllowedHeuristicExtendDist, settings_.BestN);
+    ttFilter.Stop();
+
     // Generating flipped overlaps.
     TicToc ttFlip;
     if (generateFlippedOverlap) {
@@ -157,13 +165,6 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
         PBLOG_INFO << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
     }
 #endif
-
-    TicToc ttFilter;
-    overlaps = FilterOverlaps_(
-        overlaps, settings_.MinNumSeeds, settings_.MinIdentity, settings_.MinMappedLength,
-        settings_.MinQueryLen, settings_.MinTargetLen, settings_.ChainBandwidth,
-        settings_.AllowedDovetailDist, settings_.AllowedHeuristicExtendDist, settings_.BestN);
-    ttFilter.Stop();
 
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Overlaps after filtering: " << overlaps.size();
