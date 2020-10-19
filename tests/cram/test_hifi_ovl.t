@@ -100,7 +100,7 @@ Overlapping a single full pile.
   $ ${BIN_DIR}/pancake seqdb reads ${PROJECT_DIR}/test-data/hifi-ovl/reads.pile9-single-full-pile.fasta
   > ${BIN_DIR}/pancake seeddb reads.seqdb reads
   > ${BIN_DIR}/pancake ovl-hifi --num-threads 1 reads reads 0 0 0 | grep "^m64030_190330_071939/111673510/ccs" | wc -l | awk '{ print $1 }'
-  69
+  50
 
 ##################################################################
 ### Test removing symmetric arcs and writing reverse overlaps. ###
