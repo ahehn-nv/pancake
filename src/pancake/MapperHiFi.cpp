@@ -80,9 +80,10 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
     // PBLOG_INFO << "Hits: " << hits.size();
 
     TicToc ttChain;
-    auto overlaps = FormDiagonalAnchors_(hits, querySeq, index, settings_.ChainBandwidth,
-                                         settings_.MinNumSeeds, settings_.MinChainSpan,
-                                         settings_.SkipSelfHits, settings_.SkipSymmetricOverlaps);
+    auto overlaps =
+        FormAnchors2_(hits, querySeq, index, settings_.ChainBandwidth, settings_.MinNumSeeds,
+                      settings_.MinChainSpan, index.GetSeedParams().KmerSize * 3,
+                      settings_.SkipSelfHits, settings_.SkipSymmetricOverlaps);
     ttChain.Stop();
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Formed diagonal anchors: " << overlaps.size();
