@@ -118,8 +118,8 @@ private:
     static OverlapPtr MakeOverlap_(
         const std::vector<SeedHit>& sortedHits,
         const PacBio::Pancake::FastaSequenceCached& querySeq,
-        const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t beginId,
-        int32_t endId, int32_t minTargetPosId, int32_t maxTargetPosId);
+        const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t num_seeds,
+        int32_t minTargetPosId, int32_t maxTargetPosId);
 
     /// \brief Performs alignment and alignment extension of a given vector of overlaps.
     ///         A thin wrapper around AlignOverlap_, simply calls it for each overlap.
