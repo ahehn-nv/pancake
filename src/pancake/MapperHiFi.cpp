@@ -195,8 +195,8 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 
 OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
                                 const PacBio::Pancake::FastaSequenceCached& querySeq,
-                                const PacBio::Pancake::SeedIndex& index,
-                                int32_t numSeeds, int32_t minTargetPosId, int32_t maxTargetPosId)
+                                const PacBio::Pancake::SeedIndex& index, int32_t numSeeds,
+                                int32_t minTargetPosId, int32_t maxTargetPosId)
 {
 
     const auto& beginHit = sortedHits[minTargetPosId];
@@ -271,8 +271,7 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
 
         if (currHit.targetId != prevHit.targetId || currHit.targetRev != prevHit.targetRev ||
             diagDiff > chainBandwidth) {
-            auto ovl =
-                MakeOverlap_(sortedHits, querySeq, index, i - beginId, minPosId, maxPosId);
+            auto ovl = MakeOverlap_(sortedHits, querySeq, index, i - beginId, minPosId, maxPosId);
             beginId = i;
             beginDiag = currDiag;
 
@@ -309,8 +308,7 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
     }
 
     if ((numHits - beginId) > 0) {
-        auto ovl =
-            MakeOverlap_(sortedHits, querySeq, indexCache, numHits - beginId, minPosId, maxPosId);
+        auto ovl = MakeOverlap_(sortedHits, querySeq, index, numHits - beginId, minPosId, maxPosId);
 
 #ifdef PANCAKE_DEBUG
         std::cerr << "ovl->NumSeeds = " << ovl->NumSeeds << " (" << minNumSeeds
@@ -457,8 +455,8 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(const std::vector<SeedHit>& sorted
                       finalLast);
 
         // Make the overlap.
-        auto ovl = MakeOverlap_(lisHits, querySeq, index, (finalLast - finalFirst),
-                                finalFirst, finalLast - 1);
+        auto ovl = MakeOverlap_(lisHits, querySeq, index, (finalLast - finalFirst), finalFirst,
+                                finalLast - 1);
         return ovl;
     };
 
