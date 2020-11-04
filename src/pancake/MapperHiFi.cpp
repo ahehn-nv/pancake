@@ -112,12 +112,8 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 
     TicToc ttMarkSecondary;
     if (settings_.MarkSecondary) {
-        // Sort all overlaps in descending order of the score.
-        std::sort(overlaps.begin(), overlaps.end(), [](const auto& a, const auto& b) {
-            return std::abs(a->Score) > std::abs(b->Score);
-        });
-
         // Flag the secondary and supplementary overlaps.
+        // Overlaps don't have to be sorted, the maximum is found internally.
         std::vector<OverlapPriority> overlapPriorities =
             FlagSecondaryAndSupplementary(overlaps, settings_.SecondaryAllowedOverlapFraction,
                                           settings_.SecondaryMinScoreFraction);
@@ -390,6 +386,7 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
                 break;
             }
             // Two overlaps are within the bandwidth. Remove the one with lower score.
+            // Score is negative, as per legacy Falcon convention.
             if (newOverlaps[i]->Score > newOverlaps[j]->Score) {
                 newOverlaps[i] = nullptr;
                 break;
