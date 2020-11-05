@@ -111,8 +111,8 @@ inline std::tuple<int32_t, int32_t, int32_t, int32_t> PackSeedHitWithDiagonalToT
                            sh.targetPos, sh.queryPos);
 }
 
-void CalcHitCoverage(const std::vector<SeedHit>& hits, int32_t seedLen, int32_t hitsBegin,
-                     int32_t hitsEnd, int32_t& coveredBasesQuery, int32_t& coveredBasesTarget);
+void CalcHitCoverage(const std::vector<SeedHit>& hits, int32_t hitsBegin, int32_t hitsEnd,
+                     int32_t& coveredBasesQuery, int32_t& coveredBasesTarget;
 
 }  // namespace Pancake
 }  // namespace PacBio
