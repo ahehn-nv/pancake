@@ -15,6 +15,29 @@ namespace PacBio {
 namespace Pancake {
 namespace SeedDB {
 
+static inline uint64_t InvertibleHash(uint64_t key, uint64_t mask)
+{
+    /*
+    Credit: Heng Li, Minimap2.
+    */
+    key = (~key + (key << 21)) & mask;  // key = (key << 21) - key - 1;
+    key = key ^ key >> 24;
+    key = ((key + (key << 3)) + (key << 8)) & mask;  // key * 265
+    key = key ^ key >> 14;
+    key = ((key + (key << 2)) + (key << 4)) & mask;  // key * 21
+    key = key ^ key >> 28;
+    key = (key + (key << 31)) & mask;
+    return key;
+}
+
+static inline uint64_t ComputeKmerMask(int32_t kmerSize)
+{
+    const uint64_t mask =
+        (kmerSize < 32) ? ((((uint64_t)1) << (2 * kmerSize)) - 1)
+                        : 0xFFFFFFFFFFFFFFFF;  // Mask the number of required bits for the kmer.
+    return mask;
+}
+
 int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const uint8_t* seq,
                        const int32_t seqLen, const int32_t seqOffset, const int32_t seqId,
                        const int32_t kmerSize, const int32_t winSize, const int32_t spacing,

@@ -24,21 +24,6 @@ using minkey_t = uint64_t;
 const int32_t MAX_SPACING_IN_SEED = 32;
 const int32_t MAX_WINDOW_BUFFER_SIZE = 512;
 
-static inline uint64_t InvertibleHash(uint64_t key, uint64_t mask)
-{
-    /*
-    Credit: Heng Li, Minimap2.
-    */
-    key = (~key + (key << 21)) & mask;  // key = (key << 21) - key - 1;
-    key = key ^ key >> 24;
-    key = ((key + (key << 3)) + (key << 8)) & mask;  // key * 265
-    key = key ^ key >> 14;
-    key = ((key + (key << 2)) + (key << 4)) & mask;  // key * 21
-    key = key ^ key >> 28;
-    key = (key + (key << 31)) & mask;
-    return key;
-}
-
 // This is a temporary class, just used for implementing the minimizer window.
 class SpacedBuffer
 {
