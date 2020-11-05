@@ -7,8 +7,8 @@
 #include <pacbio/pancake/MapperHiFi.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
 #include <pacbio/pancake/Secondary.h>
-#include <pacbio/pancake/SeedHit.h>
 #include <pacbio/util/RunLengthEncoding.h>
+#include <pacbio/pancake/SeedHitWriter.h>
 #include <pacbio/util/TicToc.h>
 #include <pacbio/util/Util.h>
 #include <pbcopper/logging/Logging.h>
@@ -50,7 +50,7 @@ auto AlignNoTraceback(const char* query, size_t queryLen, const char* target, si
 
 static const int32_t MIN_DIFFS_CAP = 10;
 static const int32_t MIN_BANDWIDTH_CAP = 10;
-static const int32_t MASK_DEGREE = 3;
+// static const int32_t MASK_DEGREE = 3;
 
 MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
                          const PacBio::Pancake::SeedIndex& index,
@@ -68,7 +68,7 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 
     TicToc ttCollectHits;
     std::vector<SeedHit> hits;
-    index.CollectHits(querySeeds.Seeds(), querySeeds.Size(), hits, freqCutoff);
+    index.CollectHits(querySeeds.Seeds(), querySeeds.Size(), querySeq.Size(), hits, freqCutoff);
     ttCollectHits.Stop();
 
     TicToc ttSortHits;
@@ -219,16 +219,22 @@ OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
 
     const int32_t targetLen = index.GetSequenceLength(targetId);
 
-    return createOverlap(querySeq.Id(), targetId, score, identity, 0, beginHit.queryPos,
-                         endHit.queryPos, querySeq.Size(), beginHit.targetRev, beginHit.targetPos,
-                         endHit.targetPos, targetLen, editDist, numSeeds, OverlapType::Unknown,
-                         OverlapType::Unknown);
+    OverlapPtr ret = createOverlap(querySeq.Id(), targetId, score, identity, 0, beginHit.queryPos,
+                                   endHit.queryPos, querySeq.Size(), beginHit.targetRev,
+                                   beginHit.targetPos, endHit.targetPos, targetLen, editDist,
+                                   numSeeds, OverlapType::Unknown, OverlapType::Unknown);
+
+    ret->NormalizeStrand();
+
+    return ret;
 }
 
-std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
-    const std::vector<SeedHit>& sortedHits, const PacBio::Pancake::FastaSequenceCached& querySeq,
-    const PacBio::Pancake::SeedIndex& index, int32_t chainBandwidth, int32_t minNumSeeds,
-    int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps)
+std::vector<OverlapPtr> Mapper::FormAnchors_(const std::vector<SeedHit>& sortedHits,
+                                             const PacBio::Pancake::FastaSequenceCached& querySeq,
+                                             const PacBio::Pancake::SeedIndex& index,
+                                             int32_t chainBandwidth, int32_t minNumSeeds,
+                                             int32_t minChainSpan, bool skipSelfHits,
+                                             bool skipSymmetricOverlaps)
 {
 #ifdef PANCAKE_DEBUG
     std::cerr << "[Function: " << __FUNCTION__ << "]\n";
@@ -353,7 +359,7 @@ void RefineBadEnds(const std::vector<SeedHit>& chainedHits, int32_t beginId, int
 
     int32_t coveredBasesQuery = 0;
     int32_t coveredBasesTarget = 0;
-    CalcHitCoverage(chainedHits, kmerSize, beginId, endId, coveredBasesQuery, coveredBasesTarget);
+    CalcHitCoverage(chainedHits, beginId, endId, coveredBasesQuery, coveredBasesTarget);
     const int32_t minCoveredBases = std::min(coveredBasesQuery, coveredBasesTarget);
 
     // Front.
@@ -361,9 +367,9 @@ void RefineBadEnds(const std::vector<SeedHit>& chainedHits, int32_t beginId, int
         int32_t numMatches = kmerSize;
         int32_t totalSpan = kmerSize;
         for (int32_t i = (beginId + 1); i < (endId - 1); ++i) {
-            // if (chainedHits[i].CheckFlagLongJoin()) {
-            //     break;
-            // }
+            if (chainedHits[i].CheckFlagLongJoin()) {
+                break;
+            }
             const int32_t qDist = chainedHits[i].queryPos - chainedHits[i - 1].queryPos;
             const int32_t tDist = chainedHits[i].targetPos - chainedHits[i - 1].targetPos;
             const int32_t minDist = std::min(qDist, tDist);
@@ -387,9 +393,9 @@ void RefineBadEnds(const std::vector<SeedHit>& chainedHits, int32_t beginId, int
         int32_t numMatches = kmerSize;
         int32_t totalSpan = kmerSize;
         for (int32_t i = endId - 2; i > beginId; --i) {
-            // if (chainedHits[i + 1].CheckFlagLongJoin()) {
-            //     break;
-            // }
+            if (chainedHits[i + 1].CheckFlagLongJoin()) {
+                break;
+            }
             const int32_t qDist = chainedHits[i + 1].queryPos - chainedHits[i].queryPos;
             const int32_t tDist = chainedHits[i + 1].targetPos - chainedHits[i].targetPos;
             const int32_t minDist = std::min(qDist, tDist);
@@ -455,9 +461,33 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(const std::vector<SeedHit>& sorted
         RefineBadEnds(lisHits, 0, lisHits.size(), kmerSize, chainBandwidth, minMatch, finalFirst,
                       finalLast);
 
+#ifdef PANCAKE_DEBUG
+        std::cerr << "LIS hits for a group, beginId = " << beginId << ", endId = " << endId << "\n";
+        for (size_t i = 0; i < lisHits.size(); ++i) {
+            std::cerr << "  [lis hit " << i << "] " << lisHits[i] << "\n";
+        }
+        std::cerr << "RefineBadEnds: finalFirst = " << finalFirst << ", finalLast = " << finalLast
+                  << "\n";
+#endif
+
         // Make the overlap.
         auto ovl = MakeOverlap_(lisHits, querySeq, index, (finalLast - finalFirst), finalFirst,
                                 finalLast - 1);
+
+#ifdef PANCAKE_DEBUG
+        if (ovl->NumSeeds > 200) {
+            WriteSeedHits("temp-debug/hits-q" + std::to_string(querySeq.Id()) + "-1-group_" +
+                              std::to_string(beginId) + "_" + std::to_string(endId) +
+                              "-all_hits.csv",
+                          sortedHits, beginId, endId, beginId, "query-" + std::to_string(ovl->Aid),
+                          ovl->Alen, "target-" + std::to_string(ovl->Bid), ovl->Blen, false);
+            WriteSeedHits("temp-debug/hits-q" + std::to_string(querySeq.Id()) + "-2-group_" +
+                              std::to_string(beginId) + "_" + std::to_string(endId) + "-lis.csv",
+                          lisHits, 0, lisHits.size(), beginId, "query-" + std::to_string(ovl->Aid),
+                          ovl->Alen, "target-" + std::to_string(ovl->Bid), ovl->Blen, false);
+        }
+#endif
+
         return ovl;
     };
 
@@ -675,6 +705,10 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
                        << OverlapWriterBase::PrintOverlapAsM4(overlaps[i], "", "", true, false);
 #endif
         }
+
+#ifdef PANCAKE_DEBUG_ALN
+        PBLOG_INFO << "\n";
+#endif
     }
 
     return ret;
@@ -913,7 +947,7 @@ OverlapPtr Mapper::AlignOverlap_(
 
 void Mapper::NormalizeAndExtractVariantsInPlace_(
     OverlapPtr& ovl, const PacBio::Pancake::FastaSequenceCached& targetSeq,
-    const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
+    const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string /*reverseQuerySeq*/,
     bool noSNPs, bool noIndels, bool maskHomopolymers, bool maskSimpleRepeats,
     bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary)
 {
@@ -923,13 +957,11 @@ void Mapper::NormalizeAndExtractVariantsInPlace_(
     }
 
     const char* Aseq = querySeq.Bases();
-    int32_t Alen = querySeq.Size();
     const char* Bseq = targetSeq.Bases();
     int32_t Blen = targetSeq.Size();
 
     if (ovl->IsFlipped) {
         Aseq = targetSeq.Bases();
-        Alen = targetSeq.Size();
         Bseq = querySeq.Bases();
         Blen = querySeq.Size();
     }
@@ -1052,18 +1084,6 @@ void Mapper::DebugWriteSeedHits_(const std::string& outPath, const std::vector<S
         ofs << hits[i].queryPos + seedLen << "\t" << hits[i].targetPos + seedLen << "\t"
             << clusterId << std::endl;
     }
-}
-
-PacBio::Pancake::Int128t Mapper::PackSeedHitWithDiagonalTo128_(const SeedHit& sh)
-{
-    PacBio::Pancake::Int128t ret = 0;
-    const int32_t diag = (sh.targetPos - sh.queryPos);
-    ret = ((static_cast<PacBio::Pancake::Int128t>(sh.targetId) & MASK128_LOW32bit) << 97) |
-          ((static_cast<PacBio::Pancake::Int128t>(sh.targetRev) & MASK128_LOW32bit) << 96) |
-          ((static_cast<PacBio::Pancake::Int128t>(diag) & MASK128_LOW32bit) << 64) |
-          ((static_cast<PacBio::Pancake::Int128t>(sh.targetPos) & MASK128_LOW32bit) << 32) |
-          (static_cast<PacBio::Pancake::Int128t>(sh.queryPos) & MASK128_LOW32bit);
-    return ret;
 }
 
 }  // namespace OverlapHiFi

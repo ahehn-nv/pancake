@@ -89,7 +89,7 @@ private:
     /// \param skipSelfHits Ignore hits where Aid == Bid.
     /// \param skipSymmetricOverlaps Do not produce an anchor if Aid > Bid.
     ///
-    static std::vector<OverlapPtr> FormDiagonalAnchors_(
+    static std::vector<OverlapPtr> FormAnchors_(
         const std::vector<SeedHit>& sortedHits,
         const PacBio::Pancake::FastaSequenceCached& querySeq,
         const PacBio::Pancake::SeedIndex& index, int32_t chainBandwidth, int32_t minNumSeeds,
@@ -117,7 +117,7 @@ private:
     ///
     static OverlapPtr MakeOverlap_(const std::vector<SeedHit>& sortedHits,
                                    const PacBio::Pancake::FastaSequenceCached& querySeq,
-                                   const PacBio::Pancake::SeedIndex& index, int32_t num_seeds,
+                                   const PacBio::Pancake::SeedIndex& index, int32_t numSeeds,
                                    int32_t minTargetPosId, int32_t maxTargetPosId);
 
     /// \brief Performs alignment and alignment extension of a given vector of overlaps.
@@ -227,17 +227,6 @@ private:
     /// \return A vector of filtered overlaps.
     ///
     static std::vector<OverlapPtr> FilterTandemOverlaps_(const std::vector<OverlapPtr>& overlaps);
-
-    /// \brief  Helper function which converts a SeedHit into a packed 128-bit integer.
-    ///         Difference between this one and the one native to SeedHit is that here we pack
-    ///         The diagonal of the seed hit, which is important for proper sorting of hits
-    ///         before constructing anchors.
-    ///
-    /// \param sh SeedHit which to pack into an 128-bit integer.
-    /// \returns A packed 128-bit integer composed of:
-    ///             targetId:31, targetRev:1, diag:32, targetPos:32, queryPos:32.
-    ///
-    static PacBio::Pancake::Int128t PackSeedHitWithDiagonalTo128_(const SeedHit& sh);
 
     /// \brief  Helper function which extracts a subsequence from a given sequence, and reverse
     ///         complements if needed.
