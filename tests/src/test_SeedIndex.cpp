@@ -441,29 +441,31 @@ TEST(SeedIndex, CollectHitsReverseStrand)
      *
      * Some of the hits are on the reverse strand of the query.
     */
+    const int32_t k = 30;
+
     const int32_t targetId = 0;
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds = {
-        PacBio::Pancake::SeedDB::Seed::Encode(0, targetId, 0, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 1, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(5, targetId, 2, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(7, targetId, 3, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(5, targetId, 4, true),
-        PacBio::Pancake::SeedDB::Seed::Encode(0, targetId, 5, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 6, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(5, targetId, 7, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 8, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, k, targetId, 0, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(123, k, targetId, 1, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(5, k, targetId, 2, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(7, k, targetId, 3, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(5, k, targetId, 4, true),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, k, targetId, 5, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(123, k, targetId, 6, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(5, k, targetId, 7, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(123, k, targetId, 8, false),
     };
     const int32_t queryId = 0;
     const std::vector<PacBio::Pancake::SeedDB::SeedRaw> querySeeds = {
-        PacBio::Pancake::SeedDB::Seed::Encode(0, queryId, 0, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(123, queryId, 1, true),
-        PacBio::Pancake::SeedDB::Seed::Encode(5, queryId, 2, true),
-        PacBio::Pancake::SeedDB::Seed::Encode(7, queryId, 3, true),
-        PacBio::Pancake::SeedDB::Seed::Encode(5, queryId, 4, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(0, queryId, 5, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(123, queryId, 6, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(5, queryId, 7, false),
-        PacBio::Pancake::SeedDB::Seed::Encode(123, queryId, 8, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, k, queryId, 0, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(123, k, queryId, 1, true),
+        PacBio::Pancake::SeedDB::Seed::Encode(5, k, queryId, 2, true),
+        PacBio::Pancake::SeedDB::Seed::Encode(7, k, queryId, 3, true),
+        PacBio::Pancake::SeedDB::Seed::Encode(5, k, queryId, 4, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, k, queryId, 5, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(123, k, queryId, 6, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(5, k, queryId, 7, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(123, k, queryId, 8, false),
     };
     const int32_t queryLen = 38;
     int32_t freqCutoff = 0;
@@ -483,38 +485,47 @@ B	0	0	1	96
 
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {
+
         // 0
-        {targetId, false, 0, 0, 0, 0, 0},
-        {targetId, false, 5, 0, 0, 0, 0},
+        {targetId, false, 0, 0, 30, 30, 0},
+        {targetId, false, 5, 0, 30, 30, 0},
+
         // 123
-        {targetId, true, 1, 7, 0, 0, 0},
-        {targetId, true, 6, 7, 0, 0, 0},
-        {targetId, true, 8, 7, 0, 0, 0},
+        {targetId, true, 7, 1, 30, 30, 0},
+        {targetId, true, 2, 1, 30, 30, 0},
+        {targetId, true, 0, 1, 30, 30, 0},
+
         /// 5
-        {targetId, true, 2, 6, 0, 0, 0},
-        {targetId, true, 7, 6, 0, 0, 0},
-        {targetId, false, 4, 2, 0, 0, 0},
+        {targetId, true, 6, 2, 30, 30, 0},
+        {targetId, true, 1, 2, 30, 30, 0},
+        {targetId, false, 4, 2, 30, 30, 0},
+
         /// 7
-        {targetId, true, 3, 5, 0, 0, 0},
+        {targetId, true, 5, 3, 30, 30, 0},
+
         // 5
-        {targetId, false, 2, 4, 0, 0, 0},
-        {targetId, false, 7, 4, 0, 0, 0},
-        {targetId, true, 4, 4, 0, 0, 0},
+        {targetId, false, 2, 4, 30, 30, 0},
+        {targetId, false, 7, 4, 30, 30, 0},
+        {targetId, true, 4, 4, 30, 30, 0},
+
         // 0
-        {targetId, false, 0, 5, 0, 0, 0},
-        {targetId, false, 5, 5, 0, 0, 0},
+        {targetId, false, 0, 5, 30, 30, 0},
+        {targetId, false, 5, 5, 30, 30, 0},
+
         // 123
-        {targetId, false, 1, 6, 0, 0, 0},
-        {targetId, false, 6, 6, 0, 0, 0},
-        {targetId, false, 8, 6, 0, 0, 0},
+        {targetId, false, 1, 6, 30, 30, 0},
+        {targetId, false, 6, 6, 30, 30, 0},
+        {targetId, false, 8, 6, 30, 30, 0},
+
         // 5
-        {targetId, false, 2, 7, 0, 0, 0},
-        {targetId, false, 7, 7, 0, 0, 0},
-        {targetId, true, 4, 1, 0, 0, 0},
+        {targetId, false, 2, 7, 30, 30, 0},
+        {targetId, false, 7, 7, 30, 30, 0},
+        {targetId, true, 4, 7, 30, 30, 0},
+
         // 123
-        {targetId, false, 1, 8, 0, 0, 0},
-        {targetId, false, 6, 8, 0, 0, 0},
-        {targetId, false, 8, 8, 0, 0, 0},
+        {targetId, false, 1, 8, 30, 30, 0},
+        {targetId, false, 6, 8, 30, 30, 0},
+        {targetId, false, 8, 8, 30, 30, 0},
     };
 
     // Run the unit under test.
@@ -528,8 +539,9 @@ B	0	0	1	96
         //           << ", targetRev = " << hit.targetRev << ", targetPos = " << hit.targetPos
         //           << ", flags = " << hit.flags << ", queryPos = " << hit.queryPos << "\n";
         std::cerr << "{targetId"
-                  << ", " << hit.targetRev << ", " << hit.targetPos << ", " << hit.flags << ", "
-                  << hit.queryPos << "},\n";
+                  << ", " << (hit.targetRev ? "true" : "false") << ", " << hit.targetPos << ", "
+                  << hit.queryPos << ", " << hit.targetSpan << ", " << hit.querySpan << ", "
+                  << hit.flags << "},\n";
     }
 
     EXPECT_EQ(expected, results);
