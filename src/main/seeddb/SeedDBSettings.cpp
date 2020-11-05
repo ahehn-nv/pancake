@@ -1,6 +1,6 @@
 // Author: Ivan Sovic
 
-#include "main/seeddb/SeedDBSettings.h"
+#include "SeedDBSettings.h"
 #include <pacbio/Version.h>
 #include <limits>
 
@@ -56,8 +56,14 @@ R"({
 const CLI_v2::Option UseHPC{
 R"({
     "names" : ["use-hpc"],
-    "description" : "Enable homopolymer compression."
+    "description" : "Enable homopolymer compression. This option compresses the input sequences from the SeqDB, and the resulting seeds are in the compressed space."
 })", SeedDBSettings::Defaults::UseHPC};
+
+const CLI_v2::Option UseHPCForSeedsOnly{
+R"({
+    "names" : ["use-hpc-seeds-only"],
+    "description" : "Enable homopolymer compression of seeds. Unlike '--use-hpc', here the input sequences are not physically compressed. Instead, the seed coordinates correspond to the original uncompressed sequences, but the kmers skip HP bases with their span."
+})", SeedDBSettings::Defaults::UseHPCForSeedsOnly};
 
 const CLI_v2::Option MaxHPCLen{
 R"({
@@ -84,9 +90,13 @@ SeedDBSettings::SeedDBSettings(const PacBio::CLI_v2::Results& options)
     , OutputPrefix{options[OptionNames::OutputPrefix]}
     , NumThreads{options.NumThreads()}
     , SplitBlocks{options[OptionNames::SplitBlocks]}
-    , SeedParameters{options[OptionNames::KmerSize],  options[OptionNames::MinimizerWindow],
-                     options[OptionNames::Spacing],   options[OptionNames::UseHPC],
-                     options[OptionNames::MaxHPCLen], !options[OptionNames::NoRevCmp]}
+    , SeedParameters{options[OptionNames::KmerSize],
+                     options[OptionNames::MinimizerWindow],
+                     options[OptionNames::Spacing],
+                     options[OptionNames::UseHPC],
+                     options[OptionNames::UseHPCForSeedsOnly],
+                     options[OptionNames::MaxHPCLen],
+                     !options[OptionNames::NoRevCmp]}
 {
 }
 
@@ -102,6 +112,7 @@ PacBio::CLI_v2::Interface SeedDBSettings::CreateCLI()
         OptionNames::MinimizerWindow,
         OptionNames::Spacing,
         OptionNames::UseHPC,
+        OptionNames::UseHPCForSeedsOnly,
         OptionNames::MaxHPCLen,
         OptionNames::NoRevCmp,
     });
