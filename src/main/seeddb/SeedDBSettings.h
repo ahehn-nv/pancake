@@ -19,7 +19,7 @@ struct SeedDBSettings
     {
         static const size_t NumThreads = 1;
         static const bool SplitBlocks = false;
-        static const int32_t KmerSize = 30;
+        static const int32_t KmerSize = 28;
         static const int32_t MinimizerWindow = 80;
         static const int32_t Spacing = 0;
         static const bool UseHPC = false;

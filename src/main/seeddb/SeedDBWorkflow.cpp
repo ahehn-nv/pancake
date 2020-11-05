@@ -33,7 +33,8 @@ void Worker(const std::vector<FastaSequenceCached>& records, const SeedDBSetting
                                     sp.MaxHPCLen);
         if (rv)
             throw std::runtime_error("Generating minimizers failed, startAbs = " +
-                                     std::to_string(startAbs));
+                                     std::to_string(startAbs) + ", return code = " +
+                                     std::to_string(rv));
     }
 }
 

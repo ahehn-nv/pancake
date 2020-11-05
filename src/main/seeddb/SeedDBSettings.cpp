@@ -33,8 +33,8 @@ const CLI_v2::Option KmerSize{
 R"({
     "names" : ["k", "kmer-size"],
     "type" : "int",
-    "default" : 30,
-    "description" : "Kmer size for indexing."
+    "default" : 28,
+    "description" : "Kmer size for indexing. Maximum size is 28."
 })", SeedDBSettings::Defaults::KmerSize};
 
 const CLI_v2::Option MinimizerWindow{
@@ -42,7 +42,7 @@ R"({
     "names" : ["w", "window"],
     "type" : "int",
     "default" : 80,
-    "description" : "Minimizer window size for indexing."
+    "description" : "Minimizer window size for indexing. Maximum size is 512."
 })", SeedDBSettings::Defaults::MinimizerWindow};
 
 const CLI_v2::Option Spacing{
@@ -50,7 +50,7 @@ R"({
     "names" : ["s", "space"],
     "type" : "int",
     "default" : 0,
-    "description" : "Seed spacing."
+    "description" : "Seed spacing. Maximum spacing is 32."
 })", SeedDBSettings::Defaults::Spacing};
 
 const CLI_v2::Option UseHPC{
@@ -70,7 +70,7 @@ R"({
     "names" : ["max-hpc-len"],
     "type" : "int",
     "default" : 10,
-    "description" : "Maximum length of a homopolymer to compress."
+    "description" : "Maximum length of a homopolymer to compress. Maximum size is 256."
 })", SeedDBSettings::Defaults::MaxHPCLen};
 
 const CLI_v2::Option NoRevCmp{
