@@ -8,6 +8,8 @@
 #include <sstream>
 #include <tuple>
 
+using namespace PacBio::Pancake;
+
 TEST(SeedIndex, GetSeeds1)
 {
     /*
@@ -151,6 +153,7 @@ TEST(SeedIndex, CollectHitsEmptyQueryNonemptyTarget)
         PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 8, false),
     };
     const std::vector<PacBio::Pancake::SeedDB::SeedRaw> querySeeds = {};
+    const int32_t queryLen = 38;
 
     // Load the SeedDB cache.
     // Needed here because of the target sequence lengths.
@@ -171,7 +174,7 @@ B	0	0	1	96
     // Run the unit under test.
     PacBio::Pancake::SeedIndex si(targetSeedDBCache, std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
-    si.CollectHits(querySeeds, results, 100);
+    si.CollectHits(querySeeds, queryLen, results, 100);
 
     // Evaluate.
     EXPECT_EQ(expected, results);
@@ -205,6 +208,7 @@ TEST(SeedIndex, CollectHitsNonemptyQueryEmptyTarget)
         PacBio::Pancake::SeedDB::Seed::Encode(5, queryId, 7, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, queryId, 8, false),
     };
+    const int32_t queryLen = 38;
 
     // Load the SeedDB cache.
     // Needed here because of the target sequence lengths.
@@ -225,7 +229,7 @@ B	0	0	1	96
     // Run the unit under test.
     PacBio::Pancake::SeedIndex si(targetSeedDBCache, std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
-    si.CollectHits(querySeeds, results, 100);
+    si.CollectHits(querySeeds, queryLen, results, 100);
 
     // Evaluate.
     EXPECT_EQ(expected, results);
@@ -259,6 +263,7 @@ TEST(SeedIndex, CollectHitsNonemptyQueryNonemptyTargetNoHits)
         PacBio::Pancake::SeedDB::Seed::Encode(5, queryId, 4, false),
         PacBio::Pancake::SeedDB::Seed::Encode(5, queryId, 7, false),
     };
+    const int32_t queryLen = 38;
 
     // Load the SeedDB cache.
     // Needed here because of the target sequence lengths.
@@ -279,7 +284,7 @@ B	0	0	1	96
     // Run the unit under test.
     PacBio::Pancake::SeedIndex si(targetSeedDBCache, std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
-    si.CollectHits(querySeeds, results, 100);
+    si.CollectHits(querySeeds, queryLen, results, 100);
 
     // Evaluate.
     EXPECT_EQ(expected, results);
@@ -309,6 +314,7 @@ TEST(SeedIndex, CollectHitsPerfectMatch)
         PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 8, false),
     };
     const std::vector<PacBio::Pancake::SeedDB::SeedRaw> querySeeds = targetSeeds;
+    const int32_t queryLen = 38;
 
     // Load the SeedDB cache.
     // Needed here because of the target sequence lengths.
@@ -326,43 +332,43 @@ B	0	0	1	96
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {
         // 0
-        {targetId, 0, 0, 0, 0},
-        {targetId, 0, 5, 0, 0},
+        {targetId, false, 0, 0, 0, 0, 0},
+        {targetId, false, 5, 0, 0, 0, 0},
         // 123
-        {targetId, 0, 1, 0, 1},
-        {targetId, 0, 6, 0, 1},
-        {targetId, 0, 8, 0, 1},
+        {targetId, false, 1, 1, 0, 0, 0},
+        {targetId, false, 6, 1, 0, 0, 0},
+        {targetId, false, 8, 1, 0, 0, 0},
         /// 5
-        {targetId, 0, 2, 0, 2},
-        {targetId, 0, 4, 0, 2},
-        {targetId, 0, 7, 0, 2},
+        {targetId, false, 2, 2, 0, 0, 0},
+        {targetId, false, 4, 2, 0, 0, 0},
+        {targetId, false, 7, 2, 0, 0, 0},
         /// 7
-        {targetId, 0, 3, 0, 3},
+        {targetId, false, 3, 3, 0, 0, 0},
         // 5
-        {targetId, 0, 2, 0, 4},
-        {targetId, 0, 4, 0, 4},
-        {targetId, 0, 7, 0, 4},
+        {targetId, false, 2, 4, 0, 0, 0},
+        {targetId, false, 4, 4, 0, 0, 0},
+        {targetId, false, 7, 4, 0, 0, 0},
         // 0
-        {targetId, 0, 0, 0, 5},
-        {targetId, 0, 5, 0, 5},
+        {targetId, false, 0, 5, 0, 0, 0},
+        {targetId, false, 5, 5, 0, 0, 0},
         // 123
-        {targetId, 0, 1, 0, 6},
-        {targetId, 0, 6, 0, 6},
-        {targetId, 0, 8, 0, 6},
+        {targetId, false, 1, 6, 0, 0, 0},
+        {targetId, false, 6, 6, 0, 0, 0},
+        {targetId, false, 8, 6, 0, 0, 0},
         // 5
-        {targetId, 0, 2, 0, 7},
-        {targetId, 0, 4, 0, 7},
-        {targetId, 0, 7, 0, 7},
+        {targetId, false, 2, 7, 0, 0, 0},
+        {targetId, false, 4, 7, 0, 0, 0},
+        {targetId, false, 7, 7, 0, 0, 0},
         // 123
-        {targetId, 0, 1, 0, 8},
-        {targetId, 0, 6, 0, 8},
-        {targetId, 0, 8, 0, 8},
+        {targetId, false, 1, 8, 0, 0, 0},
+        {targetId, false, 6, 8, 0, 0, 0},
+        {targetId, false, 8, 8, 0, 0, 0},
     };
 
     // Run the unit under test.
     PacBio::Pancake::SeedIndex si(targetSeedDBCache, std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
-    si.CollectHits(querySeeds, results, 100);
+    si.CollectHits(querySeeds, queryLen, results, 100);
 
     // Evaluate.
     EXPECT_EQ(expected, results);
@@ -390,6 +396,7 @@ TEST(SeedIndex, CollectHitsFrequencyThreshold)
         PacBio::Pancake::SeedDB::Seed::Encode(123, targetId, 8, false),
     };
     const std::vector<PacBio::Pancake::SeedDB::SeedRaw> querySeeds = targetSeeds;
+    const int32_t queryLen = 38;
     int32_t freqCutoff = 2;
 
     // Load the SeedDB cache.
@@ -408,19 +415,19 @@ B	0	0	1	96
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {
         // 0
-        {targetId, 0, 0, 0, 0},
-        {targetId, 0, 5, 0, 0},
+        {targetId, false, 0, 0, 0, 0, 0},
+        {targetId, false, 5, 0, 0, 0, 0},
         /// 7
-        {targetId, 0, 3, 0, 3},
+        {targetId, false, 3, 3, 0, 0, 0},
         // 0
-        {targetId, 0, 0, 0, 5},
-        {targetId, 0, 5, 0, 5},
+        {targetId, false, 0, 5, 0, 0, 0},
+        {targetId, false, 5, 5, 0, 0, 0},
     };
 
     // Run the unit under test.
     PacBio::Pancake::SeedIndex si(targetSeedDBCache, std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
-    si.CollectHits(querySeeds, results, freqCutoff);
+    si.CollectHits(querySeeds, queryLen, results, freqCutoff);
 
     // Evaluate.
     EXPECT_EQ(expected, results);
@@ -458,6 +465,7 @@ TEST(SeedIndex, CollectHitsReverseStrand)
         PacBio::Pancake::SeedDB::Seed::Encode(5, queryId, 7, false),
         PacBio::Pancake::SeedDB::Seed::Encode(123, queryId, 8, false),
     };
+    const int32_t queryLen = 38;
     int32_t freqCutoff = 0;
 
     // Load the SeedDB cache.
@@ -476,43 +484,43 @@ B	0	0	1	96
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {
         // 0
-        {targetId, 0, 0, 0, 0},
-        {targetId, 0, 5, 0, 0},
+        {targetId, false, 0, 0, 0, 0, 0},
+        {targetId, false, 5, 0, 0, 0, 0},
         // 123
-        {targetId, 1, 7, 0, 1},
-        {targetId, 1, 2, 0, 1},
-        {targetId, 1, 0, 0, 1},
+        {targetId, true, 1, 7, 0, 0, 0},
+        {targetId, true, 6, 7, 0, 0, 0},
+        {targetId, true, 8, 7, 0, 0, 0},
         /// 5
-        {targetId, 1, 6, 0, 2},
-        {targetId, 1, 1, 0, 2},
-        {targetId, 0, 4, 0, 2},
+        {targetId, true, 2, 6, 0, 0, 0},
+        {targetId, true, 7, 6, 0, 0, 0},
+        {targetId, false, 4, 2, 0, 0, 0},
         /// 7
-        {targetId, 1, 5, 0, 3},
+        {targetId, true, 3, 5, 0, 0, 0},
         // 5
-        {targetId, 0, 2, 0, 4},
-        {targetId, 0, 7, 0, 4},
-        {targetId, 1, 4, 0, 4},
+        {targetId, false, 2, 4, 0, 0, 0},
+        {targetId, false, 7, 4, 0, 0, 0},
+        {targetId, true, 4, 4, 0, 0, 0},
         // 0
-        {targetId, 0, 0, 0, 5},
-        {targetId, 0, 5, 0, 5},
+        {targetId, false, 0, 5, 0, 0, 0},
+        {targetId, false, 5, 5, 0, 0, 0},
         // 123
-        {targetId, 0, 1, 0, 6},
-        {targetId, 0, 6, 0, 6},
-        {targetId, 0, 8, 0, 6},
+        {targetId, false, 1, 6, 0, 0, 0},
+        {targetId, false, 6, 6, 0, 0, 0},
+        {targetId, false, 8, 6, 0, 0, 0},
         // 5
-        {targetId, 0, 2, 0, 7},
-        {targetId, 0, 7, 0, 7},
-        {targetId, 1, 4, 0, 7},
+        {targetId, false, 2, 7, 0, 0, 0},
+        {targetId, false, 7, 7, 0, 0, 0},
+        {targetId, true, 4, 1, 0, 0, 0},
         // 123
-        {targetId, 0, 1, 0, 8},
-        {targetId, 0, 6, 0, 8},
-        {targetId, 0, 8, 0, 8},
+        {targetId, false, 1, 8, 0, 0, 0},
+        {targetId, false, 6, 8, 0, 0, 0},
+        {targetId, false, 8, 8, 0, 0, 0},
     };
 
     // Run the unit under test.
     PacBio::Pancake::SeedIndex si(targetSeedDBCache, std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
-    si.CollectHits(querySeeds, results, freqCutoff);
+    si.CollectHits(querySeeds, queryLen, results, freqCutoff);
 
     for (size_t i = 0; i < results.size(); ++i) {
         const auto& hit = results[i];
@@ -652,19 +660,6 @@ TEST(SeedIndex, ComputeFrequencyThresholdOutOfBounds)
                                      resultFreqCutoff);
         },
         std::runtime_error);
-}
-
-PacBio::Pancake::Int128t PackSeedHitWithDiagonalTo128_(const PacBio::Pancake::SeedHit& sh)
-{
-    static const PacBio::Pancake::Int128t MASK128_LOW32bit = 0x000000000FFFFFFFF;
-    PacBio::Pancake::Int128t ret = 0;
-    const int32_t diag = (sh.targetPos - sh.queryPos);
-    ret = ((static_cast<PacBio::Pancake::Int128t>(sh.targetId) & MASK128_LOW32bit) << 97) |
-          ((static_cast<PacBio::Pancake::Int128t>(sh.targetRev) & MASK128_LOW32bit) << 96) |
-          ((static_cast<PacBio::Pancake::Int128t>(diag) & MASK128_LOW32bit) << 64) |
-          ((static_cast<PacBio::Pancake::Int128t>(sh.targetPos) & MASK128_LOW32bit) << 32) |
-          (static_cast<PacBio::Pancake::Int128t>(sh.queryPos) & MASK128_LOW32bit);
-    return ret;
 }
 
 TEST(SeedIndex, ParsingSeedIndexCache_Stream_RoundTrip_Good)
