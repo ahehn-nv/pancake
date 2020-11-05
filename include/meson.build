@@ -123,6 +123,7 @@ if not meson.is_subproject()
       'pacbio/pancake/Secondary.h',
       'pacbio/pancake/Seed.h',
       'pacbio/pancake/SeedHit.h',
+      'pacbio/pancake/SeedHitWriter.h',
       'pacbio/pancake/SeedIndex.h',
       'pacbio/pancake/SeedDBIndexCache.h',
       'pacbio/pancake/SeedDBParameters.h',

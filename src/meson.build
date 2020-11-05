@@ -54,6 +54,7 @@ pancake_cpp_sources = files([
     'pancake/OverlapWriterSAM.cpp',
     'pancake/Secondary.cpp',
     'pancake/SeedHit.cpp',
+    'pancake/SeedHitWriter.cpp',
     'pancake/SeedDBIndexCache.cpp',
     'pancake/SeedDBReader.cpp',
     'pancake/SeedDBReaderCached.cpp',
