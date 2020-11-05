@@ -151,7 +151,6 @@ void OverlapWriterBase::PrintOverlapAsPAF(FILE* fpOut, const OverlapPtr& ovl,
     int32_t tStart = ovl->BstartFwd();
     int32_t tEnd = ovl->BendFwd();
     const int32_t tIsRev = ovl->Brev;
-    const int32_t tLen = ovl->Blen;
     std::string AtypeStr = OverlapTypeToStringSingleChar(ovl->Atype);
     std::string BtypeStr = OverlapTypeToStringSingleChar(ovl->Btype);
     int32_t mapq = 60;
@@ -224,9 +223,7 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, co
 
     // The format specifies coordinates always in the FWD strand.
     int32_t tStart = ovl->BstartFwd() + 1;
-    int32_t tEnd = ovl->BendFwd();
     const int32_t tIsRev = ovl->Brev;
-    const int32_t tLen = ovl->Blen;
     std::string AtypeStr = OverlapTypeToStringSingleChar(ovl->Atype);
     std::string BtypeStr = OverlapTypeToStringSingleChar(ovl->Btype);
     int32_t flag = tIsRev ? 16 : 0;

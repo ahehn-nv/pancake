@@ -1,6 +1,6 @@
 // Author: Ivan Sovic
 
-#include "main/seqdb/SeqDBSettings.h"
+#include "SeqDBSettings.h"
 #include <pacbio/Version.h>
 #include <limits>
 

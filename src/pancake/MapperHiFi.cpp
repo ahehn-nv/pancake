@@ -7,8 +7,8 @@
 #include <pacbio/pancake/MapperHiFi.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
 #include <pacbio/pancake/Secondary.h>
-#include <pacbio/util/RunLengthEncoding.h>
 #include <pacbio/pancake/SeedHitWriter.h>
+#include <pacbio/util/RunLengthEncoding.h>
 #include <pacbio/util/TicToc.h>
 #include <pacbio/util/Util.h>
 #include <pbcopper/logging/Logging.h>
