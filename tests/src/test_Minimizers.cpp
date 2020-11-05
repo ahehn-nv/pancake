@@ -387,7 +387,6 @@ TEST(GenerateMinimizers, HPC2)
         auto seedWithHP = PacBio::Pancake::SeedDB::Seed(seedsWithHP[i]);
         auto seedNoHP = PacBio::Pancake::SeedDB::Seed(seedsNoHP[i]);
         EXPECT_EQ(seedWithHP.key, seedNoHP.key);
-        EXPECT_EQ(seedWithHP.flag, seedNoHP.flag);
     }
 }
 
