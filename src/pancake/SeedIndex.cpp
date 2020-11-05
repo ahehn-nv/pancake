@@ -1,6 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <lib/kxsort/kxsort.h>
+#include <pacbio/pancake/Minimizers.h>
 #include <pacbio/pancake/Seed.h>
 #include <pacbio/pancake/SeedIndex.h>
 #include <pacbio/util/TicToc.h>
@@ -56,9 +57,6 @@ void SeedIndex::BuildHash_()
     TicToc ttSort;
     kx::radix_sort(seeds_.begin(), seeds_.end());
     ttSort.Stop();
-
-    PBLOG_INFO << "Sorted the seeds in " << ttSort.GetSecs() << " sec / " << ttSort.GetCpuSecs()
-               << " CPU sec";
 
     // Clear the storage for the hash.
     hash_.clear();
@@ -167,53 +165,18 @@ int64_t SeedIndex::GetSeeds(uint64_t key,
 }
 
 bool SeedIndex::CollectHits(const std::vector<PacBio::Pancake::SeedDB::SeedRaw>& querySeeds,
-                            std::vector<SeedHit>& hits, int64_t freqCutoff) const
+                            int32_t queryLen, std::vector<SeedHit>& hits, int64_t freqCutoff) const
 {
-    return CollectHits(&querySeeds[0], querySeeds.size(), hits, freqCutoff);
+    return CollectHits(&querySeeds[0], querySeeds.size(), queryLen, hits, freqCutoff);
 }
 
 bool SeedIndex::CollectHits(const PacBio::Pancake::SeedDB::SeedRaw* querySeeds,
-                            int64_t querySeedsSize, std::vector<SeedHit>& hits,
+                            int64_t querySeedsSize, int32_t queryLen, std::vector<SeedHit>& hits,
                             int64_t freqCutoff) const
 {
-    hits.clear();
-
-    // The +1 is because for every seed base there are Spacing spaces, and the subtraction
-    // is because after the last seed base the spaces shouldn't be counted.
-    const int32_t seedSize = seedParams_.KmerSize * (seedParams_.Spacing + 1) - seedParams_.Spacing;
-
-    for (int64_t seedId = 0; seedId < querySeedsSize; ++seedId) {
-        const auto& querySeed = querySeeds[seedId];
-        auto decodedQuery = PacBio::Pancake::SeedDB::Seed(querySeed);
-        auto it = hash_.find(decodedQuery.key);
-        if (it != hash_.end()) {
-            int64_t start = std::get<0>(it->second);
-            int64_t end = std::get<1>(it->second);
-            // Skip very frequent seeds.
-            if (freqCutoff > 0 && (end - start) > freqCutoff) {
-                continue;
-            }
-            for (int64_t i = start; i < end; ++i) {
-                auto decodedTarget = PacBio::Pancake::SeedDB::Seed(seeds_[i]);
-                bool isRev = false;
-                int32_t targetPos = decodedTarget.pos;
-
-                if (decodedQuery.IsRev() != decodedTarget.IsRev()) {
-                    isRev = true;
-                    // targetPos = seq->len() - (decodedTarget.pos + 1);
-                    const int32_t targetLen = GetSequenceLength(decodedTarget.seqID);
-                    targetPos = targetLen - (decodedTarget.pos + seedSize);
-                    // TODO: This will be off if the homopolymer compression is used.
-                    // In that case, the seed span is not the same as t he kmerSize.
-                }
-
-                SeedHit hit{decodedTarget.seqID, isRev, targetPos, 0, decodedQuery.pos};
-                hits.emplace_back(hit);
-            }
-        }
-    }
-
-    return hits.size() > 0;
+    return PacBio::Pancake::SeedDB::CollectSeedHits<SeedHashType>(
+        hits, querySeeds, querySeedsSize, queryLen, hash_, &seeds_[0], seeds_.size(),
+        sequenceLengths_, seedParams_.KmerSize, seedParams_.Spacing, freqCutoff);
 }
 
 }  // namespace Pancake

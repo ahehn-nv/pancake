@@ -30,27 +30,27 @@ const uint64_t SEED_INDEX_EMPTY_HASH_KEY = 0xFFFFFFFFFFFFFFFF;
 #ifdef SEED_INDEX_USING_UNORDERED_MAP
 #include <unordered_map>
 // Key: kmer hash, Value: pair of <startId, endId> in the seeds_ vector.
-using SeedHashType = std::unordered_map<uint64_t, std::pair<int64_t, int64_t>, std::hash<uint64_t>>;
+typedef std::unordered_map<uint64_t, std::pair<int64_t, int64_t>, std::hash<uint64_t>> SeedHashType;
 #endif
 
 #ifdef SEED_INDEX_USING_DENSEHASH
 #include <sparsehash/dense_hash_map>
 using google::dense_hash_map;  // namespace where class lives by default
 // Key: kmer hash, Value: pair of <startId, endId> in the seeds_ vector.
-using SeedHashType = dense_hash_map<uint64_t, std::pair<int64_t, int64_t>, std::hash<uint64_t>>;
+typedef dense_hash_map<uint64_t, std::pair<int64_t, int64_t>, std::hash<uint64_t>> SeedHashType;
 #endif
 
 #ifdef SEED_INDEX_USING_SPARSEHASH
 #include <sparsehash/sparse_hash_map>
 using google::sparse_hash_map;  // namespace where class lives by default
 // Key: kmer hash, Value: pair of <startId, endId> in the seeds_ vector.
-using SeedHashType = sparse_hash_map<uint64_t, std::pair<int64_t, int64_t>, std::hash<uint64_t>>;
+typedef sparse_hash_map<uint64_t, std::pair<int64_t, int64_t>, std::hash<uint64_t>> SeedHashType;
 #endif
 
 #ifdef SEED_INDEX_USING_FLATHASHMAP
 #include <lib/flat_hash_map/flat_hash_map.hpp>
 // Key: kmer hash, Value: pair of <startId, endId> in the seeds_ vector.
-using SeedHashType = ska::flat_hash_map<uint64_t, std::pair<int64_t, int64_t>>;
+typedef ska::flat_hash_map<uint64_t, std::pair<int64_t, int64_t>> SeedHashType;
 #endif
 
 namespace PacBio {
@@ -70,9 +70,9 @@ public:
                                double& retFreqMedian, int64_t& retFreqCutoff) const;
     int64_t GetSeeds(uint64_t key, std::vector<PacBio::Pancake::SeedDB::SeedRaw>& seeds) const;
     bool CollectHits(const std::vector<PacBio::Pancake::SeedDB::SeedRaw>& querySeeds,
-                     std::vector<SeedHit>& hits, int64_t freqCutoff) const;
+                     int32_t queryLen, std::vector<SeedHit>& hits, int64_t freqCutoff) const;
     bool CollectHits(const PacBio::Pancake::SeedDB::SeedRaw* querySeeds, int64_t querySeedsSize,
-                     std::vector<SeedHit>& hits, int64_t freqCutoff) const;
+                     int32_t queryLen, std::vector<SeedHit>& hits, int64_t freqCutoff) const;
 
     const std::vector<int32_t> GetSequenceLengths() const { return sequenceLengths_; }
 
