@@ -40,7 +40,7 @@ endforeach
 pancake_thread_dep = dependency('threads', required : true)
 
 # boost
-pancake_boost_dep = dependency('boost', required : true)
+pancake_boost_dep = dependency('boost', required : true, include_type : 'system')
 
 # zlib
 pancacke_zlib_dep = dependency('zlib', required : true, fallback : ['zlib', 'zlib_dep'])

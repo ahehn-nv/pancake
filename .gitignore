@@ -9,3 +9,5 @@
 temp/
 
 tests/*/*.t.err
+*.png
+separated-*/

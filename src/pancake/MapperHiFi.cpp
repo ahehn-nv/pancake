@@ -112,12 +112,8 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
 
     TicToc ttMarkSecondary;
     if (settings_.MarkSecondary) {
-        // Sort all overlaps in descending order of the score.
-        std::sort(overlaps.begin(), overlaps.end(), [](const auto& a, const auto& b) {
-            return std::abs(a->Score) > std::abs(b->Score);
-        });
-
         // Flag the secondary and supplementary overlaps.
+        // Overlaps don't have to be sorted, the maximum is found internally.
         std::vector<OverlapPriority> overlapPriorities =
             FlagSecondaryAndSupplementary(overlaps, settings_.SecondaryAllowedOverlapFraction,
                                           settings_.SecondaryMinScoreFraction);
@@ -138,6 +134,14 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
     }
     ttMarkSecondary.Stop();
 
+    // Filter the overlaps.
+    TicToc ttFilter;
+    overlaps = FilterOverlaps_(
+        overlaps, settings_.MinNumSeeds, settings_.MinIdentity, settings_.MinMappedLength,
+        settings_.MinQueryLen, settings_.MinTargetLen, settings_.ChainBandwidth,
+        settings_.AllowedDovetailDist, settings_.AllowedHeuristicExtendDist, settings_.BestN);
+    ttFilter.Stop();
+
     // Generating flipped overlaps.
     TicToc ttFlip;
     if (generateFlippedOverlap) {
@@ -157,13 +161,6 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
         PBLOG_INFO << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
     }
 #endif
-
-    TicToc ttFilter;
-    overlaps = FilterOverlaps_(overlaps, settings_.MinNumSeeds, settings_.MinIdentity,
-                               settings_.MinMappedLength, settings_.MinQueryLen,
-                               settings_.MinTargetLen, settings_.AllowedDovetailDist,
-                               settings_.AllowedHeuristicExtendDist, settings_.BestN);
-    ttFilter.Stop();
 
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Overlaps after filtering: " << overlaps.size();
@@ -340,12 +337,11 @@ std::vector<OverlapPtr> Mapper::FormDiagonalAnchors_(
 std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& overlaps,
                                                 int32_t minNumSeeds, float minIdentity,
                                                 int32_t minMappedSpan, int32_t minQueryLen,
-                                                int32_t minTargetLen, int32_t allowedDovetailDist,
+                                                int32_t minTargetLen, int32_t diagonalBandwidth,
+                                                int32_t allowedDovetailDist,
                                                 int32_t allowedExtendDist, int32_t bestN)
 {
-
-    std::vector<OverlapPtr> ret;
-
+    std::vector<OverlapPtr> newOverlaps;
     for (const auto& ovl : overlaps) {
         if (100 * ovl->Identity < minIdentity || ovl->ASpan() < minMappedSpan ||
             ovl->BSpan() < minMappedSpan || ovl->NumSeeds < minNumSeeds ||
@@ -362,13 +358,56 @@ std::vector<OverlapPtr> Mapper::FilterOverlaps_(const std::vector<OverlapPtr>& o
             DetermineOverlapType(ovl->Arev, ovl->BstartFwd(), ovl->BendFwd(), ovl->Blen, ovl->Brev,
                                  ovl->AstartFwd(), ovl->AendFwd(), ovl->Alen, allowedDovetailDist);
         HeuristicExtendOverlapFlanks(newOvl, allowedExtendDist);
-        ret.emplace_back(std::move(newOvl));
+        newOverlaps.emplace_back(std::move(newOvl));
     }
 
+    // Sort by diagonal, to filter the duplicate overlaps.
+    std::stable_sort(newOverlaps.begin(), newOverlaps.end(), [](const auto& a, const auto& b) {
+        return std::make_tuple(a->Bid, a->Brev, (a->Bstart - a->Astart)) <
+               std::make_tuple(b->Bid, b->Brev, (b->Bstart - b->Astart));
+    });
+    for (size_t i = 0; i < newOverlaps.size(); ++i) {
+        if (newOverlaps[i] == nullptr) {
+            continue;
+        }
+        for (size_t j = (i + 1); j < newOverlaps.size(); ++j) {
+            if (newOverlaps[j] == nullptr) {
+                continue;
+            }
+            // Stop the loop if we reached a different target or orientation.
+            if (newOverlaps[j]->Bid != newOverlaps[i]->Bid ||
+                newOverlaps[j]->Brev != newOverlaps[i]->Brev) {
+                break;
+            }
+            // Break if the diagonal is too far away from the current overlap.
+            const int32_t diagI = newOverlaps[i]->Bstart - newOverlaps[i]->Astart;
+            const int32_t diagJ = newOverlaps[j]->Bstart - newOverlaps[j]->Astart;
+            if (std::abs(diagI - diagJ) > diagonalBandwidth) {
+                break;
+            }
+            // Two overlaps are within the bandwidth. Remove the one with lower score.
+            // Score is negative, as per legacy Falcon convention.
+            if (newOverlaps[i]->Score > newOverlaps[j]->Score) {
+                newOverlaps[i] = nullptr;
+                break;
+            } else {
+                newOverlaps[j] = nullptr;
+            }
+        }
+    }
+
+    // Collect remaining overlaps.
+    std::vector<OverlapPtr> ret;
+    for (size_t i = 0; i < newOverlaps.size(); ++i) {
+        if (newOverlaps[i] == nullptr) {
+            continue;
+        }
+        ret.emplace_back(std::move(newOverlaps[i]));
+    }
     // Score is negative, as per legacy Falcon convention.
     std::stable_sort(ret.begin(), ret.end(),
                      [](const auto& a, const auto& b) { return a->Score < b->Score; });
-
+    // Keep best N.
     int32_t nToKeep = (bestN > 0) ? std::min(bestN, static_cast<int32_t>(ret.size())) : ret.size();
     ret.resize(nToKeep);
 
@@ -419,6 +458,10 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     std::vector<OverlapPtr> ret;
 
     for (size_t i = 0; i < overlaps.size(); ++i) {
+#ifdef PANCAKE_DEBUG_ALN
+        PBLOG_INFO << "Aligning overlap: [" << i << "] "
+                   << OverlapWriterBase::PrintOverlapAsM4(overlaps[i], "", "", true, false);
+#endif
         const auto& targetSeq = targetSeqs.GetSequence(overlaps[i]->Bid);
         OverlapPtr newOverlap = AlignOverlap_(
             targetSeq, querySeq, reverseQuerySeq, overlaps[i], alignBandwidth, alignMaxDiff,
@@ -427,6 +470,10 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
             trimMatchFraction, trimToFirstMatch, sesScratch);
         if (newOverlap != nullptr) {
             ret.emplace_back(std::move(newOverlap));
+#ifdef PANCAKE_DEBUG_ALN
+            PBLOG_INFO << "After alignment: "
+                       << OverlapWriterBase::PrintOverlapAsM4(overlaps[i], "", "", true, false);
+#endif
         }
     }
 
