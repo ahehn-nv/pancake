@@ -101,15 +101,31 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
 
     // Sanity check that the seq is not NULL;
     if (!seq) {
-        return 1;
+        throw std::runtime_error("Cannot generate minimizers. The sequence is NULL.");
     }
     // Sanity check for the size of kmer. It can't
     // be too large, or it won't fit the uint64_t buffer.
     if (kmerSize <= 0 || kmerSize > 28) {
-        return 2;
+        throw std::runtime_error(
+            "Cannot generate minimizers. The kmerSize is out of bounds, should be in range [0, "
+            "28]. kmerSize = " +
+            std::to_string(kmerSize));
     }
     if (maxHPCLen >= 256) {
-        return 3;
+        throw std::runtime_error(
+            "Cannot generate minimizers. The maxHPCLen is out of bounds, should be in range [0, "
+            "256]. maxHPCLen = " +
+            std::to_string(maxHPCLen));
+    }
+    if (winSize > MAX_WINDOW_BUFFER_SIZE) {
+        throw std::runtime_error(
+            "Cannot generate minimizers. The winSize is out of bounds, should be in range [0, " +
+            std::to_string(MAX_WINDOW_BUFFER_SIZE) + "]. winSize = " + std::to_string(winSize));
+    }
+    if (spacing > MAX_SPACING_IN_SEED) {
+        throw std::runtime_error(
+            "Cannot generate minimizers. The spacing is out of bounds, should be in range [0, " +
+            std::to_string(MAX_SPACING_IN_SEED) + "]. spacing = " + std::to_string(spacing));
     }
     // Not technically an error if the seqLen is 0,
     // but there's nothing to do, so return.
