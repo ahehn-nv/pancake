@@ -14,6 +14,11 @@ OverlapType DetermineOverlapType(bool Arev, int32_t AstartFwd, int32_t AendFwd, 
     int32_t leftHangB = BstartFwd;
     int32_t rightHangB = Blen - BendFwd;
 
+    if (Arev) {
+        throw std::runtime_error(
+            "The A-read should always be forward oriented. (In DetermineOverlapType.)");
+    }
+
     if (Brev) {
         std::swap(leftHangB, rightHangB);
     }
