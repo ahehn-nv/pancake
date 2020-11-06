@@ -29,6 +29,13 @@ pancake_version_sources = [
 ###########
 
 pancake_cpp_sources = files([
+    'lib/ksw2/kalloc.cpp',
+    'lib/ksw2/ksw2_dispatch.cpp',
+    'lib/ksw2/ksw2_extd2_sse.cpp',
+    'lib/ksw2/ksw2_exts2_sse.cpp',
+    'lib/ksw2/ksw2_extz2_sse.cpp',
+    'lib/ksw2/ksw2_ll_sse.cpp',
+
     'alignment/AlignmentTools.cpp',
     'alignment/SesDistanceBanded.cpp',
     'main/dbfilter/DBFilterSettings.cpp',

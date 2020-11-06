@@ -42,6 +42,14 @@ if not meson.is_subproject()
       ]),
       subdir : 'lib/kxsort')
 
+  # lib/ksw2
+  install_headers(
+    files([
+      'lib/ksw2/kalloc.h',
+      'lib/ksw2/ksw2.h',
+      ]),
+      subdir : 'lib/ksw2')
+
   # lib/sparsehash/internal
   install_headers(
     files([
@@ -159,4 +167,5 @@ if not meson.is_subproject()
 
 endif
 
-pancake_include_directories = include_directories(['.', 'pacbio', 'lib/sparsehash'])
+pancake_include_directories = include_directories(['.', 'pacbio', 'lib/sparsehash', 'lib/ksw2'])
+ksw2_include_directories = include_directories(['lib/ksw2'])
