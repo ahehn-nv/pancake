@@ -1225,5 +1225,36 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
     return true;
 }
 
+int32_t ScoreCigarAlignment(const PacBio::BAM::Cigar& cigar, int32_t match, int32_t mismatch,
+                            int32_t gapOpen, int32_t gapExt)
+{
+    int64_t score = 0;
+
+    for (const auto& op : cigar) {
+        const int32_t count = op.Length();
+        switch (op.Type()) {
+            case PacBio::BAM::CigarOperationType::SEQUENCE_MATCH:
+                // Scores are positive.
+                score += match * count;
+                break;
+            case PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH:
+                // Penalties are positive.
+                score -= mismatch * count;
+                break;
+            case PacBio::BAM::CigarOperationType::INSERTION:
+                // Penalties are positive.
+                score -= (gapOpen + gapExt * (count - 1));
+                break;
+            case PacBio::BAM::CigarOperationType::DELETION:
+                // Penalties are positive.
+                score -= (gapOpen + gapExt * (count - 1));
+                break;
+            default:
+                break;
+        }
+    }
+    return score;
+}
+
 }  // namespace Pancake
 }  // namespace PacBio

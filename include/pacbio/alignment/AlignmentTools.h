@@ -74,6 +74,9 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
                bool clipOnFirstMatch, PacBio::BAM::Cigar& retTrimmedCigar,
                TrimmingInfo& retTrimming);
 
+int32_t ScoreCigarAlignment(const PacBio::BAM::Cigar& cigar, int32_t match, int32_t mismatch,
+                            int32_t gapOpen, int32_t gapExt);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
