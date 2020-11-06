@@ -146,6 +146,15 @@ if not meson.is_subproject()
   # pacbio/pancake
   install_headers(
     files([
+      'pacbio/pancake/AlignmentResult.h',
+      'pacbio/pancake/AlignerBase.h',
+      'pacbio/pancake/AlignerKSW2.h',
+      'pacbio/pancake/AlignerWFA.h',
+      'pacbio/pancake/AlignerEdlib.h',
+      'pacbio/pancake/AlignerSES1.h',
+      'pacbio/pancake/AlignerSES2.h',
+      'pacbio/pancake/AlignerFactory.h',
+      'pacbio/pancake/AlignmentParameters.h',
       'pacbio/pancake/CompressedSequence.h',
       'pacbio/pancake/ContiguousFilePart.h',
       'pacbio/pancake/FastaSequenceCached.h',
