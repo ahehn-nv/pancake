@@ -158,6 +158,7 @@ if not meson.is_subproject()
       'pacbio/pancake/AlignmentSeeded.h',
       'pacbio/pancake/CompressedSequence.h',
       'pacbio/pancake/ContiguousFilePart.h',
+      'pacbio/pancake/DPChain.h',
       'pacbio/pancake/FastaSequenceCached.h',
       'pacbio/pancake/FastaSequenceId.h',
       'pacbio/pancake/Lookups.h',
