@@ -82,6 +82,7 @@ pancake_cpp_sources = files([
     'pancake/CompressedSequence.cpp',
     'pancake/DPChain.cpp',
     'pancake/FastaSequenceId.cpp',
+    'pancake/MapperCLR.cpp',
     'pancake/MapperHiFi.cpp',
     'pancake/Minimizers.cpp',
     'pancake/Overlap.cpp',
