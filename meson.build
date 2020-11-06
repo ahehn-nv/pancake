@@ -32,6 +32,8 @@ foreach cflag: [
     endif
 endforeach
 
+pancake_flags = pancake_warning_flags
+
 ################
 # dependencies #
 ################

@@ -132,7 +132,7 @@ pancake_lib = library(
   install : pancake_lib_install,
   dependencies : pancake_lib_deps,
   include_directories : pancake_include_directories,
-  cpp_args : pancake_warning_flags)
+  cpp_args : pancake_flags)
 
 ##############
 # executable #
@@ -147,5 +147,5 @@ if not meson.is_subproject()
     dependencies : pancake_lib_deps,
     include_directories : pancake_include_directories,
     link_with : pancake_lib,
-    cpp_args : pancake_warning_flags)
+    cpp_args : pancake_flags)
 endif
