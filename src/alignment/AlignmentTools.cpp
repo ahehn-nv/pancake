@@ -310,6 +310,20 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
             throw std::runtime_error(oss.str());
         }
     }
+
+    if (queryPos != queryLen || targetPos != targetLen) {
+        Alignment::DiffCounts diffs = CigarDiffCounts(cigar);
+        std::ostringstream oss;
+        oss << "Invalid CIGAR string (length): "
+            << "Computed query or target length does not match the sequence length. "
+            << "queryPos = " << queryPos << ", targetPos = " << targetPos
+            << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+            << ", alnQuerySpan = " << (diffs.numEq + diffs.numX + diffs.numI)
+            << ", alnTargetSpan = " << (diffs.numEq + diffs.numX + diffs.numD) << ", " << diffs
+            << ", edit_dist = " << diffs.NumDiffs() << ", CIGAR: " << cigar.ToStdString()
+            << ", label: '" << label;
+        throw std::runtime_error(oss.str());
+    }
 }
 
 void ExtractVariantString(const char* query, int64_t queryLen, const char* target,

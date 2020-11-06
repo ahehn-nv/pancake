@@ -43,7 +43,7 @@ TEST(Test_AlignmentTools_ValidateCigar, ArrayOfTests)
         {"Cigar with indels", "ACTT", "ACTG", "3=1I1D", false},
         {"Soft clipping", "AAAACTTAAA", "ACTG", "3S3=1X3S", false},
         {"Hard clipping", "ACTT", "ACTG", "3H3=1X3H", false},
-        {"Simple test case", "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", false},
+        {"Simple test case", "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I2D", false},
 
         // Bad cases.
         {"One base is incorrect", "ACTT", "ACTG", "4=", true},
@@ -51,6 +51,7 @@ TEST(Test_AlignmentTools_ValidateCigar, ArrayOfTests)
         {"Non-zero CIGAR, but empty seqs", "", "", "4=", true},
         {"Length mismatch with indels", "ACTT", "ACTG", "3=1I1D1I", true},
         {"Length mismatch with mismatches", "ACTT", "ACTG", "3=2X", true},
+        {"Simple test case", "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", true},
 
     };
     // clang-format on
