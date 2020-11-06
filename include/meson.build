@@ -42,6 +42,40 @@ if not meson.is_subproject()
       ]),
       subdir : 'lib/kxsort')
 
+  # lib/wfa
+  install_headers(
+    files([
+      'lib/wfa/gap_affine/affine_penalties.h',
+      'lib/wfa/gap_affine/affine_table.h',
+      'lib/wfa/gap_affine/affine_wavefront.h',
+      'lib/wfa/gap_affine/affine_wavefront_align.h',
+      'lib/wfa/gap_affine/affine_wavefront_backtrace.h',
+      'lib/wfa/gap_affine/affine_wavefront_display.h',
+      'lib/wfa/gap_affine/affine_wavefront_extend.h',
+      'lib/wfa/gap_affine/affine_wavefront_penalties.h',
+      'lib/wfa/gap_affine/affine_wavefront_reduction.h',
+      'lib/wfa/gap_affine/affine_wavefront_utils.h',
+      'lib/wfa/gap_affine/swg.h',
+      'lib/wfa/gap_affine/wavefront_stats.h',
+
+      'lib/wfa/gap_lineal/lineal_penalties.h',
+      'lib/wfa/gap_lineal/nw.h',
+
+      'lib/wfa/utils/commons.h',
+      'lib/wfa/utils/dna_text.h',
+      'lib/wfa/utils/string_padded.h',
+      'lib/wfa/utils/vector.h',
+
+      'lib/wfa/edit/edit_cigar.h',
+      'lib/wfa/edit/edit_dp.h',
+      'lib/wfa/edit/edit_table.h',
+
+      'lib/wfa/system/mm_allocator.h',
+      'lib/wfa/system/profiler_counter.h',
+      'lib/wfa/system/profiler_timer.h',
+      ]),
+      subdir : 'lib/wfa')
+
   # lib/ksw2
   install_headers(
     files([
@@ -167,5 +201,5 @@ if not meson.is_subproject()
 
 endif
 
-pancake_include_directories = include_directories(['.', 'pacbio', 'lib/sparsehash', 'lib/ksw2'])
+pancake_include_directories = include_directories(['.', 'pacbio', 'lib/sparsehash', 'lib/ksw2', 'lib/wfa', 'lib/wfa/gap_affine', 'lib/wfa/gap_lineal', 'lib/wfa/edit', 'lib/wfa/system', 'lib/wfa/utils'])
 ksw2_include_directories = include_directories(['lib/ksw2'])
