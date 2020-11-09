@@ -23,6 +23,18 @@ public:
 
     SeedDBParameters() = default;
     ~SeedDBParameters() = default;
+
+    bool operator==(const SeedDBParameters& rhs) const
+    {
+        return KmerSize == rhs.KmerSize && MinimizerWindow == rhs.MinimizerWindow &&
+            Spacing == rhs.Spacing && UseHPC == rhs.UseHPC &&
+            UseHPCForSeedsOnly == rhs.UseHPCForSeedsOnly &&
+            MaxHPCLen == rhs.MaxHPCLen && UseRC == rhs.UseRC;
+    }
+    bool operator!=(const SeedDBParameters& rhs) const
+    {
+        return !((*this) == rhs);
+    }
 };
 // clang-format on
 
