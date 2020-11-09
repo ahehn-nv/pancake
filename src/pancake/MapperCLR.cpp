@@ -117,9 +117,7 @@ std::vector<MapperCLRResult> MapperCLR::Map(const std::vector<std::string>& targ
 
         auto queryResults = Map(targetSeqs, *seedIndex, query, querySeeds, queryId, freqCutoff);
 
-        std::cerr << "queryResults.mappings.size() = " << queryResults.mappings.size() << "\n";
         if (queryResults.mappings.empty() && seedIndexFallback != nullptr) {
-            std::cerr << "Tu sam 1!\n";
             rv = SeedDB::GenerateMinimizers(
                 querySeeds, seq, seqLen, 0, queryId, settings_.seedParamsFallback.KmerSize,
                 settings_.seedParamsFallback.MinimizerWindow, settings_.seedParamsFallback.Spacing,
