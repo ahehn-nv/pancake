@@ -53,6 +53,7 @@ public:
 
     // Indexing.
     PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
+    PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
     double freqPercentile = 0.000;
 
     // Alignment.
@@ -109,6 +110,16 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
         << "seedParams.UseHPCForSeedsOnly = " << a.seedParams.UseHPCForSeedsOnly << "\n"
         << "seedParams.MaxHPCLen = " << a.seedParams.MaxHPCLen << "\n"
         << "seedParams.UseRC = " << a.seedParams.UseRC << "\n"
+
+        << "seedParamsFallback.KmerSize = " << a.seedParamsFallback.KmerSize << "\n"
+        << "seedParamsFallback.MinimizerWindow = " << a.seedParamsFallback.MinimizerWindow << "\n"
+        << "seedParamsFallback.Spacing = " << a.seedParamsFallback.Spacing << "\n"
+        << "seedParamsFallback.UseHPC = " << a.seedParamsFallback.UseHPC << "\n"
+        << "seedParamsFallback.UseHPCForSeedsOnly = " << a.seedParamsFallback.UseHPCForSeedsOnly
+        << "\n"
+        << "seedParamsFallback.MaxHPCLen = " << a.seedParamsFallback.MaxHPCLen << "\n"
+        << "seedParamsFallback.UseRC = " << a.seedParamsFallback.UseRC << "\n"
+
         << "freqPercentile = " << a.freqPercentile << "\n"
 
         << "skipSymmetricOverlaps = " << a.skipSymmetricOverlaps << "\n"
