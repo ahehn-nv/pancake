@@ -67,11 +67,11 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
                                           AlignerBasePtr& alignerGlobal,
                                           AlignerBasePtr& alignerExt);
 
-OverlapPtr AlignOverlapSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& sortedHits,
-                              const char* targetSeq, const int32_t targetLen, const char* queryFwd,
-                              const char* queryRev, const int32_t queryLen,
-                              int32_t minAlignmentSpan, int32_t maxFlankExtensionDist,
-                              AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt);
+OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& sortedHits,
+                           const char* targetSeq, const int32_t targetLen, const char* queryFwd,
+                           const char* queryRev, const int32_t queryLen, int32_t minAlignmentSpan,
+                           int32_t maxFlankExtensionDist, AlignerBasePtr& alignerGlobal,
+                           AlignerBasePtr& alignerExt);
 
 }  // namespace Pancake
 }  // namespace PacBio

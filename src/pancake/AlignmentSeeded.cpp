@@ -200,11 +200,11 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
     return ret;
 }
 
-OverlapPtr AlignOverlapSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& sortedHits,
-                              const char* targetSeq, const int32_t targetLen, const char* queryFwd,
-                              const char* queryRev, const int32_t queryLen,
-                              int32_t minAlignmentSpan, int32_t maxFlankExtensionDist,
-                              AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt)
+OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& sortedHits,
+                           const char* targetSeq, const int32_t targetLen, const char* queryFwd,
+                           const char* queryRev, const int32_t queryLen, int32_t minAlignmentSpan,
+                           int32_t maxFlankExtensionDist, AlignerBasePtr& alignerGlobal,
+                           AlignerBasePtr& alignerExt)
 {
     if (ovl->Arev) {
         throw std::runtime_error("The ovl->Arev should always be false! In Align_.");

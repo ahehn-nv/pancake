@@ -421,10 +421,9 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
             // Use a custom aligner to align.
             TicToc ttAlignBetweenSeeds;
-            ovl =
-                AlignOverlapSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), queryArray[0],
-                                   queryArray[1], queryLen, settings_.minAlignmentSpan,
-                                   settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
+            ovl = AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), queryArray[0],
+                                  queryArray[1], queryLen, settings_.minAlignmentSpan,
+                                  settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
             ttAlignBetweenSeeds.Stop();
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
