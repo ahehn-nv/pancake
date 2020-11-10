@@ -24,12 +24,25 @@ public:
     int32_t tStart = 0;
     int32_t tSpan = 0;
     bool semiglobal = false;
+
+    bool operator==(const AlignmentRegion& b) const
+    {
+        return qStart == b.qStart && qSpan == b.qSpan && tStart == b.tStart && tSpan == b.tSpan &&
+               semiglobal == b.semiglobal &&
+               std::string(qSeq, qSpan) == std::string(b.qSeq, b.qSpan) &&
+               std::string(tSeq, tSpan) == std::string(b.tSeq, b.tSpan);
+    }
 };
 class AlignmentRegionWithSeq
 {
 public:
     std::string qSeq;
     std::string tSeq;
+
+    bool operator==(const AlignmentRegionWithSeq& b) const
+    {
+        return qSeq == b.qSeq && tSeq == b.tSeq;
+    }
 };
 
 class RegionsToAlign
@@ -42,6 +55,14 @@ public:
     int32_t actualQueryEnd = 0;
     int32_t actualTargetStart = 0;
     int32_t actualTargetEnd = 0;
+
+    bool operator==(const RegionsToAlign& b) const
+    {
+        return frontSemiglobal == b.frontSemiglobal && internalGlobal == b.internalGlobal &&
+               backSemiglobal == b.backSemiglobal && actualQueryStart == b.actualQueryStart &&
+               actualQueryEnd == b.actualQueryEnd && actualTargetStart == b.actualTargetStart &&
+               actualTargetEnd == b.actualTargetEnd;
+    }
 };
 
 class RegionsToAlignResults
@@ -55,6 +76,13 @@ public:
     int32_t offsetFrontTarget = 0;
     int32_t offsetBackQuery = 0;
     int32_t offsetBackTarget = 0;
+
+    bool operator==(const RegionsToAlignResults& b) const
+    {
+        return cigarChunks == b.cigarChunks && offsetFrontQuery == b.offsetFrontQuery &&
+               offsetFrontTarget == b.offsetFrontTarget && offsetBackQuery == b.offsetBackQuery &&
+               offsetBackTarget == b.offsetBackTarget;
+    }
 };
 
 RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
