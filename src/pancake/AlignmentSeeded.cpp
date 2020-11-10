@@ -80,9 +80,8 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         region.qSpan = qSpan;
         region.tStart = tStart;
         region.tSpan = tSpan;
-        region.semiglobal = true;
+        region.type = RegionType::FRONT;
         region.queryRev = isRev;
-        region.reverseAlign = true;
         ret.regions.emplace_back(std::move(region));
     }
 
@@ -101,9 +100,8 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         region.qSpan = h2.queryPos - h1.queryPos;
         region.tStart = h1.targetPos;
         region.tSpan = h2.targetPos - h1.targetPos;
-        region.semiglobal = false;
+        region.type = RegionType::GLOBAL;
         region.queryRev = isRev;
-        region.reverseAlign = false;
 
         // Sanity check.
         if (region.qSpan < 0 || region.tSpan < 0) {
@@ -142,9 +140,8 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         region.qSpan = qExtLen;
         region.tStart = ret.actualTargetEnd;
         region.tSpan = tExtLen;
-        region.semiglobal = true;
+        region.type = RegionType::BACK;
         region.queryRev = isRev;
-        region.reverseAlign = false;
         ret.regions.emplace_back(std::move(region));
     }
 
@@ -172,24 +169,23 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
         const int32_t qSpan = region.qSpan;
         const int32_t tSpan = region.tSpan;
 
-        AlignmentResult alnRes;
-
+        // Prepare the reversed front sequence if required.
         std::string qSubSeq;
         std::string tSubSeq;
-
-        if (region.reverseAlign) {
+        if (region.type == RegionType::FRONT) {
             qSubSeq = std::string(querySeqInStrand + region.qStart, region.qSpan);
             tSubSeq = std::string(targetSeqInStrand + region.tStart, region.tSpan);
             std::reverse(qSubSeq.begin(), qSubSeq.end());
             std::reverse(tSubSeq.begin(), tSubSeq.end());
-
             querySeqInStrand = qSubSeq.c_str();
             targetSeqInStrand = tSubSeq.c_str();
             qStart = 0;
             tStart = 0;
         }
 
-        if (region.semiglobal) {
+        // Align.
+        AlignmentResult alnRes;
+        if (region.type == RegionType::FRONT || region.type == RegionType::BACK) {
             alnRes = alignerExt->Extend(querySeqInStrand + qStart, qSpan,
                                         targetSeqInStrand + tStart, tSpan);
         } else {
@@ -197,20 +193,18 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
                                            targetSeqInStrand + tStart, tSpan);
         }
 
-        if (region.reverseAlign) {
+        if (region.type == RegionType::FRONT) {
             std::reverse(alnRes.cigar.begin(), alnRes.cigar.end());
-        }
-
-        AlignedRegion alignedRegion{std::move(alnRes.cigar), alnRes.lastQueryPos,
-                                    alnRes.lastTargetPos};
-        ret.alignedRegions.emplace_back(std::move(alignedRegion));
-
-        if (region.semiglobal && region.reverseAlign) {
             ret.offsetFrontQuery = alnRes.lastQueryPos;
             ret.offsetFrontTarget = alnRes.lastTargetPos;
         }
         ret.offsetBackQuery = alnRes.lastQueryPos;
         ret.offsetBackTarget = alnRes.lastTargetPos;
+
+        // Store the results.
+        AlignedRegion alignedRegion{std::move(alnRes.cigar), alnRes.lastQueryPos,
+                                    alnRes.lastTargetPos};
+        ret.alignedRegions.emplace_back(std::move(alignedRegion));
 
 #ifdef DEBUG_ALIGNMENT_SEEDED
         std::cerr << "[aln region i = " << i << " / " << regions.regions.size()
@@ -219,9 +213,8 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
                   << ", region.qSpan = " << region.qSpan << ", region.tStart = " << region.tStart
                   << ", region.tEnd = " << (region.tStart + region.tSpan)
                   << ", region.tSpan = " << region.tSpan
-                  << ", region.semiglobal = " << (region.semiglobal ? "true" : "false")
+                  << ", region.type = " << RegionTypeToString(region.type)
                   << ", region.queryRev = " << (region.queryRev ? "true" : "false")
-                  << ", region.reverseAlign = " << (region.reverseAlign ? "true" : "false") << "\n"
                   << "qStart = " << qStart << ", qSpan = " << qSpan << ", tStart = " << tStart
                   << ", tSpan = " << tSpan << "\n"
                   << ", CIGAR: " << ret.alignedRegions.back().cigar.ToStdString() << "\n"

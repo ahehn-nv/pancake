@@ -14,6 +14,25 @@
 namespace PacBio {
 namespace Pancake {
 
+enum class RegionType
+{
+    FRONT,
+    BACK,
+    GLOBAL,
+};
+
+inline std::string RegionTypeToString(const RegionType& type)
+{
+    if (type == RegionType::FRONT) {
+        return "FRONT";
+    } else if (type == RegionType::BACK) {
+        return "BACK";
+    } else if (type == RegionType::GLOBAL) {
+        return "GLOBAL";
+    }
+    return "UNKNOWN";
+}
+
 class AlignmentRegion
 {
 public:
@@ -21,14 +40,13 @@ public:
     int32_t qSpan = 0;
     int32_t tStart = 0;
     int32_t tSpan = 0;
-    bool semiglobal = false;
     bool queryRev = false;
-    bool reverseAlign = false;
+    RegionType type = RegionType::GLOBAL;
 
     bool operator==(const AlignmentRegion& b) const
     {
         return qStart == b.qStart && qSpan == b.qSpan && tStart == b.tStart && tSpan == b.tSpan &&
-               semiglobal == b.semiglobal;
+               queryRev == b.queryRev && type == b.type;
     }
 };
 
@@ -51,7 +69,8 @@ public:
     {
         return regions == b.regions && actualQueryStart == b.actualQueryStart &&
                actualQueryEnd == b.actualQueryEnd && actualTargetStart == b.actualTargetStart &&
-               actualTargetEnd == b.actualTargetEnd;
+               actualTargetEnd == b.actualTargetEnd && targetLen == b.targetLen &&
+               queryLen == b.queryLen;
     }
 };
 
