@@ -17,58 +17,61 @@ namespace Pancake {
 class AlignmentRegion
 {
 public:
-    const char* qSeq = NULL;
-    const char* tSeq = NULL;
     int32_t qStart = 0;
     int32_t qSpan = 0;
     int32_t tStart = 0;
     int32_t tSpan = 0;
     bool semiglobal = false;
+    bool queryRev = false;
+    bool reverseAlign = false;
 
     bool operator==(const AlignmentRegion& b) const
     {
         return qStart == b.qStart && qSpan == b.qSpan && tStart == b.tStart && tSpan == b.tSpan &&
-               semiglobal == b.semiglobal &&
-               std::string(qSeq, qSpan) == std::string(b.qSeq, b.qSpan) &&
-               std::string(tSeq, tSpan) == std::string(b.tSeq, b.tSpan);
-    }
-};
-class AlignmentRegionWithSeq
-{
-public:
-    std::string qSeq;
-    std::string tSeq;
-
-    bool operator==(const AlignmentRegionWithSeq& b) const
-    {
-        return qSeq == b.qSeq && tSeq == b.tSeq;
+               semiglobal == b.semiglobal;
     }
 };
 
 class RegionsToAlign
 {
 public:
-    AlignmentRegionWithSeq frontSemiglobal;
-    std::vector<AlignmentRegion> internalGlobal;
-    AlignmentRegion backSemiglobal;
+    std::vector<AlignmentRegion> regions;
     int32_t actualQueryStart = 0;
     int32_t actualQueryEnd = 0;
     int32_t actualTargetStart = 0;
     int32_t actualTargetEnd = 0;
 
+    const char* targetSeq = NULL;
+    const char* querySeqFwd = NULL;
+    const char* querySeqRev = NULL;
+    int32_t targetLen = 0;
+    int32_t queryLen = 0;
+
     bool operator==(const RegionsToAlign& b) const
     {
-        return frontSemiglobal == b.frontSemiglobal && internalGlobal == b.internalGlobal &&
-               backSemiglobal == b.backSemiglobal && actualQueryStart == b.actualQueryStart &&
+        return regions == b.regions && actualQueryStart == b.actualQueryStart &&
                actualQueryEnd == b.actualQueryEnd && actualTargetStart == b.actualTargetStart &&
                actualTargetEnd == b.actualTargetEnd;
+    }
+};
+
+class AlignedRegion
+{
+public:
+    Data::Cigar cigar;
+    int32_t qSpan = 0;
+    int32_t tSpan = 0;
+
+    bool operator==(const AlignedRegion& b) const
+    {
+        return cigar == b.cigar && qSpan == b.qSpan && tSpan == b.tSpan;
     }
 };
 
 class RegionsToAlignResults
 {
 public:
-    std::vector<Data::Cigar> cigarChunks;
+    std::vector<AlignedRegion> alignedRegions;
 
     // The following 4 values are the offsets produced by semiglobal alignment
     // from the actualQueryStart/actualQueryEnd/actualTargetStart/actualTargetEnd coordinates.
@@ -79,7 +82,7 @@ public:
 
     bool operator==(const RegionsToAlignResults& b) const
     {
-        return cigarChunks == b.cigarChunks && offsetFrontQuery == b.offsetFrontQuery &&
+        return alignedRegions == b.alignedRegions && offsetFrontQuery == b.offsetFrontQuery &&
                offsetFrontTarget == b.offsetFrontTarget && offsetBackQuery == b.offsetBackQuery &&
                offsetBackTarget == b.offsetBackTarget;
     }

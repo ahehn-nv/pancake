@@ -3,6 +3,7 @@
 #include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignmentSeeded.h>
 #include <pbcopper/logging/Logging.h>
+#include <iostream>
 
 namespace PacBio {
 namespace Pancake {
@@ -44,16 +45,22 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         std::reverse(hits.begin(), hits.end());
     }
 
-    const int32_t strandId = isRev;
-    const char* querySeqInStrand = (strandId == 0) ? querySeqFwd : querySeqRev;
-    const char* targetSeqInStrand = targetSeq;
     const double flankExtFactor = 1.3;
 
     RegionsToAlign ret;
 
-    // Align the front.
+    ret.targetSeq = targetSeq;
+    ret.querySeqFwd = querySeqFwd;
+    ret.querySeqRev = querySeqRev;
+    ret.targetLen = tLen;
+    ret.queryLen = qLen;
+
     ret.actualQueryStart = hits.front().queryPos;
     ret.actualTargetStart = hits.front().targetPos;
+    ret.actualQueryEnd = hits.back().queryPos;
+    ret.actualTargetEnd = hits.back().targetPos;
+
+    // Extract the front.
     if (ret.actualQueryStart > 0 && ret.actualTargetStart > 0) {
         // Determine the maximum flank we want to align, in both target and query.
         const int32_t projTStart =
@@ -68,13 +75,15 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         const int32_t qSpan = ret.actualQueryStart - qStart;
         const int32_t tSpan = ret.actualTargetStart - tStart;
 
-        // Extract the sequence.
-        ret.frontSemiglobal.qSeq = std::string(querySeqInStrand + qStart, qSpan);
-        ret.frontSemiglobal.tSeq = std::string(targetSeqInStrand + tStart, tSpan);
-
-        // Reverse the sequences for alignment.
-        std::reverse(ret.frontSemiglobal.qSeq.begin(), ret.frontSemiglobal.qSeq.end());
-        std::reverse(ret.frontSemiglobal.tSeq.begin(), ret.frontSemiglobal.tSeq.end());
+        AlignmentRegion region;
+        region.qStart = qStart;
+        region.qSpan = qSpan;
+        region.tStart = tStart;
+        region.tSpan = tSpan;
+        region.semiglobal = true;
+        region.queryRev = isRev;
+        region.reverseAlign = true;
+        ret.regions.emplace_back(std::move(region));
     }
 
     // Align between seeds.
@@ -88,13 +97,13 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
 
         // Compute the new region.
         AlignmentRegion region;
-        region.qSeq = querySeqInStrand;
         region.qStart = h1.queryPos;
         region.qSpan = h2.queryPos - h1.queryPos;
-        region.tSeq = targetSeq;
         region.tStart = h1.targetPos;
         region.tSpan = h2.targetPos - h1.targetPos;
         region.semiglobal = false;
+        region.queryRev = isRev;
+        region.reverseAlign = false;
 
         // Sanity check.
         if (region.qSpan < 0 || region.tSpan < 0) {
@@ -114,12 +123,10 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         startId = i;
 
         // Add the new region.
-        ret.internalGlobal.emplace_back(std::move(region));
+        ret.regions.emplace_back(std::move(region));
     }
 
     // Back chunk.
-    ret.actualQueryEnd = hits.back().queryPos;
-    ret.actualTargetEnd = hits.back().targetPos;
     if (ret.actualQueryEnd < qLen && ret.actualTargetEnd < tLen) {
         // Determine the maximum flank we want to align, in both target and query.
         const int32_t qFlankLen = qLen - ret.actualQueryEnd;
@@ -131,16 +138,14 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
 
         // Compute the new region.
         AlignmentRegion region;
-        region.qSeq = querySeqInStrand;
         region.qStart = ret.actualQueryEnd;
         region.qSpan = qExtLen;
-        region.tSeq = targetSeqInStrand;
         region.tStart = ret.actualTargetEnd;
         region.tSpan = tExtLen;
         region.semiglobal = true;
-
-        // Assign the region to the return object.
-        ret.backSemiglobal = std::move(region);
+        region.queryRev = isRev;
+        region.reverseAlign = false;
+        ret.regions.emplace_back(std::move(region));
     }
 
     return ret;
@@ -151,50 +156,80 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
 {
     RegionsToAlignResults ret;
 
-    // Align the front.
-    if (regions.frontSemiglobal.qSeq.size() > 0 && regions.frontSemiglobal.tSeq.size() > 0) {
-        const auto& region = regions.frontSemiglobal;
-        AlignmentResult alnRes = alignerExt->Extend(region.qSeq.c_str(), region.qSeq.size(),
-                                                    region.tSeq.c_str(), region.tSeq.size());
-        std::reverse(alnRes.cigar.begin(), alnRes.cigar.end());
-        if (alnRes.cigar.size() > 0) {
-            ret.cigarChunks.emplace_back(std::move(alnRes.cigar));
-        }
-        ret.offsetFrontQuery = alnRes.lastQueryPos;
-        ret.offsetFrontTarget = alnRes.lastTargetPos;
-    }
+    ret.offsetFrontQuery = 0;
+    ret.offsetFrontTarget = 0;
+    ret.offsetBackQuery = 0;
+    ret.offsetBackTarget = 0;
 
-    // Alignment in between seed hits.
-    for (size_t i = 0; i < regions.internalGlobal.size(); ++i) {
-        const auto& region = regions.internalGlobal[i];
-        AlignmentResult alnRes = alignerGlobal->Global(region.qSeq + region.qStart, region.qSpan,
-                                                       region.tSeq + region.tStart, region.tSpan);
-        ret.cigarChunks.emplace_back(std::move(alnRes.cigar));
+    for (size_t i = 0; i < regions.regions.size(); ++i) {
+        const auto& region = regions.regions[i];
+
+        // const int32_t strandId = isRev;
+        const char* querySeqInStrand = region.queryRev ? regions.querySeqRev : regions.querySeqFwd;
+        const char* targetSeqInStrand = regions.targetSeq;
+        int32_t qStart = region.qStart;
+        int32_t tStart = region.tStart;
+        const int32_t qSpan = region.qSpan;
+        const int32_t tSpan = region.tSpan;
+
+        AlignmentResult alnRes;
+
+        std::string qSubSeq;
+        std::string tSubSeq;
+
+        if (region.reverseAlign) {
+            qSubSeq = std::string(querySeqInStrand + region.qStart, region.qSpan);
+            tSubSeq = std::string(targetSeqInStrand + region.tStart, region.tSpan);
+            std::reverse(qSubSeq.begin(), qSubSeq.end());
+            std::reverse(tSubSeq.begin(), tSubSeq.end());
+
+            querySeqInStrand = qSubSeq.c_str();
+            targetSeqInStrand = tSubSeq.c_str();
+            qStart = 0;
+            tStart = 0;
+        }
+
+        if (region.semiglobal) {
+            alnRes = alignerExt->Extend(querySeqInStrand + qStart, qSpan,
+                                        targetSeqInStrand + tStart, tSpan);
+        } else {
+            alnRes = alignerGlobal->Global(querySeqInStrand + qStart, qSpan,
+                                           targetSeqInStrand + tStart, tSpan);
+        }
+
+        if (region.reverseAlign) {
+            std::reverse(alnRes.cigar.begin(), alnRes.cigar.end());
+        }
+
+        AlignedRegion alignedRegion{std::move(alnRes.cigar), alnRes.lastQueryPos,
+                                    alnRes.lastTargetPos};
+        ret.alignedRegions.emplace_back(std::move(alignedRegion));
+
+        if (region.semiglobal && region.reverseAlign) {
+            ret.offsetFrontQuery = alnRes.lastQueryPos;
+            ret.offsetFrontTarget = alnRes.lastTargetPos;
+        }
+        ret.offsetBackQuery = alnRes.lastQueryPos;
+        ret.offsetBackTarget = alnRes.lastTargetPos;
 
 #ifdef DEBUG_ALIGNMENT_SEEDED
-        std::cerr << "[aln region i = " << i << " / " << regions.internalGlobal.size()
+        std::cerr << "[aln region i = " << i << " / " << regions.regions.size()
                   << "] region.qStart = " << region.qStart
                   << ", region.qEnd = " << (region.qStart + region.qSpan)
                   << ", region.qSpan = " << region.qSpan << ", region.tStart = " << region.tStart
                   << ", region.tEnd = " << (region.tStart + region.tSpan)
                   << ", region.tSpan = " << region.tSpan
-                  << ", CIGAR: " << ret.cigarChunks.back().ToStdString() << "\n";
+                  << ", region.semiglobal = " << (region.semiglobal ? "true" : "false")
+                  << ", region.queryRev = " << (region.queryRev ? "true" : "false")
+                  << ", region.reverseAlign = " << (region.reverseAlign ? "true" : "false") << "\n"
+                  << "qStart = " << qStart << ", qSpan = " << qSpan << ", tStart = " << tStart
+                  << ", tSpan = " << tSpan << "\n"
+                  << ", CIGAR: " << ret.alignedRegions.back().cigar.ToStdString() << "\n"
+                  << alnRes << "\n";
 
-        ValidateCigar(region.qSeq + region.qStart, region.qSpan, region.tSeq + region.tStart,
-                      region.tSpan, ret.cigarChunks.back(), "Chunk validation.");
+// ValidateCigar(querySeqInStrand + qStart, qSpan, targetSeqInStrand + region.tStart,
+//             tSpan, ret.alignedRegions.back().cigar, "Chunk validation.");
 #endif
-    }
-
-    // Align the back.
-    if (regions.backSemiglobal.qSpan > 0 && regions.backSemiglobal.tSpan > 0) {
-        const auto& region = regions.backSemiglobal;
-        AlignmentResult alnRes = alignerExt->Extend(region.qSeq + region.qStart, region.qSpan,
-                                                    region.tSeq + region.tStart, region.tSpan);
-        if (alnRes.cigar.size() > 0) {
-            ret.cigarChunks.emplace_back(std::move(alnRes.cigar));
-        }
-        ret.offsetBackQuery = alnRes.lastQueryPos;
-        ret.offsetBackTarget = alnRes.lastTargetPos;
     }
 
     return ret;
@@ -230,7 +265,8 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     ret->Bend = regions.actualTargetEnd + alns.offsetBackTarget;
 
     // Merge the CIGAR chunks.
-    for (const auto& currCigar : alns.cigarChunks) {
+    for (const auto& alnRegion : alns.alignedRegions) {
+        const auto& currCigar = alnRegion.cigar;
         if (currCigar.empty()) {
             continue;
         }
