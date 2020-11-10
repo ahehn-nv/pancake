@@ -453,6 +453,11 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
             // ttAlignGlobal.Stop();
             // std::cerr << "ttAlignGlobal = " << ttAlignGlobal.GetCpuMillisecs() << " ms\n";
             // break;
+
+            // Secondary/supplementary flagging.
+            WrapFlagSecondaryAndSupplementary_(result.mappings,
+                                               settings_.secondaryAllowedOverlapFraction,
+                                               settings_.secondaryMinScoreFraction);
         }
 
         ttAlign.Stop();
@@ -465,11 +470,25 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     std::cerr << "\n";
 #endif
 
-    // Remove any mappings which didn't align.
+    // Filter mappings again.
     size_t numValid = 0;
+    numSelectedSecondary = 0;
     for (size_t i = 0; i < result.mappings.size(); ++i) {
-        if (result.mappings[i]->mapping == nullptr) {
+        const auto& region = result.mappings[i];
+        if (region->mapping == nullptr) {
             continue;
+        }
+        if (region->priority > 1) {
+            continue;
+        }
+        if (region->priority == 1 && numSelectedSecondary >= settings_.bestNSecondary) {
+            continue;
+        }
+
+        // Since the secondary/supplementary labelling was repeated, we need to filter secondary
+        // alignments again.
+        if (region->priority == 1 && numSelectedSecondary < settings_.bestNSecondary) {
+            ++numSelectedSecondary;
         }
         if (i != numValid) {
             std::swap(result.mappings[i], result.mappings[numValid]);
