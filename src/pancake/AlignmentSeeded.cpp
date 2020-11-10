@@ -156,6 +156,67 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
     return ret;
 }
 
+AlignmentResult AlignSingleRegion(const char* targetSeq, int32_t targetLen, const char* querySeqFwd,
+                                  const char* querySeqRev, int32_t queryLen,
+                                  AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt,
+                                  const AlignmentRegion& region)
+{
+    const char* querySeqInStrand = region.queryRev ? querySeqRev : querySeqFwd;
+    const char* targetSeqInStrand = targetSeq;
+    int32_t qStart = region.qStart;
+    int32_t tStart = region.tStart;
+    const int32_t qSpan = region.qSpan;
+    const int32_t tSpan = region.tSpan;
+
+    if (qStart >= queryLen || (qStart + qSpan) > queryLen || tStart >= targetLen ||
+        (tStart + tSpan) > targetLen) {
+        std::ostringstream oss;
+        oss << "AlignmentRegion coordinates out of bounds in AlignRegionsGeneric!";
+        oss << " qStart = " << qStart << ", qSpan = " << qSpan << ", queryLen = " << queryLen
+            << ", tStart = " << tStart << ", tSpan = " << tSpan << ", targetLen = " << targetLen
+            << ", regionId = " << region.regionId;
+        throw std::runtime_error(oss.str());
+    }
+    if (targetSeq == NULL || querySeqFwd == NULL || querySeqRev == NULL) {
+        std::ostringstream oss;
+        oss << "NULL sequence passed to AlignmentRegion!";
+        oss << " qStart = " << qStart << ", qSpan = " << qSpan << ", queryLen = " << queryLen
+            << ", tStart = " << tStart << ", tSpan = " << tSpan << ", targetLen = " << targetLen
+            << ", regionId = " << region.regionId;
+        throw std::runtime_error(oss.str());
+    }
+
+    // Prepare the reversed front sequence if required.
+    std::string qSubSeq;
+    std::string tSubSeq;
+    if (region.type == RegionType::FRONT) {
+        qSubSeq = std::string(querySeqInStrand + region.qStart, region.qSpan);
+        tSubSeq = std::string(targetSeqInStrand + region.tStart, region.tSpan);
+        std::reverse(qSubSeq.begin(), qSubSeq.end());
+        std::reverse(tSubSeq.begin(), tSubSeq.end());
+        querySeqInStrand = qSubSeq.c_str();
+        targetSeqInStrand = tSubSeq.c_str();
+        qStart = 0;
+        tStart = 0;
+    }
+
+    // Align.
+    AlignmentResult alnRes;
+    if (region.type == RegionType::FRONT || region.type == RegionType::BACK) {
+        alnRes =
+            alignerExt->Extend(querySeqInStrand + qStart, qSpan, targetSeqInStrand + tStart, tSpan);
+    } else {
+        alnRes = alignerGlobal->Global(querySeqInStrand + qStart, qSpan, targetSeqInStrand + tStart,
+                                       tSpan);
+    }
+
+    if (region.type == RegionType::FRONT) {
+        std::reverse(alnRes.cigar.begin(), alnRes.cigar.end());
+    }
+
+    return alnRes;
+}
+
 RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
                                           AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt)
 {
@@ -169,49 +230,21 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
     for (size_t i = 0; i < regions.regions.size(); ++i) {
         const auto& region = regions.regions[i];
 
-        // const int32_t strandId = isRev;
-        const char* querySeqInStrand = region.queryRev ? regions.querySeqRev : regions.querySeqFwd;
-        const char* targetSeqInStrand = regions.targetSeq;
-        int32_t qStart = region.qStart;
-        int32_t tStart = region.tStart;
-        const int32_t qSpan = region.qSpan;
-        const int32_t tSpan = region.tSpan;
-
-        // Prepare the reversed front sequence if required.
-        std::string qSubSeq;
-        std::string tSubSeq;
-        if (region.type == RegionType::FRONT) {
-            qSubSeq = std::string(querySeqInStrand + region.qStart, region.qSpan);
-            tSubSeq = std::string(targetSeqInStrand + region.tStart, region.tSpan);
-            std::reverse(qSubSeq.begin(), qSubSeq.end());
-            std::reverse(tSubSeq.begin(), tSubSeq.end());
-            querySeqInStrand = qSubSeq.c_str();
-            targetSeqInStrand = tSubSeq.c_str();
-            qStart = 0;
-            tStart = 0;
-        }
-
-        // Align.
-        AlignmentResult alnRes;
-        if (region.type == RegionType::FRONT || region.type == RegionType::BACK) {
-            alnRes = alignerExt->Extend(querySeqInStrand + qStart, qSpan,
-                                        targetSeqInStrand + tStart, tSpan);
-        } else {
-            alnRes = alignerGlobal->Global(querySeqInStrand + qStart, qSpan,
-                                           targetSeqInStrand + tStart, tSpan);
-        }
+        auto alnRes = AlignSingleRegion(regions.targetSeq, regions.targetLen, regions.querySeqFwd,
+                                        regions.querySeqRev, regions.queryLen, alignerGlobal,
+                                        alignerExt, region);
 
         if (region.type == RegionType::FRONT) {
-            std::reverse(alnRes.cigar.begin(), alnRes.cigar.end());
             ret.offsetFrontQuery = alnRes.lastQueryPos;
             ret.offsetFrontTarget = alnRes.lastTargetPos;
+        } else if (region.type == RegionType::BACK) {
+            ret.offsetBackQuery = alnRes.lastQueryPos;
+            ret.offsetBackTarget = alnRes.lastTargetPos;
         }
-        ret.offsetBackQuery = alnRes.lastQueryPos;
-        ret.offsetBackTarget = alnRes.lastTargetPos;
 
         // Store the results.
         AlignedRegion alignedRegion{std::move(alnRes.cigar), alnRes.lastQueryPos,
-                                    alnRes.lastTargetPos};
+                                    alnRes.lastTargetPos, region.regionId};
         ret.alignedRegions.emplace_back(std::move(alignedRegion));
 
 #ifdef DEBUG_ALIGNMENT_SEEDED

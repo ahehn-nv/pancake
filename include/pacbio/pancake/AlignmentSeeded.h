@@ -42,7 +42,7 @@ public:
     int32_t tSpan = 0;
     bool queryRev = false;
     RegionType type = RegionType::GLOBAL;
-    int32_t regionId = 0;
+    int32_t regionId = -1;
 
     bool operator==(const AlignmentRegion& b) const
     {
@@ -81,10 +81,11 @@ public:
     Data::Cigar cigar;
     int32_t qSpan = 0;
     int32_t tSpan = 0;
+    int32_t regionId = -1;
 
     bool operator==(const AlignedRegion& b) const
     {
-        return cigar == b.cigar && qSpan == b.qSpan && tSpan == b.tSpan;
+        return cigar == b.cigar && qSpan == b.qSpan && tSpan == b.tSpan && regionId == b.regionId;
     }
 };
 
@@ -113,6 +114,11 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
                                        int32_t qLen, const char* targetSeq, int32_t tLen,
                                        bool isRev, int32_t minAlignmentSpan,
                                        int32_t maxFlankExtensionDist);
+
+AlignmentResult AlignSingleRegion(const char* targetSeq, int32_t targetLen, const char* querySeqFwd,
+                                  const char* querySeqRev, int32_t queryLen,
+                                  AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt,
+                                  const AlignmentRegion& region);
 
 RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
                                           AlignerBasePtr& alignerGlobal,
