@@ -33,7 +33,8 @@ struct OverlapPriority
 };
 
 std::vector<OverlapPriority> FlagSecondaryAndSupplementary(std::vector<OverlapPtr>& overlaps,
-                                                           double allowedOverlapFraction,
+                                                           double allowedOverlapFractionQuery,
+                                                           double allowedOverlapFractionTarget,
                                                            double minSecondaryScoreFraction);
 
 void CreateRegionIntervalTrees(const std::vector<OverlapPtr>& overlaps,
@@ -46,7 +47,8 @@ void CreateRegionIntervalTrees(const std::vector<OverlapPtr>& overlaps,
 bool CheckRegionSupplementary(const std::vector<OverlapPtr>& overlaps, const OverlapPtr& currentOvl,
                               IntervalTreeInt32& queryTrees,
                               std::unordered_map<int32_t, IntervalTreeInt32>& targetTrees,
-                              double allowedOverlapFraction);
+                              double allowedOverlapFractionQuery,
+                              double allowedOverlapFractionTarget);
 
 int32_t CalcIntervalOverlap(int32_t s1, int32_t e1, int32_t s2, int32_t e2);
 

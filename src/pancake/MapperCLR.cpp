@@ -233,8 +233,9 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
               [](const auto& a, const auto& b) { return a->chain.score > b->chain.score; });
 
     // Secondary/supplementary flagging.
-    WrapFlagSecondaryAndSupplementary_(allChainedRegions, settings_.secondaryAllowedOverlapFraction,
-                                       settings_.secondaryMinScoreFraction);
+    WrapFlagSecondaryAndSupplementary_(
+        allChainedRegions, settings_.secondaryAllowedOverlapFractionQuery,
+        settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
 
 #ifdef PANCAKE_WRITE_SCATTERPLOT
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
@@ -255,8 +256,9 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     LongMergeChains_(allChainedRegions, settings_.maxGap);
 
     // Again relabel, because some chains are longer now.
-    WrapFlagSecondaryAndSupplementary_(allChainedRegions, settings_.secondaryAllowedOverlapFraction,
-                                       settings_.secondaryMinScoreFraction);
+    WrapFlagSecondaryAndSupplementary_(
+        allChainedRegions, settings_.secondaryAllowedOverlapFractionQuery,
+        settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
 
     // Sort all chains by priority and then score.
     std::sort(allChainedRegions.begin(), allChainedRegions.end(),
@@ -456,7 +458,8 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
             // Secondary/supplementary flagging.
             WrapFlagSecondaryAndSupplementary_(result.mappings,
-                                               settings_.secondaryAllowedOverlapFraction,
+                                               settings_.secondaryAllowedOverlapFractionQuery,
+                                               settings_.secondaryAllowedOverlapFractionTarget,
                                                settings_.secondaryMinScoreFraction);
         }
 
@@ -518,7 +521,8 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
 void MapperCLR::WrapFlagSecondaryAndSupplementary_(
     std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
-    double secondaryAllowedOverlapFraction, double secondaryMinScoreFraction)
+    double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
+    double secondaryMinScoreFraction)
 {
     /*
      * Edits the objects in place.
@@ -530,7 +534,8 @@ void MapperCLR::WrapFlagSecondaryAndSupplementary_(
     }
     // Flag the secondary and supplementary overlaps.
     std::vector<OverlapPriority> overlapPriorities = FlagSecondaryAndSupplementary(
-        tmpOverlaps, secondaryAllowedOverlapFraction, secondaryMinScoreFraction);
+        tmpOverlaps, secondaryAllowedOverlapFractionQuery, secondaryAllowedOverlapFractionTarget,
+        secondaryMinScoreFraction);
     // Set the flags.
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
         auto& cr = allChainedRegions[i];

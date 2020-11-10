@@ -117,9 +117,9 @@ MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSe
     if (settings_.MarkSecondary) {
         // Flag the secondary and supplementary overlaps.
         // Overlaps don't have to be sorted, the maximum is found internally.
-        std::vector<OverlapPriority> overlapPriorities =
-            FlagSecondaryAndSupplementary(overlaps, settings_.SecondaryAllowedOverlapFraction,
-                                          settings_.SecondaryMinScoreFraction);
+        std::vector<OverlapPriority> overlapPriorities = FlagSecondaryAndSupplementary(
+            overlaps, settings_.SecondaryAllowedOverlapFraction,
+            settings_.SecondaryAllowedOverlapFraction, settings_.SecondaryMinScoreFraction);
 
         // Generate a new, filtered list of overlaps. The non-primary, non-secondary and non-supplementary
         // alignments are filtered out.

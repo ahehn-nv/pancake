@@ -46,7 +46,8 @@ public:
     int32_t minNumSeeds = 3;
     int32_t minCoveredBases = 0;
     int32_t minDPScore = 40;
-    double secondaryAllowedOverlapFraction = 0.50;
+    double secondaryAllowedOverlapFractionQuery = 0.50;
+    double secondaryAllowedOverlapFractionTarget = 0.50;
     double secondaryMinScoreFraction = 0.80;
     bool useLIS = true;
 
@@ -86,7 +87,10 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
         << "minDPScore = " << a.minDPScore << "\n"
         << "useLIS = " << a.useLIS << "\n"
 
-        << "secondaryAllowedOverlapFraction = " << a.secondaryAllowedOverlapFraction << "\n"
+        << "secondaryAllowedOverlapFractionQuery = " << a.secondaryAllowedOverlapFractionQuery
+        << "\n"
+        << "secondaryAllowedOverlapFractionTarget = " << a.secondaryAllowedOverlapFractionTarget
+        << "\n"
         << "secondaryMinScoreFraction = " << a.secondaryMinScoreFraction << "\n"
 
         << "align = " << a.align << "\n"
@@ -179,7 +183,8 @@ private:
 
     static void WrapFlagSecondaryAndSupplementary_(
         std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
-        double secondaryAllowedOverlapFraction, double secondaryMinScoreFraction);
+        double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
+        double secondaryMinScoreFraction);
 };
 
 }  // namespace Pancake
