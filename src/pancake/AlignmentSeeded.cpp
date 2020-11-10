@@ -60,6 +60,8 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
     ret.actualQueryEnd = hits.back().queryPos;
     ret.actualTargetEnd = hits.back().targetPos;
 
+    int32_t numRegions = 0;
+
     // Extract the front.
     if (ret.actualQueryStart > 0 && ret.actualTargetStart > 0) {
         // Determine the maximum flank we want to align, in both target and query.
@@ -80,8 +82,10 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         region.qSpan = qSpan;
         region.tStart = tStart;
         region.tSpan = tSpan;
-        region.type = RegionType::FRONT;
         region.queryRev = isRev;
+        region.type = RegionType::FRONT;
+        region.regionId = numRegions;
+        ++numRegions;
         ret.regions.emplace_back(std::move(region));
     }
 
@@ -102,6 +106,7 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         region.tSpan = h2.targetPos - h1.targetPos;
         region.type = RegionType::GLOBAL;
         region.queryRev = isRev;
+        region.regionId = numRegions;
 
         // Sanity check.
         if (region.qSpan < 0 || region.tSpan < 0) {
@@ -119,6 +124,7 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
 
         // Update the start ID for the next iteration.
         startId = i;
+        ++numRegions;
 
         // Add the new region.
         ret.regions.emplace_back(std::move(region));
@@ -142,6 +148,8 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         region.tSpan = tExtLen;
         region.type = RegionType::BACK;
         region.queryRev = isRev;
+        region.regionId = numRegions;
+        ++numRegions;
         ret.regions.emplace_back(std::move(region));
     }
 
@@ -207,18 +215,19 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
         ret.alignedRegions.emplace_back(std::move(alignedRegion));
 
 #ifdef DEBUG_ALIGNMENT_SEEDED
-        std::cerr << "[aln region i = " << i << " / " << regions.regions.size()
-                  << "] region.qStart = " << region.qStart
+        std::cerr << "[aln region i = " << i << " / " << regions.regions.size() << "]"
+                  << " region.regionId = " << region.regionId
+                  << ", region.qStart = " << region.qStart
                   << ", region.qEnd = " << (region.qStart + region.qSpan)
                   << ", region.qSpan = " << region.qSpan << ", region.tStart = " << region.tStart
                   << ", region.tEnd = " << (region.tStart + region.tSpan)
                   << ", region.tSpan = " << region.tSpan
                   << ", region.type = " << RegionTypeToString(region.type)
                   << ", region.queryRev = " << (region.queryRev ? "true" : "false")
-                  << "qStart = " << qStart << ", qSpan = " << qSpan << ", tStart = " << tStart
+                  << ", qStart = " << qStart << ", qSpan = " << qSpan << ", tStart = " << tStart
                   << ", tSpan = " << tSpan << "\n"
                   << ", CIGAR: " << ret.alignedRegions.back().cigar.ToStdString() << "\n"
-                  << alnRes << "\n";
+                  << alnRes << "\n\n";
 
 // ValidateCigar(querySeqInStrand + qStart, qSpan, targetSeqInStrand + region.tStart,
 //             tSpan, ret.alignedRegions.back().cigar, "Chunk validation.");

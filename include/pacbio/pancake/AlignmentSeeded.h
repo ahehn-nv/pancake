@@ -42,6 +42,7 @@ public:
     int32_t tSpan = 0;
     bool queryRev = false;
     RegionType type = RegionType::GLOBAL;
+    int32_t regionId = 0;
 
     bool operator==(const AlignmentRegion& b) const
     {
