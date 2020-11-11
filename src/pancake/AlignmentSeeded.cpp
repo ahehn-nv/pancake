@@ -16,8 +16,26 @@ std::vector<AlignmentRegion> ExtractAlignmentRegions(const std::vector<SeedHit>&
                                                      int32_t maxFlankExtensionDist,
                                                      double flankExtensionFactor)
 {
+    if (qLen < 0) {
+        throw std::runtime_error("Invalid function parameter in ExtractAlignmentRegions! qLen = " +
+                                 std::to_string(qLen) + ", should be >= 0.");
+    }
+    if (tLen < 0) {
+        throw std::runtime_error("Invalid function parameter in ExtractAlignmentRegions! tLen = " +
+                                 std::to_string(tLen) + ", should be >= 0.");
+    }
+    if (flankExtensionFactor < 1.0) {
+        throw std::runtime_error(
+            "Invalid function parameter in ExtractAlignmentRegions! flankExtensionFactor = " +
+            std::to_string(flankExtensionFactor) + ", should be >= 1.0.");
+    }
+
     if (inSortedHits.empty()) {
         return {};
+    }
+
+    if (maxFlankExtensionDist < 0) {
+        maxFlankExtensionDist = std::max(qLen, tLen);
     }
 
     // NOTE: This is only required if the hit coordinates are always
@@ -101,8 +119,9 @@ std::vector<AlignmentRegion> ExtractAlignmentRegions(const std::vector<SeedHit>&
         // Sanity check.
         if (region.qSpan < 0 || region.tSpan < 0) {
             std::ostringstream oss;
-            oss << "qStart = " << region.qStart << ", qSpan = " << region.qSpan
-                << ", tStart = " << region.tStart << ", tSpan = " << region.tSpan << "\n";
+            oss << "Region span not valid, in ExtractAlignmentRegions! qStart = " << region.qStart
+                << ", qSpan = " << region.qSpan << ", tStart = " << region.tStart
+                << ", tSpan = " << region.tSpan << "\n";
             throw std::runtime_error(oss.str());
         }
 
