@@ -5,6 +5,7 @@
 
 #include <pacbio/util/CommonTypes.h>
 #include <cstdint>
+#include <vector>
 
 namespace PacBio {
 namespace Pancake {
@@ -47,6 +48,9 @@ inline std::tuple<int32_t, int32_t, int32_t, int32_t> PackSeedHitWithDiagonalToT
     return std::make_tuple(((sh.targetId << 1) | sh.targetRev), (sh.targetPos - sh.queryPos),
                            sh.targetPos, sh.queryPos);
 }
+
+void CalcHitCoverage(const std::vector<SeedHit>& hits, int32_t seedLen, int32_t hitsBegin,
+                     int32_t hitsEnd, int32_t& coveredBasesQuery, int32_t& coveredBasesTarget);
 
 }  // namespace Pancake
 }  // namespace PacBio

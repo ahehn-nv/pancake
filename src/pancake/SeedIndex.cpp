@@ -15,7 +15,25 @@ namespace Pancake {
 
 SeedIndex::SeedIndex(std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBCache,
                      std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds)
-    : seedDBCache_(seedDBCache), seeds_(std::move(seeds))
+    : seeds_(std::move(seeds)), seedParams_(seedDBCache->seedParams)
+{
+#ifdef SEED_INDEX_USING_DENSEHASH
+    hash_.set_empty_key(
+        SEED_INDEX_EMPTY_HASH_KEY);  // Densehash requires this to be defined on top.
+#endif
+
+    sequenceLengths_.resize(seedDBCache->seedLines.size());
+    for (size_t i = 0; i < seedDBCache->seedLines.size(); ++i) {
+        sequenceLengths_[i] = seedDBCache->seedLines[i].numBases;
+    }
+
+    BuildHash_();
+}
+
+SeedIndex::SeedIndex(const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
+                     const std::vector<int32_t>& sequenceLengths,
+                     std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds)
+    : seeds_(std::move(seeds)), seedParams_(seedParams), sequenceLengths_(sequenceLengths)
 {
 #ifdef SEED_INDEX_USING_DENSEHASH
     hash_.set_empty_key(
@@ -162,9 +180,7 @@ bool SeedIndex::CollectHits(const PacBio::Pancake::SeedDB::SeedRaw* querySeeds,
 
     // The +1 is because for every seed base there are Spacing spaces, and the subtraction
     // is because after the last seed base the spaces shouldn't be counted.
-    const int32_t seedSize =
-        seedDBCache_->seedParams.KmerSize * (seedDBCache_->seedParams.Spacing + 1) -
-        seedDBCache_->seedParams.Spacing;
+    const int32_t seedSize = seedParams_.KmerSize * (seedParams_.Spacing + 1) - seedParams_.Spacing;
 
     for (int64_t seedId = 0; seedId < querySeedsSize; ++seedId) {
         const auto& querySeed = querySeeds[seedId];
@@ -185,8 +201,8 @@ bool SeedIndex::CollectHits(const PacBio::Pancake::SeedDB::SeedRaw* querySeeds,
                 if (decodedQuery.IsRev() != decodedTarget.IsRev()) {
                     isRev = true;
                     // targetPos = seq->len() - (decodedTarget.pos + 1);
-                    const auto& sl = seedDBCache_->GetSeedsLine(decodedTarget.seqID);
-                    targetPos = sl.numBases - (decodedTarget.pos + seedSize);
+                    const int32_t targetLen = GetSequenceLength(decodedTarget.seqID);
+                    targetPos = targetLen - (decodedTarget.pos + seedSize);
                     // TODO: This will be off if the homopolymer compression is used.
                     // In that case, the seed span is not the same as t he kmerSize.
                 }

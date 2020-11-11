@@ -6,6 +6,12 @@ if not meson.is_subproject()
 
   #'pacbio/Version.h',
 
+  install_headers(
+    files([
+      'lib/math.hpp',
+      ]),
+      subdir : 'lib/')
+
   # lib/flat_hash_map
   install_headers(
     files([
@@ -21,6 +27,13 @@ if not meson.is_subproject()
       'lib/intervaltree/IntervalTree.h',
       ]),
       subdir : 'lib/intervaltree')
+
+  # lib/istl
+  install_headers(
+    files([
+      'lib/istl/lis.hpp',
+      ]),
+      subdir : 'lib/istl')
 
   # lib/kxsort
   install_headers(
