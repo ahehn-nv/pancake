@@ -219,15 +219,15 @@ AlignmentResult AlignSingleRegion(const char* targetSeq, int32_t targetLen, cons
     return alnRes;
 }
 
-RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
-                                          AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt)
+AlignRegionsGenericResult AlignRegionsGeneric(const RegionsToAlign& regions,
+                                              AlignerBasePtr& alignerGlobal,
+                                              AlignerBasePtr& alignerExt)
 {
-    RegionsToAlignResults ret;
-
     int32_t offsetFrontQuery = 0;
     int32_t offsetFrontTarget = 0;
     int32_t offsetBackQuery = 0;
     int32_t offsetBackTarget = 0;
+    std::vector<AlignmentResult> alignedRegions;
 
     for (size_t i = 0; i < regions.regions.size(); ++i) {
         const auto& region = regions.regions[i];
@@ -245,9 +245,7 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
         }
 
         // Store the results.
-        AlignedRegion alignedRegion{std::move(alnRes.cigar), alnRes.lastQueryPos,
-                                    alnRes.lastTargetPos, region.regionId};
-        ret.alignedRegions.emplace_back(std::move(alignedRegion));
+        alignedRegions.emplace_back(std::move(alnRes));
 
 #ifdef DEBUG_ALIGNMENT_SEEDED
         std::cerr << "[aln region i = " << i << " / " << regions.regions.size() << "]"
@@ -263,16 +261,31 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
                   << ", tSpan = " << tSpan << "\n"
                   << ", CIGAR: " << ret.alignedRegions.back().cigar.ToStdString() << "\n"
                   << alnRes << "\n\n";
-
-// ValidateCigar(querySeqInStrand + qStart, qSpan, targetSeqInStrand + region.tStart,
-//             tSpan, ret.alignedRegions.back().cigar, "Chunk validation.");
 #endif
     }
 
+    // Merge all the aligned regions.
+    AlignRegionsGenericResult ret;
+
+    // Determine the new start/end coordinates.
     ret.queryStart = regions.globalAlnQueryStart - offsetFrontQuery;
     ret.queryEnd = regions.globalAlnQueryEnd + offsetBackQuery;
     ret.targetStart = regions.globalAlnTargetStart - offsetFrontTarget;
     ret.targetEnd = regions.globalAlnTargetEnd + offsetBackTarget;
+
+    // Merge the CIGAR chunks.
+    for (const auto& alnRegion : alignedRegions) {
+        const auto& currCigar = alnRegion.cigar;
+        if (currCigar.empty()) {
+            continue;
+        }
+        if (ret.cigar.empty() || ret.cigar.back().Type() != currCigar.front().Type()) {
+            ret.cigar.emplace_back(currCigar.front());
+        } else {
+            ret.cigar.back().Length(ret.cigar.back().Length() + currCigar.front().Length());
+        }
+        ret.cigar.insert(ret.cigar.end(), currCigar.begin() + 1, currCigar.end());
+    }
 
     return ret;
 }
@@ -296,7 +309,7 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
                                 ovl->Brev, minAlignmentSpan, maxFlankExtensionDist);
 
     // Run the alignment.
-    RegionsToAlignResults alns = AlignRegionsGeneric(regions, alignerGlobal, alignerExt);
+    AlignRegionsGenericResult alns = AlignRegionsGeneric(regions, alignerGlobal, alignerExt);
 
     // Process the alignment results and make a new overlap.
     OverlapPtr ret = createOverlap(ovl);
@@ -305,20 +318,7 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     ret->Aend = alns.queryEnd;
     ret->Bstart = alns.targetStart;
     ret->Bend = alns.targetEnd;
-
-    // Merge the CIGAR chunks.
-    for (const auto& alnRegion : alns.alignedRegions) {
-        const auto& currCigar = alnRegion.cigar;
-        if (currCigar.empty()) {
-            continue;
-        }
-        if (ret->Cigar.empty() || ret->Cigar.back().Type() != currCigar.front().Type()) {
-            ret->Cigar.emplace_back(currCigar.front());
-        } else {
-            ret->Cigar.back().Length(ret->Cigar.back().Length() + currCigar.front().Length());
-        }
-        ret->Cigar.insert(ret->Cigar.end(), currCigar.begin() + 1, currCigar.end());
-    }
+    ret->Cigar = std::move(alns.cigar);
 
     // Reverse the CIGAR and the coordinates if needed.
     if (ovl->Brev) {

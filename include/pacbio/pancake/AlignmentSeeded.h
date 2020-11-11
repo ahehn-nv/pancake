@@ -76,34 +76,14 @@ public:
     }
 };
 
-class AlignedRegion
+class AlignRegionsGenericResult
 {
 public:
     Data::Cigar cigar;
-    int32_t qSpan = 0;
-    int32_t tSpan = 0;
-    int32_t regionId = -1;
-
-    bool operator==(const AlignedRegion& b) const
-    {
-        return cigar == b.cigar && qSpan == b.qSpan && tSpan == b.tSpan && regionId == b.regionId;
-    }
-};
-
-class RegionsToAlignResults
-{
-public:
-    std::vector<AlignedRegion> alignedRegions;
     int32_t queryStart = 0;
     int32_t queryEnd = 0;
     int32_t targetStart = 0;
     int32_t targetEnd = 0;
-
-    bool operator==(const RegionsToAlignResults& b) const
-    {
-        return alignedRegions == b.alignedRegions && queryStart == b.queryStart &&
-               queryEnd == b.queryEnd && targetStart == b.targetStart && targetEnd == b.targetEnd;
-    }
 };
 
 RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
@@ -117,9 +97,9 @@ AlignmentResult AlignSingleRegion(const char* targetSeq, int32_t targetLen, cons
                                   AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt,
                                   const AlignmentRegion& region);
 
-RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
-                                          AlignerBasePtr& alignerGlobal,
-                                          AlignerBasePtr& alignerExt);
+AlignRegionsGenericResult AlignRegionsGeneric(const RegionsToAlign& regions,
+                                              AlignerBasePtr& alignerGlobal,
+                                              AlignerBasePtr& alignerExt);
 
 OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& sortedHits,
                            const char* targetSeq, const int32_t targetLen, const char* queryFwd,
