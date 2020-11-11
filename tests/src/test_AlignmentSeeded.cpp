@@ -15,8 +15,8 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
     {
         std::string testName;
         std::vector<PacBio::Pancake::SeedHit> sortedHits;
-        std::string querySeq;
-        std::string targetSeq;
+        int32_t queryLen = 0;
+        int32_t targetLen = 0;
         bool isRev = false;
         int32_t minAlignmentSpan = 200;
         int32_t maxFlankExtensionDist = 5000;
@@ -29,53 +29,10 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
         int32_t expectedGlobalTargetEnd = 0;
     };
 
-    // class AlignmentRegion
-    // {
-    // public:
-    //     int32_t qStart = 0;
-    //     int32_t qSpan = 0;
-    //     int32_t tStart = 0;
-    //     int32_t tSpan = 0;
-    //     bool queryRev = false;
-    //     RegionType type = RegionType::GLOBAL;
-    //     int32_t regionId = -1;
-
-    //     bool operator==(const AlignmentRegion& b) const
-    //     {
-    //         return qStart == b.qStart && qSpan == b.qSpan && tStart == b.tStart && tSpan == b.tSpan &&
-    //                queryRev == b.queryRev && type == b.type;
-    //     }
-    // };
-
-    // class RegionsToAlign
-    // {
-    // public:
-    //     std::vector<AlignmentRegion> regions;
-    //     int32_t globalAlnQueryStart = 0;
-    //     int32_t globalAlnQueryEnd = 0;
-    //     int32_t globalAlnTargetStart = 0;
-    //     int32_t globalAlnTargetEnd = 0;
-
-    //     const char* targetSeq = NULL;
-    //     const char* querySeqFwd = NULL;
-    //     const char* querySeqRev = NULL;
-    //     int32_t targetLen = 0;
-    //     int32_t queryLen = 0;
-
-    //     bool operator==(const RegionsToAlign& b) const
-    //     {
-    //         return regions == b.regions && globalAlnQueryStart == b.globalAlnQueryStart &&
-    //                globalAlnQueryEnd == b.globalAlnQueryEnd &&
-    //                globalAlnTargetStart == b.globalAlnTargetStart &&
-    //                globalAlnTargetEnd == b.globalAlnTargetEnd && targetLen == b.targetLen &&
-    //                queryLen == b.queryLen;
-    //     }
-    // };
-
     // clang-format off
     std::vector<TestData> allTests{
         TestData{
-            "Empty input", {}, {}, {}, false, 200, 5000, 1.3, false, {}, 0, 0, 0, 0,
+            "Empty input", {}, 0, 0, false, 200, 5000, 1.3, false, {}, 0, 0, 0, 0,
         },
 
         TestData{
@@ -84,8 +41,8 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
                 // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
                 SeedHit(0, false, 5, 5, 5, 5, 0),
             },
-            "AAAAACCCCCTTTTTGGGGG",         // Query
-            "TTTTTCCCCCGGGGGAAAAA",         // Target
+            20,                             // queryLen
+            20,                             // targetLen
             false,                          // isRev
             200,                            // minAlignmentSpan
             5000,                           // maxFlankExtensionDist
@@ -106,8 +63,8 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
                 SeedHit(0, false, 5, 5, 5, 5, 0),
                 SeedHit(0, false, 10, 10, 5, 5, 0),
             },
-            "AAAAACCCCCTTTTTGGGGG",         // Query
-            "TTTTTCCCCCTTTTTAAAAA",         // Target
+            20,                             // queryLen
+            20,                             // targetLen
             false,                          // isRev
             200,                            // minAlignmentSpan
             5000,                           // maxFlankExtensionDist
@@ -129,14 +86,11 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
         // Name the test.
         SCOPED_TRACE(data.testName);
 
-        const std::string querySeqRev =
-            PacBio::Pancake::ReverseComplement(data.querySeq, 0, data.querySeq.size());
-
         if (data.expectedThrow) {
             EXPECT_THROW(
                 {
                     std::vector<AlignmentRegion> result = ExtractAlignmentRegions(
-                        data.sortedHits, data.querySeq.size(), data.targetSeq.size(), data.isRev,
+                        data.sortedHits, data.queryLen, data.targetLen, data.isRev,
                         data.minAlignmentSpan, data.maxFlankExtensionDist,
                         data.flankExtensionFactor);
                 },
@@ -145,8 +99,8 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
         } else {
             // Run the unit under test.
             std::vector<AlignmentRegion> result = ExtractAlignmentRegions(
-                data.sortedHits, data.querySeq.size(), data.targetSeq.size(), data.isRev,
-                data.minAlignmentSpan, data.maxFlankExtensionDist, data.flankExtensionFactor);
+                data.sortedHits, data.queryLen, data.targetLen, data.isRev, data.minAlignmentSpan,
+                data.maxFlankExtensionDist, data.flankExtensionFactor);
 
             std::cerr << "Test name: " << data.testName << "\n";
             std::cerr << "Results:\n";
