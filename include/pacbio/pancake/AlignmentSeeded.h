@@ -50,54 +50,39 @@ public:
                queryRev == b.queryRev && type == b.type;
     }
 };
-
-class RegionsToAlign
+inline std::ostream& operator<<(std::ostream& os, const AlignmentRegion& b)
 {
-public:
-    std::vector<AlignmentRegion> regions;
-    int32_t globalAlnQueryStart = 0;
-    int32_t globalAlnQueryEnd = 0;
-    int32_t globalAlnTargetStart = 0;
-    int32_t globalAlnTargetEnd = 0;
-
-    const char* targetSeq = NULL;
-    const char* querySeqFwd = NULL;
-    const char* querySeqRev = NULL;
-    int32_t targetLen = 0;
-    int32_t queryLen = 0;
-
-    bool operator==(const RegionsToAlign& b) const
-    {
-        return regions == b.regions && globalAlnQueryStart == b.globalAlnQueryStart &&
-               globalAlnQueryEnd == b.globalAlnQueryEnd &&
-               globalAlnTargetStart == b.globalAlnTargetStart &&
-               globalAlnTargetEnd == b.globalAlnTargetEnd && targetLen == b.targetLen &&
-               queryLen == b.queryLen;
-    }
-};
+    os << "qStart = " << b.qStart << ", qSpan = " << b.qSpan << ", tStart = " << b.tStart
+       << ", tSpan = " << b.tSpan << ", queryRev = " << (b.queryRev ? "true" : "false")
+       << ", type = " << RegionTypeToString(b.type) << ", regionId = " << b.regionId;
+    return os;
+}
 
 class AlignRegionsGenericResult
 {
 public:
     Data::Cigar cigar;
-    int32_t queryStart = 0;
-    int32_t queryEnd = 0;
-    int32_t targetStart = 0;
-    int32_t targetEnd = 0;
+    int32_t offsetFrontQuery = 0;
+    int32_t offsetBackQuery = 0;
+    int32_t offsetFrontTarget = 0;
+    int32_t offsetBackTarget = 0;
 };
 
-RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
-                                       const char* querySeqFwd, const char* querySeqRev,
-                                       int32_t qLen, const char* targetSeq, int32_t tLen,
-                                       bool isRev, int32_t minAlignmentSpan,
-                                       int32_t maxFlankExtensionDist, double flankExtensionFactor);
+std::vector<AlignmentRegion> ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
+                                                     int32_t qLen, int32_t tLen, bool isRev,
+                                                     int32_t minAlignmentSpan,
+                                                     int32_t maxFlankExtensionDist,
+                                                     double flankExtensionFactor);
 
 AlignmentResult AlignSingleRegion(const char* targetSeq, int32_t targetLen, const char* querySeqFwd,
                                   const char* querySeqRev, int32_t queryLen,
                                   AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt,
                                   const AlignmentRegion& region);
 
-AlignRegionsGenericResult AlignRegionsGeneric(const RegionsToAlign& regions,
+AlignRegionsGenericResult AlignRegionsGeneric(const char* targetSeq, const int32_t targetLen,
+                                              const char* queryFwd, const char* queryRev,
+                                              const int32_t queryLen,
+                                              const std::vector<AlignmentRegion>& regions,
                                               AlignerBasePtr& alignerGlobal,
                                               AlignerBasePtr& alignerExt);
 
