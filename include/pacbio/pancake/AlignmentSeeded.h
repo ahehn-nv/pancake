@@ -90,7 +90,7 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
                                        const char* querySeqFwd, const char* querySeqRev,
                                        int32_t qLen, const char* targetSeq, int32_t tLen,
                                        bool isRev, int32_t minAlignmentSpan,
-                                       int32_t maxFlankExtensionDist);
+                                       int32_t maxFlankExtensionDist, double flankExtensionFactor);
 
 AlignmentResult AlignSingleRegion(const char* targetSeq, int32_t targetLen, const char* querySeqFwd,
                                   const char* querySeqRev, int32_t queryLen,

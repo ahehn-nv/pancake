@@ -14,7 +14,7 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
                                        const char* querySeqFwd, const char* querySeqRev,
                                        int32_t qLen, const char* targetSeq, int32_t tLen,
                                        bool isRev, int32_t minAlignmentSpan,
-                                       int32_t maxFlankExtensionDist)
+                                       int32_t maxFlankExtensionDist, double flankExtensionFactor)
 {
     if (inSortedHits.empty()) {
         return {};
@@ -45,8 +45,6 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         std::reverse(hits.begin(), hits.end());
     }
 
-    const double flankExtFactor = 1.3;
-
     RegionsToAlign ret;
 
     ret.targetSeq = targetSeq;
@@ -65,8 +63,8 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
     // Extract the front.
     if (ret.globalAlnQueryStart > 0 && ret.globalAlnTargetStart > 0) {
         // Determine the maximum flank we want to align, in both target and query.
-        const int32_t projTStart =
-            std::max(0.0, ret.globalAlnTargetStart - flankExtFactor * ret.globalAlnQueryStart);
+        const int32_t projTStart = std::max(
+            0.0, ret.globalAlnTargetStart - flankExtensionFactor * ret.globalAlnQueryStart);
         const int32_t projQStart = 0;
         const int32_t qExtLen =
             std::min(ret.globalAlnQueryStart - projQStart, maxFlankExtensionDist);
@@ -137,7 +135,7 @@ RegionsToAlign ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
         // Determine the maximum flank we want to align, in both target and query.
         const int32_t qFlankLen = qLen - ret.globalAlnQueryEnd;
         const int32_t projTEnd = std::min(
-            tLen, static_cast<int32_t>(ret.globalAlnTargetEnd + flankExtFactor * qFlankLen));
+            tLen, static_cast<int32_t>(ret.globalAlnTargetEnd + flankExtensionFactor * qFlankLen));
         const int32_t projQEnd = qLen;
         const int32_t qExtLen = std::min(projQEnd - ret.globalAlnQueryEnd, maxFlankExtensionDist);
         const int32_t tExtLen = std::min(projTEnd - ret.globalAlnTargetEnd, maxFlankExtensionDist);
@@ -306,7 +304,7 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     // Prepare the regions for alignment.
     RegionsToAlign regions =
         ExtractAlignmentRegions(sortedHits, queryFwd, queryRev, queryLen, targetSeq, targetLen,
-                                ovl->Brev, minAlignmentSpan, maxFlankExtensionDist);
+                                ovl->Brev, minAlignmentSpan, maxFlankExtensionDist, 1.3);
 
     // Run the alignment.
     AlignRegionsGenericResult alns = AlignRegionsGeneric(regions, alignerGlobal, alignerExt);
