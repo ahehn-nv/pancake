@@ -224,10 +224,10 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
 {
     RegionsToAlignResults ret;
 
-    ret.offsetFrontQuery = 0;
-    ret.offsetFrontTarget = 0;
-    ret.offsetBackQuery = 0;
-    ret.offsetBackTarget = 0;
+    int32_t offsetFrontQuery = 0;
+    int32_t offsetFrontTarget = 0;
+    int32_t offsetBackQuery = 0;
+    int32_t offsetBackTarget = 0;
 
     for (size_t i = 0; i < regions.regions.size(); ++i) {
         const auto& region = regions.regions[i];
@@ -237,11 +237,11 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
                                         alignerExt, region);
 
         if (region.type == RegionType::FRONT) {
-            ret.offsetFrontQuery = alnRes.lastQueryPos;
-            ret.offsetFrontTarget = alnRes.lastTargetPos;
+            offsetFrontQuery = alnRes.lastQueryPos;
+            offsetFrontTarget = alnRes.lastTargetPos;
         } else if (region.type == RegionType::BACK) {
-            ret.offsetBackQuery = alnRes.lastQueryPos;
-            ret.offsetBackTarget = alnRes.lastTargetPos;
+            offsetBackQuery = alnRes.lastQueryPos;
+            offsetBackTarget = alnRes.lastTargetPos;
         }
 
         // Store the results.
@@ -268,6 +268,11 @@ RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
 //             tSpan, ret.alignedRegions.back().cigar, "Chunk validation.");
 #endif
     }
+
+    ret.queryStart = regions.globalAlnQueryStart - offsetFrontQuery;
+    ret.queryEnd = regions.globalAlnQueryEnd + offsetBackQuery;
+    ret.targetStart = regions.globalAlnTargetStart - offsetFrontTarget;
+    ret.targetEnd = regions.globalAlnTargetEnd + offsetBackTarget;
 
     return ret;
 }
@@ -296,10 +301,10 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     // Process the alignment results and make a new overlap.
     OverlapPtr ret = createOverlap(ovl);
     ret->Cigar.clear();
-    ret->Astart = regions.globalAlnQueryStart - alns.offsetFrontQuery;
-    ret->Aend = regions.globalAlnQueryEnd + alns.offsetBackQuery;
-    ret->Bstart = regions.globalAlnTargetStart - alns.offsetFrontTarget;
-    ret->Bend = regions.globalAlnTargetEnd + alns.offsetBackTarget;
+    ret->Astart = alns.queryStart;
+    ret->Aend = alns.queryEnd;
+    ret->Bstart = alns.targetStart;
+    ret->Bend = alns.targetEnd;
 
     // Merge the CIGAR chunks.
     for (const auto& alnRegion : alns.alignedRegions) {

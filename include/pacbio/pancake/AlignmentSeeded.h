@@ -94,19 +94,15 @@ class RegionsToAlignResults
 {
 public:
     std::vector<AlignedRegion> alignedRegions;
-
-    // The following 4 values are the offsets produced by semiglobal alignment
-    // from the globalAlnQueryStart/globalAlnQueryEnd/globalAlnTargetStart/globalAlnTargetEnd coordinates.
-    int32_t offsetFrontQuery = 0;
-    int32_t offsetFrontTarget = 0;
-    int32_t offsetBackQuery = 0;
-    int32_t offsetBackTarget = 0;
+    int32_t queryStart = 0;
+    int32_t queryEnd = 0;
+    int32_t targetStart = 0;
+    int32_t targetEnd = 0;
 
     bool operator==(const RegionsToAlignResults& b) const
     {
-        return alignedRegions == b.alignedRegions && offsetFrontQuery == b.offsetFrontQuery &&
-               offsetFrontTarget == b.offsetFrontTarget && offsetBackQuery == b.offsetBackQuery &&
-               offsetBackTarget == b.offsetBackTarget;
+        return alignedRegions == b.alignedRegions && queryStart == b.queryStart &&
+               queryEnd == b.queryEnd && targetStart == b.targetStart && targetEnd == b.targetEnd;
     }
 };
 
