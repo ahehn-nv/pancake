@@ -78,19 +78,39 @@ public:
 };
 
 int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const uint8_t* seq,
-                       int32_t seqLen, int32_t seqOffset, int32_t seqId, int32_t kmerSize,
-                       int32_t winSize, int32_t spacing, bool useReverseComplement, bool useHPC,
-                       int32_t maxHPCLen)
+                       const int32_t seqLen, const int32_t seqOffset, const int32_t seqId,
+                       const int32_t kmerSize, const int32_t winSize, const int32_t spacing,
+                       const bool useReverseComplement, const bool useHPC, const int32_t maxHPCLen)
 {
+    const int32_t MAX_SEED_SPAN = 255;
 
     // Sanity check that the seq is not NULL;
     if (!seq) {
-        return 1;
+        throw std::runtime_error("Cannot generate minimizers. The sequence is NULL.");
     }
     // Sanity check for the size of kmer. It can't
     // be too large, or it won't fit the uint64_t buffer.
-    if (kmerSize <= 0 || kmerSize > 32) {
-        return 2;
+    if (kmerSize <= 0 || kmerSize > 28) {
+        throw std::runtime_error(
+            "Cannot generate minimizers. The kmerSize is out of bounds, should be in range [0, "
+            "28]. kmerSize = " +
+            std::to_string(kmerSize));
+    }
+    if (maxHPCLen >= 256) {
+        throw std::runtime_error(
+            "Cannot generate minimizers. The maxHPCLen is out of bounds, should be in range [0, "
+            "256]. maxHPCLen = " +
+            std::to_string(maxHPCLen));
+    }
+    if (winSize > MAX_WINDOW_BUFFER_SIZE) {
+        throw std::runtime_error(
+            "Cannot generate minimizers. The winSize is out of bounds, should be in range [0, " +
+            std::to_string(MAX_WINDOW_BUFFER_SIZE) + "]. winSize = " + std::to_string(winSize));
+    }
+    if (spacing > MAX_SPACING_IN_SEED) {
+        throw std::runtime_error(
+            "Cannot generate minimizers. The spacing is out of bounds, should be in range [0, " +
+            std::to_string(MAX_SPACING_IN_SEED) + "]. spacing = " + std::to_string(spacing));
     }
     // Not technically an error if the seqLen is 0,
     // but there's nothing to do, so return.
@@ -161,19 +181,21 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             }
 
             // Determine the orientation of the key.
-            int8_t flag = MINIMIZER_FLAG_DEFAULT_FWD;
+            bool isRev = false;
             if (useReverseComplement && keyRev < key) {
                 std::swap(key, keyRev);
-                flag = MINIMIZER_FLAG_IS_REV;
+                isRev = true;
             }
 
             ++bufferWD.numBasesIn[space];
 
-            if (bufferWD.numBasesIn[space] >= kmerSize) {
+            if (bufferWD.numBasesIn[space] >= kmerSize && bufferWD.kmerSpan <= MAX_SEED_SPAN) {
                 // Minimap2 has another condition here: "kmerSpan < 256". That's because it encodes the kmer span into the seed definition as 8 bits.
                 // The 'pos' is the current position which is inclusive. We need to add a +1 to make it non-inclusive, so that the start position is calculated properly.
                 int32_t kmerStart = (pos + 1) - (bufferWD.kmerSpan);
-                newSeed = Seed(key, seqId, kmerStart + seqOffset, flag);
+                // const int32_t seedSize = bufferWD.kmerSpan * (spacing + 1) - spacing;
+                newSeed = Seed(InvertibleHash(key, mask), bufferWD.kmerSpan, seqId,
+                               kmerStart + seqOffset, isRev);
                 newSeedSet = true;
             }
 

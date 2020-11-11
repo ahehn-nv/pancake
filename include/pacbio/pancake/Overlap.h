@@ -163,6 +163,32 @@ public:
         }
     }
 
+    void NormalizeStrand()
+    {
+        /*
+         * If the A-read is reversed, this function normalizes the overlap so that
+         * the A-read is always facing in the forward direction.
+        */
+
+        if (Arev == false) {
+            return;
+        }
+
+        std::swap(Astart, Aend);
+        Astart = Alen - Astart;
+        Aend = Alen - Aend;
+        Arev = !Arev;
+
+        std::swap(Bstart, Bend);
+        Bstart = Blen - Bstart;
+        Bend = Blen - Bend;
+        Brev = !Brev;
+
+        std::reverse(Cigar.begin(), Cigar.end());
+        std::reverse(Avars.begin(), Avars.end());
+        std::reverse(Bvars.begin(), Bvars.end());
+    }
+
 public:
     bool operator==(const Overlap& rhs) const
     {

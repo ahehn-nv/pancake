@@ -1,6 +1,6 @@
 // Authors: Ivan Sovic
 
-#include "main/seqdb/SeqDBWorkflow.h"
+#include "SeqDBWorkflow.h"
 #include <pacbio/pancake/SeqDBWriter.h>
 #include <pacbio/util/FileIO.h>
 #include <pbbam/BamReader.h>
@@ -9,7 +9,7 @@
 #include <pbbam/FastqReader.h>
 #include <pbbam/PbiIndexedBamReader.h>
 #include <boost/algorithm/string/predicate.hpp>
-#include "main/seqdb/SeqDBSettings.h"
+#include "SeqDBSettings.h"
 
 #include <string>
 #include <vector>
