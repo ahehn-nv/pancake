@@ -452,10 +452,13 @@ TEST(MapperCLR, Map_FromString)
     settings.seedParams.KmerSize = 19;
     settings.seedParams.MinimizerWindow = 10;
     settings.seedParams.Spacing = 0;
-    settings.seedParams.UseHPC = true;
+    settings.seedParams.UseHPC = false;
     settings.seedParams.UseRC = true;
+    settings.seedParams.UseHPCForSeedsOnly = false;
     settings.seedParams.MaxHPCLen = 255;
     settings.freqPercentile = 0.000;
+
+    settings.seedParamsFallback = settings.seedParams;
 
     PacBio::Pancake::MapperCLR mapper(settings);
 
