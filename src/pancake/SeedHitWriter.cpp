@@ -26,7 +26,10 @@ void WriteSeedHits(const std::string& outPath, const std::vector<SeedHit>& hits,
         ofs = std::ofstream(outPath);
     }
     if (ofs.is_open() == false) {
+        // Don't throw. This is a hidden feature which will only work if a user knows which folder to create.
         return;
+        // throw std::runtime_error("Could not open file '" + outPath +
+        //                          "' for writing! In MapperCLR::WriteSeedHits.");
     }
     if (append == false) {
         ofs << queryName.c_str() << "\t" << queryLength << "\t" << targetName.c_str() << "\t"
