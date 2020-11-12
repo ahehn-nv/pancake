@@ -392,6 +392,7 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     // Set the alignment identity and edit distance.
     Alignment::DiffCounts diffs = CigarDiffCounts(ret->Cigar);
     diffs.Identity(false, false, ret->Identity, ret->EditDistance);
+    ret->Score = -diffs.numEq;
 
     // Validation. In case an alignment was dropped.
     try {
