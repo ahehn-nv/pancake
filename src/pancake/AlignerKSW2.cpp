@@ -84,9 +84,12 @@ AlignmentResult AlignerKSW2::Global(const char* qseq, int64_t qlen, const char* 
 
     AlignmentResult ret;
     ret.cigar = std::move(currCigar);
-    ret.valid = ez.reach_end;
-    ret.lastQueryPos = (ez.reach_end ? qlen : ez.max_q + 1);
-    ret.lastTargetPos = (ez.reach_end ? ez.mqe_t + 1 : ez.max_t + 1);
+    // ret.valid = ez.reach_end;
+    ret.valid = true;
+    ret.lastQueryPos = qlen;
+    ret.lastTargetPos = tlen;
+    // ret.lastQueryPos = (ez.reach_end ? qlen : ez.max_q + 1);
+    // ret.lastTargetPos = (ez.reach_end ? ez.mqe_t + 1 : ez.max_t + 1);
     ret.maxQueryPos = ez.max_q;
     ret.maxTargetPos = ez.max_t;
     ret.score = ez.score;
