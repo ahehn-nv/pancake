@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <pacbio/pancake/AlignmentSeeded.h>
+#include <pacbio/pancake/Overlap.h>
+#include <pacbio/pancake/OverlapWriterBase.h>
 
 #include <cstdint>
 #include <string>
@@ -252,6 +254,29 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
             },
         },
 
+        TestData{
+            "Three seeds, reverse complement strand. Internally, this function change the view so that in the output query is in the strand"
+            " of the alignment, and target is always in the fwd strand. This is important to make alignment consistent. If the SeedIndex generated "
+            " coordinates which were in strand of the query and always fwd in the target, then this function wouldn't have to do that internally.",
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, true, 5, 5, 15, 15, 0),
+                SeedHit(0, true, 400, 400, 15, 15, 0),
+                SeedHit(0, true, 900, 900, 15, 15, 0),
+            },
+            // queryLen, targetLen, isRev, minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            1000, 1000, true, 200, 5000, 1.3,
+            // expectedThrow
+            false,
+            // expectedRegions
+            {
+                // qStart, qSpan, tStart, tSpan, queryRev, regionType, regionId
+                {0, 85, 0, 85, true, RegionType::FRONT, 0},
+                {85, 500, 85, 500, true, RegionType::GLOBAL, 1},
+                {585, 395, 585, 395, true, RegionType::GLOBAL, 2},
+                {980, 20, 980, 20, true, RegionType::BACK, 3},
+            },
+        },
     };
     // clang-format on
 
@@ -294,22 +319,327 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
 
 TEST(AlignmentSeeded, AlignSingleRegion_ArrayOfTests)
 {
-    // ASSERT_EQ(expected, result);
-    // RegionsToAlignResults AlignRegionsGeneric(const RegionsToAlign& regions,
-    //                                           AlignerBasePtr& alignerGlobal,
-    //                                           AlignerBasePtr& alignerExt);
+    struct TestData
+    {
+        std::string testName;
+        std::string querySeq;
+        std::string targetSeq;
+        AlignmentRegion region;
+        bool expectedThrow = false;
+        PacBio::Data::Cigar expectedCigar;
+        int32_t expectedLastQueryPos = -1;   // Last aligned query position within this region.
+        int32_t expectedLastTargetPos = -1;  // Last aligned target position within this region.
+        bool expectedValid = false;
+    };
+
+    // clang-format off
+    std::vector<TestData> allTests{
+        TestData{
+            "Empty input", "", "", {}, false, PacBio::Data::Cigar(), 0, 0, false
+        },
+
+        // TestData{
+        //     "Invalid input, NULL query",
+        //     NULL,
+        //     "AAAATCCCCCTGTTTGGGGG",
+        //     {0, 5, 0, 5, false, RegionType::FRONT, 0},
+        //     true, PacBio::Data::Cigar(), 0, 0, false
+        // },
+
+        // TestData{
+        //     "Invalid input, NULL target",
+        //     "AAAAACCCCCTTTTTGGGGG",
+        //     NULL,
+        //     {0, 5, 0, 5, false, RegionType::FRONT, 0},
+        //     true, PacBio::Data::Cigar(), 0, 0, false
+        // },
+
+        TestData{
+            "Invalid input, invalid region",
+            "AAAAACCCCCTTTTTGGGGG",
+            "AAAATCCCCCTGTTTGGGGG",
+            {0, -1, 0, -1, false, RegionType::FRONT, 0},
+            true, PacBio::Data::Cigar(), 0, 0, false
+        },
+
+        TestData{
+            "Aligning the front",
+            "AAAAACCCCCTTTTTGGGGG",
+            "AAAATCCCCCTGTTTGGGGG",
+            {0, 5, 0, 5, false, RegionType::FRONT, 0},
+            false, PacBio::Data::Cigar("4=1X"), 5, 5, true
+        },
+
+        TestData{
+            "Aligning the middle, globally",
+            "AAAAACCCCCTTTTTGGGGG",
+            "AAAATCCCCCTGTTTGGGGG",
+            {5, 10, 5, 10, false, RegionType::GLOBAL, 0},
+            false, PacBio::Data::Cigar("6=1X3="), 10, 10, true
+        },
+
+        TestData{
+            "Aligning the back",
+            "AAAAACCCCCTTTTTGGGGG",
+            "AAAATCCCCCTGTTTGGGGG",
+            {10, 10, 10, 10, false, RegionType::BACK, 0},
+            false, PacBio::Data::Cigar("1=1X8="), 10, 10, true
+        },
+
+        TestData{
+            "Aligning the middle, globally, reverse complemented.",
+            "CCCCCAAAAAGGGGGTTTTT",
+            "AAAATCCCCCTGTTTGGGGG",
+            {5, 10, 5, 10, true, RegionType::GLOBAL, 0},
+            false, PacBio::Data::Cigar("6=1X3="), 10, 10, true
+        },
+
+        TestData{
+            "Aligning the front, reversed",
+            "CCCCCAAAAAGGGGGTTTTT",
+            "AAAATCCCCCTGTTTGGGGG",
+            {0, 5, 0, 5, true, RegionType::FRONT, 0},
+            false, PacBio::Data::Cigar("4=1X"), 5, 5, true
+        },
+
+        TestData{
+            "Aligning the back, reversed",
+            "CCCCCAAAAAGGGGGTTTTT",
+            "AAAATCCCCCTGTTTGGGGG",
+            {10, 10, 10, 10, true, RegionType::BACK, 0},
+            false, PacBio::Data::Cigar("1=1X8="), 10, 10, true
+        },
+
+    };
+    // clang-format on
+
+    // Create any aligner, that's not important for testing of the unit under test.
+    AlignerType alignerTypeGlobal = AlignerType::KSW2;
+    AlignmentParameters alnParamsGlobal;
+    AlignerType alignerTypeExt = AlignerType::KSW2;
+    AlignmentParameters alnParamsExt;
+    auto alignerGlobal = AlignerFactory(alignerTypeGlobal, alnParamsGlobal);
+    auto alignerExt = AlignerFactory(alignerTypeExt, alnParamsExt);
+
+    for (const auto& data : allTests) {
+        // Name the test.
+        SCOPED_TRACE(data.testName);
+
+        const std::string querySeqRev =
+            PacBio::Pancake::ReverseComplement(data.querySeq, 0, data.querySeq.size());
+
+        if (data.expectedThrow) {
+            EXPECT_THROW(
+                {
+                    AlignSingleRegion(data.targetSeq.c_str(), data.targetSeq.size(),
+                                      data.querySeq.c_str(), querySeqRev.c_str(),
+                                      data.querySeq.size(), alignerGlobal, alignerExt, data.region);
+                },
+                std::runtime_error);
+
+        } else {
+            // Run the unit under test.
+            AlignmentResult result = AlignSingleRegion(
+                data.targetSeq.c_str(), data.targetSeq.size(), data.querySeq.c_str(),
+                querySeqRev.c_str(), data.querySeq.size(), alignerGlobal, alignerExt, data.region);
+
+            // std::cerr << "Test name: " << data.testName << "\n";
+            // std::cerr << "result.cigar = " << result.cigar.ToStdString() << "\n";
+            // std::cerr << "result.lastQueryPos = " << result.lastQueryPos << "\n";
+            // std::cerr << "result.lastTargetPos = " << result.lastTargetPos << "\n";
+            // std::cerr << "result.valid = " << result.valid << "\n";
+            // std::cerr << "result = " << result << "\n";
+
+            // std::cerr << "data.expectedCigar = " << data.expectedCigar.ToStdString() << "\n";
+            // std::cerr << "data.expectedLastQueryPos = " << data.expectedLastQueryPos << "\n";
+            // std::cerr << "data.expectedLastTargetPos = " << data.expectedLastTargetPos << "\n";
+            // std::cerr << "data.expectedValid = " << data.expectedValid << "\n";
+            // std::cerr << "\n";
+
+            // Evaluate.
+            EXPECT_EQ(data.expectedCigar, result.cigar);
+            EXPECT_EQ(data.expectedLastQueryPos, result.lastQueryPos);
+            EXPECT_EQ(data.expectedLastTargetPos, result.lastTargetPos);
+            EXPECT_EQ(data.expectedValid, result.valid);
+        }
+    }
 }
 
 TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
 {
-    // OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& sortedHits,
-    //                            const char* targetSeq, const int32_t targetLen, const char* queryFwd,
-    //                            const char* queryRev, const int32_t queryLen, int32_t minAlignmentSpan,
-    //                            int32_t maxFlankExtensionDist, AlignerBasePtr& alignerGlobal,
-    //                            AlignerBasePtr& alignerExt);
-    // ASSERT_EQ(expected, result);
+    struct TestData
+    {
+        std::string testName;
+        std::string querySeq;
+        std::string targetSeq;
+        PacBio::Pancake::Overlap ovl;
+        std::vector<PacBio::Pancake::SeedHit> sortedHits;
+        int32_t minAlignmentSpan = 200;
+        int32_t maxFlankExtensionDist = 5000;
+        double flankExtensionFactor = 1.3;
+        bool expectedThrow = false;
+        PacBio::Data::Cigar expectedCigar;
+    };
+
+    // clang-format off
+    std::vector<TestData> allTests{
+        TestData{
+            "Empty input, should throw", "", "", PacBio::Pancake::Overlap(), {}, 200, 5000, 1.3, true, PacBio::Data::Cigar()
+        },
+
+        TestData{
+            "Alignment forward, the internal hit will be skipped.",
+            "AAAAACCCCCTTTTTGGGGG",
+            "AAAATCCCCCTGTTTGGGGG",
+
+            PacBio::Pancake::Overlap(0, 0, 0.0, 0.0, false, 5, 16, 20, false, 5, 16, 20),
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, false, 5, 5, 5, 5, 0),
+                SeedHit(0, false, 10, 10, 5, 5, 0),
+                SeedHit(0, false, 16, 16, 4, 4, 0),
+            },
+            // minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            200, 5000, 1.3,
+            // expectedThrow
+            false,
+            PacBio::Data::Cigar("4=1X6=1X8=")
+        },
+
+        TestData{
+            "Alignment forward, using the internal hit too.",
+            "AAAAACCCCCTTTTTGGGGG",
+            "AAAATCCCCCTGTTTGGGGG",
+
+            PacBio::Pancake::Overlap(0, 0, 0.0, 0.0, false, 5, 16, 20, false, 5, 16, 20),
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, false, 5, 5, 5, 5, 0),
+                SeedHit(0, false, 10, 10, 5, 5, 0),
+                SeedHit(0, false, 16, 16, 4, 4, 0),
+            },
+            // minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            0, 5000, 1.3,
+            // expectedThrow
+            false,
+            PacBio::Data::Cigar("4=1X6=1X8=")
+        },
+
+        TestData{
+            "Alignment reverse, the internal hit will be skipped.",
+            "CCCCCAAAAAGGGGGTTTTT",
+            "AAAATCCCCCTGTTTGGGGG",
+
+            PacBio::Pancake::Overlap(0, 0, 0.0, 0.0, false, 5, 16, 20, true, 5, 16, 20),
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, true, 5, 5, 5, 5, 0),
+                SeedHit(0, true, 10, 10, 5, 5, 0),
+                SeedHit(0, true, 16, 16, 4, 4, 0),
+            },
+            // minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            200, 5000, 1.3,
+            // expectedThrow
+            false,
+            PacBio::Data::Cigar("8=1X6=1X4=")
+        },
+
+        TestData{
+            "Alignment reverse, using the internal hit too.",
+            "CCCCCAAAAAGGGGGTTTTT",
+            "AAAATCCCCCTGTTTGGGGG",
+
+            PacBio::Pancake::Overlap(0, 0, 0.0, 0.0, false, 5, 16, 20, true, 5, 16, 20),
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, true, 5, 5, 5, 5, 0),
+                SeedHit(0, true, 10, 10, 5, 5, 0),
+                SeedHit(0, true, 16, 16, 4, 4, 0),
+            },
+            // minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            0, 5000, 1.3,
+            // expectedThrow
+            false,
+            PacBio::Data::Cigar("8=1X6=1X4=")
+        },
+
+        TestData{
+            "Wrong overlap compared to the seed hits. Should throw.",
+            "AAAAACCCCCTTTTTGGGGG",
+            "AAAATCCCCCTGTTTGGGGG",
+
+            PacBio::Pancake::Overlap(),
+            {   // sortedHits
+            },
+            // minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            200, 5000, 1.3,
+            // expectedThrow
+            true,
+            PacBio::Data::Cigar()
+        },
+
+    };
+    // clang-format on
+
+    // Create any aligner, that's not important for testing of the unit under test.
+    AlignerType alignerTypeGlobal = AlignerType::KSW2;
+    AlignmentParameters alnParamsGlobal;
+    AlignerType alignerTypeExt = AlignerType::KSW2;
+    AlignmentParameters alnParamsExt;
+    auto alignerGlobal = AlignerFactory(alignerTypeGlobal, alnParamsGlobal);
+    auto alignerExt = AlignerFactory(alignerTypeExt, alnParamsExt);
+
+    for (const auto& data : allTests) {
+        // Name the test.
+        SCOPED_TRACE(data.testName);
+
+        const std::string querySeqRev =
+            PacBio::Pancake::ReverseComplement(data.querySeq, 0, data.querySeq.size());
+        auto ovl = createOverlap(data.ovl);
+
+        if (data.expectedThrow) {
+            EXPECT_THROW(
+                {
+                    AlignmentSeeded(ovl, data.sortedHits, data.targetSeq.c_str(),
+                                    data.targetSeq.size(), data.querySeq.c_str(),
+                                    querySeqRev.c_str(), data.querySeq.size(),
+                                    data.minAlignmentSpan, data.maxFlankExtensionDist,
+                                    alignerGlobal, alignerExt);
+                },
+                std::runtime_error);
+
+        } else {
+
+            std::cerr << "Test name: " << data.testName << "\n";
+
+            // Run the unit under test.
+            OverlapPtr result = AlignmentSeeded(
+                ovl, data.sortedHits, data.targetSeq.c_str(), data.targetSeq.size(),
+                data.querySeq.c_str(), querySeqRev.c_str(), data.querySeq.size(),
+                data.minAlignmentSpan, data.maxFlankExtensionDist, alignerGlobal, alignerExt);
+
+            std::cerr << "Final overlap: "
+                      << OverlapWriterBase::PrintOverlapAsM4(result, "", "", true, true) << "\n";
+
+            // Evaluate.
+            EXPECT_EQ(data.expectedCigar, result->Cigar);
+
+            std::cerr << "\n";
+        }
+    }
 }
 
 // Validating overlap : 000000005 000000000 105 80.50 0 -
 //     137 14972 14972 1 1 15048 14902 *
 //         Before : 000000005 000000000 105 0.00 0 141 14972 14972 1 0 14729 14902 *
+
+// // regions
+// {
+//     // qStart, qSpan, tStart, tSpan, queryRev, regionType, regionId
+//     {0, 5, 0, 5, false, RegionType::FRONT, 0},
+//     {5, 5, 5, 5, false, RegionType::GLOBAL, 1},
+//     {10, 10, 10, 10, false, RegionType::BACK, 2},
+// },
+// expectedThrow, expectedCigar, expectedLastQueryPos, expectedLastTargetPos, expectedValid
+// false, PacBio::Data::Cigar("4=1X6=1X3="), 20, 20, true
+// },
