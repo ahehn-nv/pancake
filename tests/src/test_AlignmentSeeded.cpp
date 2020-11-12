@@ -478,13 +478,13 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
         int32_t maxFlankExtensionDist = 5000;
         double flankExtensionFactor = 1.3;
         bool expectedThrow = false;
-        PacBio::Data::Cigar expectedCigar;
+        PacBio::Pancake::Overlap expectedOvl;
     };
 
     // clang-format off
     std::vector<TestData> allTests{
         TestData{
-            "Empty input, should throw", "", "", PacBio::Pancake::Overlap(), {}, 200, 5000, 1.3, true, PacBio::Data::Cigar()
+            "Empty input, should throw", "", "", PacBio::Pancake::Overlap(), {}, 200, 5000, 1.3, true, PacBio::Pancake::Overlap()
         },
 
         TestData{
@@ -503,7 +503,13 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             200, 5000, 1.3,
             // expectedThrow
             false,
-            PacBio::Data::Cigar("4=1X6=1X8=")
+            // expectedOvl
+            PacBio::Pancake::Overlap(
+                0, 0, -18.0, 0.90, false, 0, 20, 20, false, 0, 20, 20,
+                2, 0, OverlapType::Unknown, OverlapType::Unknown,           // editDist, numSeeds, aType, bType
+                PacBio::Data::Cigar("4=1X6=1X8="),                          // cigar
+                "", "", false, false, false                                 // aVars, bVars, isFlipped, isSupplementary, isSecondary
+            ),
         },
 
         TestData{
@@ -522,7 +528,13 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             0, 5000, 1.3,
             // expectedThrow
             false,
-            PacBio::Data::Cigar("4=1X6=1X8=")
+            // expectedOvl
+            PacBio::Pancake::Overlap(
+                0, 0, -18.0, 0.90, false, 0, 20, 20, false, 0, 20, 20,
+                2, 0, OverlapType::Unknown, OverlapType::Unknown,           // editDist, numSeeds, aType, bType
+                PacBio::Data::Cigar("4=1X6=1X8="),                          // cigar
+                "", "", false, false, false                                 // aVars, bVars, isFlipped, isSupplementary, isSecondary
+            ),
         },
 
         TestData{
@@ -541,7 +553,13 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             200, 5000, 1.3,
             // expectedThrow
             false,
-            PacBio::Data::Cigar("8=1X6=1X4=")
+            // expectedOvl
+            PacBio::Pancake::Overlap(
+                0, 0, -18.0, 0.90, false, 0, 20, 20, true, 0, 20, 20,
+                2, 0, OverlapType::Unknown, OverlapType::Unknown,           // editDist, numSeeds, aType, bType
+                PacBio::Data::Cigar("8=1X6=1X4="),                          // cigar
+                "", "", false, false, false                                 // aVars, bVars, isFlipped, isSupplementary, isSecondary
+            ),
         },
 
         TestData{
@@ -560,7 +578,13 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             0, 5000, 1.3,
             // expectedThrow
             false,
-            PacBio::Data::Cigar("8=1X6=1X4=")
+            // expectedOvl
+            PacBio::Pancake::Overlap(
+                0, 0, -18.0, 0.90, false, 0, 20, 20, true, 0, 20, 20,
+                2, 0, OverlapType::Unknown, OverlapType::Unknown,           // editDist, numSeeds, aType, bType
+                PacBio::Data::Cigar("8=1X6=1X4="),                          // cigar
+                "", "", false, false, false                                 // aVars, bVars, isFlipped, isSupplementary, isSecondary
+            ),
         },
 
         TestData{
@@ -575,7 +599,8 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             200, 5000, 1.3,
             // expectedThrow
             true,
-            PacBio::Data::Cigar()
+            // expectedOvl
+            PacBio::Pancake::Overlap()
         },
 
     };
@@ -610,36 +635,22 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
 
         } else {
 
-            std::cerr << "Test name: " << data.testName << "\n";
-
             // Run the unit under test.
             OverlapPtr result = AlignmentSeeded(
                 ovl, data.sortedHits, data.targetSeq.c_str(), data.targetSeq.size(),
                 data.querySeq.c_str(), querySeqRev.c_str(), data.querySeq.size(),
                 data.minAlignmentSpan, data.maxFlankExtensionDist, alignerGlobal, alignerExt);
 
-            std::cerr << "Final overlap: "
-                      << OverlapWriterBase::PrintOverlapAsM4(result, "", "", true, true) << "\n";
+            // std::cerr << "Test name: " << data.testName << "\n";
+            // std::cerr << "Expected overlap:\n"
+            //           << OverlapWriterBase::PrintOverlapAsM4(data.expectedOvl, "", "", true, true)
+            //           << "\n";
+            // std::cerr << "Resulting overlap:\n"
+            //           << OverlapWriterBase::PrintOverlapAsM4(result, "", "", true, true) << "\n";
+            // std::cerr << "\n";
 
             // Evaluate.
-            EXPECT_EQ(data.expectedCigar, result->Cigar);
-
-            std::cerr << "\n";
+            EXPECT_EQ(data.expectedOvl, *result);
         }
     }
 }
-
-// Validating overlap : 000000005 000000000 105 80.50 0 -
-//     137 14972 14972 1 1 15048 14902 *
-//         Before : 000000005 000000000 105 0.00 0 141 14972 14972 1 0 14729 14902 *
-
-// // regions
-// {
-//     // qStart, qSpan, tStart, tSpan, queryRev, regionType, regionId
-//     {0, 5, 0, 5, false, RegionType::FRONT, 0},
-//     {5, 5, 5, 5, false, RegionType::GLOBAL, 1},
-//     {10, 10, 10, 10, false, RegionType::BACK, 2},
-// },
-// expectedThrow, expectedCigar, expectedLastQueryPos, expectedLastTargetPos, expectedValid
-// false, PacBio::Data::Cigar("4=1X6=1X3="), 20, 20, true
-// },
