@@ -119,7 +119,7 @@ void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId, const ChainedR
     // int32_t numHitsInChain = chain.hits.size();
     // auto ovl = MakeOverlap_(chain.hits, 0, querySeq.size(), index, 0, numHitsInChain, 0,
     //                         numHitsInChain - 1);
-    oss << " " << OverlapWriterBase::PrintOverlapAsM4(cr.mapping, "", "", true, false);
+    oss << ", ovl: " << OverlapWriterBase::PrintOverlapAsM4(cr.mapping, "", "", true, false);
     oss << ", diagStart = " << (cr.mapping->Astart - cr.mapping->Bstart);
     oss << ", diagEnd = " << (cr.mapping->Aend - cr.mapping->Bend);
 }
@@ -292,6 +292,12 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
         std::swap(region->chain, newChain);
 
+        region->mapping->Astart = region->chain.hits.front().queryPos;
+        region->mapping->Bstart = region->chain.hits.front().targetPos;
+        region->mapping->Aend = region->chain.hits.back().queryPos;
+        region->mapping->Bend = region->chain.hits.back().targetPos;
+        region->mapping->NumSeeds = region->chain.hits.size();
+
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
         std::cerr << "(refined i = " << i << " / " << allChainedRegions.size() << ") ";
         DebugPrintChainedRegion(std::cerr, i, *region);
@@ -333,7 +339,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     std::cerr << "allChainedRegions before skipping secondary, allChainedRegions.size() = "
               << allChainedRegions.size() << ":\n";
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        std::cerr << "(final all) ";
+        std::cerr << "(after refining seeds) ";
         DebugPrintChainedRegion(std::cerr, i, *allChainedRegions[i]);
         std::cerr << "\n";
     }
@@ -368,14 +374,14 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     }
 
 #ifdef PANCAKE_MAP_CLR_DEBUG
-    std::cerr << "Results:\n";
-    for (size_t i = 0; i < result.mappings.size(); ++i) {
-        std::cerr << "(results) ";
-        DebugPrintChainedRegion(std::cerr, i, *result.mappings[i]);
-        std::cerr << "\n";
-    }
+    // std::cerr << "Results:\n";
+    // for (size_t i = 0; i < result.mappings.size(); ++i) {
+    //     std::cerr << "(results) ";
+    //     DebugPrintChainedRegion(std::cerr, i, *result.mappings[i]);
+    //     std::cerr << "\n";
+    // }
 
-    std::cerr << "Results with hits:\n";
+    std::cerr << "After removing secondary::\n";
     for (size_t i = 0; i < result.mappings.size(); ++i) {
         std::cerr << "(result hits) ";
         DebugPrintChainedRegion(std::cerr, i, *result.mappings[i]);
@@ -455,13 +461,12 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
             // ttAlignGlobal.Stop();
             // std::cerr << "ttAlignGlobal = " << ttAlignGlobal.GetCpuMillisecs() << " ms\n";
             // break;
-
-            // Secondary/supplementary flagging.
-            WrapFlagSecondaryAndSupplementary_(result.mappings,
-                                               settings_.secondaryAllowedOverlapFractionQuery,
-                                               settings_.secondaryAllowedOverlapFractionTarget,
-                                               settings_.secondaryMinScoreFraction);
         }
+
+        // Secondary/supplementary flagging.
+        WrapFlagSecondaryAndSupplementary_(
+            result.mappings, settings_.secondaryAllowedOverlapFractionQuery,
+            settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
 
         ttAlign.Stop();
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
@@ -530,6 +535,9 @@ void MapperCLR::WrapFlagSecondaryAndSupplementary_(
     // Copy the overlaps so we can satisfy the FlagSecondaryAndSupplementary API.
     std::vector<OverlapPtr> tmpOverlaps;
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
+        if (allChainedRegions[i] == nullptr || allChainedRegions[i]->mapping == nullptr) {
+            continue;
+        }
         tmpOverlaps.emplace_back(createOverlap(allChainedRegions[i]->mapping));
     }
     // Flag the secondary and supplementary overlaps.
@@ -538,6 +546,9 @@ void MapperCLR::WrapFlagSecondaryAndSupplementary_(
         secondaryMinScoreFraction);
     // Set the flags.
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
+        if (allChainedRegions[i] == nullptr || allChainedRegions[i]->mapping == nullptr) {
+            continue;
+        }
         auto& cr = allChainedRegions[i];
         cr->mapping->IsSecondary = (overlapPriorities[i].priority > 0);
         cr->mapping->IsSupplementary = overlapPriorities[i].isSupplementary;
