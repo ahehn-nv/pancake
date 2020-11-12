@@ -9,6 +9,7 @@
 #include <pacbio/pancake/Minimizers.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
 #include <pacbio/pancake/Secondary.h>
+#include <pacbio/pancake/SeedHitWriter.h>
 #include <pacbio/util/RunLengthEncoding.h>
 #include <pacbio/util/TicToc.h>
 #include <pacbio/util/Util.h>
@@ -210,9 +211,9 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
         const auto& g = groups[i];
         const int32_t targetId = hits[g.start].targetId;
         const int32_t targetLen = targetSeqs[targetId].size();
-        WriteSeedHits_("temp-debug/hits-q" + std::to_string(queryId) + "-0-diag.csv", hits, g.start,
-                       g.end, i, "query" + std::to_string(queryId), queryLen,
-                       "target" + std::to_string(targetId), targetLen, (i > 0));
+        WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-0-diag.csv", hits, g.start,
+                      g.end, i, "query" + std::to_string(queryId), queryLen,
+                      "target" + std::to_string(targetId), targetLen, (i > 0));
     }
 #endif
 
@@ -232,7 +233,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 #ifdef PANCAKE_WRITE_SCATTERPLOT
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
         auto& region = allChainedRegions[i];
-        WriteSeedHits_(
+        WriteSeedHits(
             "temp-debug/hits-q" + std::to_string(queryId) + "-1-chained.csv", region->chain.hits, 0,
             region->chain.hits.size(), i, "query" + std::to_string(queryId), region->mapping->Alen,
             "target" + std::to_string(region->mapping->Bid), region->mapping->Blen, (i > 0));
@@ -255,11 +256,11 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
             continue;
             // break;
         }
-        WriteSeedHits_("temp-debug/hits-q" + std::to_string(queryId) + "-2-rechained.csv",
-                       region->chain.hits, 0, region->chain.hits.size(), i,
-                       "query" + std::to_string(queryId), region->mapping->Alen,
-                       "target" + std::to_string(region->mapping->Bid), region->mapping->Blen,
-                       (i > 0));
+        WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-2-rechained.csv",
+                      region->chain.hits, 0, region->chain.hits.size(), i,
+                      "query" + std::to_string(queryId), region->mapping->Alen,
+                      "target" + std::to_string(region->mapping->Bid), region->mapping->Blen,
+                      (i > 0));
     }
 #endif
 
@@ -279,11 +280,11 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
             continue;
             // break;
         }
-        WriteSeedHits_("temp-debug/hits-q" + std::to_string(queryId) + "-3-secondary.csv",
-                       region->chain.hits, 0, region->chain.hits.size(), i,
-                       "query" + std::to_string(queryId), region->mapping->Alen,
-                       "target" + std::to_string(region->mapping->Bid), region->mapping->Blen,
-                       (i > 0));
+        WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-3-secondary.csv",
+                      region->chain.hits, 0, region->chain.hits.size(), i,
+                      "query" + std::to_string(queryId), region->mapping->Alen,
+                      "target" + std::to_string(region->mapping->Bid), region->mapping->Blen,
+                      (i > 0));
     }
 #endif
 
@@ -348,7 +349,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
             continue;
             // break;
         }
-        WriteSeedHits_(
+        WriteSeedHits(
             "temp-debug/hits-q" + std::to_string(queryId) + "-4-refined.csv", region->chain.hits, 0,
             region->chain.hits.size(), i, "query" + std::to_string(queryId), region->mapping->Alen,
             "target" + std::to_string(region->mapping->Bid), region->mapping->Blen, (i > 0));
@@ -549,7 +550,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
         if (region->priority > 1) {
             continue;
         }
-        WriteSeedHits_(
+        WriteSeedHits(
             "temp-debug/hits-q" + std::to_string(queryId) + "-5-results.csv", region->chain.hits, 0,
             region->chain.hits.size(), i, "query" + std::to_string(queryId), region->mapping->Alen,
             "target" + std::to_string(region->mapping->Bid), region->mapping->Blen, (i > 0));
@@ -592,41 +593,6 @@ void MapperCLR::WrapFlagSecondaryAndSupplementary_(
     }
 }
 
-void MapperCLR::WriteSeedHits_(const std::string& outPath, const std::vector<SeedHit>& hits,
-                               size_t hitsStart, size_t hitsEnd, int32_t hitsId,
-                               const std::string& queryName, int64_t queryLength,
-                               const std::string& targetName, int64_t targetLength, bool append)
-{
-    if (hitsStart >= hits.size() || hitsEnd > hits.size() || hitsStart > hitsEnd) {
-        std::ostringstream oss;
-        oss << "Invalid hitsStart and/or hitsEnd! hitsStart = " << hitsStart
-            << ", hitsEnd = " << hitsEnd << ", hits.size() = " << hits.size();
-        throw std::runtime_error(oss.str());
-    }
-
-    std::ofstream ofs;
-    if (append) {
-        ofs = std::ofstream(outPath, std::ios::app);
-    } else {
-        ofs = std::ofstream(outPath);
-    }
-    if (ofs.is_open() == false) {
-        // Don't throw. This is a hidden feature which will only work if a user knows which folder to create.
-        return;
-        // throw std::runtime_error("Could not open file '" + outPath +
-        //                          "' for writing! In MapperCLR::WriteSeedHits.");
-    }
-    if (append == false) {
-        ofs << queryName.c_str() << "\t" << queryLength << "\t" << targetName.c_str() << "\t"
-            << targetLength << "\n";
-    }
-    for (size_t j = hitsStart; j < hitsEnd; ++j) {
-        ofs << hits[j].queryPos << "\t" << hits[j].targetPos << "\t" << hitsId << "\n";
-        // ofs << (hits[j].queryPos + kmerSize) << "\t" << (hits[j].targetPos + kmerSize) << "\t"
-        //     << hitsId << "\n";
-    }
-}
-
 std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
     const std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,
     const PacBio::Pancake::SeedIndex& index, int32_t queryId, int32_t queryLen,
@@ -663,7 +629,7 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
     // {
     //     const int32_t targetId = hits2[0].targetId;
     //     const int32_t targetLen = index.GetSequenceLength(targetId);
-    //     WriteSeedHits_("temp-debug/hits-q" + std::to_string(queryId) + "-1.1-hits2.csv", hits2, 0,
+    //     WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-1.1-hits2.csv", hits2, 0,
     //                 hits2.size(), 0, "query" + std::to_string(queryId), queryLen,
     //                 "target" + std::to_string(targetId), targetLen, 0);
     // }
@@ -671,9 +637,9 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
         const auto& g = groups[i];
         const int32_t targetId = hits2[g.start].targetId;
         const int32_t targetLen = index.GetSequenceLength(targetId);
-        WriteSeedHits_("temp-debug/hits-q" + std::to_string(queryId) + "-1.2-hits2-groups.csv",
-                       hits2, g.start, g.end, i, "query" + std::to_string(queryId), queryLen,
-                       "target" + std::to_string(targetId), targetLen, (i > 0));
+        WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-1.2-hits2-groups.csv",
+                      hits2, g.start, g.end, i, "query" + std::to_string(queryId), queryLen,
+                      "target" + std::to_string(targetId), targetLen, (i > 0));
     }
 #endif
 

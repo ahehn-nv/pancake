@@ -182,11 +182,6 @@ private:
         int32_t chainMaxSkip, int32_t chainMaxPredecessors, int32_t maxGap, int32_t chainBandwidth,
         int32_t minNumSeeds, int32_t minCoveredBases, int32_t minDPScore);
 
-    static void WriteSeedHits_(const std::string& outPath, const std::vector<SeedHit>& hits,
-                               size_t hitsStart, size_t hitsEnd, int32_t hitsId,
-                               const std::string& queryName, int64_t queryLength,
-                               const std::string& targetName, int64_t targetLength, bool append);
-
     static std::vector<Range> GroupByTargetAndStrand_(const std::vector<SeedHit>& sortedHits);
 
     static void LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,
