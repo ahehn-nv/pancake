@@ -2,6 +2,7 @@
 
 #include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignmentSeeded.h>
+#include <pacbio/pancake/OverlapWriterBase.h>
 #include <pbcopper/logging/Logging.h>
 #include <iostream>
 
@@ -50,8 +51,8 @@ std::vector<AlignmentRegion> ExtractAlignmentRegions(const std::vector<SeedHit>&
         for (size_t i = 0; i < hits.size(); ++i) {
             auto& hit = hits[i];
             // std::swap(hit.queryPos, hit.targetPos
-            hit.queryPos = qLen - hit.queryPos;
-            hit.targetPos = tLen - hit.targetPos;
+            hit.queryPos = qLen - (hit.queryPos + hit.querySpan);
+            hit.targetPos = tLen - (hit.targetPos + hit.targetSpan);
 
             if (i > 0) {
                 bool isLongCurr = hits[i].CheckFlagLongJoin();
@@ -177,8 +178,12 @@ AlignmentResult AlignSingleRegion(const char* targetSeq, int32_t targetLen, cons
     const int32_t qSpan = region.qSpan;
     const int32_t tSpan = region.tSpan;
 
+    if (qSpan == 0 && tSpan == 0) {
+        return {};
+    }
+
     if (qStart >= queryLen || (qStart + qSpan) > queryLen || tStart >= targetLen ||
-        (tStart + tSpan) > targetLen) {
+        (tStart + tSpan) > targetLen || qSpan < 0 || tSpan < 0) {
         std::ostringstream oss;
         oss << "AlignmentRegion coordinates out of bounds in AlignRegionsGeneric!";
         oss << " qStart = " << qStart << ", qSpan = " << qSpan << ", queryLen = " << queryLen
@@ -298,11 +303,47 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
                            int32_t maxFlankExtensionDist, AlignerBasePtr& alignerGlobal,
                            AlignerBasePtr& alignerExt)
 {
+    // Sanity checks.
     if (ovl->Arev) {
         throw std::runtime_error("The ovl->Arev should always be false! In Align_.");
     }
     if (sortedHits.empty()) {
         throw std::runtime_error("There are no seed hits provided to Align_ for alignment.");
+    }
+    if (ovl->Alen != queryLen) {
+        std::ostringstream oss;
+        oss << "(AlignmentSeeded) The query length in the overlap is not the same as the provided "
+               "sequence! ovl->Alen = "
+            << ovl->Alen << ", queryLen = " << queryLen;
+        throw std::runtime_error(oss.str());
+    }
+    if (ovl->Blen != targetLen) {
+        std::ostringstream oss;
+        oss << "(AlignmentSeeded) The target length in the overlap is not the same as the provided "
+               "sequence! ovl->Alen = "
+            << ovl->Blen << ", queryLen = " << targetLen;
+        throw std::runtime_error(oss.str());
+    }
+    if (ovl->Astart != sortedHits.front().queryPos || ovl->Aend != sortedHits.back().queryPos ||
+        ovl->Bstart != sortedHits.front().targetPos || ovl->Bend != sortedHits.back().targetPos) {
+        std::ostringstream oss;
+        oss << "(AlignmentSeeded) Provided overlap coordinates do not match the first/last seed "
+               "hit!"
+            << " ovl: " << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false)
+            << "; sortedHits.front() = " << sortedHits.front()
+            << "; sortedHits.back() = " << sortedHits.back();
+        throw std::runtime_error(oss.str());
+    }
+    if (ovl->Brev != sortedHits.front().targetRev || ovl->Brev != sortedHits.back().targetRev) {
+        std::ostringstream oss;
+        oss << "(AlignmentSeeded) Strand of the provided overlap does not match the first/last "
+               "seed hit."
+            << " ovl->Brev = " << (ovl->Brev ? "true" : "false")
+            << ", sortedHits.front().targetRev = "
+            << (sortedHits.front().targetRev ? "true" : "false")
+            << ", sortedHits.back().targetRev = "
+            << (sortedHits.back().targetRev ? "true" : "false");
+        throw std::runtime_error(oss.str());
     }
 
     // Prepare the regions for alignment.
@@ -313,13 +354,23 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     AlignRegionsGenericResult alns = AlignRegionsGeneric(
         targetSeq, targetLen, queryFwd, queryRev, queryLen, regions, alignerGlobal, alignerExt);
 
+    const int32_t actualOffsetFrontQuery =
+        ovl->Brev ? (alns.offsetBackQuery - sortedHits.front().querySpan) : alns.offsetFrontQuery;
+    const int32_t actualOffsetBackQuery =
+        ovl->Brev ? (alns.offsetFrontQuery + sortedHits.back().querySpan) : alns.offsetBackQuery;
+    const int32_t actualOffsetFrontTarget =
+        ovl->Brev ? (alns.offsetBackTarget - sortedHits.front().targetSpan)
+                  : alns.offsetFrontTarget;
+    const int32_t actualOffsetBackTarget =
+        ovl->Brev ? (alns.offsetFrontTarget + sortedHits.back().targetSpan) : alns.offsetBackTarget;
+
     // Process the alignment results and make a new overlap.
     OverlapPtr ret = createOverlap(ovl);
     ret->Cigar.clear();
-    ret->Astart = ovl->Astart - alns.offsetFrontQuery;
-    ret->Aend = ovl->Aend + alns.offsetBackQuery;
-    ret->Bstart = ovl->Bstart - alns.offsetFrontTarget;
-    ret->Bend = ovl->Bend + alns.offsetBackTarget;
+    ret->Astart = ovl->Astart - actualOffsetFrontQuery;
+    ret->Aend = ovl->Aend + actualOffsetBackQuery;
+    ret->Bstart = ovl->Bstart - actualOffsetFrontTarget;
+    ret->Bend = ovl->Bend + actualOffsetBackTarget;
     ret->Cigar = std::move(alns.cigar);
 
     // Reverse the CIGAR and the coordinates if needed.
