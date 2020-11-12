@@ -46,15 +46,15 @@ public:
     int32_t minNumSeeds = 3;
     int32_t minCoveredBases = 0;
     int32_t minDPScore = 40;
-    double secondaryAllowedOverlapFractionQuery = 0.50;
+    double secondaryAllowedOverlapFractionQuery = 0.00;
     double secondaryAllowedOverlapFractionTarget = 0.50;
     double secondaryMinScoreFraction = 0.80;
     bool useLIS = true;
 
     // Indexing.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
-    double freqPercentile = 0.000;
+    PacBio::Pancake::SeedDB::SeedDBParameters seedParams{19, 10, 0, false, true, 255, true};
+    PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback{19, 10, 0, false, true, 255, true};
+    double freqPercentile = 0.0002;
 
     // Alignment.
     bool align = true;
