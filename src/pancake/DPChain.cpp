@@ -17,10 +17,10 @@ namespace Pancake {
 
 constexpr int32_t PlusInf = std::numeric_limits<int32_t>::max() - 10000;  // Leave a margin.
 
-std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32_t chain_max_skip,
-                                   int32_t chain_max_predecessors, int32_t seed_join_dist,
-                                   int32_t diag_margin, int32_t min_num_seeds,
-                                   int32_t min_cov_bases, int32_t min_dp_score)
+std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hitsSize, int32_t chainMaxSkip,
+                                   int32_t chainMaxPredecessors, int32_t seedJoinDist,
+                                   int32_t diagMargin, int32_t minNumSeeds, int32_t minCovBases,
+                                   int32_t minDPScore)
 {
     /*
      * Hits need to be sorted in this order of priority:
@@ -28,13 +28,13 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32
     */
 
     std::vector<ChainedHits> chains;
-    const int32_t n_hits = hits_size;
+    const int32_t n_hits = hitsSize;
 
     if (n_hits == 0) {
         return chains;
     }
 
-    if (chain_max_skip <= 0) {
+    if (chainMaxSkip <= 0) {
         return chains;
     }
 
@@ -72,7 +72,7 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32
 
         int32_t min_j = 0;
         // int32_t min_j = std::max(0, i - 1000);
-        min_j = (chain_max_predecessors <= 0) ? 0 : std::max(0, (i - 1 - chain_max_predecessors));
+        min_j = (chainMaxPredecessors <= 0) ? 0 : std::max(0, (i - 1 - chainMaxPredecessors));
         for (int32_t j = (i - 1); j > min_j; j--) {
 #ifdef EXPERIMENTAL_QUERY_MASK
             bool is_tandem = hits[j - 1].QueryMask() & MINIMIZER_HIT_TANDEM_FLAG;
@@ -93,7 +93,7 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32
             if (t_id_j != t_id_i || t_rev_j != t_rev_i) {
                 break;
             }
-            if (dist_y > seed_join_dist) {
+            if (dist_y > seedJoinDist) {
                 break;
             }
 
@@ -106,10 +106,10 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32
             if (x_i_start <= x_j_start || y_i_start <= y_j_start) {
                 continue;
             }
-            if (gap_dist > diag_margin) {
+            if (gap_dist > diagMargin) {
                 continue;
             }
-            if (dist_x > seed_join_dist) {
+            if (dist_x > seedJoinDist) {
                 continue;
             }
 
@@ -134,8 +134,8 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32
 
             } else {
                 num_skipped_predecessors += 1;
-                if (num_skipped_predecessors > chain_max_skip) {
-                    // std::cerr << "Bump! num_skipped_predecessors = " << num_skipped_predecessors << ", chain_max_skip = " << chain_max_skip << std::endl;
+                if (num_skipped_predecessors > chainMaxSkip) {
+                    // std::cerr << "Bump! num_skipped_predecessors = " << num_skipped_predecessors << ", chainMaxSkip = " << chainMaxSkip << std::endl;
                     break;
                 }
             }
@@ -163,7 +163,7 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32
         int32_t node_id = chain_maxima[i];
         int32_t score = dp[node_id];
 
-        if (score < min_dp_score) {
+        if (score < minDPScore) {
             continue;
         }
 
@@ -176,7 +176,7 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32
         std::reverse(nodes.begin(), nodes.end());
 
         // Skip if needed.
-        if (nodes.empty() || static_cast<int32_t>(nodes.size()) < min_num_seeds) {
+        if (nodes.empty() || static_cast<int32_t>(nodes.size()) < minNumSeeds) {
             continue;
         }
 
@@ -210,7 +210,7 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32
         // double frac = (qspan == 0) ? 0 : ((double)chain.coveredBasesQuery) / ((double)qspan);
 
         // Add the new chain.
-        if (chain.coveredBasesQuery >= min_cov_bases && chain.coveredBasesTarget >= min_cov_bases) {
+        if (chain.coveredBasesQuery >= minCovBases && chain.coveredBasesTarget >= minCovBases) {
             chains.emplace_back(std::move(chain));
         }
         /////////////////////////
