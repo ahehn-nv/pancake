@@ -7,8 +7,6 @@
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
 #include <pacbio/pancake/AlignerBase.h>
 #include <pacbio/pancake/AlignerFactory.h>
-#include <pacbio/pancake/AlignerKSW2.h>
-#include <pacbio/pancake/AlignerWFA.h>
 #include <pacbio/pancake/AlignmentParameters.h>
 #include <pacbio/pancake/DPChain.h>
 #include <pacbio/pancake/FastaSequenceCached.h>

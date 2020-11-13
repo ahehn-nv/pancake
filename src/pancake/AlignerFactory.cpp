@@ -11,8 +11,6 @@ std::string AlignerTypeToString(const AlignerType& alignerType)
         return "SES2";
     } else if (alignerType == AlignerType::KSW2) {
         return "KSW2";
-    } else if (alignerType == AlignerType::WFA) {
-        return "WFA";
     } else if (alignerType == AlignerType::EDLIB) {
         return "EDLIB";
     } else if (alignerType == AlignerType::SES1) {
@@ -25,8 +23,6 @@ AlignerType AlignerTypeFromString(const std::string& alignerType)
 {
     if (alignerType == "KSW2") {
         return AlignerType::KSW2;
-    } else if (alignerType == "WFA") {
-        return AlignerType::WFA;
     } else if (alignerType == "EDLIB") {
         return AlignerType::EDLIB;
     } else if (alignerType == "SES1") {
@@ -43,9 +39,6 @@ std::shared_ptr<AlignerBase> AlignerFactory(const AlignerType& alignerType,
 {
     if (alignerType == AlignerType::KSW2) {
         return CreateAlignerKSW2(alnParams);
-
-    } else if (alignerType == AlignerType::WFA) {
-        return CreateAlignerWFA(alnParams);
 
     } else if (alignerType == AlignerType::EDLIB) {
         return CreateAlignerEdlib(alnParams);

@@ -8,7 +8,6 @@
 #include <pacbio/pancake/AlignerKSW2.h>
 #include <pacbio/pancake/AlignerSES1.h>
 #include <pacbio/pancake/AlignerSES2.h>
-#include <pacbio/pancake/AlignerWFA.h>
 #include <pacbio/pancake/AlignmentParameters.h>
 
 namespace PacBio {
@@ -17,7 +16,6 @@ namespace Pancake {
 enum class AlignerType
 {
     KSW2,
-    WFA,
     EDLIB,
     SES1,
     SES2,
