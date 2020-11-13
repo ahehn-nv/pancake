@@ -601,38 +601,26 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
 {
     std::vector<std::unique_ptr<ChainedRegion>> newChainedRegions;
 
-    // Collect all remaining seed hits.
+    // Merge all remaining seed hits.
     std::vector<SeedHit> hits2;
     for (size_t i = 0; i < chainedRegions.size(); ++i) {
         auto& region = chainedRegions[i];
         if (region->priority > 1) {
             continue;
-            // break;
         }
         hits2.insert(hits2.end(), region->chain.hits.begin(), region->chain.hits.end());
     }
 
     // Sort the hits by coordinates.
+    // IMPORTANT: This needs to sort by target, and if target coords are identical then by query.
     std::sort(hits2.begin(), hits2.end(), [](const SeedHit& a, const SeedHit& b) {
-        // return a.queryPos < b.queryPos || (a.queryPos == b.queryPos && a.targetPos < b.targetPos);
         return std::tuple(a.targetId, a.targetRev, a.targetPos, a.queryPos) <
                std::tuple(b.targetId, b.targetRev, b.targetPos, b.queryPos);
-        // return std::tuple(a.targetId, a.targetRev, a.queryPos, a.targetPos) <
-        //        std::tuple(b.targetId, b.targetRev, b.queryPos, b.targetPos);
-
-        // return a.targetPos < b.targetPos || (a.targetPos == b.targetPos && a.queryPos < b.queryPos);
     });
 
     auto groups = GroupByTargetAndStrand_(hits2);
 
 #ifdef PANCAKE_WRITE_SCATTERPLOT
-    // {
-    //     const int32_t targetId = hits2[0].targetId;
-    //     const int32_t targetLen = index.GetSequenceLength(targetId);
-    //     WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-1.1-hits2.csv", hits2, 0,
-    //                 hits2.size(), 0, "query" + std::to_string(queryId), queryLen,
-    //                 "target" + std::to_string(targetId), targetLen, 0);
-    // }
     for (size_t i = 0; i < groups.size(); ++i) {
         const auto& g = groups[i];
         const int32_t targetId = hits2[g.start].targetId;
@@ -645,8 +633,6 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
 
     for (const auto& group : groups) {
         // DP Chaining of the filtered hits to remove outliers.
-        // std::cerr << "group.start = " << group.start << ", group.end = " << group.end << "\n";
-
         std::vector<ChainedHits> chains = ChainHits(
             &hits2[group.start], group.end - group.start, chainMaxSkip, chainMaxPredecessors,
             maxGap, chainBandwidth, minNumSeeds, minCoveredBases, minDPScore);
@@ -655,10 +641,12 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
         for (size_t i = 0; i < chains.size(); ++i) {
             const auto& chain = chains[i];
             int32_t numHitsInChain = chain.hits.size();
+
             // Filter.
             if (numHitsInChain < minNumSeeds) {
                 continue;
             }
+
             // Create a new chained region.
             auto ovl = MakeOverlap_(chain.hits, queryId, queryLen, index, 0, numHitsInChain, 0,
                                     numHitsInChain - 1);
@@ -679,27 +667,24 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ChainAndMakeOverlap_(
     int32_t minNumSeeds, int32_t minCoveredBases, int32_t minDPScore, bool useLIS)
 {
     // Comparison function to sort the seed hits for LIS.
+    // IMPORTANT: This needs to sort by target, and if target coords are identical then by query.
     auto ComparisonSort = [](const SeedHit& a, const SeedHit& b) -> bool {
-        // auto aQpos = a.queryPos;
-        // auto aTpos = a.targetPos;
-        // auto bQpos = b.queryPos;
-        // auto bTpos = b.targetPos;
-        // return (aQpos < bQpos || (aQpos == bQpos && aTpos < bTpos));
         return std::pair(a.targetPos, a.queryPos) < std::pair(b.targetPos, b.queryPos);
-        // return std::pair(a.queryPos, a.targetPos) < std::pair(b.queryPos, b.targetPos);
     };
+
+    // Comparison function to compute the LIS.
+    // IMPORTANT: This needs to always return the upper-left element as the smaller one.
     std::function<bool(const SeedHit& a, const SeedHit& b)> ComparisonLIS = [](const SeedHit& a,
                                                                                const SeedHit& b) {
-        // This needs to always return the upper-left element as the smaller one.
         return (a.queryPos < b.queryPos && a.targetPos < b.targetPos);
     };
 
-    // Process each diagonal bins to get the final chains.
+    // Process each diagonal bin to get the final chains.
     std::vector<std::unique_ptr<ChainedRegion>> allChainedRegions;
     for (const auto& range : hitGroups) {
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
-        std::cerr << "[range] start = " << range.start << ", end = " << range.end
-                  << ", span = " << range.Span() << "\n";
+        std::cerr << "(ChainAndMakeOverlap_) [range] start = " << range.start
+                  << ", end = " << range.end << ", span = " << range.Span() << "\n";
 #endif
         // Skip diagonals with insufficient hits.
         if (range.Span() < minNumSeeds) {
@@ -709,17 +694,25 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ChainAndMakeOverlap_(
             continue;
         }
 
-        // Longest Increasing Subsequence of the diagonal bin.
+        // Get a copy of the seed hits so that we can sort without touching the input.
         std::vector<SeedHit> groupHits(hits.begin() + range.start, hits.begin() + range.end);
+
         // Groups are already groupped by target ID and strand, so only sorting by coordinates is enough.
+        // Hits have previously been sorted by diagonals, and not by coordinates, so we need to sort again
+        // to get them in proper order.
         std::sort(groupHits.begin(), groupHits.end(), ComparisonSort);
 
         // Perform chaining.
         std::vector<ChainedHits> chains;
+
         if (useLIS) {
             // Longest Increasing Subsequence.
             std::vector<PacBio::Pancake::SeedHit> lisHits =
                 istl::LIS(groupHits, 0, groupHits.size(), ComparisonLIS);
+
+            // DP Chaining of the filtered hits to remove outliers.
+            chains = ChainHits(&lisHits[0], lisHits.size(), chainMaxSkip, chainMaxPredecessors,
+                               maxGap, chainBandwidth, minNumSeeds, minCoveredBases, minDPScore);
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
             std::cerr << "  - Hits before LIS:\n";
@@ -733,31 +726,22 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ChainAndMakeOverlap_(
                 std::cerr << "    [lisHits ii = " << ii << "] " << lisHits[ii] << "\n";
             }
 #endif
-
-            // DP Chaining of the filtered hits to remove outliers.
-            chains = ChainHits(&lisHits[0], lisHits.size(), chainMaxSkip, chainMaxPredecessors,
-                               maxGap, chainBandwidth, minNumSeeds, minCoveredBases, minDPScore);
-
-#ifdef PANCAKE_MAP_CLR_DEBUG_2
-            std::cerr << "  - chains.size() = " << chains.size() << "\n";
-#endif
         } else {
             chains = ChainHits(&groupHits[0], groupHits.size(), chainMaxSkip, chainMaxPredecessors,
                                maxGap, chainBandwidth, minNumSeeds, minCoveredBases, minDPScore);
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
             std::cerr << "  - not using LIS.\n";
-            std::cerr << "  - chains.size() = " << chains.size() << "\n";
 #endif
         }
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
-        std::cerr << "  - Adding chains.\n";
+        std::cerr << "  - Adding chains, chains.size() = " << chains.size() << "\n";
 #endif
 
         // Accumulate chains and their mapped regions.
         for (size_t i = 0; i < chains.size(); ++i) {
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
-            std::cerr << "    [i = " << i << "]\n";
+            std::cerr << "    [chain i = " << i << "]\n";
 #endif
 
             const auto& chain = chains[i];
@@ -765,7 +749,7 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ChainAndMakeOverlap_(
             // Filter.
             if (numHitsInChain < minNumSeeds) {
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
-                std::cerr << "      -> Skipping, numHitsInChain < minNumSeeds\n";
+                std::cerr << "      -> Skipping chain, numHitsInChain < minNumSeeds\n";
 #endif
                 continue;
             }
@@ -806,10 +790,6 @@ OverlapPtr MapperCLR::MakeOverlap_(const std::vector<SeedHit>& sortedHits, int32
     const int32_t editDist = -1;
 
     const int32_t targetLen = index.GetSequenceLength(targetId);
-
-    // return createOverlap(queryId, targetId, score, identity, 0, beginHit.queryPos, endHit.queryPos,
-    //                      queryLen, beginHit.targetRev, beginHit.targetPos, endHit.targetPos,
-    //                      targetLen, editDist, numSeeds, OverlapType::Unknown, OverlapType::Unknown);
 
     OverlapPtr ret =
         createOverlap(queryId, targetId, score, identity, beginHit.targetRev, beginHit.queryPos,
@@ -857,11 +837,10 @@ std::vector<Range> MapperCLR::DiagonalGroup_(const std::vector<SeedHit>& sortedH
     int32_t beginDiag = sortedHits[beginId].Diagonal();
 
     // This is a combination of <targetPos, queryPos>, intended for simple comparison
-    // without defining a custom complicated comparison operator.
+    // without defining a custom comparison operator.
     uint64_t minTargetQueryPosCombo = (static_cast<uint64_t>(sortedHits[beginId].targetPos) << 32) |
                                       (static_cast<uint64_t>(sortedHits[beginId].queryPos));
     uint64_t maxTargetQueryPosCombo = minTargetQueryPosCombo;
-    // int23_t halfBandwidth = chainBandwidth / 2;
 
     int32_t firstInBandwidth = 0;
 
@@ -873,13 +852,6 @@ std::vector<Range> MapperCLR::DiagonalGroup_(const std::vector<SeedHit>& sortedH
         const uint64_t targetQueryPosCombo =
             (static_cast<uint64_t>(sortedHits[i].targetPos) << 32) |
             (static_cast<uint64_t>(sortedHits[i].queryPos));
-
-#ifdef PANCAKE_MAP_CLR_DEBUG
-        std::cerr << "(dg) [hit " << i << "] tid = " << currHit.targetId
-                  << ", trev = " << currHit.targetRev << ", tpos = " << currHit.targetPos
-                  << ", qpos = " << currHit.queryPos << ", flag = " << currHit.flags
-                  << ", diag = " << currDiag << ", firstInBandwidth = " << firstInBandwidth << "\n";
-#endif
 
         if (currHit.targetId != beginHit.targetId || currHit.targetRev != beginHit.targetRev ||
             diagDiff > chainBandwidth) {
@@ -909,10 +881,6 @@ std::vector<Range> MapperCLR::DiagonalGroup_(const std::vector<SeedHit>& sortedH
                     break;
                 }
             }
-
-#ifdef PANCAKE_MAP_CLR_DEBUG
-            std::cerr << "---\n";
-#endif
         }
 
         // Track the minimum and maximum target positions for each diagonal.
@@ -928,22 +896,6 @@ std::vector<Range> MapperCLR::DiagonalGroup_(const std::vector<SeedHit>& sortedH
         groups.emplace_back(Range{beginId, numHits});
     }
 
-    // #ifdef PANCAKE_MAP_CLR_DEBUG
-    //     for (const auto& range : groups) {
-    //         auto ovl = MakeOverlap_(sortedHits, 0, queryLen, index, range.start, range.end, minPosId,
-    //                                 maxPosId);
-    //         std::cerr << "(dg) ovl->NumSeeds = " << ovl->NumSeeds
-    //                   << ", startI = " << beginId << ", endI = " << numHits
-    //                   << ", ovl->ASpan() = " << ovl->ASpan()
-    //                   << ", ovl->BSpan() = " << ovl->BSpan()
-    //                   << ", ovl->Aid = " << ovl->Aid << ", ovl->Bid = " << ovl->Bid
-    //                   << ", beginDiag = " << beginDiag << ", endDiag = " << sortedHits.back().Diagonal()
-    //                   << "\n";
-    //         std::cerr << "(dg) " << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false)
-    //                   << "\n";
-    //     }
-    // #endif
-
     return groups;
 }
 
@@ -951,6 +903,11 @@ std::vector<Range> MapperCLR::DiagonalGroup_(const std::vector<SeedHit>& sortedH
 void MapperCLR::LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,
                                  int32_t maxGap)
 {
+    if (maxGap < 0) {
+        throw std::runtime_error("(LongMergeChains_) maxGap cannot be negative. maxGap = " +
+                                 std::to_string(maxGap));
+    }
+
     if (chainedRegions.empty()) {
         return;
     }
@@ -976,10 +933,6 @@ void MapperCLR::LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& ch
                                                             br->mapping->Bstart);
     });
 
-    // std::cerr << "candidates.size() = " << candidates.size() << "\n";
-
-    // std::vector<std::unique_ptr<ChainedRegion>> filtered;
-
     std::unordered_set<int32_t> doSort;
 
     int32_t lastId = candidates[0];
@@ -988,17 +941,12 @@ void MapperCLR::LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& ch
         auto& last = chainedRegions[lastId];
         const auto& curr = chainedRegions[currId];
 
-        // std::cerr << "[i = " << i << "] lastId = " << lastId << ", currId = " << currId << "\n";
-        // std::cerr << "    last: " << OverlapWriterBase::PrintOverlapAsM4(last->mapping, "", "", true, false) << "\n";
-        // std::cerr << "    curr: " << OverlapWriterBase::PrintOverlapAsM4(curr->mapping, "", "", true, false) << "\n";
-
         // Skip if there is an overlap (or if the target is wrong), to preserve colinearity.
         if (curr->mapping->Bid != last->mapping->Bid ||
             curr->mapping->Brev != last->mapping->Brev ||
             curr->mapping->Astart < last->mapping->Aend ||
             curr->mapping->Bstart < last->mapping->Bend) {
             lastId = currId;
-            // std::cerr << "    -> continue on colinearity\n";
             continue;
         }
 
@@ -1007,7 +955,6 @@ void MapperCLR::LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& ch
 
         if (gap > maxGap) {
             lastId = currId;
-            // std::cerr << "    -> continue on maxGap\n";
             continue;
         }
 
@@ -1025,10 +972,9 @@ void MapperCLR::LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& ch
         chainedRegions[currId] = nullptr;
 
         doSort.emplace(lastId);
-
-        // std::cerr << "    -> merged\n";
     }
 
+    // Sort only the extended chains.
     for (const auto& i : doSort) {
         if (chainedRegions[i] == nullptr) {
             continue;
