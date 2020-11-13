@@ -529,6 +529,18 @@ std::vector<Range> GroupByTargetAndStrand(const std::vector<SeedHit>& sortedHits
 std::vector<Range> DiagonalGroup(const std::vector<SeedHit>& sortedHits, int32_t chainBandwidth,
                                  bool overlappingWindows)
 {
+    /*
+     * Groups seed hits by:
+     *      - Target ID.
+     *      - Target strand.
+     *      - Diagonal, groupping a current hit with previous by comparing the diagonal with the first diagonal in the current range.
+     *      - Optionally, hits that could fall within neighboring windows will be groupped in both. This doesn't have to happen, diagonals can have clean cuts.
+     *
+     * For example, if there are 2 diagonals, one at 1000bp and the other at 1700bp (with chainBandwidth = 500 and overlappingWindows = true), this will result
+     * in two ranges.
+     * If there are 3 diagonals: (1) 1000bp, (2) 1300bp, (3) 1700bp; then there will be two ranges, and the middle diagonal will be included in both.
+    */
+
     if (sortedHits.empty()) {
         return {};
     }
