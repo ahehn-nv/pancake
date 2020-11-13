@@ -354,23 +354,57 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     AlignRegionsGenericResult alns = AlignRegionsGeneric(
         targetSeq, targetLen, queryFwd, queryRev, queryLen, regions, alignerGlobal, alignerExt);
 
-    const int32_t actualOffsetFrontQuery =
-        ovl->Brev ? (alns.offsetBackQuery - sortedHits.front().querySpan) : alns.offsetFrontQuery;
-    const int32_t actualOffsetBackQuery =
-        ovl->Brev ? (alns.offsetFrontQuery + sortedHits.back().querySpan) : alns.offsetBackQuery;
-    const int32_t actualOffsetFrontTarget =
-        ovl->Brev ? (alns.offsetBackTarget - sortedHits.front().targetSpan)
-                  : alns.offsetFrontTarget;
-    const int32_t actualOffsetBackTarget =
-        ovl->Brev ? (alns.offsetFrontTarget + sortedHits.back().targetSpan) : alns.offsetBackTarget;
+    // const int32_t actualOffsetFrontQuery =
+    //     ovl->Brev ? (alns.offsetBackQuery - sortedHits.front().querySpan) : alns.offsetFrontQuery;
+    // const int32_t actualOffsetBackQuery =
+    //     ovl->Brev ? (alns.offsetFrontQuery + sortedHits.back().querySpan) : alns.offsetBackQuery;
+    // const int32_t actualOffsetFrontTarget =
+    //     ovl->Brev ? (alns.offsetBackTarget - sortedHits.front().targetSpan)
+    //               : alns.offsetFrontTarget;
+    // const int32_t actualOffsetBackTarget =
+    //     ovl->Brev ? (alns.offsetFrontTarget + sortedHits.back().targetSpan) : alns.offsetBackTarget;
+
+    // OverlapPtr ret = createOverlap(ovl);
+    // ret->Cigar.clear();
+    // ret->Astart = ovl->Astart - actualOffsetFrontQuery;
+    // ret->Aend = ovl->Aend + actualOffsetBackQuery;
+    // ret->Bstart = ovl->Bstart - actualOffsetFrontTarget;
+    // ret->Bend = ovl->Bend + actualOffsetBackTarget;
+    // // ret->Astart = sortedHits.front().queryPos - actualOffsetFrontQuery;
+    // // ret->Aend = sortedHits.back().queryPos + actualOffsetBackQuery;
+    // // ret->Bstart = sortedHits.front().targetPos - actualOffsetFrontTarget;
+    // // ret->Bend = sortedHits.back().targetPos + actualOffsetBackTarget;
 
     // Process the alignment results and make a new overlap.
+    int32_t globalAlnQueryStart = 0;
+    int32_t globalAlnTargetStart = 0;
+    int32_t globalAlnQueryEnd = 0;
+    int32_t globalAlnTargetEnd = 0;
+    // Find the leftmost coordinate for global alignment.
+    for (int32_t i = 0; i < static_cast<int32_t>(regions.size()); ++i) {
+        if (regions[i].type != RegionType::GLOBAL) {
+            continue;
+        }
+        globalAlnQueryStart = regions[i].qStart;
+        globalAlnTargetStart = regions[i].tStart;
+        break;
+    }
+    // Find the rightmost coordinate for global alignment.
+    for (int32_t i = static_cast<int32_t>(regions.size()) - 1; i >= 0; --i) {
+        if (regions[i].type != RegionType::GLOBAL) {
+            continue;
+        }
+        globalAlnQueryEnd = regions[i].qStart + regions[i].qSpan;
+        globalAlnTargetEnd = regions[i].tStart + regions[i].tSpan;
+        break;
+    }
+    // Construct the new overlap.
     OverlapPtr ret = createOverlap(ovl);
     ret->Cigar.clear();
-    ret->Astart = ovl->Astart - actualOffsetFrontQuery;
-    ret->Aend = ovl->Aend + actualOffsetBackQuery;
-    ret->Bstart = ovl->Bstart - actualOffsetFrontTarget;
-    ret->Bend = ovl->Bend + actualOffsetBackTarget;
+    ret->Astart = globalAlnQueryStart - alns.offsetFrontQuery;
+    ret->Aend = globalAlnQueryEnd + alns.offsetBackQuery;
+    ret->Bstart = globalAlnTargetStart - alns.offsetFrontTarget;
+    ret->Bend = globalAlnTargetEnd + alns.offsetBackTarget;
     ret->Cigar = std::move(alns.cigar);
 
     // Reverse the CIGAR and the coordinates if needed.
@@ -394,18 +428,24 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     diffs.Identity(false, false, ret->Identity, ret->EditDistance);
     ret->Score = -diffs.numEq;
 
+    const int32_t qstart = ret->Astart;
+    const int32_t tstart = ret->Bstart;
+    const char* querySeqFwd = queryFwd;
+    const std::string targetSeqForValidation =
+        (ret->Brev) ? PacBio::Pancake::ReverseComplement(targetSeq, 0, targetLen) : targetSeq;
+
     // Validation. In case an alignment was dropped.
     try {
-        const int32_t qstart = ret->Astart;
-        const int32_t tstart = ret->Bstart;
-        const char* querySeqFwd = queryFwd;
-        const std::string targetSeqForValidation =
-            (ret->Brev) ? PacBio::Pancake::ReverseComplement(targetSeq, 0, targetLen) : targetSeq;
         ValidateCigar(querySeqFwd + qstart, ret->ASpan(), targetSeqForValidation.c_str() + tstart,
                       ret->BSpan(), ret->Cigar, "Full length validation.");
     } catch (std::exception& e) {
         ret = nullptr;
         PBLOG_DEBUG << "[Note: Exception when aligning!] " << e.what() << "\n";
+        PBLOG_DEBUG << "Q: " << std::string(querySeqFwd, queryLen) << "\n";
+        PBLOG_DEBUG << "T: " << targetSeqForValidation << "\n";
+        // std::cerr << "[Note: Exception when aligning!] " << e.what() << "\n";
+        // std::cerr << "Q: " << std::string(querySeqFwd, queryLen) << "\n";
+        // std::cerr << "T: " << targetSeqForValidation << "\n";
     }
 
     return ret;
