@@ -160,6 +160,28 @@ void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId, const ChainedR
     oss << ", diagEnd = " << (cr.mapping->Aend - cr.mapping->Bend);
 }
 
+void DebugWriteChainedRegion(const std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
+                             const std::string& descriptor, int32_t queryId, int32_t queryLen)
+{
+#ifdef PANCAKE_MAP_CLR_DEBUG_2
+    std::cerr << "(DebugWriteChainedRegion) " << descriptor
+              << ": allChainedRegions.size() = " << allChainedRegions.size() << "\n";
+
+    // Write seed hits after the first chaining stage.
+    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
+        auto& region = allChainedRegions[i];
+        if (region->priority > 1) {
+            continue;
+        }
+        WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-" + descriptor + ".csv",
+                      region->chain.hits, 0, region->chain.hits.size(), i,
+                      "query" + std::to_string(queryId), queryLen,
+                      "target" + std::to_string(region->mapping->Bid), region->mapping->Blen,
+                      (i > 0));
+    }
+#endif
+}
+
 MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
                                const PacBio::Pancake::SeedIndex& index, const std::string& querySeq,
                                const std::vector<PacBio::Pancake::Int128t>& querySeeds,
@@ -189,74 +211,26 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     auto groups = DiagonalGroup_(hits, settings_.chainBandwidth, true);
     ttDiagonalGroup.Stop();
 
-#ifdef PANCAKE_MAP_CLR_DEBUG_2
-    std::cerr << "Diagonal groups:\n";
-    for (size_t i = 0; i < groups.size(); ++i) {
-        const int32_t firstDiag = hits[groups[i].start].Diagonal();
-        const int32_t lastDiag = hits[groups[i].end - 1].Diagonal();
-        std::cerr << "[queryId = " << queryId << ", group " << i << "] start = " << groups[i].start
-                  << ", end = " << groups[i].end << ", diagStart = " << firstDiag
-                  << ", diagEnd = " << lastDiag << "\n";
-    }
-#endif
-
-#ifdef PANCAKE_WRITE_SCATTERPLOT
-    for (size_t i = 0; i < groups.size(); ++i) {
-        const auto& g = groups[i];
-        const int32_t targetId = hits[g.start].targetId;
-        const int32_t targetLen = targetSeqs[targetId].size();
-        WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-0-diag.csv", hits, g.start,
-                      g.end, i, "query" + std::to_string(queryId), queryLen,
-                      "target" + std::to_string(targetId), targetLen, (i > 0));
-    }
-#endif
-
-    // Process each diagonal bin to get the final chains.
+    // Process each diagonal bin to get the chains.
     TicToc ttChain;
     std::vector<std::unique_ptr<ChainedRegion>> allChainedRegions = ChainAndMakeOverlap_(
         index, hits, groups, queryId, queryLen, settings_.chainMaxSkip,
         settings_.chainMaxPredecessors, settings_.maxGap, settings_.chainBandwidth,
         settings_.minNumSeeds, settings_.minCoveredBases, settings_.minDPScore, settings_.useLIS);
     ttChain.Stop();
-
-#ifdef PANCAKE_MAP_CLR_DEBUG_2
-    std::cerr << "After ChainAndMakeOverlap_: allChainedRegions.size() = "
-              << allChainedRegions.size() << "\n";
-#endif
-
-#ifdef PANCAKE_WRITE_SCATTERPLOT
-    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        auto& region = allChainedRegions[i];
-        WriteSeedHits(
-            "temp-debug/hits-q" + std::to_string(queryId) + "-1-chained.csv", region->chain.hits, 0,
-            region->chain.hits.size(), i, "query" + std::to_string(queryId), region->mapping->Alen,
-            "target" + std::to_string(region->mapping->Bid), region->mapping->Blen, (i > 0));
-    }
-#endif
+    DebugWriteChainedRegion(allChainedRegions, "1-chain-and-make-overlap", queryId, queryLen);
 
     // Take the remaining regions, merge all seed hits, and rechain.
     // Needed because diagonal chaining was greedy and a wide window could have split
     // otherwise good chains. On the other hand, diagonal binning was needed for speed
     // in low-complexity regions.
+    TicToc ttRechain;
     allChainedRegions =
         ReChainSeedHits_(allChainedRegions, index, queryId, queryLen, settings_.chainMaxSkip,
                          settings_.chainMaxPredecessors, settings_.maxGap, settings_.chainBandwidth,
                          settings_.minNumSeeds, settings_.minCoveredBases, settings_.minDPScore);
-
-#ifdef PANCAKE_WRITE_SCATTERPLOT
-    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        auto& region = allChainedRegions[i];
-        if (region->priority > 1) {
-            continue;
-            // break;
-        }
-        WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-2-rechained.csv",
-                      region->chain.hits, 0, region->chain.hits.size(), i,
-                      "query" + std::to_string(queryId), region->mapping->Alen,
-                      "target" + std::to_string(region->mapping->Bid), region->mapping->Blen,
-                      (i > 0));
-    }
-#endif
+    ttRechain.Stop();
+    DebugWriteChainedRegion(allChainedRegions, "2-rechain-hits", queryId, queryLen);
 
     // Sort all chains in descending order of the number of hits.
     std::sort(allChainedRegions.begin(), allChainedRegions.end(),
@@ -266,29 +240,17 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     WrapFlagSecondaryAndSupplementary_(
         allChainedRegions, settings_.secondaryAllowedOverlapFractionQuery,
         settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
-
-#ifdef PANCAKE_WRITE_SCATTERPLOT
-    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        auto& region = allChainedRegions[i];
-        if (region->priority > 1) {
-            continue;
-            // break;
-        }
-        WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-3-secondary.csv",
-                      region->chain.hits, 0, region->chain.hits.size(), i,
-                      "query" + std::to_string(queryId), region->mapping->Alen,
-                      "target" + std::to_string(region->mapping->Bid), region->mapping->Blen,
-                      (i > 0));
-    }
-#endif
+    DebugWriteChainedRegion(allChainedRegions, "3-wrap-flag-secondary-suppl-1", queryId, queryLen);
 
     // Merge long gaps.
     LongMergeChains_(allChainedRegions, settings_.maxGap);
+    DebugWriteChainedRegion(allChainedRegions, "4-long-merge-chains", queryId, queryLen);
 
     // Again relabel, because some chains are longer now.
     WrapFlagSecondaryAndSupplementary_(
         allChainedRegions, settings_.secondaryAllowedOverlapFractionQuery,
         settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
+    DebugWriteChainedRegion(allChainedRegions, "5-wrap-flag-secondary-suppl-2", queryId, queryLen);
 
     // Sort all chains by priority and then score.
     std::sort(allChainedRegions.begin(), allChainedRegions.end(),
@@ -300,25 +262,16 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
                   return at < bt;
               });
 
-    // Filter seed hits.
+    // Refine seed hits.
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
         auto& region = allChainedRegions[i];
         if (region->priority > 1) {
             continue;
-            // break;
         }
         ChainedHits newChain = RefineBadEnds(
             region->chain, settings_.alnParamsGlobal.alignBandwidth, settings_.minDPScore * 2);
-        // auto newChain = region->chain;
         newChain = RefineChainedHits(newChain, 10, 40, settings_.maxGap / 2, 10);
         newChain = RefineChainedHits2(newChain, 30, settings_.maxGap / 2);
-
-#ifdef PANCAKE_MAP_CLR_DEBUG_2
-        const double divergenceOld = ComputeChainDivergence(region->chain.hits);
-        const double divergenceNew = ComputeChainDivergence(newChain.hits);
-        const int32_t numHitsOld = region->chain.hits.size();
-        const int32_t numHitsNew = newChain.hits.size();
-#endif
 
         std::swap(region->chain, newChain);
 
@@ -327,61 +280,8 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
         region->mapping->Aend = region->chain.hits.back().queryPos;
         region->mapping->Bend = region->chain.hits.back().targetPos;
         region->mapping->NumSeeds = region->chain.hits.size();
-
-#ifdef PANCAKE_MAP_CLR_DEBUG_2
-        std::cerr << "(refined i = " << i << " / " << allChainedRegions.size() << ") ";
-        DebugPrintChainedRegion(std::cerr, i, *region);
-        std::cerr << ", divergOld = " << divergenceOld << ", divergNew = " << divergenceNew
-                  << ", hitsOld = " << numHitsOld << ", hitsNew = " << numHitsNew << "\n";
-#endif
     }
-
-#ifdef PANCAKE_WRITE_SCATTERPLOT
-    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        auto& region = allChainedRegions[i];
-        if (region->priority > 1) {
-            continue;
-            // break;
-        }
-        WriteSeedHits(
-            "temp-debug/hits-q" + std::to_string(queryId) + "-4-refined.csv", region->chain.hits, 0,
-            region->chain.hits.size(), i, "query" + std::to_string(queryId), region->mapping->Alen,
-            "target" + std::to_string(region->mapping->Bid), region->mapping->Blen, (i > 0));
-    }
-#endif
-
-#ifdef PANCAKE_MAP_CLR_DEBUG
-
-    std::cerr << "hits.size() = " << hits.size() << "\n";
-
-    // std::sort(hits.begin(), hits.end(),
-    //           [](const auto& a, const auto& b) { return a.PackTo128() < b.PackTo128(); });
-    // for (size_t j = 0; j < hits.size(); ++j) {
-    //     const auto& hit = hits[j];
-    //     std::cerr << "[hit " << j << "] " << hit << "\n";
-    // }
-
-    // std::cerr << "groups.size() = " << groups.size() << "\n";
-    // for (size_t i = 0; i < groups.size(); ++i) {
-    //     std::cerr << "   [group " << i << "] size = " << groups[i].Span() << "\n";
-    // }
-
-    std::cerr << "allChainedRegions before skipping secondary, allChainedRegions.size() = "
-              << allChainedRegions.size() << ":\n";
-    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        std::cerr << "(after refining seeds) ";
-        DebugPrintChainedRegion(std::cerr, i, *allChainedRegions[i]);
-        std::cerr << "\n";
-    }
-
-// for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-//     std::cerr << "[queryId = " << queryId << ", hits for chainedRegion " << i << "] score = " << allChainedRegions[i]->chain.score << ", covBasesQuery = " << allChainedRegions[i]->chain.coveredBasesQuery << ", covBasesTarget = " << allChainedRegions[i]->chain.coveredBasesTarget << "\n";
-//     for (size_t j = 0; j < allChainedRegions[i]->chain.hits.size(); ++j) {
-//         const auto& hit = allChainedRegions[i]->chain.hits[j];
-//         std::cerr << "    [hit " << j << "] tid = " << hit.targetId << ", trev = " << hit.targetRev << ", tpos = " << hit.targetPos << ", qpos = " << hit.queryPos << "\n";
-//     }
-// }
-#endif
+    DebugWriteChainedRegion(allChainedRegions, "6-refining-seed-hits", queryId, queryLen);
 
     // Filter out the mappings.
     MapperCLRResult result;
@@ -402,6 +302,38 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
             ++numSelectedSecondary;
         }
     }
+
+#ifdef PANCAKE_MAP_CLR_DEBUG_2
+    std::cerr << "All hits: hits.size() = " << hits.size() << "\n";
+    std::cerr << "Diagonal groups: groups.size() = " << groups.size() << "\n";
+    for (size_t i = 0; i < groups.size(); ++i) {
+        const int32_t firstDiag = hits[groups[i].start].Diagonal();
+        const int32_t lastDiag = hits[groups[i].end - 1].Diagonal();
+        std::cerr << "[queryId = " << queryId << ", group " << i << "] start = " << groups[i].start
+                  << ", end = " << groups[i].end << ", diagStart = " << firstDiag
+                  << ", diagEnd = " << lastDiag << "\n";
+    }
+
+    // Write ALL seed hits.
+    for (size_t i = 0; i < groups.size(); ++i) {
+        const auto& g = groups[i];
+        const int32_t targetId = hits[g.start].targetId;
+        const int32_t targetLen = targetSeqs[targetId].size();
+        WriteSeedHits(
+            "temp-debug/hits-q" + std::to_string(queryId) + "-0-all-hits-diagonal-groupped.csv",
+            hits, g.start, g.end, i, "query" + std::to_string(queryId), queryLen,
+            "target" + std::to_string(targetId), targetLen, (i > 0));
+    }
+
+// std::cerr << "allChainedRegions before skipping secondary, allChainedRegions.size() = "
+//           << allChainedRegions.size() << ":\n";
+// for (size_t i = 0; i < allChainedRegions.size(); ++i) {
+//     std::cerr << "(after refining seeds) ";
+//     DebugPrintChainedRegion(std::cerr, i, *allChainedRegions[i]);
+//     std::cerr << "\n";
+// }
+
+#endif
 
 #ifdef PANCAKE_MAP_CLR_DEBUG
     // std::cerr << "Results:\n";
