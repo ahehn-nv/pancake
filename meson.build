@@ -32,7 +32,7 @@ foreach cflag: [
     endif
 endforeach
 
-pancake_flags = pancake_warning_flags
+pancake_flags = pancake_warning_flags + ['-DHAVE_KALLOC']
 
 ################
 # dependencies #
