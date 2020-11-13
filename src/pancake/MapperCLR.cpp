@@ -148,16 +148,20 @@ std::vector<MapperCLRResult> MapperCLR::Map(const std::vector<std::string>& targ
 
 void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId, const ChainedRegion& cr)
 {
-    oss << "[regionId " << regionId << "] size = " << cr.chain.hits.size()
-        << ", score = " << cr.chain.score << ", covQ = " << cr.chain.coveredBasesQuery
-        << ", covT = " << cr.chain.coveredBasesTarget << ", priority = " << cr.priority
-        << ", isSuppl = " << (cr.isSupplementary ? "true" : "false");
-    // int32_t numHitsInChain = chain.hits.size();
-    // auto ovl = MakeOverlap_(chain.hits, 0, querySeq.size(), index, 0, numHitsInChain, 0,
-    //                         numHitsInChain - 1);
-    oss << ", ovl: " << OverlapWriterBase::PrintOverlapAsM4(cr.mapping, "", "", true, false);
-    oss << ", diagStart = " << (cr.mapping->Astart - cr.mapping->Bstart);
-    oss << ", diagEnd = " << (cr.mapping->Aend - cr.mapping->Bend);
+    oss << "[regionId " << regionId << "] chain.hits = " << cr.chain.hits.size()
+        << ", chain.score = " << cr.chain.score << ", chain.covQ = " << cr.chain.coveredBasesQuery
+        << ", chain.covT = " << cr.chain.coveredBasesTarget << ", priority = " << cr.priority
+        << ", isSuppl = " << (cr.isSupplementary ? "true" : "false")
+        << ", ovl: " << OverlapWriterBase::PrintOverlapAsM4(cr.mapping, "", "", true, false)
+        << ", diagStart = " << (cr.mapping->Astart - cr.mapping->Bstart)
+        << ", diagEnd = " << (cr.mapping->Aend - cr.mapping->Bend);
+
+    // for (size_t j = 0; j < cr.chain.hits.size(); ++j) {
+    //     const auto& hit = cr.chain.hits[j];
+    //     std::cerr << "    [hit " << j << "] tid = " << hit.targetId
+    //                 << ", trev = " << hit.targetRev << ", tpos = " << hit.targetPos
+    //                 << ", qpos = " << hit.queryPos << "\n";
+    // }
 }
 
 void DebugWriteChainedRegion(const std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
@@ -173,6 +177,7 @@ void DebugWriteChainedRegion(const std::vector<std::unique_ptr<ChainedRegion>>& 
         if (region->priority > 1) {
             continue;
         }
+        DebugPrintChainedRegion(std::cerr, i, *region);
         WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-" + descriptor + ".csv",
                       region->chain.hits, 0, region->chain.hits.size(), i,
                       "query" + std::to_string(queryId), queryLen,
@@ -302,65 +307,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
             ++numSelectedSecondary;
         }
     }
-
-#ifdef PANCAKE_MAP_CLR_DEBUG_2
-    std::cerr << "All hits: hits.size() = " << hits.size() << "\n";
-    std::cerr << "Diagonal groups: groups.size() = " << groups.size() << "\n";
-    for (size_t i = 0; i < groups.size(); ++i) {
-        const int32_t firstDiag = hits[groups[i].start].Diagonal();
-        const int32_t lastDiag = hits[groups[i].end - 1].Diagonal();
-        std::cerr << "[queryId = " << queryId << ", group " << i << "] start = " << groups[i].start
-                  << ", end = " << groups[i].end << ", diagStart = " << firstDiag
-                  << ", diagEnd = " << lastDiag << "\n";
-    }
-
-    // Write ALL seed hits.
-    for (size_t i = 0; i < groups.size(); ++i) {
-        const auto& g = groups[i];
-        const int32_t targetId = hits[g.start].targetId;
-        const int32_t targetLen = targetSeqs[targetId].size();
-        WriteSeedHits(
-            "temp-debug/hits-q" + std::to_string(queryId) + "-0-all-hits-diagonal-groupped.csv",
-            hits, g.start, g.end, i, "query" + std::to_string(queryId), queryLen,
-            "target" + std::to_string(targetId), targetLen, (i > 0));
-    }
-
-// std::cerr << "allChainedRegions before skipping secondary, allChainedRegions.size() = "
-//           << allChainedRegions.size() << ":\n";
-// for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-//     std::cerr << "(after refining seeds) ";
-//     DebugPrintChainedRegion(std::cerr, i, *allChainedRegions[i]);
-//     std::cerr << "\n";
-// }
-
-#endif
-
-#ifdef PANCAKE_MAP_CLR_DEBUG
-    // std::cerr << "Results:\n";
-    // for (size_t i = 0; i < result.mappings.size(); ++i) {
-    //     std::cerr << "(results) ";
-    //     DebugPrintChainedRegion(std::cerr, i, *result.mappings[i]);
-    //     std::cerr << "\n";
-    // }
-
-    std::cerr << "After removing secondary::\n";
-    for (size_t i = 0; i < result.mappings.size(); ++i) {
-        std::cerr << "(result hits) ";
-        DebugPrintChainedRegion(std::cerr, i, *result.mappings[i]);
-        std::cerr << "\n";
-        const auto& m = result.mappings[i];
-        std::cerr << "[queryId = " << queryId << ", hits for result " << i
-                  << "] score = " << m->chain.score
-                  << ", covBasesQuery = " << m->chain.coveredBasesQuery
-                  << ", covBasesTarget = " << m->chain.coveredBasesTarget << "\n";
-        for (size_t j = 0; j < m->chain.hits.size(); ++j) {
-            const auto& hit = m->chain.hits[j];
-            std::cerr << "    [hit " << j << "] tid = " << hit.targetId
-                      << ", trev = " << hit.targetRev << ", tpos = " << hit.targetPos
-                      << ", qpos = " << hit.queryPos << "\n";
-        }
-    }
-#endif
+    DebugWriteChainedRegion(result.mappings, "7-result-mappings", queryId, queryLen);
 
     if (settings_.align) {
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
@@ -437,12 +384,10 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
         ttAlign.Stop();
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
         std::cerr << "ttAlign = " << ttAlign.GetCpuMillisecs() << " ms\n";
+        std::cerr << "\n";
 #endif
     }
-
-#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
-    std::cerr << "\n";
-#endif
+    DebugWriteChainedRegion(result.mappings, "8-result-after-align", queryId, queryLen);
 
     // Filter mappings again.
     size_t numValid = 0;
@@ -470,20 +415,28 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
         ++numValid;
     }
     result.mappings.resize(numValid);
+    DebugWriteChainedRegion(result.mappings, "9-result-final", queryId, queryLen);
 
-#ifdef PANCAKE_WRITE_SCATTERPLOT
-    for (size_t i = 0; i < result.mappings.size(); ++i) {
-        auto& region = result.mappings[i];
-        if (region->mapping == nullptr) {
-            continue;
-        }
-        if (region->priority > 1) {
-            continue;
-        }
+#ifdef PANCAKE_MAP_CLR_DEBUG_2
+    std::cerr << "All hits: hits.size() = " << hits.size() << "\n";
+    std::cerr << "Diagonal groups: groups.size() = " << groups.size() << "\n";
+    for (size_t i = 0; i < groups.size(); ++i) {
+        const int32_t firstDiag = hits[groups[i].start].Diagonal();
+        const int32_t lastDiag = hits[groups[i].end - 1].Diagonal();
+        std::cerr << "[queryId = " << queryId << ", group " << i << "] start = " << groups[i].start
+                  << ", end = " << groups[i].end << ", diagStart = " << firstDiag
+                  << ", diagEnd = " << lastDiag << "\n";
+    }
+
+    // Write ALL seed hits.
+    for (size_t i = 0; i < groups.size(); ++i) {
+        const auto& g = groups[i];
+        const int32_t targetId = hits[g.start].targetId;
+        const int32_t targetLen = targetSeqs[targetId].size();
         WriteSeedHits(
-            "temp-debug/hits-q" + std::to_string(queryId) + "-5-results.csv", region->chain.hits, 0,
-            region->chain.hits.size(), i, "query" + std::to_string(queryId), region->mapping->Alen,
-            "target" + std::to_string(region->mapping->Bid), region->mapping->Blen, (i > 0));
+            "temp-debug/hits-q" + std::to_string(queryId) + "-0-all-hits-diagonal-groupped.csv",
+            hits, g.start, g.end, i, "query" + std::to_string(queryId), queryLen,
+            "target" + std::to_string(targetId), targetLen, (i > 0));
     }
 #endif
 
