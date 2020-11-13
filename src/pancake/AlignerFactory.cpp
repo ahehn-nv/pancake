@@ -17,8 +17,6 @@ std::string AlignerTypeToString(const AlignerType& alignerType)
         return "EDLIB";
     } else if (alignerType == AlignerType::SES1) {
         return "SES1";
-    } else if (alignerType == AlignerType::SES2) {
-        return "SES2";
     }
     return "Unknown";
 }

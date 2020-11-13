@@ -18,9 +18,8 @@ AlignerEdlib::~AlignerEdlib() {}
 
 AlignmentResult AlignerEdlib::Global(const char* qseq, int64_t qlen, const char* tseq, int64_t tlen)
 {
-    EdlibAlignResult edlibResult =
-        edlibAlign((const char*)qseq, qlen, (const char*)tseq, tlen,
-                   edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
+    EdlibAlignResult edlibResult = edlibAlign(
+        qseq, qlen, tseq, tlen, edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
 
     if (edlibResult.numLocations == 0) {
         edlibFreeAlignResult(edlibResult);

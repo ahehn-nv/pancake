@@ -23,15 +23,15 @@ AlignerSES2::~AlignerSES2() {}
 AlignmentResult AlignerSES2::Global(const char* qseq, int64_t qlen, const char* tseq, int64_t tlen)
 {
     const double alignMaxDiff = 1.0;  // 0.30;
-    const double alignBandwidth = 0.30;
+    // const double alignBandwidth = 0.30;
     const int32_t maxDiffs = std::max(10, static_cast<int32_t>(qlen * alignMaxDiff));
-    const int32_t bandwidth =
-        std::max(10, static_cast<int32_t>(std::min(tlen, qlen) * alignBandwidth));
+    // const int32_t bandwidth =
+    //     std::max(10, static_cast<int32_t>(std::min(tlen, qlen) * alignBandwidth));
 
     // Compute the actual bandwidth. If this was a long join, we need to allow more room.
-    const int32_t bw = opt_.alignBandwidth;  // * 1.5 + 1.;
-    const int32_t longestSpan = std::max(qlen, tlen);
-    const int32_t spanDiff = std::abs(tlen - qlen);
+    // const int32_t bw = opt_.alignBandwidth;  // * 1.5 + 1.;
+    // const int32_t longestSpan = std::max(qlen, tlen);
+    // const int32_t spanDiff = std::abs(tlen - qlen);
     // const int32_t actualBandwidth = ((static_cast<double>(spanDiff) / static_cast<double>(longestSpan)) > 0.05) ? longestSpan : bw;
     const int32_t actualBandwidth = qlen + tlen;
 

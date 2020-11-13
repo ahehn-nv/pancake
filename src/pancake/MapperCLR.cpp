@@ -146,8 +146,15 @@ void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId, const ChainedR
     // }
 }
 
-void DebugWriteChainedRegion(const std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
-                             const std::string& descriptor, int32_t queryId, int32_t queryLen)
+void DebugWriteChainedRegion(
+#ifdef PANCAKE_MAP_CLR_DEBUG_2
+    const std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
+    const std::string& descriptor, int32_t queryId, int32_t queryLen
+#else
+    const std::vector<std::unique_ptr<ChainedRegion>>& /*allChainedRegions*/,
+    const std::string& /*descriptor*/, int32_t /*queryId*/, int32_t /*queryLen*/
+#endif
+    )
 {
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
     std::cerr << "(DebugWriteChainedRegion) " << descriptor
