@@ -45,11 +45,11 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32
         n_hits + 1, -1);  // For each node, it's chain ID is the same as of it's predecessor.
     int32_t num_chains = 0;
 
-    float avgQuerySpan = 0.0f;
+    double avgQuerySpan = 0.0;
     for (int32_t i = 0; i < n_hits; i++) {
         avgQuerySpan += hits[i].querySpan;
     }
-    avgQuerySpan = (n_hits > 0) ? avgQuerySpan / static_cast<float>(n_hits) : 0.0f;
+    avgQuerySpan = (n_hits > 0) ? avgQuerySpan / static_cast<double>(n_hits) : 0.0;
 
     const double lin_factor = 0.01 * avgQuerySpan;
 
