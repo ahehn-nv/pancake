@@ -39,41 +39,19 @@ MapperCLR::MapperCLR(const MapperCLRSettings& settings)
 
 MapperCLR::~MapperCLR() = default;
 
-void CollectSeeds(const std::vector<std::string>& targetSeqs,
-                  const SeedDB::SeedDBParameters& seedParams,
-                  std::vector<PacBio::Pancake::Int128t>& seeds,
-                  std::vector<int32_t>& sequenceLengths)
-{
-    // Collect all seeds for the target sequences.
-    seeds.clear();
-    sequenceLengths.clear();
-    sequenceLengths.reserve(targetSeqs.size());
-    for (int32_t recordId = 0; recordId < static_cast<int32_t>(targetSeqs.size()); ++recordId) {
-        const auto& record = targetSeqs[recordId];
-        const uint8_t* seq = reinterpret_cast<const uint8_t*>(record.data());
-        int32_t seqLen = record.size();
-        sequenceLengths.emplace_back(seqLen);
-        std::vector<PacBio::Pancake::Int128t> newSeeds;
-        int rv = SeedDB::GenerateMinimizers(newSeeds, seq, seqLen, 0, recordId, seedParams.KmerSize,
-                                            seedParams.MinimizerWindow, seedParams.Spacing,
-                                            seedParams.UseRC, seedParams.UseHPCForSeedsOnly,
-                                            seedParams.MaxHPCLen);
-        if (rv)
-            throw std::runtime_error("Generating minimizers failed for the target sequence, id = " +
-                                     std::to_string(recordId));
-        seeds.insert(seeds.end(), newSeeds.begin(), newSeeds.end());
-    }
-}
-
 std::vector<MapperCLRResult> MapperCLR::Map(const std::vector<std::string>& targetSeqs,
                                             const std::vector<std::string>& querySeqs)
 {
     // Construct the index.
     std::vector<PacBio::Pancake::Int128t> seeds;
     std::vector<int32_t> sequenceLengths;
-    CollectSeeds(targetSeqs, settings_.seedParams, seeds, sequenceLengths);
+    const auto& seedParams = settings_.seedParams;
+    SeedDB::GenerateMinimizers(seeds, sequenceLengths, targetSeqs, seedParams.KmerSize,
+                               seedParams.MinimizerWindow, seedParams.Spacing, seedParams.UseRC,
+                               seedParams.UseHPCForSeedsOnly, seedParams.MaxHPCLen);
     std::unique_ptr<SeedIndex> seedIndex =
         std::make_unique<SeedIndex>(settings_.seedParams, sequenceLengths, std::move(seeds));
+
     // Calculate the seed frequency statistics, needed for the cutoff.
     int64_t freqMax = 0;
     int64_t freqCutoff = 0;
@@ -82,11 +60,17 @@ std::vector<MapperCLRResult> MapperCLR::Map(const std::vector<std::string>& targ
     seedIndex->ComputeFrequencyStats(settings_.freqPercentile, freqMax, freqAvg, freqMedian,
                                      freqCutoff);
 
+    // Construct the fallback index only if required
     int64_t freqCutoffFallback = 0;
     std::unique_ptr<SeedIndex> seedIndexFallback = nullptr;
     if (settings_.seedParamsFallback != settings_.seedParams) {
         std::vector<PacBio::Pancake::Int128t> seedsFallback;
-        CollectSeeds(targetSeqs, settings_.seedParamsFallback, seedsFallback, sequenceLengths);
+        const auto& seedParamsFallback = settings_.seedParamsFallback;
+        SeedDB::GenerateMinimizers(seedsFallback, sequenceLengths, targetSeqs,
+                                   seedParamsFallback.KmerSize, seedParamsFallback.MinimizerWindow,
+                                   seedParamsFallback.Spacing, seedParamsFallback.UseRC,
+                                   seedParamsFallback.UseHPCForSeedsOnly,
+                                   seedParamsFallback.MaxHPCLen);
         seedIndexFallback = std::make_unique<SeedIndex>(settings_.seedParamsFallback,
                                                         sequenceLengths, std::move(seedsFallback));
         seedIndexFallback->ComputeFrequencyStats(settings_.freqPercentile, freqMax, freqAvg,

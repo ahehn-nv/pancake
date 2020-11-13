@@ -43,6 +43,13 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                        const int32_t kmerSize, const int32_t winSize, const int32_t spacing,
                        const bool useReverseComplement, const bool useHPC, const int32_t maxHPCLen);
 
+void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
+                        std::vector<int32_t>& retSequenceLengths,
+                        const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
+                        const int32_t winSize, const int32_t spacing,
+                        const bool useReverseComplement, const bool useHPC,
+                        const int32_t maxHPCLen);
+
 template <class TargetHashType>
 bool CollectSeedHits(std::vector<SeedHit>& hits, const PacBio::Pancake::SeedDB::SeedRaw* querySeeds,
                      const int64_t querySeedsSize, const int32_t /*queryLen*/,
