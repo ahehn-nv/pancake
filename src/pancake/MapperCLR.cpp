@@ -165,32 +165,26 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
                                const std::vector<PacBio::Pancake::Int128t>& querySeeds,
                                const int32_t queryId, int64_t freqCutoff)
 {
-    // #ifdef PANCAKE_DEBUG
-    //     PBLOG_INFO << "Mapping query ID = " << querySeq.Id() << ", header = " << querySeq.Name();
-    // #endif
-    if (static_cast<int64_t>(querySeq.size()) < settings_.minQueryLen) {
+    // Skip short queries.
+    const int32_t queryLen = querySeq.size();
+    if (queryLen < settings_.minQueryLen) {
         return {};
     }
 
-    // Reverse the query sequence and make a helper array.
-    const std::string querySeqRev =
-        PacBio::Pancake::ReverseComplement(querySeq, 0, querySeq.size());
-    const std::array<const char*, 2> queryArray = {&querySeq[0], &querySeqRev[0]};
-    const int32_t queryLen = querySeq.size();
-
+    // Collect seed hits.
     TicToc ttCollectHits;
     std::vector<SeedHit> hits;
     index.CollectHits(&querySeeds[0], querySeeds.size(), queryLen, hits, freqCutoff);
     ttCollectHits.Stop();
 
+    // Sort the seed hits.
     TicToc ttSortHits;
     std::sort(hits.begin(), hits.end(), [](const auto& a, const auto& b) {
         return PackSeedHitWithDiagonalToTuple(a) < PackSeedHitWithDiagonalToTuple(b);
     });
     ttSortHits.Stop();
 
-    // PBLOG_INFO << "Hits: " << hits.size();
-
+    // Group seed hits by diagonal.
     TicToc ttDiagonalGroup;
     auto groups = DiagonalGroup_(hits, settings_.chainBandwidth, true);
     ttDiagonalGroup.Stop();
@@ -444,6 +438,10 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
         std::cerr << "alignerTypeExt = " << AlignerTypeToString(settings_.alignerTypeExt) << "\n";
 #endif
 
+        // Reverse the query sequence, needed for alignment.
+        const std::string querySeqRev =
+            PacBio::Pancake::ReverseComplement(querySeq, 0, querySeq.size());
+
         TicToc ttAlign;
 
         for (size_t i = 0; i < result.mappings.size(); ++i) {
@@ -465,8 +463,8 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
             // Use a custom aligner to align.
             TicToc ttAlignBetweenSeeds;
-            ovl = AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), queryArray[0],
-                                  queryArray[1], queryLen, settings_.minAlignmentSpan,
+            ovl = AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq[0],
+                                  &querySeqRev[0], queryLen, settings_.minAlignmentSpan,
                                   settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
             ttAlignBetweenSeeds.Stop();
 
