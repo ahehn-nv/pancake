@@ -10,6 +10,7 @@
 #ifndef PANCAKE_DP_CHAIN_H
 #define PANCAKE_DP_CHAIN_H
 
+#include <pacbio/pancake/Range.h>
 #include <pacbio/pancake/SeedHit.h>
 #include <cstdint>
 #include <vector>
@@ -44,6 +45,11 @@ ChainedHits RefineChainedHits2(const ChainedHits& chain, int32_t minGap,
                                int32_t maxForwardSeedDist);
 
 ChainedHits RefineBadEnds(const ChainedHits& chain, int32_t bandwidth, int32_t minMatch);
+
+std::vector<Range> GroupByTargetAndStrand(const std::vector<SeedHit>& sortedHits);
+
+std::vector<Range> DiagonalGroup(const std::vector<SeedHit>& sortedHits, int32_t chainBandwidth,
+                                 bool overlappingWindows);
 
 }  // namespace Pancake
 }  // namespace PacBio

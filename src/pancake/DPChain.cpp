@@ -504,5 +504,103 @@ ChainedHits RefineBadEnds(const ChainedHits& chain, int32_t bandwidth, int32_t m
     return ret;
 }
 
+std::vector<Range> GroupByTargetAndStrand(const std::vector<SeedHit>& sortedHits)
+{
+    if (sortedHits.empty()) {
+        return {};
+    }
+    const int32_t numHits = static_cast<int32_t>(sortedHits.size());
+    int32_t beginId = 0;
+    std::vector<Range> groups;
+    for (int32_t i = 0; i < numHits; ++i) {
+        const auto& prevHit = sortedHits[beginId];
+        const auto& currHit = sortedHits[i];
+        if (currHit.targetId != prevHit.targetId || currHit.targetRev != prevHit.targetRev) {
+            groups.emplace_back(Range{beginId, i});
+            beginId = i;
+        }
+    }
+    if ((numHits - beginId) > 0) {
+        groups.emplace_back(Range{beginId, numHits});
+    }
+    return groups;
+}
+
+std::vector<Range> DiagonalGroup(const std::vector<SeedHit>& sortedHits, int32_t chainBandwidth,
+                                 bool overlappingWindows)
+{
+    if (sortedHits.empty()) {
+        return {};
+    }
+
+    std::vector<Range> groups;
+
+    const int32_t numHits = static_cast<int32_t>(sortedHits.size());
+    int32_t beginId = 0;
+    int32_t beginDiag = sortedHits[beginId].Diagonal();
+
+    // This is a combination of <targetPos, queryPos>, intended for simple comparison
+    // without defining a custom comparison operator.
+    uint64_t minTargetQueryPosCombo = (static_cast<uint64_t>(sortedHits[beginId].targetPos) << 32) |
+                                      (static_cast<uint64_t>(sortedHits[beginId].queryPos));
+    uint64_t maxTargetQueryPosCombo = minTargetQueryPosCombo;
+
+    int32_t firstInBandwidth = 0;
+
+    for (int32_t i = 0; i < numHits; ++i) {
+        const auto& beginHit = sortedHits[beginId];
+        const auto& currHit = sortedHits[i];
+        const int32_t currDiag = currHit.Diagonal();
+        const int32_t diagDiff = abs(currDiag - beginDiag);
+        const uint64_t targetQueryPosCombo =
+            (static_cast<uint64_t>(sortedHits[i].targetPos) << 32) |
+            (static_cast<uint64_t>(sortedHits[i].queryPos));
+
+        if (currHit.targetId != beginHit.targetId || currHit.targetRev != beginHit.targetRev ||
+            diagDiff > chainBandwidth) {
+
+            if (overlappingWindows) {
+                groups.emplace_back(Range{firstInBandwidth, i});
+            } else {
+                groups.emplace_back(Range{beginId, i});
+            }
+
+            beginId = i;
+            beginDiag = currDiag;
+
+            minTargetQueryPosCombo = maxTargetQueryPosCombo = targetQueryPosCombo;
+
+            // Find the earliest hit which is within the bandwidth window from the current hit.
+            if (overlappingWindows) {
+                for (; firstInBandwidth < i; ++firstInBandwidth) {
+                    const auto& firstHit = sortedHits[firstInBandwidth];
+                    const int32_t firstDiag = firstHit.Diagonal();
+                    const int32_t diagDiffToFirst = abs(firstDiag - beginDiag);
+                    if (currHit.targetId != firstHit.targetId ||
+                        currHit.targetRev != firstHit.targetRev ||
+                        diagDiffToFirst > chainBandwidth) {
+                        continue;
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Track the minimum and maximum target positions for each diagonal.
+        if (targetQueryPosCombo < minTargetQueryPosCombo) {
+            minTargetQueryPosCombo = targetQueryPosCombo;
+        }
+        if (targetQueryPosCombo > maxTargetQueryPosCombo) {
+            maxTargetQueryPosCombo = targetQueryPosCombo;
+        }
+    }
+
+    if ((numHits - beginId) > 0) {
+        groups.emplace_back(Range{beginId, numHits});
+    }
+
+    return groups;
+}
+
 }  // namespace Pancake
 }  // namespace PacBio

@@ -167,9 +167,6 @@ private:
                                    int32_t beginId, int32_t endId, int32_t minTargetPosId,
                                    int32_t maxTargetPosId);
 
-    static std::vector<Range> DiagonalGroup_(const std::vector<SeedHit>& sortedHits,
-                                             int32_t chainBandwidth, bool overlappingWindows);
-
     static std::vector<std::unique_ptr<ChainedRegion>> ChainAndMakeOverlap_(
         const PacBio::Pancake::SeedIndex& index, const std::vector<SeedHit>& hits,
         const std::vector<PacBio::Pancake::Range>& hitGroups, int32_t queryId, int32_t queryLen,
@@ -181,8 +178,6 @@ private:
         const PacBio::Pancake::SeedIndex& index, int32_t queryId, int32_t queryLen,
         int32_t chainMaxSkip, int32_t chainMaxPredecessors, int32_t maxGap, int32_t chainBandwidth,
         int32_t minNumSeeds, int32_t minCoveredBases, int32_t minDPScore);
-
-    static std::vector<Range> GroupByTargetAndStrand_(const std::vector<SeedHit>& sortedHits);
 
     static void LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,
                                  int32_t maxGap);
