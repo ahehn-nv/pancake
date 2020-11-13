@@ -271,10 +271,10 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
             // expectedRegions
             {
                 // qStart, qSpan, tStart, tSpan, queryRev, regionType, regionId
-                {0, 85, 0, 85, true, RegionType::FRONT, 0},
-                {85, 500, 85, 500, true, RegionType::GLOBAL, 1},
-                {585, 395, 585, 395, true, RegionType::GLOBAL, 2},
-                {980, 20, 980, 20, true, RegionType::BACK, 3},
+                {0, 100, 0, 100, true, RegionType::FRONT, 0},
+                {100, 500, 100, 500, true, RegionType::GLOBAL, 1},
+                {600, 395, 600, 395, true, RegionType::GLOBAL, 2},
+                {995, 5, 995, 5, true, RegionType::BACK, 3},
             },
         },
     };
