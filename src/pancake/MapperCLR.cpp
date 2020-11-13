@@ -175,7 +175,9 @@ void DebugWriteChainedRegion(const std::vector<std::unique_ptr<ChainedRegion>>& 
         if (region->priority > 1) {
             continue;
         }
+        std::cerr << "    ";
         DebugPrintChainedRegion(std::cerr, i, *region);
+        std::cerr << "\n\n";
         WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-" + descriptor + ".csv",
                       region->chain.hits, 0, region->chain.hits.size(), i,
                       "query" + std::to_string(queryId), queryLen,
