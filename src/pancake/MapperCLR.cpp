@@ -25,8 +25,6 @@
 namespace PacBio {
 namespace Pancake {
 
-void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId, const ChainedRegion& cr);
-
 // #define PANCAKE_MAP_CLR_DEBUG
 // #define PANCAKE_MAP_CLR_DEBUG_2
 // #define PANCAKE_WRITE_SCATTERPLOT
@@ -295,7 +293,6 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
         const auto& region = allChainedRegions[i];
         if (region->priority > 1) {
             continue;
-            // break;
         }
         if (region->mapping == nullptr) {
             continue;
@@ -322,70 +319,41 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
             PacBio::Pancake::ReverseComplement(querySeq, 0, querySeq.size());
 
         TicToc ttAlign;
-
         for (size_t i = 0; i < result.mappings.size(); ++i) {
             // const auto& chain = result.mappings[i]->chain;
             auto& chain = result.mappings[i]->chain;
-            auto& ovl = result.mappings[i]->mapping;
+            const auto& ovl = result.mappings[i]->mapping;
             const auto& tSeqFwd = targetSeqs[ovl->Bid];
 
-#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
-            std::cerr << "[Aligning overlap] "
-                      << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false) << "\n";
-#endif
-
-            // auto newHits =
-            //     FilterSeedHitsByExtension_(tSeq, querySeq, chain.hits, 50, 2, 30, sesScratch_);
-            // std::swap(chain.hits, newHits);
-            // chain = RefineChainedHits(chain, k, 10, 40, settings_.maxGap / 2, 10);
-            // chain = RefineChainedHits2(chain, k, 30, settings_.maxGap / 2);
-
             // Use a custom aligner to align.
-            TicToc ttAlignBetweenSeeds;
-            ovl = AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq[0],
-                                  &querySeqRev[0], queryLen, settings_.minAlignmentSpan,
-                                  settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
-            ttAlignBetweenSeeds.Stop();
+            TicToc ttAlignmentSeeded;
+            auto newOvl =
+                AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq[0],
+                                &querySeqRev[0], queryLen, settings_.minAlignmentSpan,
+                                settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
+            ttAlignmentSeeded.Stop();
+            std::swap(result.mappings[i]->mapping, newOvl);
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
-            std::cerr << "ttAlignBetweenSeeds = " << ttAlignBetweenSeeds.GetCpuMillisecs()
-                      << " ms\n";
-
-            if (ovl != nullptr) {
-                Alignment::DiffCounts diffs = CigarDiffCounts(ovl->Cigar);
-                float idt = 0.0;
-                int32_t editDist = 0;
-                diffs.Identity(false, false, idt, editDist);
-                std::cerr << "Diffs: " << diffs << ", editDist: " << editDist
-                          << ", qspan = " << (diffs.numEq + diffs.numX + diffs.numI)
-                          << ", tspan = " << (diffs.numEq + diffs.numX + diffs.numD)
-                          << ", identity = " << idt * 100.0f << "% \n";
-                std::cerr << "CIGAR: " << ovl->Cigar.ToStdString() << "\n";
+            std::cerr << "[mapping i = " << i << ", before alignment] ovl: "
+                      << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, true) << "\n";
+            const auto& updatedOvl = result.mappings[i]->mapping;
+            std::cerr << "[mapping i = " << i << ", after alignment] ovl: ";
+            if (updatedOvl != nullptr) {
+                std::cerr << OverlapWriterBase::PrintOverlapAsM4(updatedOvl, "", "", true, true)
+                          << "\n";
             } else {
-                std::cerr << "ovl == nullptr\n";
+                std::cerr << "nullptr\n";
             }
+            std::cerr << "ttAlignmentSeeded = " << ttAlignmentSeeded.GetCpuMillisecs() << " ms\n";
 #endif
-            // TicToc ttAlignGlobal;
-            // std::vector<PacBio::Pancake::SeedHit> dummyHits;
-            // dummyHits.emplace_back(chain.hits.front());
-            // dummyHits.emplace_back(chain.hits.back());
-            // AlignBetweenSeeds_(tSeq, querySeq, dummyHits, settings_.alignmentMaxD,
-            //                 settings_.alignmentBandwidth, sesScratch_);
-            // ttAlignGlobal.Stop();
-            // std::cerr << "ttAlignGlobal = " << ttAlignGlobal.GetCpuMillisecs() << " ms\n";
-            // break;
         }
-
         // Secondary/supplementary flagging.
         WrapFlagSecondaryAndSupplementary_(
             result.mappings, settings_.secondaryAllowedOverlapFractionQuery,
             settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
 
         ttAlign.Stop();
-#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
-        std::cerr << "ttAlign = " << ttAlign.GetCpuMillisecs() << " ms\n";
-        std::cerr << "\n";
-#endif
     }
     DebugWriteChainedRegion(result.mappings, "8-result-after-align", queryId, queryLen);
 
@@ -502,17 +470,6 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
     });
 
     auto groups = GroupByTargetAndStrand_(hits2);
-
-#ifdef PANCAKE_WRITE_SCATTERPLOT
-    for (size_t i = 0; i < groups.size(); ++i) {
-        const auto& g = groups[i];
-        const int32_t targetId = hits2[g.start].targetId;
-        const int32_t targetLen = index.GetSequenceLength(targetId);
-        WriteSeedHits("temp-debug/hits-q" + std::to_string(queryId) + "-1.2-hits2-groups.csv",
-                      hits2, g.start, g.end, i, "query" + std::to_string(queryId), queryLen,
-                      "target" + std::to_string(targetId), targetLen, (i > 0));
-    }
-#endif
 
     for (const auto& group : groups) {
         // DP Chaining of the filtered hits to remove outliers.
