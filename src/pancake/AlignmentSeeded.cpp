@@ -51,8 +51,8 @@ std::vector<AlignmentRegion> ExtractAlignmentRegions(const std::vector<SeedHit>&
         for (size_t i = 0; i < hits.size(); ++i) {
             auto& hit = hits[i];
             // std::swap(hit.queryPos, hit.targetPos
-            hit.queryPos = qLen - (hit.queryPos + hit.querySpan);
-            hit.targetPos = tLen - (hit.targetPos + hit.targetSpan);
+            hit.queryPos = qLen - hit.queryPos;
+            hit.targetPos = tLen - hit.targetPos;
 
             if (i > 0) {
                 bool isLongCurr = hits[i].CheckFlagLongJoin();
