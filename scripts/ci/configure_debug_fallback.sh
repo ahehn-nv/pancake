@@ -13,5 +13,5 @@ meson \
   --prefix "${PREFIX_ARG:-/usr/local}" \
   --buildtype=debugoptimized \
   -Dtests="${ENABLED_TESTS:-false}" \
-  -Dtests-internal="${ENABLED_INTERNAL_TESTS:-false}" \
+  -Dsse41="${ENABLED_SSE41:-false}" \
   "${BUILD_DIR}" .

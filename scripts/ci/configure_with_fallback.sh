@@ -11,5 +11,5 @@ meson \
   --unity "${ENABLED_UNITY_BUILD:-off}" \
   --prefix "${PREFIX_ARG:-/usr/local}" \
   -Dtests="${ENABLED_TESTS:-false}" \
-  -Dtests-internal="${ENABLED_INTERNAL_TESTS:-false}" \
+  -Dsse41="${ENABLED_SSE41:-false}" \
   "${CURRENT_BUILD_DIR:-build}" .

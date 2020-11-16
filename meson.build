@@ -9,7 +9,7 @@ project(
     'c_std=c11',
     'b_ndebug=if-release'],
   license : 'BSD-3',
-  meson_version : '>= 0.46.0')
+  meson_version : '>= 0.52.0')
 
 ############
 # CXXFLAGS #
@@ -33,6 +33,12 @@ foreach cflag: [
 endforeach
 
 pancake_flags = pancake_warning_flags + ['-DHAVE_KALLOC']
+
+#################
+# Meson options #
+#################
+opt_sse41 = get_option('sse41')
+opt_tests = get_option('tests')
 
 ################
 # dependencies #
@@ -84,7 +90,7 @@ subdir('src')
 
 ##########
 # extras #
-#########
+##########
 
 if not meson.is_subproject()
   # tests
