@@ -30,7 +30,7 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
                    int zdrop, int flag, ksw_extz_t* ez)
 #endif  // ~KSW_CPU_DISPATCH
 {
-#define __dp_code_block1                                                                          \
+#define __pancake_dp_code_block1                                                                  \
     z = _mm_load_si128(&s[t]);                                                                    \
     xt1 = _mm_load_si128(&x[t]);                     /* xt1 <- x[r-1][t..t+15] */                 \
     tmp = _mm_srli_si128(xt1, 15);                   /* tmp <- x[r-1][t+15] */                    \
@@ -50,7 +50,7 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
     a2 = _mm_add_epi8(x2t1, vt1);                                                                 \
     a2a = _mm_add_epi8(a2, _mm_load_si128(&acceptor[t]));
 
-#define __dp_code_block2                                                                       \
+#define __pancake_dp_code_block2                                                               \
     _mm_store_si128(&u[t], _mm_sub_epi8(z, vt1)); /* u[r][t..t+15] <- z - v[r-1][t-1..t+14] */ \
     _mm_store_si128(&v[t], _mm_sub_epi8(z, ut));  /* v[r][t..t+15] <- z - u[r-1][t..t+15] */   \
     tmp = _mm_sub_epi8(z, q_);                                                                 \
@@ -196,12 +196,12 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
         if (!with_cigar) {  // score only
             for (t = st_; t <= en_; ++t) {
                 __m128i z, a, b, a2, a2a, xt1, x2t1, vt1, ut, tmp;
-                __dp_code_block1;
+                __pancake_dp_code_block1;
 #ifdef __SSE4_1__
                 z = _mm_max_epi8(z, a);
                 z = _mm_max_epi8(z, b);
                 z = _mm_max_epi8(z, a2a);
-                __dp_code_block2;  // save u[] and v[]; update a, b and a2
+                __pancake_dp_code_block2;  // save u[] and v[]; update a, b and a2
                 _mm_store_si128(&x[t], _mm_sub_epi8(_mm_max_epi8(a, zero_), qe_));
                 _mm_store_si128(&y[t], _mm_sub_epi8(_mm_max_epi8(b, zero_), qe_));
                 tmp = _mm_load_si128(&donor[t]);
@@ -213,7 +213,7 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
                 z = _mm_or_si128(_mm_andnot_si128(tmp, z), _mm_and_si128(tmp, b));
                 tmp = _mm_cmpgt_epi8(a2a, z);
                 z = _mm_or_si128(_mm_andnot_si128(tmp, z), _mm_and_si128(tmp, a2a));
-                __dp_code_block2;
+                __pancake_dp_code_block2;
                 tmp = _mm_cmpgt_epi8(a, zero_);
                 _mm_store_si128(&x[t], _mm_sub_epi8(_mm_and_si128(tmp, a), qe_));
                 tmp = _mm_cmpgt_epi8(b, zero_);
@@ -229,7 +229,7 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
             off[r] = st, off_end[r] = en;
             for (t = st_; t <= en_; ++t) {
                 __m128i d, z, a, b, a2, a2a, xt1, x2t1, vt1, ut, tmp, tmp2;
-                __dp_code_block1;
+                __pancake_dp_code_block1;
 #ifdef __SSE4_1__
                 d = _mm_and_si128(_mm_cmpgt_epi8(a, z), _mm_set1_epi8(1));  // d = a  > z? 1 : 0
                 z = _mm_max_epi8(z, a);
@@ -250,7 +250,7 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
                 d = _mm_or_si128(_mm_andnot_si128(tmp, d), _mm_and_si128(tmp, _mm_set1_epi8(3)));
                 z = _mm_or_si128(_mm_andnot_si128(tmp, z), _mm_and_si128(tmp, a2a));
 #endif
-                __dp_code_block2;
+                __pancake_dp_code_block2;
                 tmp = _mm_cmpgt_epi8(a, zero_);
                 _mm_store_si128(&x[t], _mm_sub_epi8(_mm_and_si128(tmp, a), qe_));
                 d = _mm_or_si128(d,
@@ -276,7 +276,7 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
             off[r] = st, off_end[r] = en;
             for (t = st_; t <= en_; ++t) {
                 __m128i d, z, a, b, a2, a2a, xt1, x2t1, vt1, ut, tmp, tmp2;
-                __dp_code_block1;
+                __pancake_dp_code_block1;
 #ifdef __SSE4_1__
                 d = _mm_andnot_si128(_mm_cmpgt_epi8(z, a), _mm_set1_epi8(1));  // d = z > a?  0 : 1
                 z = _mm_max_epi8(z, a);
@@ -297,7 +297,7 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
                 d = _mm_or_si128(_mm_and_si128(tmp, d), _mm_andnot_si128(tmp, _mm_set1_epi8(3)));
                 z = _mm_or_si128(_mm_and_si128(tmp, z), _mm_andnot_si128(tmp, a2a));
 #endif
-                __dp_code_block2;
+                __pancake_dp_code_block2;
                 tmp = _mm_cmpgt_epi8(zero_, a);
                 _mm_store_si128(&x[t], _mm_sub_epi8(_mm_andnot_si128(tmp, a), qe_));
                 d = _mm_or_si128(
