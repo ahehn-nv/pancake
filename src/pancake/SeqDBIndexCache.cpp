@@ -518,16 +518,16 @@ std::vector<ContiguousFilePart> GetSeqDBContiguousParts(
     return contiguousParts;
 }
 
-std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeqDBIndexCache& r)
+std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeqDBIndexCache& cache)
 {
-    os << "V\t" << r.version << "\n";
-    os << "C\t" << r.compressionLevel << "\n";
-    for (const auto& fl : r.fileLines) {
+    os << "V\t" << cache.version << "\n";
+    os << "C\t" << cache.compressionLevel << "\n";
+    for (const auto& fl : cache.fileLines) {
         os << "F"
            << "\t" << fl.fileId << "\t" << fl.filename << "\t" << fl.numSequences << "\t"
            << fl.numBytes << "\t" << fl.numCompressedBases << "\n";
     }
-    for (const auto& sl : r.seqLines) {
+    for (const auto& sl : cache.seqLines) {
         os << "S"
            << "\t" << sl.seqId << "\t" << sl.header << "\t" << sl.fileId << "\t" << sl.fileOffset
            << "\t" << sl.numBytes << "\t" << sl.numBases << "\t" << sl.ranges.size();
@@ -536,7 +536,7 @@ std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeqDBIndexCach
         }
         os << "\n";
     }
-    for (const auto& bl : r.blockLines) {
+    for (const auto& bl : cache.blockLines) {
         os << "B"
            << "\t" << bl.blockId << "\t" << bl.startSeqId << "\t" << bl.endSeqId << "\t"
            << bl.numBytes << "\t" << bl.numBases << "\n";

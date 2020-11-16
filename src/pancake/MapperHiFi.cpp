@@ -430,11 +430,11 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(const std::vector<SeedHit>& sorted
         return {};
     }
 
-    auto WrapMakeOverlap = [](const std::vector<SeedHit>& sortedHits, const int32_t beginId,
+    auto WrapMakeOverlap = [](const std::vector<SeedHit>& _sortedHits, const int32_t beginId,
                               const int32_t endId,
-                              const PacBio::Pancake::FastaSequenceCached& querySeq,
-                              const PacBio::Pancake::SeedIndex& index, int32_t chainBandwidth,
-                              int32_t kmerSize, int32_t minMatch) -> OverlapPtr {
+                              const PacBio::Pancake::FastaSequenceCached& _querySeq,
+                              const PacBio::Pancake::SeedIndex& _index, int32_t _chainBandwidth,
+                              int32_t kmerSize, int32_t _minMatch) -> OverlapPtr {
         if (endId <= beginId) {
             return nullptr;
         }
@@ -446,7 +446,7 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(const std::vector<SeedHit>& sorted
         };
 
         // Extract the subset so we can sort it.
-        std::vector<SeedHit> groupHits(sortedHits.begin() + beginId, sortedHits.begin() + endId);
+        std::vector<SeedHit> groupHits(_sortedHits.begin() + beginId, _sortedHits.begin() + endId);
 
         std::sort(groupHits.begin(), groupHits.end(), [](const SeedHit& a, const SeedHit& b) {
             return std::pair(a.targetPos, a.queryPos) < std::pair(b.targetPos, b.queryPos);
@@ -458,7 +458,7 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(const std::vector<SeedHit>& sorted
 
         int32_t finalFirst = 0;
         int32_t finalLast = 0;
-        RefineBadEnds(lisHits, 0, lisHits.size(), kmerSize, chainBandwidth, minMatch, finalFirst,
+        RefineBadEnds(lisHits, 0, lisHits.size(), kmerSize, _chainBandwidth, _minMatch, finalFirst,
                       finalLast);
 
 #ifdef PANCAKE_DEBUG
@@ -471,17 +471,17 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(const std::vector<SeedHit>& sorted
 #endif
 
         // Make the overlap.
-        auto ovl = MakeOverlap_(lisHits, querySeq, index, (finalLast - finalFirst), finalFirst,
+        auto ovl = MakeOverlap_(lisHits, _querySeq, _index, (finalLast - finalFirst), finalFirst,
                                 finalLast - 1);
 
 #ifdef PANCAKE_DEBUG
         if (ovl->NumSeeds > 200) {
-            WriteSeedHits("temp-debug/hits-q" + std::to_string(querySeq.Id()) + "-1-group_" +
+            WriteSeedHits("temp-debug/hits-q" + std::to_string(_querySeq.Id()) + "-1-group_" +
                               std::to_string(beginId) + "_" + std::to_string(endId) +
                               "-all_hits.csv",
-                          sortedHits, beginId, endId, beginId, "query-" + std::to_string(ovl->Aid),
+                          _sortedHits, beginId, endId, beginId, "query-" + std::to_string(ovl->Aid),
                           ovl->Alen, "target-" + std::to_string(ovl->Bid), ovl->Blen, false);
-            WriteSeedHits("temp-debug/hits-q" + std::to_string(querySeq.Id()) + "-2-group_" +
+            WriteSeedHits("temp-debug/hits-q" + std::to_string(_querySeq.Id()) + "-2-group_" +
                               std::to_string(beginId) + "_" + std::to_string(endId) + "-lis.csv",
                           lisHits, 0, lisHits.size(), beginId, "query-" + std::to_string(ovl->Aid),
                           ovl->Alen, "target-" + std::to_string(ovl->Bid), ovl->Blen, false);
@@ -985,14 +985,16 @@ void Mapper::NormalizeAndExtractVariantsInPlace_(
     // The reason is that in the rest of the workflow up to this point we treated the
     // query as either fwd or reverse, but finally we actually take query as FWD in the output.
     // Normalization needs to happen in this context, so that all left-aligned indels line up.
-    if (ovl->Brev) {
-        auto tseq =
-            FetchTargetSubsequence_(Bseq, Blen, ovl->BstartFwd(), ovl->BendFwd(), ovl->Brev);
-        cigar = NormalizeCigar(querySub, querySubLen, tseq.c_str(), targetSubLen, cigar);
+    //    if (ovl->Brev) {
+    // //        auto tseq =
+    // //            FetchTargetSubsequence_(Bseq, Blen, ovl->BstartFwd(), ovl->BendFwd(), ovl->Brev);
+    // //        cigar = NormalizeCigar(querySub, querySubLen, tseq.c_str(), targetSubLen, cigar);
+    //        cigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, cigar);
+    //    } else {
+    //        cigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, cigar);
+    //    }
 
-    } else {
-        cigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, cigar);
-    }
+    cigar = NormalizeCigar(querySub, querySubLen, targetSub, targetSubLen, cigar);
 
     ExtractVariantString(querySub, querySubLen, targetSub, targetSubLen, cigar, maskHomopolymers,
                          maskSimpleRepeats, maskHomopolymerSNPs, maskHomopolymersArbitrary,
