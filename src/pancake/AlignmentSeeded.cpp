@@ -240,10 +240,6 @@ AlignRegionsGenericResult AlignRegionsGeneric(const char* targetSeq, const int32
 {
     AlignRegionsGenericResult ret;
 
-    // ret.offsetFrontQuery = 0;
-    // ret.offsetFrontTarget = 0;
-    // ret.offsetBackQuery = 0;
-    // ret.offsetBackTarget = 0;
     std::vector<AlignmentResult> alignedRegions;
 
     for (size_t i = 0; i < regions.size(); ++i) {
@@ -353,27 +349,6 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     // Run the alignment.
     AlignRegionsGenericResult alns = AlignRegionsGeneric(
         targetSeq, targetLen, queryFwd, queryRev, queryLen, regions, alignerGlobal, alignerExt);
-
-    // const int32_t actualOffsetFrontQuery =
-    //     ovl->Brev ? (alns.offsetBackQuery - sortedHits.front().querySpan) : alns.offsetFrontQuery;
-    // const int32_t actualOffsetBackQuery =
-    //     ovl->Brev ? (alns.offsetFrontQuery + sortedHits.back().querySpan) : alns.offsetBackQuery;
-    // const int32_t actualOffsetFrontTarget =
-    //     ovl->Brev ? (alns.offsetBackTarget - sortedHits.front().targetSpan)
-    //               : alns.offsetFrontTarget;
-    // const int32_t actualOffsetBackTarget =
-    //     ovl->Brev ? (alns.offsetFrontTarget + sortedHits.back().targetSpan) : alns.offsetBackTarget;
-
-    // OverlapPtr ret = createOverlap(ovl);
-    // ret->Cigar.clear();
-    // ret->Astart = ovl->Astart - actualOffsetFrontQuery;
-    // ret->Aend = ovl->Aend + actualOffsetBackQuery;
-    // ret->Bstart = ovl->Bstart - actualOffsetFrontTarget;
-    // ret->Bend = ovl->Bend + actualOffsetBackTarget;
-    // // ret->Astart = sortedHits.front().queryPos - actualOffsetFrontQuery;
-    // // ret->Aend = sortedHits.back().queryPos + actualOffsetBackQuery;
-    // // ret->Bstart = sortedHits.front().targetPos - actualOffsetFrontTarget;
-    // // ret->Bend = sortedHits.back().targetPos + actualOffsetBackTarget;
 
     // Process the alignment results and make a new overlap.
     int32_t globalAlnQueryStart = 0;
