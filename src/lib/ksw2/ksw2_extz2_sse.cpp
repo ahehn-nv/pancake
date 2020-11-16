@@ -29,6 +29,7 @@ void ksw_extz2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
                    int flag, ksw_extz_t* ez)
 #endif  // ~KSW_CPU_DISPATCH
 {
+#ifndef __pancake_dp_code_block1
 #define __pancake_dp_code_block1                                                                  \
     z = _mm_add_epi8(_mm_load_si128(&s[t]), qe2_);                                                \
     xt1 = _mm_load_si128(&x[t]);                     /* xt1 <- x[r-1][t..t+15] */                 \
@@ -42,7 +43,9 @@ void ksw_extz2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
     a = _mm_add_epi8(xt1, vt1);                  /* a <- x[r-1][t-1..t+14] + v[r-1][t-1..t+14] */ \
     ut = _mm_load_si128(&u[t]);                  /* ut <- u[t..t+15] */                           \
     b = _mm_add_epi8(_mm_load_si128(&y[t]), ut); /* b <- y[r-1][t..t+15] + u[r-1][t..t+15] */
+#endif
 
+#ifndef __pancake_dp_code_block2
 #define __pancake_dp_code_block2                                                               \
     z = _mm_max_epu8(z, b); /* z = max(z, b); this works because both are non-negative */      \
     z = _mm_min_epu8(z, max_sc_);                                                              \
@@ -51,6 +54,7 @@ void ksw_extz2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
     z = _mm_sub_epi8(z, q_);                                                                   \
     a = _mm_sub_epi8(a, z);                                                                    \
     b = _mm_sub_epi8(b, z);
+#endif
 
     int r, t, qe = q + e, n_col_, *off = 0, *off_end = 0, tlen_, qlen_, last_st, last_en, wl, wr,
               max_sc, min_sc;

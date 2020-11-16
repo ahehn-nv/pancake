@@ -30,6 +30,7 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
                    int zdrop, int flag, ksw_extz_t* ez)
 #endif  // ~KSW_CPU_DISPATCH
 {
+#ifndef __pancake_dp_code_block1
 #define __pancake_dp_code_block1                                                                  \
     z = _mm_load_si128(&s[t]);                                                                    \
     xt1 = _mm_load_si128(&x[t]);                     /* xt1 <- x[r-1][t..t+15] */                 \
@@ -49,7 +50,9 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
     x21_ = tmp;                                                                                   \
     a2 = _mm_add_epi8(x2t1, vt1);                                                                 \
     a2a = _mm_add_epi8(a2, _mm_load_si128(&acceptor[t]));
+#endif
 
+#ifndef __pancake_dp_code_block2
 #define __pancake_dp_code_block2                                                               \
     _mm_store_si128(&u[t], _mm_sub_epi8(z, vt1)); /* u[r][t..t+15] <- z - v[r-1][t-1..t+14] */ \
     _mm_store_si128(&v[t], _mm_sub_epi8(z, ut));  /* v[r][t..t+15] <- z - u[r-1][t..t+15] */   \
@@ -57,6 +60,7 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
     a = _mm_sub_epi8(a, tmp);                                                                  \
     b = _mm_sub_epi8(b, tmp);                                                                  \
     a2 = _mm_sub_epi8(a2, _mm_sub_epi8(z, q2_));
+#endif
 
     int r, t, qe = q + e, n_col_, *off = 0, *off_end = 0, tlen_, qlen_, last_st, last_en, max_sc,
               min_sc, long_thres, long_diff;
