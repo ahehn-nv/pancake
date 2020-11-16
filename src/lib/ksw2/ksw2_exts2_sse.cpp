@@ -30,38 +30,6 @@ void ksw_exts2_sse(void* km, int qlen, const uint8_t* query, int tlen, const uin
                    int zdrop, int flag, ksw_extz_t* ez)
 #endif  // ~KSW_CPU_DISPATCH
 {
-//     #ifndef __pancake_dp_code_block1
-//     #define __pancake_dp_code_block1                                                                  \
-//     z = _mm_load_si128(&s[t]);                                                                    \
-//     xt1 = _mm_load_si128(&x[t]);                     /* xt1 <- x[r-1][t..t+15] */                 \
-//     tmp = _mm_srli_si128(xt1, 15);                   /* tmp <- x[r-1][t+15] */                    \
-//     xt1 = _mm_or_si128(_mm_slli_si128(xt1, 1), x1_); /* xt1 <- x[r-1][t-1..t+14] */               \
-//     x1_ = tmp;                                                                                    \
-//     vt1 = _mm_load_si128(&v[t]);                     /* vt1 <- v[r-1][t..t+15] */                 \
-//     tmp = _mm_srli_si128(vt1, 15);                   /* tmp <- v[r-1][t+15] */                    \
-//     vt1 = _mm_or_si128(_mm_slli_si128(vt1, 1), v1_); /* vt1 <- v[r-1][t-1..t+14] */               \
-//     v1_ = tmp;                                                                                    \
-//     a = _mm_add_epi8(xt1, vt1);                  /* a <- x[r-1][t-1..t+14] + v[r-1][t-1..t+14] */ \
-//     ut = _mm_load_si128(&u[t]);                  /* ut <- u[t..t+15] */                           \
-//     b = _mm_add_epi8(_mm_load_si128(&y[t]), ut); /* b <- y[r-1][t..t+15] + u[r-1][t..t+15] */     \
-//     x2t1 = _mm_load_si128(&x2[t]);                                                                \
-//     tmp = _mm_srli_si128(x2t1, 15);                                                               \
-//     x2t1 = _mm_or_si128(_mm_slli_si128(x2t1, 1), x21_);                                           \
-//     x21_ = tmp;                                                                                   \
-//     a2 = _mm_add_epi8(x2t1, vt1);                                                                 \
-//     a2a = _mm_add_epi8(a2, _mm_load_si128(&acceptor[t]));
-//     #endif
-
-//     #ifndef __pancake_dp_code_block2
-//     #define __pancake_dp_code_block2                                                               \
-//     _mm_store_si128(&u[t], _mm_sub_epi8(z, vt1)); /* u[r][t..t+15] <- z - v[r-1][t-1..t+14] */ \
-//     _mm_store_si128(&v[t], _mm_sub_epi8(z, ut));  /* v[r][t..t+15] <- z - u[r-1][t..t+15] */   \
-//     tmp = _mm_sub_epi8(z, q_);                                                                 \
-//     a = _mm_sub_epi8(a, tmp);                                                                  \
-//     b = _mm_sub_epi8(b, tmp);                                                                  \
-//     a2 = _mm_sub_epi8(a2, _mm_sub_epi8(z, q2_));
-//     #endif
-
     int r, t, qe = q + e, n_col_, *off = 0, *off_end = 0, tlen_, qlen_, last_st, last_en, max_sc,
               min_sc, long_thres, long_diff;
     int with_cigar = !(flag & KSW_EZ_SCORE_ONLY), approx_max = !!(flag & KSW_EZ_APPROX_MAX);
