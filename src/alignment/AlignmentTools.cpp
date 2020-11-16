@@ -1048,8 +1048,8 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
     TrimmingInfo trimInfo;
 
     const auto ProcessCigarOp = [](
-        const PacBio::BAM::Cigar& cigar, const int32_t opId, const int32_t windowSize,
-        const int32_t minMatches, const bool clipOnFirstMatch,
+        const PacBio::BAM::Cigar& _cigar, const int32_t opId, const int32_t _windowSize,
+        const int32_t _minMatches, const bool _clipOnFirstMatch,
         std::array<std::pair<int32_t, int32_t>, 512>& buff, int32_t& buffStart, int32_t& buffEnd,
         int32_t& matchCount, int32_t& foundOpId, int32_t& foundOpInternalId, int32_t& posQuery,
         int32_t& posTarget) -> bool {
@@ -1063,7 +1063,7 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
          *          internal ID of that CIGAR operation are returned via parameters.
         */
 
-        const auto& op = cigar[opId];
+        const auto& op = _cigar[opId];
         int32_t opLen = op.Length();
         int32_t buffSize = buff.size();
         for (int32_t i = 0; i < opLen; ++i) {
@@ -1071,18 +1071,18 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
                 (buffEnd >= buffStart) ? (buffEnd - buffStart) : (buffSize - buffStart + buffEnd);
 
             // This happens only after the window has been filled.
-            if (currWindowSize >= windowSize) {
+            if (currWindowSize >= _windowSize) {
                 // Get the start operation, which will be pushed outside of the window.
                 const auto& windowOpPair = buff[buffStart];
                 const int32_t startOpId = windowOpPair.first;
                 const int32_t startOpInternalId = windowOpPair.second;
-                const auto startOpType = cigar[startOpId].Type();
+                const auto startOpType = _cigar[startOpId].Type();
                 buffStart = (buffStart + 1) % buffSize;
 
                 // Check if we found our target window.
-                if (matchCount >= minMatches &&
-                    (clipOnFirstMatch == false ||
-                     (clipOnFirstMatch &&
+                if (matchCount >= _minMatches &&
+                    (_clipOnFirstMatch == false ||
+                     (_clipOnFirstMatch &&
                       startOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH))) {
                     foundOpId = startOpId;
                     foundOpInternalId = startOpInternalId;

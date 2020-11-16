@@ -25,7 +25,7 @@ foreach cflag: [
   '-Wnull-dereference',
   '-Wuseless-cast',
   '-Wdouble-promotion',
-#  '-Wshadow',
+  '-Wshadow',
   '-Wformat=1']
     if cpp.has_argument(cflag)
       pancake_warning_flags += cflag
