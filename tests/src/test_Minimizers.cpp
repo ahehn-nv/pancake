@@ -658,3 +658,54 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_33bp_ThreeSeeds)
     HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
                                  expectedSeeds, expectedThrow);
 }
+
+TEST(GenerateMinimizers, FromStrings)
+{
+    // Inputs.
+    const int32_t k = 5;
+    const int32_t w = 4;
+    const int32_t space = 0;
+    const bool useHPC = false;
+    const int32_t maxHPCLen = 10;
+    const bool useRC = true;
+    const std::vector<std::string> seqs = {
+        "AAAAAAAAAA", "AGCTTTTCATTCTGACTGCANNNACTNNNNNAGCTTTTCATTCTGACTGCA",
+    };
+
+    // Helper function.
+    const uint64_t mask = SeedDB::ComputeKmerMask(k);
+    auto Hash = [&](uint64_t val) { return SeedDB::InvertibleHash(val, mask); };
+
+    // Expected results.
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(0), k, 0, 3, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(0), k, 0, 4, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(0), k, 0, 5, false),
+
+        PacBio::Pancake::SeedDB::Seed::Encode(67, 5, 1, 3, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(195, 5, 1, 4, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(227, 5, 1, 5, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(235, 5, 1, 6, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(419, 5, 1, 9, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(351, 5, 1, 12, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(239, 5, 1, 15, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(67, 5, 1, 34, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(195, 5, 1, 35, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(227, 5, 1, 36, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(235, 5, 1, 37, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(419, 5, 1, 40, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(351, 5, 1, 43, 1),
+        PacBio::Pancake::SeedDB::Seed::Encode(239, 5, 1, 46, 0),
+    };
+    std::vector<int32_t> expectedSequenceLengths = {10, 51};
+
+    // Run unit under test.
+    std::vector<PacBio::Pancake::Int128t> results;
+    std::vector<int32_t> sequenceLengths;
+    PacBio::Pancake::SeedDB::GenerateMinimizers(results, sequenceLengths, seqs, k, w, space, useRC,
+                                                useHPC, maxHPCLen);
+
+    // Evaluate.
+    EXPECT_EQ(expectedSeeds, results);
+    EXPECT_EQ(expectedSequenceLengths, sequenceLengths);
+}

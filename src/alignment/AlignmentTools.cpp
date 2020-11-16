@@ -310,6 +310,20 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
             throw std::runtime_error(oss.str());
         }
     }
+
+    if (queryPos != queryLen || targetPos != targetLen) {
+        Alignment::DiffCounts diffs = CigarDiffCounts(cigar);
+        std::ostringstream oss;
+        oss << "Invalid CIGAR string (length): "
+            << "Computed query or target length does not match the sequence length. "
+            << "queryPos = " << queryPos << ", targetPos = " << targetPos
+            << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+            << ", alnQuerySpan = " << (diffs.numEq + diffs.numX + diffs.numI)
+            << ", alnTargetSpan = " << (diffs.numEq + diffs.numX + diffs.numD) << ", " << diffs
+            << ", edit_dist = " << diffs.NumDiffs() << ", CIGAR: " << cigar.ToStdString()
+            << ", label: '" << label;
+        throw std::runtime_error(oss.str());
+    }
 }
 
 void ExtractVariantString(const char* query, int64_t queryLen, const char* target,
@@ -1223,6 +1237,37 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
     retTrimming = trimInfo;
 
     return true;
+}
+
+int32_t ScoreCigarAlignment(const PacBio::BAM::Cigar& cigar, int32_t match, int32_t mismatch,
+                            int32_t gapOpen, int32_t gapExt)
+{
+    int64_t score = 0;
+
+    for (const auto& op : cigar) {
+        const int32_t count = op.Length();
+        switch (op.Type()) {
+            case PacBio::BAM::CigarOperationType::SEQUENCE_MATCH:
+                // Scores are positive.
+                score += match * count;
+                break;
+            case PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH:
+                // Penalties are positive.
+                score -= mismatch * count;
+                break;
+            case PacBio::BAM::CigarOperationType::INSERTION:
+                // Penalties are positive.
+                score -= (gapOpen + gapExt * (count - 1));
+                break;
+            case PacBio::BAM::CigarOperationType::DELETION:
+                // Penalties are positive.
+                score -= (gapOpen + gapExt * (count - 1));
+                break;
+            default:
+                break;
+        }
+    }
+    return score;
 }
 
 }  // namespace Pancake

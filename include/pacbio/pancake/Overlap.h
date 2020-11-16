@@ -105,6 +105,34 @@ public:
     {
     }
 
+    Overlap(int32_t _Aid, int32_t _Bid, float _Score, float _Identity, bool _Arev, int32_t _Astart,
+            int32_t _Aend, int32_t _Alen, bool _Brev, int32_t _Bstart, int32_t _Bend, int32_t _Blen)
+        : Aid(_Aid)
+        , Arev(_Arev)
+        , Astart(_Astart)
+        , Aend(_Aend)
+        , Alen(_Alen)
+        , Bid(_Bid)
+        , Brev(_Brev)
+        , Bstart(_Bstart)
+        , Bend(_Bend)
+        , Blen(_Blen)
+        , Score(_Score)
+        , Identity(_Identity)
+
+        , EditDistance(0)
+        , NumSeeds(0)
+        , Atype(OverlapType::Unknown)
+        , Btype(OverlapType::Unknown)
+        , Cigar()
+        , Avars()
+        , Bvars()
+        , IsFlipped(false)
+        , IsSupplementary(false)
+        , IsSecondary(false)
+    {
+    }
+
 public:
     int32_t ASpan() const { return (Aend - Astart); }
     int32_t BSpan() const { return (Bend - Bstart); }
@@ -227,13 +255,18 @@ inline std::unique_ptr<Overlap> createOverlap(int32_t Aid, int32_t Bid, float sc
                                                 Atype, Btype, {}, {}, {}, false, false, false));
 }
 
+inline std::unique_ptr<Overlap> createOverlap(const Overlap& ovl)
+{
+    return std::unique_ptr<Overlap>(
+        new Overlap(ovl.Aid, ovl.Bid, ovl.Score, ovl.Identity, ovl.Arev, ovl.Astart, ovl.Aend,
+                    ovl.Alen, ovl.Brev, ovl.Bstart, ovl.Bend, ovl.Blen, ovl.EditDistance,
+                    ovl.NumSeeds, ovl.Atype, ovl.Btype, ovl.Cigar, ovl.Avars, ovl.Bvars,
+                    ovl.IsFlipped, ovl.IsSupplementary, ovl.IsSecondary));
+}
+
 inline std::unique_ptr<Overlap> createOverlap(const std::unique_ptr<Overlap>& ovl)
 {
-    return std::unique_ptr<Overlap>(new Overlap(
-        ovl->Aid, ovl->Bid, ovl->Score, ovl->Identity, ovl->Arev, ovl->Astart, ovl->Aend, ovl->Alen,
-        ovl->Brev, ovl->Bstart, ovl->Bend, ovl->Blen, ovl->EditDistance, ovl->NumSeeds, ovl->Atype,
-        ovl->Btype, ovl->Cigar, ovl->Avars, ovl->Bvars, ovl->IsFlipped, ovl->IsSupplementary,
-        ovl->IsSecondary));
+    return createOverlap(*ovl);
 }
 
 inline OverlapPtr CreateFlippedOverlap(const OverlapPtr& ovl)

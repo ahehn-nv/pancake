@@ -7,19 +7,21 @@
 TEST(FlagSecondaryAndSupplementary, SmallTest1)
 {
     // clang-format off
-    std::vector<std::tuple<std::string, std::vector<std::string>, double, double,
+    std::vector<std::tuple<std::string, std::vector<std::string>, double, double, double,
                            std::vector<PacBio::Pancake::OverlapPriority>>>
         testData = {
             {   "Test 0 - empty input",
                 {},
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {}
             },
             {   "Test 1 - single primary alignment.",
                 {
                     "0 1 -1000 100.0000 0 0 10000 10000 0 0 10000 4641652",
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, false},
                 }
@@ -29,7 +31,8 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
                     "0 1 -1000 100.0000 0 0 10000 10000 0 0 10000 4641652",
                     "0 2 -900 100.0000 0 0 10000 10000 0 0 10000 4641652",
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, false},
                     {1, false},
@@ -40,7 +43,8 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
                     "0 1 -1000 100.0000 0 0 5000 10000 0 0 5000 4641652",
                     "0 2 -900 100.0000 0 5000 10000 10000 0 50000 55000 4641652",
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, false},
                     {0, true},
@@ -51,7 +55,8 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
                     "0 1 -1000 100.0000 0 0 10000 10000 0 0 10000 4641652",
                     "0 2 -900 100.0000 0 4000 10000 10000 0 4000 10000 4641652",
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, false},
                     {1, false},
@@ -62,7 +67,8 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
                     "0 1 -1000 100.0000 0 0 10000 10000 0 0 10000 4641652",
                     "0 2 -900 100.0000 0 6000 10000 10000 0 6000 10000 4641652",
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, false},
                     {1, false},
@@ -73,7 +79,8 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
                     "0 1 -1000 100.0000 0 0 7000 10000 0 0 7000 4641652",
                     "0 2 -900 100.0000 0 5000 10000 10000 0 5000 10000 4641652",
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, false},
                     {0, true},
@@ -84,7 +91,8 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
                     "0 1 -1000 100.0000 0 0 10000 10000 0 0 10000 4641652",
                     "0 2 -700 100.0000 0 6000 10000 10000 0 6000 10000 4641652",
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, false},
                     {2, false},
@@ -99,7 +107,8 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
                     "0 1 -6000 100.0000 0 1000 7000 10000 0 21000 27000 4641652",       // Filtered, score < 0.80 * primary.
                     "0 1 -7000 100.0000 0 1000 8000 10000 0 23000 28000 4641652",       // Secondary.
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, true},
                     {0, false},
@@ -114,7 +123,8 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
                     "0 1 -1000 100.0000 0 0 5000 10000 0 0 5000 10000",
                     "0 1 -900 100.0000 0 5000 8000 10000 0 2000 5000 10000",
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, false},
                     {1, false},
@@ -125,21 +135,85 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
                     "0 1 -1000 100.0000 0 0 5000 10000 0 0 5000 10000",
                     "0 1 -900 100.0000 0 5000 8000 10000 1 2000 5000 10000",
                 },
-                0.50, 0.80,
+                0.50, 0.50,
+                0.80,
                 {
                     {0, false},
                     {1, false},
                 }
             },
+
+            {   "Test 11a - Overlap in query is allowed, so this should be a supplementary mapping.",
+                {
+                    "0 1 -1000 100.0000 0 0 5000 10000 0 0 5000 10000",
+                    "0 1 -900 100.0000 0 4000 8000 10000 0 4000 8000 10000",
+                },
+                0.50, 0.50,
+                0.80,
+                {
+                    {0, false},
+                    {0, true},
+                }
+            },
+            {   "Test 11b - Overlap in query is not allowed, so this should be a secondary mapping.",
+                {
+                    "0 1 -1000 100.0000 0 0 5000 10000 0 0 5000 10000",
+                    "0 1 -900 100.0000 0 4000 8000 10000 0 4000 8000 10000",
+                },
+                0.00, 0.50,
+                0.80,
+                {
+                    {0, false},
+                    {1, false},
+                }
+            },
+            {   "Test 11c - Overlap in target is not allowed, so this should be a secondary mapping.",
+                {
+                    "0 1 -1000 100.0000 0 0 5000 10000 0 0 5000 10000",
+                    "0 1 -900 100.0000 0 4000 8000 10000 0 4000 8000 10000",
+                },
+                0.50, 0.00,
+                0.80,
+                {
+                    {0, false},
+                    {1, false},
+                }
+            },
+            {   "Test 11d - Overlap in query is not allowed but the two mappings are adjacent in query. They overlap in target, but that's allowed.",
+                {
+                    "0 1 -1000 100.0000 0 0 5000 10000 0 0 5000 10000",
+                    "0 1 -900 100.0000 0 5000 8000 10000 0 4000 8000 10000",
+                },
+                0.00, 0.50,
+                0.80,
+                {
+                    {0, false},
+                    {0, true},
+                }
+            },
+            {   "Test 11d - Strict no overlap allowed, and the second mapping is adjacent in both query and target.",
+                {
+                    "0 1 -1000 100.0000 0 0 5000 10000 0 0 5000 10000",
+                    "0 1 -900 100.0000 0 5000 8000 10000 0 5000 8000 10000",
+                },
+                0.00, 0.00,
+                0.80,
+                {
+                    {0, false},
+                    {0, true},
+                }
+            },
+
     };
     // clang-format on
 
     for (const auto& data : testData) {
         const auto& testName = std::get<0>(data);
         const auto& inOverlapsStr = std::get<1>(data);
-        const auto& allowedOverlapFraction = std::get<2>(data);
-        const auto& minSecondaryScoreFraction = std::get<3>(data);
-        const auto& expected = std::get<4>(data);
+        const auto& allowedOverlapFractionQuery = std::get<2>(data);
+        const auto& allowedOverlapFractionTarget = std::get<3>(data);
+        const auto& minSecondaryScoreFraction = std::get<4>(data);
+        const auto& expected = std::get<5>(data);
 
         SCOPED_TRACE(testName);
 
@@ -151,7 +225,8 @@ TEST(FlagSecondaryAndSupplementary, SmallTest1)
         }
 
         std::vector<PacBio::Pancake::OverlapPriority> results =
-            PacBio::Pancake::FlagSecondaryAndSupplementary(inOverlaps, allowedOverlapFraction,
+            PacBio::Pancake::FlagSecondaryAndSupplementary(inOverlaps, allowedOverlapFractionQuery,
+                                                           allowedOverlapFractionTarget,
                                                            minSecondaryScoreFraction);
 
         // Evaluate.

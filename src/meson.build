@@ -29,6 +29,13 @@ pancake_version_sources = [
 ###########
 
 pancake_cpp_sources = files([
+    'lib/ksw2/kalloc.cpp',
+    'lib/ksw2/ksw2_dispatch.cpp',
+    'lib/ksw2/ksw2_extd2_sse.cpp',
+    'lib/ksw2/ksw2_exts2_sse.cpp',
+    'lib/ksw2/ksw2_extz2_sse.cpp',
+    'lib/ksw2/ksw2_ll_sse.cpp',
+
     'alignment/AlignmentTools.cpp',
     'alignment/SesDistanceBanded.cpp',
     'main/dbfilter/DBFilterSettings.cpp',
@@ -41,8 +48,16 @@ pancake_cpp_sources = files([
     'main/seqdb/SeqDBWorkflow.cpp',
     'main/seqfetch/SeqFetchSettings.cpp',
     'main/seqfetch/SeqFetchWorkflow.cpp',
+    'pancake/AlignerKSW2.cpp',
+    'pancake/AlignerEdlib.cpp',
+    'pancake/AlignerSES1.cpp',
+    'pancake/AlignerSES2.cpp',
+    'pancake/AlignerFactory.cpp',
+    'pancake/AlignmentSeeded.cpp',
     'pancake/CompressedSequence.cpp',
+    'pancake/DPChain.cpp',
     'pancake/FastaSequenceId.cpp',
+    'pancake/MapperCLR.cpp',
     'pancake/MapperHiFi.cpp',
     'pancake/Minimizers.cpp',
     'pancake/Overlap.cpp',
@@ -92,7 +107,7 @@ pancake_lib = library(
   install : pancake_lib_install,
   dependencies : pancake_lib_deps,
   include_directories : pancake_include_directories,
-  cpp_args : pancake_warning_flags)
+  cpp_args : pancake_flags)
 
 ##############
 # executable #
@@ -107,5 +122,5 @@ if not meson.is_subproject()
     dependencies : pancake_lib_deps,
     include_directories : pancake_include_directories,
     link_with : pancake_lib,
-    cpp_args : pancake_warning_flags)
+    cpp_args : pancake_flags)
 endif

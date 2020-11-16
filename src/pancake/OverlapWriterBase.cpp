@@ -279,28 +279,35 @@ std::string OverlapWriterBase::PrintOverlapAsM4(const OverlapPtr& ovl, const std
                                                 const std::string& Bname, bool writeIds,
                                                 bool writeCigar)
 {
-    double identity = static_cast<double>(ovl->Identity);
-    if (identity == 0.0 && ovl->EditDistance >= 0.0) {
-        const double editDist = ovl->EditDistance;
-        const double qSpan = ovl->ASpan();
-        const double tSpan = ovl->BSpan();
+    return PrintOverlapAsM4(*ovl, Aname, Bname, writeIds, writeCigar);
+}
+
+std::string OverlapWriterBase::PrintOverlapAsM4(const Overlap& ovl, const std::string& Aname,
+                                                const std::string& Bname, bool writeIds,
+                                                bool writeCigar)
+{
+    double identity = static_cast<double>(ovl.Identity);
+    if (identity == 0.0 && ovl.EditDistance >= 0.0) {
+        const double editDist = ovl.EditDistance;
+        const double qSpan = ovl.ASpan();
+        const double tSpan = ovl.BSpan();
         const double identityQ = (qSpan != 0) ? ((qSpan - editDist) / qSpan) : -2.0;
         const double identityT = (tSpan != 0) ? ((tSpan - editDist) / tSpan) : -2.0;
         identity = std::min(identityQ, identityT);
     }
 
     // The format specifies coordinates always in the FWD strand.
-    int32_t tStart = ovl->BstartFwd();
-    int32_t tEnd = ovl->BendFwd();
-    const int32_t tIsRev = ovl->Brev;
-    const int32_t tLen = ovl->Blen;
-    std::string AtypeStr = OverlapTypeToString(ovl->Atype);
+    int32_t tStart = ovl.BstartFwd();
+    int32_t tEnd = ovl.BendFwd();
+    const int32_t tIsRev = ovl.Brev;
+    const int32_t tLen = ovl.Blen;
+    std::string AtypeStr = OverlapTypeToString(ovl.Atype);
 
     std::ostringstream oss;
     char buffA[100], buffB[100];
     char idtBuff[100];
-    sprintf(buffA, "%09d", ovl->Aid);
-    sprintf(buffB, "%09d", ovl->Bid);
+    sprintf(buffA, "%09d", ovl.Aid);
+    sprintf(buffB, "%09d", ovl.Bid);
     sprintf(idtBuff, "%.2lf", 100.0 * identity);
 
     if (writeIds) {
@@ -313,13 +320,13 @@ std::string OverlapWriterBase::PrintOverlapAsM4(const OverlapPtr& ovl, const std
     std::string cigarSep;
     if (writeCigar) {
         cigarSep = " ";
-        cigar = (ovl->Cigar.empty()) ? "*" : ovl->Cigar.ToStdString();
+        cigar = (ovl.Cigar.empty()) ? "*" : ovl.Cigar.ToStdString();
     }
 
-    oss << " " << static_cast<int32_t>(ovl->Score) << " " << idtBuff << " "
-        << static_cast<int32_t>(ovl->Arev) << " " << ovl->Astart << " " << ovl->Aend << " "
-        << ovl->Alen << " " << static_cast<int32_t>(tIsRev) << " " << tStart << " " << tEnd << " "
-        << tLen << " " << AtypeStr << cigarSep << cigar;
+    oss << " " << static_cast<int32_t>(ovl.Score) << " " << idtBuff << " "
+        << static_cast<int32_t>(ovl.Arev) << " " << ovl.Astart << " " << ovl.Aend << " " << ovl.Alen
+        << " " << static_cast<int32_t>(tIsRev) << " " << tStart << " " << tEnd << " " << tLen << " "
+        << AtypeStr << cigarSep << cigar;
 
     return oss.str();
 }

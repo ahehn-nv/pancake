@@ -76,6 +76,12 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
     auto& alnPath = ss->alnPath;    // Alignment path during traceback.
     int32_t WMatrixPos = 0;         // Tracks the current location in the WMatrix (which is implemented as a flat vector).
 
+    // A useless void cast to prevent the compiler from complaining
+    // about unused variables when the constexpr if condition is not met.
+    (void)lastK;
+    (void)lastD;
+    (void)prevK;
+
     // Allocate memory for basic alignment.
     if (rowLen > static_cast<int32_t>(W.capacity())) {
         W.resize(rowLen, -1);

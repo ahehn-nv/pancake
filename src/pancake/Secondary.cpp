@@ -8,7 +8,8 @@ namespace PacBio {
 namespace Pancake {
 
 std::vector<OverlapPriority> FlagSecondaryAndSupplementary(std::vector<OverlapPtr>& overlaps,
-                                                           double allowedOverlapFraction,
+                                                           double allowedOverlapFractionQuery,
+                                                           double allowedOverlapFractionTarget,
                                                            double minSecondaryScoreFraction)
 {
     if (overlaps.empty()) {
@@ -63,7 +64,7 @@ std::vector<OverlapPriority> FlagSecondaryAndSupplementary(std::vector<OverlapPt
         const double score = std::abs(static_cast<double>(aln->Score));
 
         if (CheckRegionSupplementary(overlaps, aln, queryTrees, targetTrees,
-                                     allowedOverlapFraction)) {
+                                     allowedOverlapFractionQuery, allowedOverlapFractionTarget)) {
             // This is a supplementary alignment.
             alnPriority.isSupplementary = true;
             alnPriority.priority = 0;
@@ -147,7 +148,8 @@ void CreateRegionIntervalTrees(const std::vector<OverlapPtr>& overlaps,
 bool CheckRegionSupplementary(const std::vector<OverlapPtr>& overlaps, const OverlapPtr& currentOvl,
                               IntervalTreeInt32& queryTrees,
                               std::unordered_map<int32_t, IntervalTreeInt32>& targetTrees,
-                              double allowedOverlapFraction)
+                              double allowedOverlapFractionQuery,
+                              double allowedOverlapFractionTarget)
 {
     /////////////////////////////////////////////////////
     /// Check the query coordinate space for overlaps ///
@@ -155,7 +157,7 @@ bool CheckRegionSupplementary(const std::vector<OverlapPtr>& overlaps, const Ove
     // Find if the current alignment has any overlaps in the query coordinate space.
     auto foundQueryIntervals =
         queryTrees.findOverlapping(currentOvl->AstartFwd(), currentOvl->AendFwd() - 1);
-    if (allowedOverlapFraction <= 0.0 && foundQueryIntervals.size()) {
+    if (allowedOverlapFractionQuery <= 0.0 && foundQueryIntervals.size()) {
         // For speed, if no overlap between mappings is allowed but some are found, return.
         return false;
     }
@@ -177,7 +179,8 @@ bool CheckRegionSupplementary(const std::vector<OverlapPtr>& overlaps, const Ove
 
         // The two mappings shouldn't overlap by more than the allowed fraction in either the
         // query and target coordinates if one of them is supplementary.
-        if (ovlQueryFrac > allowedOverlapFraction || ovlTargetFrac > allowedOverlapFraction) {
+        if (ovlQueryFrac > allowedOverlapFractionQuery ||
+            ovlTargetFrac > allowedOverlapFractionTarget) {
             return false;
         }
     }
@@ -193,7 +196,7 @@ bool CheckRegionSupplementary(const std::vector<OverlapPtr>& overlaps, const Ove
     }
     auto foundTargetIntervals =
         itTrees->second.findOverlapping(currentOvl->BstartFwd(), currentOvl->BendFwd() - 1);
-    if (allowedOverlapFraction <= 0.0 && foundTargetIntervals.size()) {
+    if (allowedOverlapFractionTarget <= 0.0 && foundTargetIntervals.size()) {
         // For speed, if no overlap between mappings is allowed but some are found, return.
         return false;
     }
@@ -215,7 +218,8 @@ bool CheckRegionSupplementary(const std::vector<OverlapPtr>& overlaps, const Ove
 
         // The two mappings shouldn't overlap by more than the allowed fraction in either the
         // query and target coordinates if one of them is supplementary.
-        if (ovlQueryFrac > allowedOverlapFraction || ovlTargetFrac > allowedOverlapFraction) {
+        if (ovlQueryFrac > allowedOverlapFractionQuery ||
+            ovlTargetFrac > allowedOverlapFractionTarget) {
             return false;
         }
     }

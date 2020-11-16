@@ -41,6 +41,8 @@ public:
     static void PrintOverlapAsSAM(FILE* fpOut, const OverlapPtr& ovl, const char* seq,
                                   int64_t seqLen, const std::string& Aname,
                                   const std::string& Bname, bool writeIds, bool writeCigar);
+    static std::string PrintOverlapAsM4(const Overlap& ovl, const std::string& Aname,
+                                        const std::string& Bname, bool writeIds, bool writeCigar);
     static std::string PrintOverlapAsM4(const OverlapPtr& ovl, const std::string& Aname,
                                         const std::string& Bname, bool writeIds, bool writeCigar);
 };
