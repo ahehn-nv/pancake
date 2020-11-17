@@ -258,9 +258,9 @@ void SeqDBReaderCachedBlock::CompressHomopolymers_()
 {
     std::vector<int32_t> runLengths;
     for (auto& record : records_) {
-        int64_t comprLen = PacBio::Pancake::RunLengthEncoding(const_cast<char*>(record.bases),
-                                                              record.size, runLengths);
-        record.size = comprLen;
+        int64_t comprLen = PacBio::Pancake::RunLengthEncoding(const_cast<char*>(record.c_str()),
+                                                              record.size(), runLengths);
+        record.Size(comprLen);
     }
 }
 
