@@ -304,7 +304,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
 
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         std::vector<int32_t>& retSequenceLengths,
-                        const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
+                        const std::vector<FastaSequenceCached>& targetSeqs, const int32_t kmerSize,
                         const int32_t winSize, const int32_t spacing,
                         const bool useReverseComplement, const bool useHPC, const int32_t maxHPCLen)
 {
@@ -315,16 +315,32 @@ void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
     for (int32_t recordId = 0; recordId < static_cast<int32_t>(targetSeqs.size()); ++recordId) {
         const auto& record = targetSeqs[recordId];
         const uint8_t* seq = reinterpret_cast<const uint8_t*>(record.data());
+        const int32_t seqId = record.Id();
         int32_t seqLen = record.size();
         retSequenceLengths.emplace_back(seqLen);
         std::vector<PacBio::Pancake::Int128t> newSeeds;
-        int rv = GenerateMinimizers(newSeeds, seq, seqLen, 0, recordId, kmerSize, winSize, spacing,
+        int rv = GenerateMinimizers(newSeeds, seq, seqLen, 0, seqId, kmerSize, winSize, spacing,
                                     useReverseComplement, useHPC, maxHPCLen);
         if (rv)
             throw std::runtime_error("Generating minimizers failed for the target sequence, id = " +
                                      std::to_string(recordId));
         retSeeds.insert(retSeeds.end(), newSeeds.begin(), newSeeds.end());
     }
+}
+
+void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
+                        std::vector<int32_t>& retSequenceLengths,
+                        const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
+                        const int32_t winSize, const int32_t spacing,
+                        const bool useReverseComplement, const bool useHPC, const int32_t maxHPCLen)
+{
+    std::vector<FastaSequenceCached> targetSeqsCached;
+    for (int32_t i = 0; i < static_cast<int32_t>(targetSeqs.size()); ++i) {
+        targetSeqsCached.emplace_back(
+            FastaSequenceCached(std::to_string(i), targetSeqs[i].c_str(), targetSeqs[i].size(), i));
+    }
+    GenerateMinimizers(retSeeds, retSequenceLengths, targetSeqsCached, kmerSize, winSize, spacing,
+                       useReverseComplement, useHPC, maxHPCLen);
 }
 
 }  // namespace SeedDB
