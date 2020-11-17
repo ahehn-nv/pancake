@@ -10,6 +10,8 @@
 #include <pacbio/pancake/AlignmentParameters.h>
 #include <pacbio/pancake/DPChain.h>
 #include <pacbio/pancake/FastaSequenceCached.h>
+#include <pacbio/pancake/FastaSequenceId.h>
+#include <pacbio/pancake/MapperBase.h>
 #include <pacbio/pancake/Overlap.h>
 #include <pacbio/pancake/Range.h>
 #include <pacbio/pancake/Seed.h>
@@ -127,33 +129,28 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
     return out;
 }
 
-struct ChainedRegion
-{
-    ChainedHits chain;
-    OverlapPtr mapping;
-    int32_t priority = 0;  // Priority 0 means primary alignment.
-    bool isSupplementary = false;
-};
-
-class MapperCLRResult
-{
-public:
-    std::vector<std::unique_ptr<ChainedRegion>> mappings;
-};
-
-class MapperCLR
+class MapperCLR : public MapperBase
 {
 public:
     MapperCLR(const MapperCLRSettings& settings);
-    ~MapperCLR();
+    ~MapperCLR() override;
 
-    std::vector<MapperCLRResult> Map(const std::vector<std::string>& targetSeqs,
-                                     const std::vector<std::string>& querySeqs);
+    std::vector<MapperBaseResult> MapAndAlign(const std::vector<std::string>& targetSeqs,
+                                              const std::vector<std::string>& querySeqs) override;
 
-    MapperCLRResult Map(const std::vector<std::string>& targetSeqs,
-                        const PacBio::Pancake::SeedIndex& index, const std::string& querySeq,
-                        const std::vector<PacBio::Pancake::Int128t>& querySeeds,
-                        const int32_t queryId, int64_t freqCutoff);
+    std::vector<MapperBaseResult> MapAndAlign(
+        const std::vector<FastaSequenceId>& targetSeqs,
+        const std::vector<FastaSequenceId>& querySeqs) override;
+
+    std::vector<MapperBaseResult> MapAndAlign(
+        const std::vector<FastaSequenceCached>& targetSeqs,
+        const std::vector<FastaSequenceCached>& querySeqs) override;
+
+    MapperBaseResult MapAndAlign(const std::vector<FastaSequenceCached>& targetSeqs,
+                                 const PacBio::Pancake::SeedIndex& index,
+                                 const FastaSequenceCached& querySeq,
+                                 const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+                                 const int32_t queryId, int64_t freqCutoff) override;
 
 private:
     MapperCLRSettings settings_;

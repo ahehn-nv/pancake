@@ -39,8 +39,47 @@ MapperCLR::MapperCLR(const MapperCLRSettings& settings)
 
 MapperCLR::~MapperCLR() = default;
 
-std::vector<MapperCLRResult> MapperCLR::Map(const std::vector<std::string>& targetSeqs,
-                                            const std::vector<std::string>& querySeqs)
+std::vector<MapperBaseResult> MapperCLR::MapAndAlign(const std::vector<std::string>& targetSeqs,
+                                                     const std::vector<std::string>& querySeqs)
+{
+    std::vector<FastaSequenceCached> targetSeqsCached;
+    for (int32_t i = 0; i < static_cast<int32_t>(targetSeqs.size()); ++i) {
+        targetSeqsCached.emplace_back(
+            FastaSequenceCached(std::to_string(i), targetSeqs[i].c_str(), targetSeqs[i].size(), i));
+    }
+
+    std::vector<FastaSequenceCached> querySeqsCached;
+    for (int32_t i = 0; i < static_cast<int32_t>(querySeqs.size()); ++i) {
+        querySeqsCached.emplace_back(
+            FastaSequenceCached(std::to_string(i), querySeqs[i].c_str(), querySeqs[i].size(), i));
+    }
+
+    return MapAndAlign(targetSeqsCached, querySeqsCached);
+}
+
+std::vector<MapperBaseResult> MapperCLR::MapAndAlign(const std::vector<FastaSequenceId>& targetSeqs,
+                                                     const std::vector<FastaSequenceId>& querySeqs)
+{
+    std::vector<FastaSequenceCached> targetSeqsCached;
+    for (int32_t i = 0; i < static_cast<int32_t>(targetSeqs.size()); ++i) {
+        targetSeqsCached.emplace_back(
+            FastaSequenceCached(std::to_string(i), targetSeqs[i].Bases().c_str(),
+                                targetSeqs[i].Bases().size(), targetSeqs[i].Id()));
+    }
+
+    std::vector<FastaSequenceCached> querySeqsCached;
+    for (int32_t i = 0; i < static_cast<int32_t>(querySeqs.size()); ++i) {
+        querySeqsCached.emplace_back(
+            FastaSequenceCached(std::to_string(i), querySeqs[i].Bases().c_str(),
+                                querySeqs[i].Bases().size(), querySeqs[i].Id()));
+    }
+
+    return MapAndAlign(targetSeqsCached, querySeqsCached);
+}
+
+std::vector<MapperBaseResult> MapperCLR::MapAndAlign(
+    const std::vector<FastaSequenceCached>& targetSeqs,
+    const std::vector<FastaSequenceCached>& querySeqs)
 {
     // Construct the index.
     std::vector<PacBio::Pancake::Int128t> seeds;
@@ -78,12 +117,14 @@ std::vector<MapperCLRResult> MapperCLR::Map(const std::vector<std::string>& targ
     }
 
     // Run mapping for each query.
-    std::vector<MapperCLRResult> results;
-    for (int32_t queryId = 0; queryId < static_cast<int32_t>(querySeqs.size()); ++queryId) {
-        const auto& query = querySeqs[queryId];
+    std::vector<MapperBaseResult> results;
+    for (int32_t i = 0; i < static_cast<int32_t>(querySeqs.size()); ++i) {
+        const auto& query = querySeqs[i];
+        int32_t queryId = query.Id();
 
 #ifdef PANCAKE_MAP_CLR_DEBUG
-        PBLOG_INFO << "New query: queryId = " << queryId << ", length = " << query.size();
+        PBLOG_INFO << "[i = " << i << "] New query: queryId = " << queryId
+                   << ", length = " << query.size();
 #endif
 
         std::vector<PacBio::Pancake::Int128t> querySeeds;
@@ -95,10 +136,11 @@ std::vector<MapperCLRResult> MapperCLR::Map(const std::vector<std::string>& targ
             settings_.seedParams.UseRC, settings_.seedParams.UseHPCForSeedsOnly,
             settings_.seedParams.MaxHPCLen);
         if (rv)
-            throw std::runtime_error("Generating minimizers failed for the query sequence, id = " +
-                                     std::to_string(queryId));
+            throw std::runtime_error("Generating minimizers failed for the query sequence i = " +
+                                     std::to_string(i) + ", id = " + std::to_string(queryId));
 
-        auto queryResults = Map(targetSeqs, *seedIndex, query, querySeeds, queryId, freqCutoff);
+        auto queryResults =
+            MapAndAlign(targetSeqs, *seedIndex, query, querySeeds, queryId, freqCutoff);
 
         if (queryResults.mappings.empty() && seedIndexFallback != nullptr) {
             rv = SeedDB::GenerateMinimizers(
@@ -111,8 +153,8 @@ std::vector<MapperCLRResult> MapperCLR::Map(const std::vector<std::string>& targ
                     "Generating minimizers failed for the query sequence, id = " +
                     std::to_string(queryId));
 
-            queryResults =
-                Map(targetSeqs, *seedIndexFallback, query, querySeeds, queryId, freqCutoffFallback);
+            queryResults = MapAndAlign(targetSeqs, *seedIndexFallback, query, querySeeds, queryId,
+                                       freqCutoffFallback);
         }
 
         for (const auto& m : queryResults.mappings) {
@@ -178,10 +220,11 @@ void DebugWriteChainedRegion(
 #endif
 }
 
-MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
-                               const PacBio::Pancake::SeedIndex& index, const std::string& querySeq,
-                               const std::vector<PacBio::Pancake::Int128t>& querySeeds,
-                               const int32_t queryId, int64_t freqCutoff)
+MapperBaseResult MapperCLR::MapAndAlign(const std::vector<FastaSequenceCached>& targetSeqs,
+                                        const PacBio::Pancake::SeedIndex& index,
+                                        const FastaSequenceCached& querySeq,
+                                        const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+                                        const int32_t queryId, int64_t freqCutoff)
 {
     // Skip short queries.
     const int32_t queryLen = querySeq.size();
@@ -280,7 +323,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     DebugWriteChainedRegion(allChainedRegions, "6-refining-seed-hits", queryId, queryLen);
 
     // Filter out the mappings.
-    MapperCLRResult result;
+    MapperBaseResult result;
     int32_t numSelectedSecondary = 0;
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
         const auto& region = allChainedRegions[i];
@@ -309,7 +352,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
         // Reverse the query sequence, needed for alignment.
         const std::string querySeqRev =
-            PacBio::Pancake::ReverseComplement(querySeq, 0, querySeq.size());
+            PacBio::Pancake::ReverseComplement(querySeq.c_str(), 0, querySeq.size());
 
         TicToc ttAlign;
         for (size_t i = 0; i < result.mappings.size(); ++i) {
@@ -320,10 +363,10 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
             // Use a custom aligner to align.
             TicToc ttAlignmentSeeded;
-            auto newOvl =
-                AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq[0],
-                                &querySeqRev[0], queryLen, settings_.minAlignmentSpan,
-                                settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
+            auto newOvl = AlignmentSeeded(
+                ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
+                &querySeqRev[0], queryLen, settings_.minAlignmentSpan,
+                settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
             ttAlignmentSeeded.Stop();
             std::swap(result.mappings[i]->mapping, newOvl);
 
