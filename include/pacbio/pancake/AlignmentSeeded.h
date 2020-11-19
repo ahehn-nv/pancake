@@ -47,7 +47,7 @@ public:
     bool operator==(const AlignmentRegion& b) const
     {
         return qStart == b.qStart && qSpan == b.qSpan && tStart == b.tStart && tSpan == b.tSpan &&
-               queryRev == b.queryRev && type == b.type;
+               queryRev == b.queryRev && type == b.type && regionId == b.regionId;
     }
 };
 inline std::ostream& operator<<(std::ostream& os, const AlignmentRegion& b)

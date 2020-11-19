@@ -143,8 +143,8 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
                 // qStart, qSpan, tStart, tSpan, queryRev, regionType, regionId
                 {0, 5, 0, 5, false, RegionType::FRONT, 0},
                 {5, 95, 5, 95, false, RegionType::GLOBAL, 1},
-                {100, 800, 100, 800, false, RegionType::GLOBAL, 1},
-                {900, 100, 900, 100, false, RegionType::BACK, 2},
+                {100, 800, 100, 800, false, RegionType::GLOBAL, 2},
+                {900, 100, 900, 100, false, RegionType::BACK, 3},
             },
         },
 
