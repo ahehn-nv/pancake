@@ -629,17 +629,18 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
                                     data.targetSeq.size(), data.querySeq.c_str(),
                                     querySeqRev.c_str(), data.querySeq.size(),
                                     data.minAlignmentSpan, data.maxFlankExtensionDist,
-                                    alignerGlobal, alignerExt);
+                                    data.flankExtensionFactor, alignerGlobal, alignerExt);
                 },
                 std::runtime_error);
 
         } else {
 
             // Run the unit under test.
-            OverlapPtr result = AlignmentSeeded(
-                ovl, data.sortedHits, data.targetSeq.c_str(), data.targetSeq.size(),
-                data.querySeq.c_str(), querySeqRev.c_str(), data.querySeq.size(),
-                data.minAlignmentSpan, data.maxFlankExtensionDist, alignerGlobal, alignerExt);
+            OverlapPtr result =
+                AlignmentSeeded(ovl, data.sortedHits, data.targetSeq.c_str(), data.targetSeq.size(),
+                                data.querySeq.c_str(), querySeqRev.c_str(), data.querySeq.size(),
+                                data.minAlignmentSpan, data.maxFlankExtensionDist,
+                                data.flankExtensionFactor, alignerGlobal, alignerExt);
 
             // std::cerr << "Test name: " << data.testName << "\n";
             // std::cerr << "Expected overlap:\n"

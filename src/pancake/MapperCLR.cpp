@@ -409,8 +409,8 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
 {
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
     std::cerr << "Aligning.\n";
-    std::cerr << "alignerTypeGlobal = " << AlignerTypeToString(settings_.alignerTypeGlobal) << "\n";
-    std::cerr << "alignerTypeExt = " << AlignerTypeToString(settings_.alignerTypeExt) << "\n";
+    std::cerr << "alignerTypeGlobal = " << AlignerTypeToString(settings.alignerTypeGlobal) << "\n";
+    std::cerr << "alignerTypeExt = " << AlignerTypeToString(settings.alignerTypeExt) << "\n";
 #endif
 
     const int32_t queryLen = querySeq.size();
@@ -429,10 +429,10 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
         const auto& tSeqFwd = targetSeqs[ovl->Bid];
 
         // Use a custom aligner to align.
-        auto newOvl =
-            AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
-                            &querySeqRev[0], queryLen, settings.minAlignmentSpan,
-                            settings.maxFlankExtensionDist, alignerGlobal, alignerExt);
+        auto newOvl = AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(),
+                                      &querySeq.c_str()[0], &querySeqRev[0], queryLen,
+                                      settings.minAlignmentSpan, settings.maxFlankExtensionDist,
+                                      settings.flankExtensionFactor, alignerGlobal, alignerExt);
 
         auto newChainedRegion = std::make_unique<ChainedRegion>();
         newChainedRegion->chain = chain;

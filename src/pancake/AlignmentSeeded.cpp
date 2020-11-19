@@ -287,8 +287,8 @@ AlignRegionsGenericResult AlignRegionsGeneric(const char* targetSeq, const int32
 OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& sortedHits,
                            const char* targetSeq, const int32_t targetLen, const char* queryFwd,
                            const char* queryRev, const int32_t queryLen, int32_t minAlignmentSpan,
-                           int32_t maxFlankExtensionDist, AlignerBasePtr& alignerGlobal,
-                           AlignerBasePtr& alignerExt)
+                           int32_t maxFlankExtensionDist, double flankExtensionFactor,
+                           AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt)
 {
     // Sanity checks.
     if (ovl->Arev) {
@@ -334,8 +334,9 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     }
 
     // Prepare the regions for alignment.
-    std::vector<AlignmentRegion> regions = ExtractAlignmentRegions(
-        sortedHits, ovl->Alen, ovl->Blen, ovl->Brev, minAlignmentSpan, maxFlankExtensionDist, 1.3);
+    std::vector<AlignmentRegion> regions =
+        ExtractAlignmentRegions(sortedHits, ovl->Alen, ovl->Blen, ovl->Brev, minAlignmentSpan,
+                                maxFlankExtensionDist, flankExtensionFactor);
 
     // Run the alignment.
     AlignRegionsGenericResult alns = AlignRegionsGeneric(
