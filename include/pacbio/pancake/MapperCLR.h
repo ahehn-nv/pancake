@@ -152,6 +152,10 @@ public:
                                  const std::vector<PacBio::Pancake::Int128t>& querySeeds,
                                  const int32_t queryId, int64_t freqCutoff) override;
 
+    MapperBaseResult Map(const PacBio::Pancake::SeedIndex& index,
+                         const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+                         const int32_t queryLen, const int32_t queryId, int64_t freqCutoff);
+
     MapperBaseResult Align(const std::vector<FastaSequenceCached>& targetSeqs,
                            const FastaSequenceCached& querySeq,
                            const MapperBaseResult& mappingResult);

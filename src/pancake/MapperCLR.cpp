@@ -226,8 +226,56 @@ MapperBaseResult MapperCLR::MapAndAlign(const std::vector<FastaSequenceCached>& 
                                         const std::vector<PacBio::Pancake::Int128t>& querySeeds,
                                         const int32_t queryId, int64_t freqCutoff)
 {
-    // Skip short queries.
     const int32_t queryLen = querySeq.size();
+
+    // Map the query.
+    TicToc ttMap;
+    auto result = Map(index, querySeeds, queryLen, queryId, freqCutoff);
+    ttMap.Stop();
+
+    // Align if needed.
+    TicToc ttAlign;
+    if (settings_.align) {
+        result = Align(targetSeqs, querySeq, result);
+    }
+    ttAlign.Stop();
+
+    // Filter mappings.
+    size_t numValid = 0;
+    int32_t numSelectedSecondary = 0;
+    for (size_t i = 0; i < result.mappings.size(); ++i) {
+        const auto& region = result.mappings[i];
+        if (region->mapping == nullptr) {
+            continue;
+        }
+        if (region->priority > 1) {
+            continue;
+        }
+        if (region->priority == 1 && numSelectedSecondary >= settings_.bestNSecondary) {
+            continue;
+        }
+
+        // Since the secondary/supplementary labelling was repeated, we need to filter secondary
+        // alignments again.
+        if (region->priority == 1 && numSelectedSecondary < settings_.bestNSecondary) {
+            ++numSelectedSecondary;
+        }
+        if (i != numValid) {
+            std::swap(result.mappings[i], result.mappings[numValid]);
+        }
+        ++numValid;
+    }
+    result.mappings.resize(numValid);
+    DebugWriteChainedRegion(result.mappings, "9-result-final", queryId, queryLen);
+
+    return result;
+}
+
+MapperBaseResult MapperCLR::Map(const PacBio::Pancake::SeedIndex& index,
+                                const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+                                const int32_t queryLen, const int32_t queryId, int64_t freqCutoff)
+{
+    // Skip short queries.
     if (queryLen < settings_.minQueryLen) {
         return {};
     }
@@ -342,41 +390,6 @@ MapperBaseResult MapperCLR::MapAndAlign(const std::vector<FastaSequenceCached>& 
     }
     DebugWriteChainedRegion(result.mappings, "7-result-mappings", queryId, queryLen);
 
-    TicToc ttAlign;
-    if (settings_.align) {
-        result = Align(targetSeqs, querySeq, result);
-    }
-    ttAlign.Stop();
-    DebugWriteChainedRegion(result.mappings, "8-result-after-align", queryId, queryLen);
-
-    // Filter mappings again.
-    size_t numValid = 0;
-    numSelectedSecondary = 0;
-    for (size_t i = 0; i < result.mappings.size(); ++i) {
-        const auto& region = result.mappings[i];
-        if (region->mapping == nullptr) {
-            continue;
-        }
-        if (region->priority > 1) {
-            continue;
-        }
-        if (region->priority == 1 && numSelectedSecondary >= settings_.bestNSecondary) {
-            continue;
-        }
-
-        // Since the secondary/supplementary labelling was repeated, we need to filter secondary
-        // alignments again.
-        if (region->priority == 1 && numSelectedSecondary < settings_.bestNSecondary) {
-            ++numSelectedSecondary;
-        }
-        if (i != numValid) {
-            std::swap(result.mappings[i], result.mappings[numValid]);
-        }
-        ++numValid;
-    }
-    result.mappings.resize(numValid);
-    DebugWriteChainedRegion(result.mappings, "9-result-final", queryId, queryLen);
-
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
     std::cerr << "All hits: hits.size() = " << hits.size() << "\n";
     std::cerr << "Diagonal groups: groups.size() = " << groups.size() << "\n";
@@ -392,7 +405,7 @@ MapperBaseResult MapperCLR::MapAndAlign(const std::vector<FastaSequenceCached>& 
     for (size_t i = 0; i < groups.size(); ++i) {
         const auto& g = groups[i];
         const int32_t targetId = hits[g.start].targetId;
-        const int32_t targetLen = targetSeqs[targetId].size();
+        const int32_t targetLen = index.GetSequenceLength(targetId);
         WriteSeedHits(
             "temp-debug/hits-q" + std::to_string(queryId) + "-0-all-hits-diagonal-groupped.csv",
             hits, g.start, g.end, i, "query" + std::to_string(queryId), queryLen,
@@ -465,6 +478,8 @@ MapperBaseResult MapperCLR::Align(const std::vector<FastaSequenceCached>& target
         settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
 
     ttAlign.Stop();
+
+    DebugWriteChainedRegion(alignedResult.mappings, "8-result-after-align", queryId, queryLen);
 
     return alignedResult;
 }
