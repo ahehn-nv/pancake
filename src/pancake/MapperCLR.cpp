@@ -342,55 +342,11 @@ MapperBaseResult MapperCLR::MapAndAlign(const std::vector<FastaSequenceCached>& 
     }
     DebugWriteChainedRegion(result.mappings, "7-result-mappings", queryId, queryLen);
 
+    TicToc ttAlign;
     if (settings_.align) {
-#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
-        std::cerr << "Aligning. query_id = " << queryId << "\n";
-        std::cerr << "alignerTypeGlobal = " << AlignerTypeToString(settings_.alignerTypeGlobal)
-                  << "\n";
-        std::cerr << "alignerTypeExt = " << AlignerTypeToString(settings_.alignerTypeExt) << "\n";
-#endif
-
-        // Reverse the query sequence, needed for alignment.
-        const std::string querySeqRev =
-            PacBio::Pancake::ReverseComplement(querySeq.c_str(), 0, querySeq.size());
-
-        TicToc ttAlign;
-        for (size_t i = 0; i < result.mappings.size(); ++i) {
-            // const auto& chain = result.mappings[i]->chain;
-            auto& chain = result.mappings[i]->chain;
-            const auto& ovl = result.mappings[i]->mapping;
-            const auto& tSeqFwd = targetSeqs[ovl->Bid];
-
-            // Use a custom aligner to align.
-            TicToc ttAlignmentSeeded;
-            auto newOvl = AlignmentSeeded(
-                ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
-                &querySeqRev[0], queryLen, settings_.minAlignmentSpan,
-                settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
-            ttAlignmentSeeded.Stop();
-            std::swap(result.mappings[i]->mapping, newOvl);
-
-#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
-            std::cerr << "[mapping i = " << i << ", before alignment] ovl: "
-                      << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, true) << "\n";
-            const auto& updatedOvl = result.mappings[i]->mapping;
-            std::cerr << "[mapping i = " << i << ", after alignment] ovl: ";
-            if (updatedOvl != nullptr) {
-                std::cerr << OverlapWriterBase::PrintOverlapAsM4(updatedOvl, "", "", true, true)
-                          << "\n";
-            } else {
-                std::cerr << "nullptr\n";
-            }
-            std::cerr << "ttAlignmentSeeded = " << ttAlignmentSeeded.GetCpuMillisecs() << " ms\n";
-#endif
-        }
-        // Secondary/supplementary flagging.
-        WrapFlagSecondaryAndSupplementary_(
-            result.mappings, settings_.secondaryAllowedOverlapFractionQuery,
-            settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
-
-        ttAlign.Stop();
+        result = Align(targetSeqs, querySeq, result);
     }
+    ttAlign.Stop();
     DebugWriteChainedRegion(result.mappings, "8-result-after-align", queryId, queryLen);
 
     // Filter mappings again.
@@ -445,6 +401,72 @@ MapperBaseResult MapperCLR::MapAndAlign(const std::vector<FastaSequenceCached>& 
 #endif
 
     return result;
+}
+
+MapperBaseResult MapperCLR::Align(const std::vector<FastaSequenceCached>& targetSeqs,
+                                  const FastaSequenceCached& querySeq,
+                                  const MapperBaseResult& mappingResult)
+{
+#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
+    std::cerr << "Aligning.\n";
+    std::cerr << "alignerTypeGlobal = " << AlignerTypeToString(settings_.alignerTypeGlobal) << "\n";
+    std::cerr << "alignerTypeExt = " << AlignerTypeToString(settings_.alignerTypeExt) << "\n";
+#endif
+
+    const int32_t queryLen = querySeq.size();
+    const int32_t queryId = querySeq.Id();
+
+    MapperBaseResult alignedResult;
+
+    // Reverse the query sequence, needed for alignment.
+    const std::string querySeqRev =
+        PacBio::Pancake::ReverseComplement(querySeq.c_str(), 0, querySeq.size());
+
+    TicToc ttAlign;
+    for (size_t i = 0; i < mappingResult.mappings.size(); ++i) {
+        // const auto& chain = result.mappings[i]->chain;
+        const auto& chain = mappingResult.mappings[i]->chain;
+        const auto& ovl = mappingResult.mappings[i]->mapping;
+        const auto& tSeqFwd = targetSeqs[ovl->Bid];
+
+        // Use a custom aligner to align.
+        TicToc ttAlignmentSeeded;
+        auto newOvl =
+            AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
+                            &querySeqRev[0], queryLen, settings_.minAlignmentSpan,
+                            settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
+        ttAlignmentSeeded.Stop();
+
+        auto newChainedRegion = std::make_unique<ChainedRegion>();
+        newChainedRegion->chain = chain;
+        newChainedRegion->mapping = std::move(newOvl);
+        newChainedRegion->priority = mappingResult.mappings[i]->priority;
+        newChainedRegion->isSupplementary = mappingResult.mappings[i]->isSupplementary;
+        alignedResult.mappings.emplace_back(std::move(newChainedRegion));
+
+#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
+        std::cerr << "[mapping i = " << i << ", before alignment] ovl: "
+                  << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, true) << "\n";
+        const auto& updatedOvl = alignedResult.mappings[i]->mapping;
+        std::cerr << "[mapping i = " << i << ", after alignment] ovl: ";
+        if (updatedOvl != nullptr) {
+            std::cerr << OverlapWriterBase::PrintOverlapAsM4(updatedOvl, "", "", true, true)
+                      << "\n";
+        } else {
+            std::cerr << "nullptr\n";
+        }
+        std::cerr << "ttAlignmentSeeded = " << ttAlignmentSeeded.GetCpuMillisecs() << " ms\n";
+#endif
+    }
+
+    // Secondary/supplementary flagging.
+    WrapFlagSecondaryAndSupplementary_(
+        alignedResult.mappings, settings_.secondaryAllowedOverlapFractionQuery,
+        settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
+
+    ttAlign.Stop();
+
+    return alignedResult;
 }
 
 void MapperCLR::WrapFlagSecondaryAndSupplementary_(
