@@ -3,6 +3,7 @@
 #ifndef PANCAKE_MAPPER_BASE_H
 #define PANCAKE_MAPPER_BASE_H
 
+#include <pacbio/pancake/AlignmentSeeded.h>
 #include <pacbio/pancake/DPChain.h>
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/FastaSequenceId.h>
@@ -19,6 +20,7 @@ namespace Pancake {
 struct ChainedRegion
 {
     ChainedHits chain;
+    std::vector<AlignmentRegion> regionsForAln;
     OverlapPtr mapping;
     // Priority 0 means primary alignment, 1 secondary, < 0 not set, and > 1 filtered.
     int32_t priority = 0;

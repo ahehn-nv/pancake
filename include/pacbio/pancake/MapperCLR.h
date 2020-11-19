@@ -269,6 +269,8 @@ private:
         std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
         double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
         double secondaryMinScoreFraction);
+
+    void CollectAlignmentRegions_(MapperBaseResult& mappingResult);
 };
 
 }  // namespace Pancake

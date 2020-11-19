@@ -398,6 +398,8 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     }
 #endif
 
+    CollectAlignmentRegions_(result);
+
     return result;
 }
 
@@ -464,6 +466,25 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
     DebugWriteChainedRegion(alignedResult.mappings, "8-result-after-align", queryId, queryLen);
 
     return alignedResult;
+}
+
+void MapperCLR::CollectAlignmentRegions_(MapperBaseResult& mappingResult)
+{
+    for (size_t i = 0; i < mappingResult.mappings.size(); ++i) {
+        if (mappingResult.mappings[i] == nullptr || mappingResult.mappings[i]->mapping == nullptr) {
+            continue;
+        }
+        const auto& ovl = mappingResult.mappings[i]->mapping;
+        const auto& chain = mappingResult.mappings[i]->chain;
+        if (ovl->Arev) {
+            throw std::runtime_error(
+                "(CollectAlignmentRegions) The ovl->Arev should always be false!");
+        }
+        std::vector<AlignmentRegion> regions = ExtractAlignmentRegions(
+            chain.hits, ovl->Alen, ovl->Blen, ovl->Brev, settings_.minAlignmentSpan,
+            settings_.maxFlankExtensionDist, settings_.flankExtensionFactor);
+        std::swap(mappingResult.mappings[i]->regionsForAln, regions);
+    }
 }
 
 void MapperCLR::WrapFlagSecondaryAndSupplementary_(
