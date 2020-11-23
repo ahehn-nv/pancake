@@ -3,6 +3,7 @@
 #include <pacbio/pancake/AlignerKSW2.h>
 #include <pacbio/pancake/Lookups.h>
 #include <cstring>
+#include <iostream>
 
 namespace PacBio {
 namespace Pancake {
@@ -40,6 +41,12 @@ AlignerKSW2::~AlignerKSW2() = default;
 
 AlignmentResult AlignerKSW2::Global(const char* qseq, int64_t qlen, const char* tseq, int64_t tlen)
 {
+    if (qlen == 0 || tlen == 0) {
+        AlignmentResult ret = EdgeCaseAlignmentResult(
+            qlen, tlen, opt_.matchScore, opt_.mismatchPenalty, opt_.gapOpen1, opt_.gapExtend1);
+        return ret;
+    }
+
     const int32_t extra_flag = 0;
 
     // Bandwidth heuristic, as it is in Minimap2.
@@ -104,6 +111,12 @@ AlignmentResult AlignerKSW2::Global(const char* qseq, int64_t qlen, const char* 
 
 AlignmentResult AlignerKSW2::Extend(const char* qseq, int64_t qlen, const char* tseq, int64_t tlen)
 {
+    if (qlen == 0 || tlen == 0) {
+        AlignmentResult ret = EdgeCaseAlignmentResult(
+            qlen, tlen, opt_.matchScore, opt_.mismatchPenalty, opt_.gapOpen1, opt_.gapExtend1);
+        return ret;
+    }
+
     const int32_t extra_flag = 0;
 
     // Bandwidth heuristic, as it is in Minimap2.
@@ -125,7 +138,7 @@ AlignmentResult AlignerKSW2::Extend(const char* qseq, int64_t qlen, const char* 
 
     AlignmentResult ret;
     ret.cigar = std::move(currCigar);
-    ret.valid = ez.reach_end;
+    ret.valid = true;  // ez.reach_end;
     ret.lastQueryPos = (ez.reach_end ? qlen : ez.max_q + 1);
     ret.lastTargetPos = (ez.reach_end ? ez.mqe_t + 1 : ez.max_t + 1);
     ret.maxQueryPos = ez.max_q;
