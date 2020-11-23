@@ -398,7 +398,14 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     }
 #endif
 
-    CollectAlignmentRegions_(result);
+    for (size_t i = 0; i < result.mappings.size(); ++i) {
+        if (result.mappings[i] == nullptr || result.mappings[i]->mapping == nullptr) {
+            continue;
+        }
+        result.mappings[i]->regionsForAln = CollectAlignmentRegions_(
+            result.mappings[i], settings.minAlignmentSpan, +settings.maxFlankExtensionDist,
+            settings.flankExtensionFactor);
+    }
 
     return result;
 }
@@ -431,10 +438,9 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
         const auto& tSeqFwd = targetSeqs[ovl->Bid];
 
         // Use a custom aligner to align.
-        auto newOvl = AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(),
-                                      &querySeq.c_str()[0], &querySeqRev[0], queryLen,
-                                      settings.minAlignmentSpan, settings.maxFlankExtensionDist,
-                                      settings.flankExtensionFactor, alignerGlobal, alignerExt);
+        auto newOvl = AlignmentSeeded(ovl, mappingResult.mappings[i]->regionsForAln,
+                                      tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
+                                      &querySeqRev[0], queryLen, alignerGlobal, alignerExt);
 
         auto newChainedRegion = std::make_unique<ChainedRegion>();
         newChainedRegion->chain = chain;
@@ -468,23 +474,51 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
     return alignedResult;
 }
 
-void MapperCLR::CollectAlignmentRegions_(MapperBaseResult& mappingResult)
+std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(
+    const std::unique_ptr<ChainedRegion>& singleMapping, int32_t minAlignmentSpan,
+    int32_t maxFlankExtensionDist, double flankExtensionFactor)
 {
-    for (size_t i = 0; i < mappingResult.mappings.size(); ++i) {
-        if (mappingResult.mappings[i] == nullptr || mappingResult.mappings[i]->mapping == nullptr) {
-            continue;
-        }
-        const auto& ovl = mappingResult.mappings[i]->mapping;
-        const auto& chain = mappingResult.mappings[i]->chain;
-        if (ovl->Arev) {
-            throw std::runtime_error(
-                "(CollectAlignmentRegions) The ovl->Arev should always be false!");
-        }
-        std::vector<AlignmentRegion> regions = ExtractAlignmentRegions(
-            chain.hits, ovl->Alen, ovl->Blen, ovl->Brev, settings_.minAlignmentSpan,
-            settings_.maxFlankExtensionDist, settings_.flankExtensionFactor);
-        std::swap(mappingResult.mappings[i]->regionsForAln, regions);
+    if (singleMapping == nullptr || singleMapping->mapping == nullptr) {
+        return {};
     }
+
+    const auto& ovl = singleMapping->mapping;
+    const auto& chain = singleMapping->chain;
+    const auto& sortedHits = chain.hits;
+
+    // Sanity checks.
+    if (ovl->Arev) {
+        throw std::runtime_error("(CollectAlignmentRegions) The ovl->Arev should always be false!");
+    }
+    if (ovl->Astart != sortedHits.front().queryPos || ovl->Aend != sortedHits.back().queryPos ||
+        ovl->Bstart != sortedHits.front().targetPos || ovl->Bend != sortedHits.back().targetPos) {
+        std::ostringstream oss;
+        oss << "(AlignmentSeeded) Provided overlap coordinates do not match the first/last "
+               "seed "
+               "hit!"
+            << " ovl: " << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false)
+            << "; sortedHits.front() = " << sortedHits.front()
+            << "; sortedHits.back() = " << sortedHits.back();
+        throw std::runtime_error(oss.str());
+    }
+    if (ovl->Brev != sortedHits.front().targetRev || ovl->Brev != sortedHits.back().targetRev) {
+        std::ostringstream oss;
+        oss << "(AlignmentSeeded) Strand of the provided overlap does not match the first/last "
+               "seed hit."
+            << " ovl->Brev = " << (ovl->Brev ? "true" : "false")
+            << ", sortedHits.front().targetRev = "
+            << (sortedHits.front().targetRev ? "true" : "false")
+            << ", sortedHits.back().targetRev = "
+            << (sortedHits.back().targetRev ? "true" : "false");
+        throw std::runtime_error(oss.str());
+    }
+
+    // Extract the regions.
+    std::vector<AlignmentRegion> regions =
+        ExtractAlignmentRegions(chain.hits, ovl->Alen, ovl->Blen, ovl->Brev, minAlignmentSpan,
+                                maxFlankExtensionDist, flankExtensionFactor);
+
+    return regions;
 }
 
 void MapperCLR::WrapFlagSecondaryAndSupplementary_(
