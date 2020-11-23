@@ -644,3 +644,112 @@ TEST(MapperCLR, Map_FromFile)
         ASSERT_EQ(data.expectedOverlaps, resultsStr);
     }
 }
+
+void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId,
+                             const PacBio::Pancake::ChainedRegion& cr)
+{
+    oss << "[regionId " << regionId << "] chain.hits = " << cr.chain.hits.size()
+        << ", chain.score = " << cr.chain.score << ", chain.covQ = " << cr.chain.coveredBasesQuery
+        << ", chain.covT = " << cr.chain.coveredBasesTarget << ", priority = " << cr.priority
+        << ", isSuppl = " << (cr.isSupplementary ? "true" : "false") << ", ovl: "
+        << PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(cr.mapping, "", "", true, false)
+        << ", diagStart = " << (cr.mapping->Astart - cr.mapping->Bstart)
+        << ", diagEnd = " << (cr.mapping->Aend - cr.mapping->Bend);
+
+    oss << "\n";
+    for (size_t j = 0; j < cr.chain.hits.size(); ++j) {
+        const auto& hit = cr.chain.hits[j];
+        std::cerr << "    [hit " << j << "] " << hit << "\n";
+    }
+}
+
+TEST(MapperCLR, CheckSeedHits)
+{
+    using namespace PacBio::Pancake;
+
+    struct TestData
+    {
+        std::string testName;
+        std::string targetFile;
+        std::string queryFile;
+        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
+        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
+        std::vector<std::vector<SeedHit>> expectedSeedHits;
+        std::vector<std::string> expectedMappings;
+    };
+
+    // clang-format off
+    std::vector<TestData> testData = {
+        {
+            "RealHifiReads_Subsequences",
+            // Target
+            PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.target.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
+            // SeedParams - primary
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, 100, true},
+            // SeedParams - fallback
+            PacBio::Pancake::SeedDB::SeedDBParameters{15, 5, 0, false, true, 100, true},
+            // Expected seed hits.
+            {
+                {
+                    SeedHit(0, false, 38493, 6585, 30, 25, 0),
+                    SeedHit(0, false, 40327, 6585, 24, 25, 0),
+                },
+                {
+                    SeedHit(0, false, 11779, 29565, 28, 29, 0),
+                    SeedHit(0, false, 11791, 29577, 25, 25, 0),
+                    SeedHit(0, false, 11849, 29637, 24, 27, 0),
+                },
+            },
+            // Expected mappings.
+            {
+                "000000000 000000000 -862 25.72 0 6468 7589 43446 0 38370 41325 46238 *",
+                "000000000 000000000 -183 73.89 0 29527 29753 43446 0 11747 11966 46238 *"
+            },
+        },
+    };
+    // clang-format on
+
+    PacBio::Pancake::MapperCLRSettings settings;
+    settings.freqPercentile = 0.000;
+
+    for (const auto& data : testData) {
+        // Load the sequences from files, and take only the first one.
+        const std::vector<PacBio::BAM::FastaSequence> allTargetSeqs =
+            PacBio::PancakeTests::HelperLoadFasta(data.targetFile);
+        const std::vector<PacBio::BAM::FastaSequence> allQuerySeqs =
+            PacBio::PancakeTests::HelperLoadFasta(data.queryFile);
+        const std::string& target = allTargetSeqs[0].Bases();
+        const std::string& query = allQuerySeqs[0].Bases();
+
+        SCOPED_TRACE(data.testName);
+
+        std::cerr << "testName = " << data.testName << "\n";
+
+        settings.seedParams = data.seedParamsPrimary;
+        settings.seedParamsFallback = data.seedParamsFallback;
+        // settings.align = false;
+        PacBio::Pancake::MapperCLR mapper(settings);
+
+        std::vector<PacBio::Pancake::MapperCLRResult> result = mapper.Map({target}, {query});
+        std::vector<std::vector<PacBio::Pancake::SeedHit>> resultSeedHits;
+        std::vector<std::string> resultsMappings;
+        for (const auto& queryMappings : result) {
+            for (const auto& mapping : queryMappings.mappings) {
+                std::cerr << PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
+                                 mapping->mapping, "", "", true, false)
+                          << "\n";
+
+                // DebugPrintChainedRegion(std::cerr, 0, *mapping);
+                resultSeedHits.emplace_back(mapping->chain.hits);
+
+                resultsMappings.emplace_back(PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
+                    mapping->mapping, "", "", true, false));
+            }
+        }
+
+        ASSERT_EQ(data.expectedSeedHits, resultSeedHits);
+        ASSERT_EQ(data.expectedMappings, resultsMappings);
+    }
+}
