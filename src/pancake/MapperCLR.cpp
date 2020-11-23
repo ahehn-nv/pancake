@@ -443,6 +443,10 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
     int32_t chainMaxSkip, int32_t chainMaxPredecessors, int32_t maxGap, int32_t chainBandwidth,
     int32_t minNumSeeds, int32_t minCoveredBases, int32_t minDPScore)
 {
+#ifdef PANCAKE_MAP_CLR_DEBUG_2
+    std::cerr << "(ReChainSeedHits_) Starting to rechain the seed hits.\n";
+#endif
+
     std::vector<std::unique_ptr<ChainedRegion>> newChainedRegions;
 
     // Merge all remaining seed hits.
@@ -465,6 +469,14 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
     auto groups = GroupByTargetAndStrand(hits2);
 
     for (const auto& group : groups) {
+#ifdef PANCAKE_MAP_CLR_DEBUG_2
+        std::cerr << "(ReChainSeedHits_) group: " << group << ", span = " << group.Span() << "\n";
+        for (int32_t i = group.start; i < group.end; ++i) {
+            std::cerr << "    [hit i = " << i << "] " << hits2[i] << "\n";
+        }
+        std::cerr << "\n";
+#endif
+
         // DP Chaining of the filtered hits to remove outliers.
         std::vector<ChainedHits> chains = ChainHits(
             &hits2[group.start], group.end - group.start, chainMaxSkip, chainMaxPredecessors,
@@ -678,8 +690,8 @@ void MapperCLR::LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& ch
         // Skip if there is an overlap (or if the target is wrong), to preserve colinearity.
         if (curr->mapping->Bid != last->mapping->Bid ||
             curr->mapping->Brev != last->mapping->Brev ||
-            curr->mapping->Astart < last->mapping->Aend ||
-            curr->mapping->Bstart < last->mapping->Bend) {
+            curr->mapping->Astart <= last->mapping->Aend ||
+            curr->mapping->Bstart <= last->mapping->Bend) {
             lastId = currId;
             continue;
         }
