@@ -576,7 +576,7 @@ TEST(MapperCLR, Map_FromString)
     }
 }
 
-TEST(MapperCLR, Map_FromFile)
+TEST(MapperCLR, CheckMappping_LoadFromFile)
 {
     struct TestData
     {
@@ -663,7 +663,7 @@ void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId,
     }
 }
 
-TEST(MapperCLR, CheckSeedHits)
+TEST(MapperCLR, CheckMappingAndSeedHits)
 {
     using namespace PacBio::Pancake;
 
@@ -690,23 +690,47 @@ TEST(MapperCLR, CheckSeedHits)
             PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, 100, true},
             // SeedParams - fallback
             PacBio::Pancake::SeedDB::SeedDBParameters{15, 5, 0, false, true, 100, true},
+            ///// These were the old 'wrong' mappings, where we had two seed hits which had the
+            ///// same X-coordinate.
+            // // Expected seed hits.
+            // {
+            //     {
+            //         SeedHit(0, false, 38493, 6585, 30, 25, 0),
+            //         SeedHit(0, false, 40327, 6585, 24, 25, 0),
+            //     },
+            //     {
+            //         SeedHit(0, false, 11779, 29565, 28, 29, 0),
+            //         SeedHit(0, false, 11791, 29577, 25, 25, 0),
+            //         SeedHit(0, false, 11849, 29637, 24, 27, 0),
+            //     },
+            // },
+            // // Expected mappings.
+            // {
+            //     "000000000 000000000 -862 25.72 0 6468 7589 43446 0 38370 41325 46238 *",
+            //     "000000000 000000000 -183 73.89 0 29527 29753 43446 0 11747 11966 46238 *"
+            // },
+            /////
+            ///// This is what the seed hits and mappings look like after the LongMergeChains_ strictly
+            ///// disallowed the overlap, even at the same position.
             // Expected seed hits.
             {
                 {
-                    SeedHit(0, false, 38493, 6585, 30, 25, 0),
-                    SeedHit(0, false, 40327, 6585, 24, 25, 0),
+                    SeedHit(0, false, 7919, 6832, 28, 28, 0),
+                    SeedHit(0, false, 11021, 9922, 29, 30, 0),
+                    SeedHit(0, false, 11401, 10312, 25, 24, 0),
                 },
                 {
-                    SeedHit(0, false, 11779, 29565, 28, 29, 0),
-                    SeedHit(0, false, 11791, 29577, 25, 25, 0),
-                    SeedHit(0, false, 11849, 29637, 24, 27, 0),
+                    SeedHit(0, false, 37479, 5606, 26, 24, 0),
+                    SeedHit(0, false, 37486, 5612, 26, 25, 0),
                 },
             },
             // Expected mappings.
             {
-                "000000000 000000000 -862 25.72 0 6468 7589 43446 0 38370 41325 46238 *",
-                "000000000 000000000 -183 73.89 0 29527 29753 43446 0 11747 11966 46238 *"
+                "000000000 000000000 -4710 67.66 0 6209 12358 43446 0 7261 13474 46238 *",
+                "000000000 000000000 -525 71.66 0 5287 5940 43446 0 37146 37820 46238 *",
             },
+
+
         },
     };
     // clang-format on
@@ -749,7 +773,9 @@ TEST(MapperCLR, CheckSeedHits)
             }
         }
 
-        ASSERT_EQ(data.expectedSeedHits, resultSeedHits);
-        ASSERT_EQ(data.expectedMappings, resultsMappings);
+        EXPECT_EQ(data.expectedSeedHits, resultSeedHits);
+        EXPECT_EQ(data.expectedMappings, resultsMappings);
     }
+
+    // exit(1);
 }
