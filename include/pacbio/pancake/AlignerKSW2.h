@@ -49,9 +49,12 @@ private:
     // mm_idxopt_t iopt_;
     // mm_mapopt_t mopt_;
 
-    static PacBio::Data::Cigar ConvertMinimap2CigarToPbbam_(uint32_t* mm2Cigar, int32_t cigarLen,
-                                                            const std::vector<uint8_t>& qseq,
-                                                            const std::vector<uint8_t>& tseq);
+    void ConvertMinimap2CigarToPbbam_(uint32_t* mm2Cigar, int32_t cigarLen,
+                                      const std::vector<uint8_t>& qseq,
+                                      const std::vector<uint8_t>& tseq,
+                                      PacBio::Data::Cigar& retCigar, int32_t& retQueryAlignmentLen,
+                                      int32_t& retTargetAlignmentLen);
+
     static std::vector<uint8_t> ConvertSeqAlphabet_(const char* seq, size_t seqlen,
                                                     const int8_t* conv_table);
 

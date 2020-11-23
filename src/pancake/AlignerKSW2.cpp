@@ -87,12 +87,18 @@ AlignmentResult AlignerKSW2::Global(const char* qseq, int64_t qlen, const char* 
     //                   actualBandwidth, -1, zdrop_code == 2 ? mopt_.zdrop_inv : mopt_.zdrop,
     //                   extra_flag, &ez);
     // }
-    auto currCigar = ConvertMinimap2CigarToPbbam_(ez.cigar, ez.n_cigar, qseqInt, tseqInt);
+
+    PacBio::Data::Cigar currCigar;
+    int32_t qAlnLen = 0;
+    int32_t tAlnLen = 0;
+    ConvertMinimap2CigarToPbbam_(ez.cigar, ez.n_cigar, qseqInt, tseqInt, currCigar, qAlnLen,
+                                 tAlnLen);
 
     AlignmentResult ret;
     ret.cigar = std::move(currCigar);
     // ret.valid = ez.reach_end;
-    ret.valid = true;
+    ret.valid =
+        (ez.zdropped || ez.n_cigar == 0 || qAlnLen != qlen || tAlnLen != tlen) ? false : true;
     ret.lastQueryPos = qlen;
     ret.lastTargetPos = tlen;
     // ret.lastQueryPos = (ez.reach_end ? qlen : ez.max_q + 1);
@@ -134,11 +140,15 @@ AlignmentResult AlignerKSW2::Extend(const char* qseq, int64_t qlen, const char* 
                    opt_.zdrop, extra_flag | KSW_EZ_EXTZ_ONLY | KSW_EZ_RIGHT, &ez, opt_.gapOpen1,
                    opt_.gapExtend1, opt_.gapOpen2, opt_.gapExtend2);
 
-    auto currCigar = ConvertMinimap2CigarToPbbam_(ez.cigar, ez.n_cigar, qseqInt, tseqInt);
+    PacBio::Data::Cigar currCigar;
+    int32_t qAlnLen = 0;
+    int32_t tAlnLen = 0;
+    ConvertMinimap2CigarToPbbam_(ez.cigar, ez.n_cigar, qseqInt, tseqInt, currCigar, qAlnLen,
+                                 tAlnLen);
 
     AlignmentResult ret;
     ret.cigar = std::move(currCigar);
-    ret.valid = true;  // ez.reach_end;
+    ret.valid = (ez.n_cigar == 0) ? false : true;
     ret.lastQueryPos = (ez.reach_end ? qlen : ez.max_q + 1);
     ret.lastTargetPos = (ez.reach_end ? ez.mqe_t + 1 : ez.max_t + 1);
     ret.maxQueryPos = ez.max_q;
@@ -163,11 +173,16 @@ std::vector<uint8_t> AlignerKSW2::ConvertSeqAlphabet_(const char* seq, size_t se
     return ret;
 }
 
-PacBio::Data::Cigar AlignerKSW2::ConvertMinimap2CigarToPbbam_(uint32_t* mm2Cigar, int32_t cigarLen,
-                                                              const std::vector<uint8_t>& qseq,
-                                                              const std::vector<uint8_t>& tseq)
+void AlignerKSW2::ConvertMinimap2CigarToPbbam_(uint32_t* mm2Cigar, int32_t cigarLen,
+                                               const std::vector<uint8_t>& qseq,
+                                               const std::vector<uint8_t>& tseq,
+                                               PacBio::Data::Cigar& retCigar,
+                                               int32_t& retQueryAlignmentLen,
+                                               int32_t& retTargetAlignmentLen)
 {
-    PacBio::Data::Cigar cigar;
+    retCigar.clear();
+    retQueryAlignmentLen = 0;
+    retTargetAlignmentLen = 0;
 
     int32_t qPos = 0;
     int32_t tPos = 0;
@@ -190,7 +205,7 @@ PacBio::Data::Cigar AlignerKSW2::ConvertMinimap2CigarToPbbam_(uint32_t* mm2Cigar
                     ++span;
                 } else {
                     if (span > 0) {
-                        cigar.emplace_back(Data::CigarOperation(prevOp, span));
+                        retCigar.emplace_back(Data::CigarOperation(prevOp, span));
                         // std::cerr << "  -> Added (mid):  " << span << prevOp << "\n";
                     }
                     span = 1;
@@ -200,24 +215,25 @@ PacBio::Data::Cigar AlignerKSW2::ConvertMinimap2CigarToPbbam_(uint32_t* mm2Cigar
                 // ++tPos;
             }
             if (span > 0) {
-                cigar.emplace_back(Data::CigarOperation(prevOp, span));
+                retCigar.emplace_back(Data::CigarOperation(prevOp, span));
                 // std::cerr << "  -> Added (last): " << span << prevOp << "\n";
             }
             qPos += count;
             tPos += count;
         } else if (op == '=' || op == 'X') {
-            cigar.emplace_back(Data::CigarOperation(op, count));
+            retCigar.emplace_back(Data::CigarOperation(op, count));
             qPos += count;
             tPos += count;
         } else if (op == 'I' || op == 'S') {
-            cigar.emplace_back(Data::CigarOperation(op, count));
+            retCigar.emplace_back(Data::CigarOperation(op, count));
             qPos += count;
         } else if (op == 'D' || op == 'N') {
-            cigar.emplace_back(Data::CigarOperation(op, count));
+            retCigar.emplace_back(Data::CigarOperation(op, count));
             tPos += count;
         }
     }
-    return cigar;
+    retQueryAlignmentLen = qPos;
+    retTargetAlignmentLen = tPos;
 }
 
 void AlignerKSW2::mm_align_pair_(void* km, int qlen, const uint8_t* qseq, int tlen,
