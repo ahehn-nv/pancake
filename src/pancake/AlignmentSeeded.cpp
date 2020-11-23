@@ -127,7 +127,8 @@ std::vector<AlignmentRegion> ExtractAlignmentRegions(const std::vector<SeedHit>&
         }
 
         // Skip short alignment portions.
-        if ((i + 1) < nHits && h2.CheckFlagLongJoin() == false &&
+        // if ((i + 1) < nHits && h2.CheckFlagLongJoin() == false &&
+        if ((i + 1) < nHits &&
             (region.qSpan < minAlignmentSpan || region.tSpan < minAlignmentSpan)) {
             continue;
         }
@@ -260,18 +261,8 @@ AlignRegionsGenericResult AlignRegionsGeneric(const char* targetSeq, const int32
         alignedRegions.emplace_back(std::move(alnRes));
 
 #ifdef DEBUG_ALIGNMENT_SEEDED
-        std::cerr << "[aln region i = " << i << " / " << regions.size() << "]"
-                  << " region.regionId = " << region.regionId
-                  << ", region.qStart = " << region.qStart
-                  << ", region.qEnd = " << (region.qStart + region.qSpan)
-                  << ", region.qSpan = " << region.qSpan << ", region.tStart = " << region.tStart
-                  << ", region.tEnd = " << (region.tStart + region.tSpan)
-                  << ", region.tSpan = " << region.tSpan
-                  << ", region.type = " << RegionTypeToString(region.type)
-                  << ", region.queryRev = " << (region.queryRev ? "true" : "false")
-                  << ", qStart = " << qStart << ", qSpan = " << qSpan << ", tStart = " << tStart
-                  << ", tSpan = " << tSpan << "\n"
-                  << ", CIGAR: " << ret.alignedRegions.back().cigar.ToStdString() << "\n"
+        std::cerr << "[aln region i = " << i << " / " << regions.size() << "] " << region
+                  << ", CIGAR: " << alignedRegions.back().cigar.ToStdString() << "\n"
                   << alnRes << "\n\n";
 #endif
     }
@@ -414,13 +405,22 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
         ValidateCigar(querySeqFwd + qstart, ret->ASpan(), targetSeqForValidation.c_str() + tstart,
                       ret->BSpan(), ret->Cigar, "Full length validation.");
     } catch (std::exception& e) {
-        ret = nullptr;
-        PBLOG_DEBUG << "[Note: Exception when aligning!] " << e.what() << "\n";
-        PBLOG_DEBUG << "Q: " << std::string(querySeqFwd, queryLen) << "\n";
-        PBLOG_DEBUG << "T: " << targetSeqForValidation << "\n";
         // std::cerr << "[Note: Exception when aligning!] " << e.what() << "\n";
+        // std::cerr << "Input overlap: "
+        //           << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, true) << "\n";
+        // std::cerr << "ASpan = " << ret->ASpan() << ", BSpan = " << ret->BSpan() << "\n";
         // std::cerr << "Q: " << std::string(querySeqFwd, queryLen) << "\n";
         // std::cerr << "T: " << targetSeqForValidation << "\n";
+        // std::cerr << "\n";
+        // std::cerr << "regions.size() = " << regions.size() << "\n";
+        // for (size_t i = 0; i < regions.size(); ++i) {
+        //     std::cerr << "[region i = " << i << "] " << regions[i] << "\n";
+        // }
+        // std::cerr.flush();
+        PBLOG_DEBUG << "[Note: Exception when aligning!] " << e.what() << "\n";
+        PBLOG_DEBUG << "Q: " << std::string(querySeqFwd, ret->ASpan()) << "\n";
+        PBLOG_DEBUG << "T: " << targetSeqForValidation << "\n";
+        ret = nullptr;
     }
 
     return ret;
