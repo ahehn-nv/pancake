@@ -578,55 +578,54 @@ TEST(MapperCLR, Map_FromString)
 
 TEST(MapperCLR, Map_FromFile)
 {
-    // clang-format off
-    std::vector<std::tuple<std::string, std::string, std::string, PacBio::Pancake::SeedDB::SeedDBParameters, PacBio::Pancake::SeedDB::SeedDBParameters, std::vector<std::string>>> testData = {
-
+    struct TestData
     {
-        "RealHifiReads_Subsequences",
-        // Target
-        PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.target.fasta",
-        // Query.
-        PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
-        // SeedParams - primary
-        PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true},
-        // SeedParams - fallback
-        PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
-        // Expected results.
+        std::string testName;
+        std::string targetFile;
+        std::string queryFile;
+        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
+        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
+        std::vector<std::string> expectedOverlaps;
+    };
+
+    // clang-format off
+    std::vector<TestData> testData = {
         {
-            "000000000 000000000 -1345 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
+            "RealHifiReads_Subsequences",
+            // Target
+            PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.target.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
+            // SeedParams - primary
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true},
+            // SeedParams - fallback
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
+            // Expected results.
+            {
+                "000000000 000000000 -1345 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
+            },
         },
-    },
-
-
     };
     // clang-format on
 
     PacBio::Pancake::MapperCLRSettings settings;
     settings.freqPercentile = 0.000;
 
-    for (const auto& singleTest : testData) {
-        const std::string& testName = std::get<0>(singleTest);
-        const std::string& targetFile = std::get<1>(singleTest);
-        const std::string& queryFile = std::get<2>(singleTest);
-        const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams = std::get<3>(singleTest);
-        const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsFallback =
-            std::get<4>(singleTest);
-        const std::vector<std::string>& expected = std::get<5>(singleTest);
-
+    for (const auto& data : testData) {
         // Load the sequences from files, and take only the first one.
         const std::vector<PacBio::BAM::FastaSequence> allTargetSeqs =
-            PacBio::PancakeTests::HelperLoadFasta(targetFile);
+            PacBio::PancakeTests::HelperLoadFasta(data.targetFile);
         const std::vector<PacBio::BAM::FastaSequence> allQuerySeqs =
-            PacBio::PancakeTests::HelperLoadFasta(queryFile);
+            PacBio::PancakeTests::HelperLoadFasta(data.queryFile);
         const std::string& target = allTargetSeqs[0].Bases();
         const std::string& query = allQuerySeqs[0].Bases();
 
-        SCOPED_TRACE(testName);
+        SCOPED_TRACE(data.testName);
 
-        std::cerr << "testName = " << testName << "\n";
+        std::cerr << "testName = " << data.testName << "\n";
 
-        settings.seedParams = seedParams;
-        settings.seedParamsFallback = seedParamsFallback;
+        settings.seedParams = data.seedParamsPrimary;
+        settings.seedParamsFallback = data.seedParamsFallback;
         PacBio::Pancake::MapperCLR mapper(settings);
 
         std::vector<PacBio::Pancake::MapperCLRResult> result = mapper.Map({target}, {query});
@@ -642,6 +641,6 @@ TEST(MapperCLR, Map_FromFile)
             }
         }
 
-        ASSERT_EQ(expected, resultsStr);
+        ASSERT_EQ(data.expectedOverlaps, resultsStr);
     }
 }
