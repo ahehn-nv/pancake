@@ -59,6 +59,10 @@ AlignmentResult AlignerSES1::Global(const char* qseq, int64_t qlen, const char* 
     ret.maxQueryPos = qlen;
     ret.maxTargetPos = tlen;
 
+    if (ret.valid == false) {
+        ret.cigar.clear();
+    }
+
     return ret;
 }
 

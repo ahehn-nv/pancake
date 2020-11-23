@@ -92,6 +92,10 @@ AlignmentResult AlignerKSW2::Global(const char* qseq, int64_t qlen, const char* 
     ret.maxScore = ez.max;
     ret.zdropped = ez.zdropped;
 
+    if (ret.valid == false) {
+        ret.cigar.clear();
+    }
+
     // Free KSW2 memory.
     kfree(buffer_->km, ez.cigar);
 
