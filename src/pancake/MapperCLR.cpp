@@ -301,7 +301,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
     if (settings_.align) {
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
-        std::cerr << "Aligning.\n";
+        std::cerr << "Aligning. query_id = " << queryId << "\n";
         std::cerr << "alignerTypeGlobal = " << AlignerTypeToString(settings_.alignerTypeGlobal)
                   << "\n";
         std::cerr << "alignerTypeExt = " << AlignerTypeToString(settings_.alignerTypeExt) << "\n";
