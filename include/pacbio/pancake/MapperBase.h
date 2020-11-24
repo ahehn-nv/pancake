@@ -20,8 +20,8 @@ struct ChainedRegion
 {
     ChainedHits chain;
     OverlapPtr mapping;
-    int32_t priority =
-        0;  // Priority 0 means primary alignment, 1 secondary, < 0 not set, and > 1 filtered.
+    // Priority 0 means primary alignment, 1 secondary, < 0 not set, and > 1 filtered.
+    int32_t priority = 0;
     bool isSupplementary = false;
 };
 
