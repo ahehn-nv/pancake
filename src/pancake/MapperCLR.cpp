@@ -39,93 +39,39 @@ MapperCLR::MapperCLR(const MapperCLRSettings& settings)
 
 MapperCLR::~MapperCLR() = default;
 
-std::vector<MapperCLRResult> MapperCLR::Map(const std::vector<std::string>& targetSeqs,
-                                            const std::vector<std::string>& querySeqs)
+std::vector<MapperBaseResult> MapperCLR::MapAndAlign(const std::vector<std::string>& targetSeqs,
+                                                     const std::vector<std::string>& querySeqs)
 {
-    // Construct the index.
-    std::vector<PacBio::Pancake::Int128t> seeds;
-    std::vector<int32_t> sequenceLengths;
-    const auto& seedParams = settings_.seedParams;
-    SeedDB::GenerateMinimizers(seeds, sequenceLengths, targetSeqs, seedParams.KmerSize,
-                               seedParams.MinimizerWindow, seedParams.Spacing, seedParams.UseRC,
-                               seedParams.UseHPCForSeedsOnly, seedParams.MaxHPCLen);
-    std::unique_ptr<SeedIndex> seedIndex =
-        std::make_unique<SeedIndex>(settings_.seedParams, sequenceLengths, std::move(seeds));
-
-    // Calculate the seed frequency statistics, needed for the cutoff.
-    int64_t freqMax = 0;
-    int64_t freqCutoff = 0;
-    double freqAvg = 0.0;
-    double freqMedian = 0.0;
-    seedIndex->ComputeFrequencyStats(settings_.freqPercentile, freqMax, freqAvg, freqMedian,
-                                     freqCutoff);
-
-    // Construct the fallback index only if required
-    int64_t freqCutoffFallback = 0;
-    std::unique_ptr<SeedIndex> seedIndexFallback = nullptr;
-    if (settings_.seedParamsFallback != settings_.seedParams) {
-        std::vector<PacBio::Pancake::Int128t> seedsFallback;
-        const auto& seedParamsFallback = settings_.seedParamsFallback;
-        SeedDB::GenerateMinimizers(seedsFallback, sequenceLengths, targetSeqs,
-                                   seedParamsFallback.KmerSize, seedParamsFallback.MinimizerWindow,
-                                   seedParamsFallback.Spacing, seedParamsFallback.UseRC,
-                                   seedParamsFallback.UseHPCForSeedsOnly,
-                                   seedParamsFallback.MaxHPCLen);
-        seedIndexFallback = std::make_unique<SeedIndex>(settings_.seedParamsFallback,
-                                                        sequenceLengths, std::move(seedsFallback));
-        seedIndexFallback->ComputeFrequencyStats(settings_.freqPercentile, freqMax, freqAvg,
-                                                 freqMedian, freqCutoffFallback);
+    std::vector<FastaSequenceCached> targetSeqsCached;
+    for (int32_t i = 0; i < static_cast<int32_t>(targetSeqs.size()); ++i) {
+        targetSeqsCached.emplace_back(
+            FastaSequenceCached(std::to_string(i), targetSeqs[i].c_str(), targetSeqs[i].size(), i));
     }
 
-    // Run mapping for each query.
-    std::vector<MapperCLRResult> results;
-    for (int32_t queryId = 0; queryId < static_cast<int32_t>(querySeqs.size()); ++queryId) {
-        const auto& query = querySeqs[queryId];
-
-#ifdef PANCAKE_MAP_CLR_DEBUG
-        PBLOG_INFO << "New query: queryId = " << queryId << ", length = " << query.size();
-#endif
-
-        std::vector<PacBio::Pancake::Int128t> querySeeds;
-        int32_t seqLen = query.size();
-        const uint8_t* seq = reinterpret_cast<const uint8_t*>(query.data());
-        int rv = SeedDB::GenerateMinimizers(
-            querySeeds, seq, seqLen, 0, queryId, settings_.seedParams.KmerSize,
-            settings_.seedParams.MinimizerWindow, settings_.seedParams.Spacing,
-            settings_.seedParams.UseRC, settings_.seedParams.UseHPCForSeedsOnly,
-            settings_.seedParams.MaxHPCLen);
-        if (rv)
-            throw std::runtime_error("Generating minimizers failed for the query sequence, id = " +
-                                     std::to_string(queryId));
-
-        auto queryResults = Map(targetSeqs, *seedIndex, query, querySeeds, queryId, freqCutoff);
-
-        if (queryResults.mappings.empty() && seedIndexFallback != nullptr) {
-            rv = SeedDB::GenerateMinimizers(
-                querySeeds, seq, seqLen, 0, queryId, settings_.seedParamsFallback.KmerSize,
-                settings_.seedParamsFallback.MinimizerWindow, settings_.seedParamsFallback.Spacing,
-                settings_.seedParamsFallback.UseRC, settings_.seedParamsFallback.UseHPCForSeedsOnly,
-                settings_.seedParamsFallback.MaxHPCLen);
-            if (rv)
-                throw std::runtime_error(
-                    "Generating minimizers failed for the query sequence, id = " +
-                    std::to_string(queryId));
-
-            queryResults =
-                Map(targetSeqs, *seedIndexFallback, query, querySeeds, queryId, freqCutoffFallback);
-        }
-
-        for (const auto& m : queryResults.mappings) {
-            m->mapping->Aid = queryId;
-        }
-        results.emplace_back(std::move(queryResults));
-
-#ifdef PANCAKE_MAP_CLR_DEBUG
-        PBLOG_INFO << "\n\n\n";
-#endif
+    std::vector<FastaSequenceCached> querySeqsCached;
+    for (int32_t i = 0; i < static_cast<int32_t>(querySeqs.size()); ++i) {
+        querySeqsCached.emplace_back(
+            FastaSequenceCached(std::to_string(i), querySeqs[i].c_str(), querySeqs[i].size(), i));
     }
 
-    return results;
+    return MapAndAlign(targetSeqsCached, querySeqsCached);
+}
+
+std::vector<MapperBaseResult> MapperCLR::MapAndAlign(
+    const std::vector<FastaSequenceCached>& targetSeqs,
+    const std::vector<FastaSequenceCached>& querySeqs)
+{
+    return WrapBuildIndexMapAndAlignWithFallback_(targetSeqs, querySeqs, settings_, alignerGlobal_,
+                                                  alignerExt_);
+}
+
+MapperBaseResult MapperCLR::MapAndAlignSingleQuery(
+    const std::vector<FastaSequenceCached>& targetSeqs, const PacBio::Pancake::SeedIndex& index,
+    const FastaSequenceCached& querySeq, const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+    const int32_t queryId, int64_t freqCutoff)
+{
+    return WrapMapAndAlign_(targetSeqs, index, querySeq, querySeeds, queryId, freqCutoff, settings_,
+                            alignerGlobal_, alignerExt_);
 }
 
 void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId, const ChainedRegion& cr)
@@ -178,14 +124,159 @@ void DebugWriteChainedRegion(
 #endif
 }
 
-MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
-                               const PacBio::Pancake::SeedIndex& index, const std::string& querySeq,
-                               const std::vector<PacBio::Pancake::Int128t>& querySeeds,
-                               const int32_t queryId, int64_t freqCutoff)
+std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
+    const std::vector<FastaSequenceCached>& targetSeqs,
+    const std::vector<FastaSequenceCached>& querySeqs, const MapperCLRSettings& settings,
+    AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt)
+{
+    // Construct the index.
+    std::vector<PacBio::Pancake::Int128t> seeds;
+    std::vector<int32_t> sequenceLengths;
+    const auto& seedParams = settings.seedParams;
+    SeedDB::GenerateMinimizers(seeds, sequenceLengths, targetSeqs, seedParams.KmerSize,
+                               seedParams.MinimizerWindow, seedParams.Spacing, seedParams.UseRC,
+                               seedParams.UseHPCForSeedsOnly, seedParams.MaxHPCLen);
+    std::unique_ptr<SeedIndex> seedIndex =
+        std::make_unique<SeedIndex>(settings.seedParams, sequenceLengths, std::move(seeds));
+
+    // Calculate the seed frequency statistics, needed for the cutoff.
+    int64_t freqMax = 0;
+    int64_t freqCutoff = 0;
+    double freqAvg = 0.0;
+    double freqMedian = 0.0;
+    seedIndex->ComputeFrequencyStats(settings.freqPercentile, freqMax, freqAvg, freqMedian,
+                                     freqCutoff);
+
+    // Construct the fallback index only if required
+    int64_t freqCutoffFallback = 0;
+    std::unique_ptr<SeedIndex> seedIndexFallback = nullptr;
+    if (settings.seedParamsFallback != settings.seedParams) {
+        std::vector<PacBio::Pancake::Int128t> seedsFallback;
+        const auto& seedParamsFallback = settings.seedParamsFallback;
+        SeedDB::GenerateMinimizers(seedsFallback, sequenceLengths, targetSeqs,
+                                   seedParamsFallback.KmerSize, seedParamsFallback.MinimizerWindow,
+                                   seedParamsFallback.Spacing, seedParamsFallback.UseRC,
+                                   seedParamsFallback.UseHPCForSeedsOnly,
+                                   seedParamsFallback.MaxHPCLen);
+        seedIndexFallback = std::make_unique<SeedIndex>(settings.seedParamsFallback,
+                                                        sequenceLengths, std::move(seedsFallback));
+        seedIndexFallback->ComputeFrequencyStats(settings.freqPercentile, freqMax, freqAvg,
+                                                 freqMedian, freqCutoffFallback);
+    }
+
+    // Run mapping for each query.
+    std::vector<MapperBaseResult> results;
+    for (int32_t i = 0; i < static_cast<int32_t>(querySeqs.size()); ++i) {
+        const auto& query = querySeqs[i];
+        int32_t queryId = query.Id();
+
+#ifdef PANCAKE_MAP_CLR_DEBUG
+        PBLOG_INFO << "[i = " << i << "] New query: queryId = " << queryId
+                   << ", length = " << query.size();
+#endif
+
+        std::vector<PacBio::Pancake::Int128t> querySeeds;
+        int32_t seqLen = query.size();
+        const uint8_t* seq = reinterpret_cast<const uint8_t*>(query.data());
+        int rv = SeedDB::GenerateMinimizers(
+            querySeeds, seq, seqLen, 0, queryId, settings.seedParams.KmerSize,
+            settings.seedParams.MinimizerWindow, settings.seedParams.Spacing,
+            settings.seedParams.UseRC, settings.seedParams.UseHPCForSeedsOnly,
+            settings.seedParams.MaxHPCLen);
+        if (rv)
+            throw std::runtime_error("Generating minimizers failed for the query sequence i = " +
+                                     std::to_string(i) + ", id = " + std::to_string(queryId));
+
+        auto queryResults = WrapMapAndAlign_(targetSeqs, *seedIndex, query, querySeeds, queryId,
+                                             freqCutoff, settings, alignerGlobal, alignerExt);
+
+        if (queryResults.mappings.empty() && seedIndexFallback != nullptr) {
+            rv = SeedDB::GenerateMinimizers(
+                querySeeds, seq, seqLen, 0, queryId, settings.seedParamsFallback.KmerSize,
+                settings.seedParamsFallback.MinimizerWindow, settings.seedParamsFallback.Spacing,
+                settings.seedParamsFallback.UseRC, settings.seedParamsFallback.UseHPCForSeedsOnly,
+                settings.seedParamsFallback.MaxHPCLen);
+            if (rv)
+                throw std::runtime_error(
+                    "Generating minimizers failed for the query sequence, id = " +
+                    std::to_string(queryId));
+
+            queryResults =
+                WrapMapAndAlign_(targetSeqs, *seedIndexFallback, query, querySeeds, queryId,
+                                 freqCutoffFallback, settings, alignerGlobal, alignerExt);
+        }
+
+        for (const auto& m : queryResults.mappings) {
+            m->mapping->Aid = queryId;
+        }
+        results.emplace_back(std::move(queryResults));
+
+#ifdef PANCAKE_MAP_CLR_DEBUG
+        PBLOG_INFO << "\n\n\n";
+#endif
+    }
+
+    return results;
+}
+
+MapperBaseResult MapperCLR::WrapMapAndAlign_(
+    const std::vector<FastaSequenceCached>& targetSeqs, const PacBio::Pancake::SeedIndex& index,
+    const FastaSequenceCached& querySeq, const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+    const int32_t queryId, int64_t freqCutoff, const MapperCLRSettings& settings,
+    AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt)
+{
+    const int32_t queryLen = querySeq.size();
+
+    // Map the query.
+    TicToc ttMap;
+    auto result = Map_(index, querySeeds, queryLen, queryId, settings, freqCutoff);
+    ttMap.Stop();
+
+    // Align if needed.
+    TicToc ttAlign;
+    if (settings.align) {
+        result = Align_(targetSeqs, querySeq, result, settings, alignerGlobal, alignerExt);
+    }
+    ttAlign.Stop();
+
+    // Filter mappings.
+    size_t numValid = 0;
+    int32_t numSelectedSecondary = 0;
+    for (size_t i = 0; i < result.mappings.size(); ++i) {
+        const auto& region = result.mappings[i];
+        if (region->mapping == nullptr) {
+            continue;
+        }
+        if (region->priority > 1) {
+            continue;
+        }
+        if (region->priority == 1 && numSelectedSecondary >= settings.bestNSecondary) {
+            continue;
+        }
+
+        // Since the secondary/supplementary labelling was repeated, we need to filter secondary
+        // alignments again.
+        if (region->priority == 1 && numSelectedSecondary < settings.bestNSecondary) {
+            ++numSelectedSecondary;
+        }
+        if (i != numValid) {
+            std::swap(result.mappings[i], result.mappings[numValid]);
+        }
+        ++numValid;
+    }
+    result.mappings.resize(numValid);
+    DebugWriteChainedRegion(result.mappings, "9-result-final", queryId, queryLen);
+
+    return result;
+}
+
+MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
+                                 const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+                                 const int32_t queryLen, const int32_t queryId,
+                                 const MapperCLRSettings& settings, int64_t freqCutoff)
 {
     // Skip short queries.
-    const int32_t queryLen = querySeq.size();
-    if (queryLen < settings_.minQueryLen) {
+    if (queryLen < settings.minQueryLen) {
         return {};
     }
 
@@ -204,15 +295,15 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
     // Group seed hits by diagonal.
     TicToc ttDiagonalGroup;
-    auto groups = DiagonalGroup(hits, settings_.chainBandwidth, true);
+    auto groups = DiagonalGroup(hits, settings.chainBandwidth, true);
     ttDiagonalGroup.Stop();
 
     // Process each diagonal bin to get the chains.
     TicToc ttChain;
     std::vector<std::unique_ptr<ChainedRegion>> allChainedRegions = ChainAndMakeOverlap_(
-        index, hits, groups, queryId, queryLen, settings_.chainMaxSkip,
-        settings_.chainMaxPredecessors, settings_.maxGap, settings_.chainBandwidth,
-        settings_.minNumSeeds, settings_.minCoveredBases, settings_.minDPScore, settings_.useLIS);
+        index, hits, groups, queryId, queryLen, settings.chainMaxSkip,
+        settings.chainMaxPredecessors, settings.maxGap, settings.chainBandwidth,
+        settings.minNumSeeds, settings.minCoveredBases, settings.minDPScore, settings.useLIS);
     ttChain.Stop();
     DebugWriteChainedRegion(allChainedRegions, "1-chain-and-make-overlap", queryId, queryLen);
 
@@ -222,9 +313,9 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     // in low-complexity regions.
     TicToc ttRechain;
     allChainedRegions =
-        ReChainSeedHits_(allChainedRegions, index, queryId, queryLen, settings_.chainMaxSkip,
-                         settings_.chainMaxPredecessors, settings_.maxGap, settings_.chainBandwidth,
-                         settings_.minNumSeeds, settings_.minCoveredBases, settings_.minDPScore);
+        ReChainSeedHits_(allChainedRegions, index, queryId, queryLen, settings.chainMaxSkip,
+                         settings.chainMaxPredecessors, settings.maxGap, settings.chainBandwidth,
+                         settings.minNumSeeds, settings.minCoveredBases, settings.minDPScore);
     ttRechain.Stop();
     DebugWriteChainedRegion(allChainedRegions, "2-rechain-hits", queryId, queryLen);
 
@@ -234,18 +325,18 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 
     // Secondary/supplementary flagging.
     WrapFlagSecondaryAndSupplementary_(
-        allChainedRegions, settings_.secondaryAllowedOverlapFractionQuery,
-        settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
+        allChainedRegions, settings.secondaryAllowedOverlapFractionQuery,
+        settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
     DebugWriteChainedRegion(allChainedRegions, "3-wrap-flag-secondary-suppl-1", queryId, queryLen);
 
     // Merge long gaps.
-    LongMergeChains_(allChainedRegions, settings_.maxGap);
+    LongMergeChains_(allChainedRegions, settings.maxGap);
     DebugWriteChainedRegion(allChainedRegions, "4-long-merge-chains", queryId, queryLen);
 
     // Again relabel, because some chains are longer now.
     WrapFlagSecondaryAndSupplementary_(
-        allChainedRegions, settings_.secondaryAllowedOverlapFractionQuery,
-        settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
+        allChainedRegions, settings.secondaryAllowedOverlapFractionQuery,
+        settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
     DebugWriteChainedRegion(allChainedRegions, "5-wrap-flag-secondary-suppl-2", queryId, queryLen);
 
     // Sort all chains by priority and then score.
@@ -264,10 +355,10 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
         if (region->priority > 1) {
             continue;
         }
-        ChainedHits newChain = RefineBadEnds(
-            region->chain, settings_.alnParamsGlobal.alignBandwidth, settings_.minDPScore * 2);
-        newChain = RefineChainedHits(newChain, 10, 40, settings_.maxGap / 2, 10);
-        newChain = RefineChainedHits2(newChain, 30, settings_.maxGap / 2);
+        ChainedHits newChain = RefineBadEnds(region->chain, settings.alnParamsGlobal.alignBandwidth,
+                                             settings.minDPScore * 2);
+        newChain = RefineChainedHits(newChain, 10, 40, settings.maxGap / 2, 10);
+        newChain = RefineChainedHits2(newChain, 30, settings.maxGap / 2);
 
         std::swap(region->chain, newChain);
 
@@ -280,7 +371,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     DebugWriteChainedRegion(allChainedRegions, "6-refining-seed-hits", queryId, queryLen);
 
     // Filter out the mappings.
-    MapperCLRResult result;
+    MapperBaseResult result;
     int32_t numSelectedSecondary = 0;
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
         const auto& region = allChainedRegions[i];
@@ -292,91 +383,12 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
         }
         if (region->priority == 0) {
             result.mappings.emplace_back(std::move(allChainedRegions[i]));
-        } else if (region->priority == 1 && numSelectedSecondary < settings_.bestNSecondary) {
+        } else if (region->priority == 1 && numSelectedSecondary < settings.bestNSecondary) {
             result.mappings.emplace_back(std::move(allChainedRegions[i]));
             ++numSelectedSecondary;
         }
     }
     DebugWriteChainedRegion(result.mappings, "7-result-mappings", queryId, queryLen);
-
-    if (settings_.align) {
-#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
-        std::cerr << "Aligning. query_id = " << queryId << "\n";
-        std::cerr << "alignerTypeGlobal = " << AlignerTypeToString(settings_.alignerTypeGlobal)
-                  << "\n";
-        std::cerr << "alignerTypeExt = " << AlignerTypeToString(settings_.alignerTypeExt) << "\n";
-#endif
-
-        // Reverse the query sequence, needed for alignment.
-        const std::string querySeqRev =
-            PacBio::Pancake::ReverseComplement(querySeq, 0, querySeq.size());
-
-        TicToc ttAlign;
-        for (size_t i = 0; i < result.mappings.size(); ++i) {
-            // const auto& chain = result.mappings[i]->chain;
-            auto& chain = result.mappings[i]->chain;
-            const auto& ovl = result.mappings[i]->mapping;
-            const auto& tSeqFwd = targetSeqs[ovl->Bid];
-
-            // Use a custom aligner to align.
-            TicToc ttAlignmentSeeded;
-            auto newOvl =
-                AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq[0],
-                                &querySeqRev[0], queryLen, settings_.minAlignmentSpan,
-                                settings_.maxFlankExtensionDist, alignerGlobal_, alignerExt_);
-            ttAlignmentSeeded.Stop();
-            std::swap(result.mappings[i]->mapping, newOvl);
-
-#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
-            std::cerr << "[mapping i = " << i << ", before alignment] ovl: "
-                      << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, true) << "\n";
-            const auto& updatedOvl = result.mappings[i]->mapping;
-            std::cerr << "[mapping i = " << i << ", after alignment] ovl: ";
-            if (updatedOvl != nullptr) {
-                std::cerr << OverlapWriterBase::PrintOverlapAsM4(updatedOvl, "", "", true, true)
-                          << "\n";
-            } else {
-                std::cerr << "nullptr\n";
-            }
-            std::cerr << "ttAlignmentSeeded = " << ttAlignmentSeeded.GetCpuMillisecs() << " ms\n";
-#endif
-        }
-        // Secondary/supplementary flagging.
-        WrapFlagSecondaryAndSupplementary_(
-            result.mappings, settings_.secondaryAllowedOverlapFractionQuery,
-            settings_.secondaryAllowedOverlapFractionTarget, settings_.secondaryMinScoreFraction);
-
-        ttAlign.Stop();
-    }
-    DebugWriteChainedRegion(result.mappings, "8-result-after-align", queryId, queryLen);
-
-    // Filter mappings again.
-    size_t numValid = 0;
-    numSelectedSecondary = 0;
-    for (size_t i = 0; i < result.mappings.size(); ++i) {
-        const auto& region = result.mappings[i];
-        if (region->mapping == nullptr) {
-            continue;
-        }
-        if (region->priority > 1) {
-            continue;
-        }
-        if (region->priority == 1 && numSelectedSecondary >= settings_.bestNSecondary) {
-            continue;
-        }
-
-        // Since the secondary/supplementary labelling was repeated, we need to filter secondary
-        // alignments again.
-        if (region->priority == 1 && numSelectedSecondary < settings_.bestNSecondary) {
-            ++numSelectedSecondary;
-        }
-        if (i != numValid) {
-            std::swap(result.mappings[i], result.mappings[numValid]);
-        }
-        ++numValid;
-    }
-    result.mappings.resize(numValid);
-    DebugWriteChainedRegion(result.mappings, "9-result-final", queryId, queryLen);
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
     std::cerr << "All hits: hits.size() = " << hits.size() << "\n";
@@ -393,7 +405,7 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
     for (size_t i = 0; i < groups.size(); ++i) {
         const auto& g = groups[i];
         const int32_t targetId = hits[g.start].targetId;
-        const int32_t targetLen = targetSeqs[targetId].size();
+        const int32_t targetLen = index.GetSequenceLength(targetId);
         WriteSeedHits(
             "temp-debug/hits-q" + std::to_string(queryId) + "-0-all-hits-diagonal-groupped.csv",
             hits, g.start, g.end, i, "query" + std::to_string(queryId), queryLen,
@@ -402,6 +414,76 @@ MapperCLRResult MapperCLR::Map(const std::vector<std::string>& targetSeqs,
 #endif
 
     return result;
+}
+
+MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targetSeqs,
+                                   const FastaSequenceCached& querySeq,
+                                   const MapperBaseResult& mappingResult,
+                                   const MapperCLRSettings& settings, AlignerBasePtr& alignerGlobal,
+                                   AlignerBasePtr& alignerExt)
+{
+#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
+    std::cerr << "Aligning.\n";
+    std::cerr << "alignerTypeGlobal = " << AlignerTypeToString(settings_.alignerTypeGlobal) << "\n";
+    std::cerr << "alignerTypeExt = " << AlignerTypeToString(settings_.alignerTypeExt) << "\n";
+#endif
+
+    const int32_t queryLen = querySeq.size();
+    const int32_t queryId = querySeq.Id();
+
+    MapperBaseResult alignedResult;
+
+    // Reverse the query sequence, needed for alignment.
+    const std::string querySeqRev =
+        PacBio::Pancake::ReverseComplement(querySeq.c_str(), 0, querySeq.size());
+
+    TicToc ttAlign;
+    for (size_t i = 0; i < mappingResult.mappings.size(); ++i) {
+        // const auto& chain = result.mappings[i]->chain;
+        const auto& chain = mappingResult.mappings[i]->chain;
+        const auto& ovl = mappingResult.mappings[i]->mapping;
+        const auto& tSeqFwd = targetSeqs[ovl->Bid];
+
+        // Use a custom aligner to align.
+        TicToc ttAlignmentSeeded;
+        auto newOvl =
+            AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
+                            &querySeqRev[0], queryLen, settings.minAlignmentSpan,
+                            settings.maxFlankExtensionDist, alignerGlobal, alignerExt);
+        ttAlignmentSeeded.Stop();
+
+        auto newChainedRegion = std::make_unique<ChainedRegion>();
+        newChainedRegion->chain = chain;
+        newChainedRegion->mapping = std::move(newOvl);
+        newChainedRegion->priority = mappingResult.mappings[i]->priority;
+        newChainedRegion->isSupplementary = mappingResult.mappings[i]->isSupplementary;
+        alignedResult.mappings.emplace_back(std::move(newChainedRegion));
+
+#ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
+        std::cerr << "[mapping i = " << i << ", before alignment] ovl: "
+                  << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, true) << "\n";
+        const auto& updatedOvl = alignedResult.mappings[i]->mapping;
+        std::cerr << "[mapping i = " << i << ", after alignment] ovl: ";
+        if (updatedOvl != nullptr) {
+            std::cerr << OverlapWriterBase::PrintOverlapAsM4(updatedOvl, "", "", true, true)
+                      << "\n";
+        } else {
+            std::cerr << "nullptr\n";
+        }
+        std::cerr << "ttAlignmentSeeded = " << ttAlignmentSeeded.GetCpuMillisecs() << " ms\n";
+#endif
+    }
+
+    // Secondary/supplementary flagging.
+    WrapFlagSecondaryAndSupplementary_(
+        alignedResult.mappings, settings.secondaryAllowedOverlapFractionQuery,
+        settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
+
+    ttAlign.Stop();
+
+    DebugWriteChainedRegion(alignedResult.mappings, "8-result-after-align", queryId, queryLen);
+
+    return alignedResult;
 }
 
 void MapperCLR::WrapFlagSecondaryAndSupplementary_(

@@ -162,7 +162,8 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
         settings.seedParamsFallback = data.seedParamsFallback;
         PacBio::Pancake::MapperCLR mapper(settings);
 
-        std::vector<PacBio::Pancake::MapperCLRResult> result = mapper.Map({target}, {query});
+        std::vector<PacBio::Pancake::MapperBaseResult> result =
+            mapper.MapAndAlign({target}, {query});
         std::vector<std::string> resultsStr;
         for (const auto& queryMappings : result) {
             for (const auto& mapping : queryMappings.mappings) {
@@ -290,7 +291,8 @@ TEST(MapperCLR, CheckMappingAndSeedHits)
         // settings.align = false;
         PacBio::Pancake::MapperCLR mapper(settings);
 
-        std::vector<PacBio::Pancake::MapperCLRResult> result = mapper.Map({target}, {query});
+        std::vector<PacBio::Pancake::MapperBaseResult> result =
+            mapper.MapAndAlign({target}, {query});
         std::vector<std::vector<PacBio::Pancake::SeedHit>> resultSeedHits;
         std::vector<std::string> resultsMappings;
         for (const auto& queryMappings : result) {

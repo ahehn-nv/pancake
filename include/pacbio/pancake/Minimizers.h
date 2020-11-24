@@ -3,6 +3,7 @@
 #ifndef PANCAKE_SEEDDB_MINIMIZERS_H
 #define PANCAKE_SEEDDB_MINIMIZERS_H
 
+#include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/Seed.h>
 #include <pacbio/pancake/SeedHit.h>
 #include <pacbio/util/CommonTypes.h>
@@ -42,6 +43,13 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                        const int32_t seqLen, const int32_t seqOffset, const int32_t seqId,
                        const int32_t kmerSize, const int32_t winSize, const int32_t spacing,
                        const bool useReverseComplement, const bool useHPC, const int32_t maxHPCLen);
+
+void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
+                        std::vector<int32_t>& retSequenceLengths,
+                        const std::vector<FastaSequenceCached>& targetSeqs, const int32_t kmerSize,
+                        const int32_t winSize, const int32_t spacing,
+                        const bool useReverseComplement, const bool useHPC,
+                        const int32_t maxHPCLen);
 
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         std::vector<int32_t>& retSequenceLengths,
