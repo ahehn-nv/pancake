@@ -119,3 +119,22 @@ TEST(LIS, RealTest1)
 
     ASSERT_EQ(expected, result);
 }
+
+TEST(LIS, RealTest2_TestMultiplePointsWithSameXCoordinate)
+{
+    std::vector<Point> data = {
+        {6585, 38493}, {6585, 40327}, {29565, 11779}, {29577, 11791}, {29637, 11849},
+    };
+
+    std::vector<Point> result = istl::LIS<Point>(data, 0, data.size(), ComparisonLIS);
+
+    std::vector<Point> expected = {
+        {29565, 11779}, {29577, 11791}, {29637, 11849},
+    };
+
+    for (size_t i = 0; i < result.size(); ++i) {
+        std::cerr << "[i = " << i << "] " << result[i] << "\n";
+    }
+
+    ASSERT_EQ(expected, result);
+}

@@ -22,6 +22,12 @@ AlignerSES1::~AlignerSES1() {}
 
 AlignmentResult AlignerSES1::Global(const char* qseq, int64_t qlen, const char* tseq, int64_t tlen)
 {
+    if (qlen == 0 || tlen == 0) {
+        AlignmentResult ret = EdgeCaseAlignmentResult(
+            qlen, tlen, opt_.matchScore, opt_.mismatchPenalty, opt_.gapOpen1, opt_.gapExtend1);
+        return ret;
+    }
+
     const double alignMaxDiff = 1.0;  // 0.30;
     // const double alignBandwidth = 0.30;
     const int32_t maxDiffs = std::max(10, static_cast<int32_t>(qlen * alignMaxDiff));
@@ -52,6 +58,10 @@ AlignmentResult AlignerSES1::Global(const char* qseq, int64_t qlen, const char* 
     ret.lastTargetPos = tlen;
     ret.maxQueryPos = qlen;
     ret.maxTargetPos = tlen;
+
+    if (ret.valid == false) {
+        ret.cigar.clear();
+    }
 
     return ret;
 }

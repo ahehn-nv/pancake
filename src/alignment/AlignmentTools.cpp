@@ -220,7 +220,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                 << "queryPos = " << queryPos << ", targetPos = " << targetPos
                 << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                 << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
             throw std::runtime_error(oss.str());
         }
 
@@ -232,7 +232,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
             if (strncmp(query + queryPos, target + targetPos, op.Length()) != 0) {
@@ -243,7 +243,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
             queryPos += op.Length();
@@ -256,7 +256,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
 
@@ -269,7 +269,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                         << "queryPos = " << queryPos << ", targetPos = " << targetPos
                         << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                         << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                        << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                        << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                     throw std::runtime_error(oss.str());
                 }
             }
@@ -284,7 +284,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
             queryPos += op.Length();
@@ -297,7 +297,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
             targetPos += op.Length();
@@ -321,7 +321,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
             << ", alnQuerySpan = " << (diffs.numEq + diffs.numX + diffs.numI)
             << ", alnTargetSpan = " << (diffs.numEq + diffs.numX + diffs.numD) << ", " << diffs
             << ", edit_dist = " << diffs.NumDiffs() << ", CIGAR: " << cigar.ToStdString()
-            << ", label: '" << label;
+            << ", label: '" << label << "'";
         throw std::runtime_error(oss.str());
     }
 }

@@ -24,6 +24,10 @@ public:
 
 typedef std::shared_ptr<AlignerBase> AlignerBasePtr;
 
+AlignmentResult EdgeCaseAlignmentResult(int32_t qlen, int32_t tlen, int32_t matchScore,
+                                        int32_t mismatchPenalty, int32_t gapOpen,
+                                        int32_t gapExtend);
+
 }  // namespace Pancake
 }  // namespace PacBio
 

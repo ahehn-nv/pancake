@@ -24,6 +24,7 @@ pancake_test_cpp_sources = files([
   'src/test_Ses2DistanceBanded.cpp',
   'src/test_Twobit.cpp',
   'src/test_Util.cpp',
+  'src/TestHelperUtils.cpp',
 ])
 
 pancake_test_cram_sources = files([

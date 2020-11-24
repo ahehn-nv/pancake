@@ -18,6 +18,12 @@ AlignerEdlib::~AlignerEdlib() {}
 
 AlignmentResult AlignerEdlib::Global(const char* qseq, int64_t qlen, const char* tseq, int64_t tlen)
 {
+    if (qlen == 0 || tlen == 0) {
+        AlignmentResult ret = EdgeCaseAlignmentResult(
+            qlen, tlen, opt_.matchScore, opt_.mismatchPenalty, opt_.gapOpen1, opt_.gapExtend1);
+        return ret;
+    }
+
     EdlibAlignResult edlibResult = edlibAlign(
         qseq, qlen, tseq, tlen, edlibNewAlignConfig(-1, EDLIB_MODE_NW, EDLIB_TASK_PATH, NULL, 0));
 
