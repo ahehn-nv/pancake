@@ -40,18 +40,14 @@ public:
         const std::vector<std::string>& targetSeqs, const std::vector<std::string>& querySeqs) = 0;
 
     virtual std::vector<MapperBaseResult> MapAndAlign(
-        const std::vector<FastaSequenceId>& targetSeqs,
-        const std::vector<FastaSequenceId>& querySeqs) = 0;
-
-    virtual std::vector<MapperBaseResult> MapAndAlign(
         const std::vector<FastaSequenceCached>& targetSeqs,
         const std::vector<FastaSequenceCached>& querySeqs) = 0;
 
-    virtual MapperBaseResult MapAndAlign(const std::vector<FastaSequenceCached>& targetSeqs,
-                                         const PacBio::Pancake::SeedIndex& index,
-                                         const FastaSequenceCached& querySeq,
-                                         const std::vector<PacBio::Pancake::Int128t>& querySeeds,
-                                         const int32_t queryId, int64_t freqCutoff) = 0;
+    virtual MapperBaseResult MapAndAlignSingleQuery(
+        const std::vector<FastaSequenceCached>& targetSeqs, const PacBio::Pancake::SeedIndex& index,
+        const FastaSequenceCached& querySeq,
+        const std::vector<PacBio::Pancake::Int128t>& querySeeds, const int32_t queryId,
+        int64_t freqCutoff) = 0;
 };
 
 }  // namespace Pancake

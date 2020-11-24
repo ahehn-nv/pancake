@@ -57,26 +57,6 @@ std::vector<MapperBaseResult> MapperCLR::MapAndAlign(const std::vector<std::stri
     return MapAndAlign(targetSeqsCached, querySeqsCached);
 }
 
-std::vector<MapperBaseResult> MapperCLR::MapAndAlign(const std::vector<FastaSequenceId>& targetSeqs,
-                                                     const std::vector<FastaSequenceId>& querySeqs)
-{
-    std::vector<FastaSequenceCached> targetSeqsCached;
-    for (int32_t i = 0; i < static_cast<int32_t>(targetSeqs.size()); ++i) {
-        targetSeqsCached.emplace_back(
-            FastaSequenceCached(std::to_string(i), targetSeqs[i].Bases().c_str(),
-                                targetSeqs[i].Bases().size(), targetSeqs[i].Id()));
-    }
-
-    std::vector<FastaSequenceCached> querySeqsCached;
-    for (int32_t i = 0; i < static_cast<int32_t>(querySeqs.size()); ++i) {
-        querySeqsCached.emplace_back(
-            FastaSequenceCached(std::to_string(i), querySeqs[i].Bases().c_str(),
-                                querySeqs[i].Bases().size(), querySeqs[i].Id()));
-    }
-
-    return MapAndAlign(targetSeqsCached, querySeqsCached);
-}
-
 std::vector<MapperBaseResult> MapperCLR::MapAndAlign(
     const std::vector<FastaSequenceCached>& targetSeqs,
     const std::vector<FastaSequenceCached>& querySeqs)
@@ -85,11 +65,10 @@ std::vector<MapperBaseResult> MapperCLR::MapAndAlign(
                                                   alignerExt_);
 }
 
-MapperBaseResult MapperCLR::MapAndAlign(const std::vector<FastaSequenceCached>& targetSeqs,
-                                        const PacBio::Pancake::SeedIndex& index,
-                                        const FastaSequenceCached& querySeq,
-                                        const std::vector<PacBio::Pancake::Int128t>& querySeeds,
-                                        const int32_t queryId, int64_t freqCutoff)
+MapperBaseResult MapperCLR::MapAndAlignSingleQuery(
+    const std::vector<FastaSequenceCached>& targetSeqs, const PacBio::Pancake::SeedIndex& index,
+    const FastaSequenceCached& querySeq, const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+    const int32_t queryId, int64_t freqCutoff)
 {
     return WrapMapAndAlign_(targetSeqs, index, querySeq, querySeeds, queryId, freqCutoff, settings_,
                             alignerGlobal_, alignerExt_);

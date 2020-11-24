@@ -150,18 +150,6 @@ public:
     /*
      * \brief Runs mapping and alignment of one or more query sequences to one or more target sequences.
      * This interface does not require the SeedIndex or minimizers, because it will compute them internally.
-     * The FastaSequenceId objects are first converted to FastaSequenceCached, and then the
-     * WrapBuildIndexMapAndAlignWithFallback_ function is called.
-     * If there were no alignmentsads produced for a query using the primary seeding parameters,
-     * another call to WrapMapAndAlign_ is performed with the seedParamsFallback options.
-    */
-    std::vector<MapperBaseResult> MapAndAlign(
-        const std::vector<FastaSequenceId>& targetSeqs,
-        const std::vector<FastaSequenceId>& querySeqs) override;
-
-    /*
-     * \brief Runs mapping and alignment of one or more query sequences to one or more target sequences.
-     * This interface does not require the SeedIndex or minimizers, because it will compute them internally.
      * The WrapBuildIndexMapAndAlignWithFallback_ function is called for processing.
      * If there were no alignmentsads produced for a query using the primary seeding parameters,
      * another call to WrapMapAndAlign_ is performed with the seedParamsFallback options.
@@ -178,11 +166,11 @@ public:
      * There is no seed fallback implemented in this function, since the SeedIndex is precomputed
      * and provided from the outside.
     */
-    MapperBaseResult MapAndAlign(const std::vector<FastaSequenceCached>& targetSeqs,
-                                 const PacBio::Pancake::SeedIndex& index,
-                                 const FastaSequenceCached& querySeq,
-                                 const std::vector<PacBio::Pancake::Int128t>& querySeeds,
-                                 const int32_t queryId, int64_t freqCutoff) override;
+    MapperBaseResult MapAndAlignSingleQuery(const std::vector<FastaSequenceCached>& targetSeqs,
+                                            const PacBio::Pancake::SeedIndex& index,
+                                            const FastaSequenceCached& querySeq,
+                                            const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+                                            const int32_t queryId, int64_t freqCutoff) override;
 
 private:
     MapperCLRSettings settings_;
