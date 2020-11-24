@@ -135,56 +135,147 @@ public:
     MapperCLR(const MapperCLRSettings& settings);
     ~MapperCLR() override;
 
+    /*
+     * \brief Runs mapping and alignment of one or more query sequences to one or more target sequences.
+     * This is the basic interface for the most simple usage.
+     * This interface does not require the SeedIndex or minimizers, because it will compute them internally.
+     * The std::string objects are first converted to FastaSequenceCached, and then the
+     * WrapBuildIndexMapAndAlignWithFallback_ function is called.
+     * If there were no alignmentsads produced for a query using the primary seeding parameters,
+     * another call to WrapMapAndAlign_ is performed with the seedParamsFallback options.
+    */
     std::vector<MapperBaseResult> MapAndAlign(const std::vector<std::string>& targetSeqs,
                                               const std::vector<std::string>& querySeqs) override;
 
+    /*
+     * \brief Runs mapping and alignment of one or more query sequences to one or more target sequences.
+     * This interface does not require the SeedIndex or minimizers, because it will compute them internally.
+     * The FastaSequenceId objects are first converted to FastaSequenceCached, and then the
+     * WrapBuildIndexMapAndAlignWithFallback_ function is called.
+     * If there were no alignmentsads produced for a query using the primary seeding parameters,
+     * another call to WrapMapAndAlign_ is performed with the seedParamsFallback options.
+    */
     std::vector<MapperBaseResult> MapAndAlign(
         const std::vector<FastaSequenceId>& targetSeqs,
         const std::vector<FastaSequenceId>& querySeqs) override;
 
+    /*
+     * \brief Runs mapping and alignment of one or more query sequences to one or more target sequences.
+     * This interface does not require the SeedIndex or minimizers, because it will compute them internally.
+     * The WrapBuildIndexMapAndAlignWithFallback_ function is called for processing.
+     * If there were no alignmentsads produced for a query using the primary seeding parameters,
+     * another call to WrapMapAndAlign_ is performed with the seedParamsFallback options.
+    */
     std::vector<MapperBaseResult> MapAndAlign(
         const std::vector<FastaSequenceCached>& targetSeqs,
         const std::vector<FastaSequenceCached>& querySeqs) override;
 
+    /*
+     * \brief Runs mapping and alignment of a single query sequence to one or more target sequences.
+     * This interface is more suitable for integration into workflow, where target index is provided
+     * from the outside, and may be used by other workflow steps too.
+     * This function calls WrapMapAndAlign_ to perform mapping and alignment.
+     * There is no seed fallback implemented in this function, since the SeedIndex is precomputed
+     * and provided from the outside.
+    */
     MapperBaseResult MapAndAlign(const std::vector<FastaSequenceCached>& targetSeqs,
                                  const PacBio::Pancake::SeedIndex& index,
                                  const FastaSequenceCached& querySeq,
                                  const std::vector<PacBio::Pancake::Int128t>& querySeeds,
                                  const int32_t queryId, int64_t freqCutoff) override;
 
-    MapperBaseResult Map(const PacBio::Pancake::SeedIndex& index,
-                         const std::vector<PacBio::Pancake::Int128t>& querySeeds,
-                         const int32_t queryLen, const int32_t queryId, int64_t freqCutoff);
-
-    MapperBaseResult Align(const std::vector<FastaSequenceCached>& targetSeqs,
-                           const FastaSequenceCached& querySeq,
-                           const MapperBaseResult& mappingResult);
-
 private:
     MapperCLRSettings settings_;
     AlignerBasePtr alignerGlobal_;
     AlignerBasePtr alignerExt_;
 
+    /*
+     * \brief Wraps the entire mapping and alignment process.
+     * It calls Map_ and then Align_ if necessary, based on the settings.
+     * Also, it filters the final alignments (which is given, since that's part
+     * of the mapping process).
+    */
+    static MapperBaseResult WrapMapAndAlign_(
+        const std::vector<FastaSequenceCached>& targetSeqs, const PacBio::Pancake::SeedIndex& index,
+        const FastaSequenceCached& querySeq,
+        const std::vector<PacBio::Pancake::Int128t>& querySeeds, const int32_t queryId,
+        int64_t freqCutoff, const MapperCLRSettings& settings, AlignerBasePtr& alignerGlobal,
+        AlignerBasePtr& alignerExt);
+
+    /*
+     * This function starts from plain sequences, and constructs the seeds (minimizers),
+     * builds the SeedIndex, and runs mapping and alignment using WrapMapAndAlign_.
+     * Each query is processed one by one, linearly.
+     * If a query did not map, another attempt will be tried with the seedParamsFallback
+     * options.
+     * If the seedParamsFallback == seedParams, then the second attempt will not be
+     * run (nor will the fallback index be generated).
+    */
+    static std::vector<MapperBaseResult> WrapBuildIndexMapAndAlignWithFallback_(
+        const std::vector<FastaSequenceCached>& targetSeqs,
+        const std::vector<FastaSequenceCached>& querySeqs, const MapperCLRSettings& settings,
+        AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt);
+
+    /*
+     * \brief Maps the query sequence to the targets, where targets are provided by the SeedIndex.
+    */
+    static MapperBaseResult Map_(const PacBio::Pancake::SeedIndex& index,
+                                 const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+                                 const int32_t queryLen, const int32_t queryId,
+                                 const MapperCLRSettings& settings, int64_t freqCutoff);
+
+    /*
+     * \brief Aligns the query sequence to one or more target sequences, based on the mappings and
+     * seed hits collected and refined during the mapping process (the Map_ function).
+     * This function cannot be const because the member alignerGlobal_ and alignerExt_ can be
+     * modified (they have internal memory which gets reused with alignment).
+    */
+    static MapperBaseResult Align_(const std::vector<FastaSequenceCached>& targetSeqs,
+                                   const FastaSequenceCached& querySeq,
+                                   const MapperBaseResult& mappingResult,
+                                   const MapperCLRSettings& settings, AlignerBasePtr& alignerGlobal,
+                                   AlignerBasePtr& alignerExt);
+
+    /*
+     * \brief Utility function which constructs an overlap from a given chain of seed hits.
+     * Overlap coordinates are determined based on the bounding box around the seed hits.
+    */
     static OverlapPtr MakeOverlap_(const std::vector<SeedHit>& sortedHits, int32_t queryId,
                                    int32_t queryLen, const PacBio::Pancake::SeedIndex& index,
                                    int32_t beginId, int32_t endId, int32_t minTargetPosId,
                                    int32_t maxTargetPosId);
 
+    /*
+     * \brief Performs LIS and DP chaining, then constructs the overlaps from those resulting chains.
+    */
     static std::vector<std::unique_ptr<ChainedRegion>> ChainAndMakeOverlap_(
         const PacBio::Pancake::SeedIndex& index, const std::vector<SeedHit>& hits,
         const std::vector<PacBio::Pancake::Range>& hitGroups, int32_t queryId, int32_t queryLen,
         int32_t chainMaxSkip, int32_t chainMaxPredecessors, int32_t maxGap, int32_t chainBandwidth,
         int32_t minNumSeeds, int32_t minCoveredBases, int32_t minDPScore, bool useLIS);
 
+    /*
+     * \brief Takes previously chained regions, collects all remaining seed hits from those regions into
+     * a single pile, then runs DP chaining on all of those seed hits.
+     * A new set of chained regions is created from the chaining results.
+    */
     static std::vector<std::unique_ptr<ChainedRegion>> ReChainSeedHits_(
         const std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,
         const PacBio::Pancake::SeedIndex& index, int32_t queryId, int32_t queryLen,
         int32_t chainMaxSkip, int32_t chainMaxPredecessors, int32_t maxGap, int32_t chainBandwidth,
         int32_t minNumSeeds, int32_t minCoveredBases, int32_t minDPScore);
 
+    /*
+     * \brief Merges the neighboring chains if they are not overlaping in neither the query nor
+     * target coordinates.
+     * The right of the two merged chained regions is set to nullptr.
+    */
     static void LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,
                                  int32_t maxGap);
 
+    /*
+     * \brief Wraps the labelling of secondary and supplementary chained regions.
+    */
     static void WrapFlagSecondaryAndSupplementary_(
         std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
         double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
