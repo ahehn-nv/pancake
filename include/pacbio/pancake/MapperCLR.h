@@ -273,6 +273,9 @@ private:
     static std::vector<AlignmentRegion> CollectAlignmentRegions_(
         const std::unique_ptr<ChainedRegion>& singleMapping, int32_t minAlignmentSpan,
         int32_t maxFlankExtensionDist, double flankExtensionFactor);
+
+    static void CondenseMappings_(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
+                                  int32_t bestNSecondary);
 };
 
 }  // namespace Pancake

@@ -186,8 +186,9 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
             throw std::runtime_error("Generating minimizers failed for the query sequence i = " +
                                      std::to_string(i) + ", id = " + std::to_string(queryId));
 
-        auto queryResults = WrapMapAndAlign_(targetSeqs, *seedIndex, query, querySeeds, queryId,
-                                             freqCutoff, settings, alignerGlobal, alignerExt);
+        MapperBaseResult queryResults =
+            WrapMapAndAlign_(targetSeqs, *seedIndex, query, querySeeds, queryId, freqCutoff,
+                             settings, alignerGlobal, alignerExt);
 
         if (queryResults.mappings.empty() && seedIndexFallback != nullptr) {
             rv = SeedDB::GenerateMinimizers(
@@ -234,35 +235,43 @@ MapperBaseResult MapperCLR::WrapMapAndAlign_(
         result = Align_(targetSeqs, querySeq, result, settings, alignerGlobal, alignerExt);
     }
 
+    DebugWriteChainedRegion(result.mappings, "9-result-final", queryId, queryLen);
+
+    return result;
+}
+
+void MapperCLR::CondenseMappings_(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
+                                  int32_t bestNSecondary)
+{
     // Filter mappings.
     size_t numValid = 0;
     int32_t numSelectedSecondary = 0;
-    for (size_t i = 0; i < result.mappings.size(); ++i) {
-        const auto& region = result.mappings[i];
+    for (size_t i = 0; i < mappings.size(); ++i) {
+        if (mappings[i] == nullptr) {
+            continue;
+        }
+        const auto& region = mappings[i];
         if (region->mapping == nullptr) {
             continue;
         }
         if (region->priority > 1) {
             continue;
         }
-        if (region->priority == 1 && numSelectedSecondary >= settings.bestNSecondary) {
+        if (bestNSecondary >= 0 && region->priority == 1 &&
+            numSelectedSecondary >= bestNSecondary) {
             continue;
         }
 
-        // Since the secondary/supplementary labelling was repeated, we need to filter secondary
-        // alignments again.
-        if (region->priority == 1 && numSelectedSecondary < settings.bestNSecondary) {
+        if (bestNSecondary < 0 || (bestNSecondary >= 0 && region->priority == 1 &&
+                                   numSelectedSecondary < bestNSecondary)) {
             ++numSelectedSecondary;
         }
         if (i != numValid) {
-            std::swap(result.mappings[i], result.mappings[numValid]);
+            std::swap(mappings[i], mappings[numValid]);
         }
         ++numValid;
     }
-    result.mappings.resize(numValid);
-    DebugWriteChainedRegion(result.mappings, "9-result-final", queryId, queryLen);
-
-    return result;
+    mappings.resize(numValid);
 }
 
 MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
@@ -407,6 +416,8 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
             settings.flankExtensionFactor);
     }
 
+    CondenseMappings_(result.mappings, settings.bestNSecondary);
+
     return result;
 }
 
@@ -470,6 +481,8 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
         settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
 
     DebugWriteChainedRegion(alignedResult.mappings, "8-result-after-align", queryId, queryLen);
+
+    CondenseMappings_(alignedResult.mappings, settings.bestNSecondary);
 
     return alignedResult;
 }
