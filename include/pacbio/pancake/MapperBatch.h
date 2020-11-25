@@ -14,24 +14,29 @@
 namespace PacBio {
 namespace Pancake {
 
+struct MapperBatchChunk
+{
+    std::vector<FastaSequenceCached> targetSeqs;
+    std::vector<FastaSequenceCached> querySeqs;
+};
+
 class MapperBatch
 {
 public:
     MapperBatch(const MapperCLRSettings& settings, int32_t numThreads);
     ~MapperBatch();
 
-    std::vector<MapperBaseResult> MapAndAlign(const std::vector<FastaSequenceCached>& targetSeqs,
-                                              const std::vector<FastaSequenceCached>& querySeqs);
+    std::vector<std::vector<MapperBaseResult>> DummyMapAndAlign(
+        const std::vector<MapperBatchChunk>& batchData);
 
 private:
     MapperCLRSettings settings_;
     int32_t numThreads_;
-    std::unique_ptr<MapperBase> mapper_;
+    std::unique_ptr<MapperCLR> mapper_;
 
-    static std::vector<MapperBaseResult> MapAndAlignImpl_(
-        const std::vector<FastaSequenceCached>& targetSeqs,
-        const std::vector<FastaSequenceCached>& querySeqs,
-        const std::unique_ptr<MapperBase>& mapper, MapperCLRSettings settings, int32_t numThreads);
+    static std::vector<std::vector<MapperBaseResult>> DummyMapAndAlignImpl_(
+        std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchData,
+        MapperCLRSettings settings, int32_t numThreads);
 };
 
 }  // namespace Pancake

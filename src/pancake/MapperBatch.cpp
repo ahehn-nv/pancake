@@ -13,25 +13,46 @@ namespace PacBio {
 namespace Pancake {
 
 MapperBatch::MapperBatch(const MapperCLRSettings& settings, int32_t numThreads)
-    : settings_{settings}, numThreads_(numThreads), mapper_(std::make_unique<MapperCLR>(settings))
+    : settings_{settings}, numThreads_(numThreads), mapper_(nullptr)
 {
+    // Deactivate alignment for the mapper.
+    MapperCLRSettings settingsCopy = settings;
+    settingsCopy.align = false;
+    mapper_ = std::make_unique<MapperCLR>(settingsCopy);
 }
 
 MapperBatch::~MapperBatch() = default;
 
-std::vector<MapperBaseResult> MapperBatch::MapAndAlign(
-    const std::vector<FastaSequenceCached>& targetSeqs,
-    const std::vector<FastaSequenceCached>& querySeqs)
+std::vector<std::vector<MapperBaseResult>> MapperBatch::DummyMapAndAlign(
+    const std::vector<MapperBatchChunk>& batchData)
 {
-    MapAndAlignImpl_(targetSeqs, querySeqs, mapper_, settings_, numThreads_);
+    return DummyMapAndAlignImpl_(mapper_, batchData, settings_, numThreads_);
 }
 
-std::vector<MapperBaseResult> MapperBatch::MapAndAlignImpl_(
-    const std::vector<FastaSequenceCached>& targetSeqs,
-    const std::vector<FastaSequenceCached>& querySeqs, const std::unique_ptr<MapperBase>& mapper,
-    MapperCLRSettings settings, int32_t numThreads)
+std::vector<std::vector<MapperBaseResult>> MapperBatch::DummyMapAndAlignImpl_(
+    std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchData,
+    MapperCLRSettings settings, int32_t /*numThreads*/)
 {
-    return {};
+    std::vector<std::vector<MapperBaseResult>> results;
+    results.reserve(batchData.size());
+
+    for (size_t i = 0; i < batchData.size(); ++i) {
+        const auto& bd = batchData[i];
+        std::vector<MapperBaseResult> result = mapper->MapAndAlign(bd.targetSeqs, bd.querySeqs);
+        results.emplace_back(std::move(result));
+    }
+
+    if (settings.align) {
+        for (size_t i = 0; i < results.size(); ++i) {
+            auto& result = results[i];
+            const auto& bd = batchData[i];
+            for (size_t qId = 0; qId < result.size(); ++qId) {
+                result[qId] = mapper->Align(bd.targetSeqs, bd.querySeqs[qId], result[qId]);
+            }
+        }
+    }
+
+    return results;
 }
 
 }  // namespace Pancake
