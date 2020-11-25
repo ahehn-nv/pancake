@@ -73,6 +73,21 @@ MapperBaseResult MapperCLR::MapAndAlignSingleQuery(
                             alignerGlobal_, alignerExt_);
 }
 
+MapperBaseResult MapperCLR::Map(const PacBio::Pancake::SeedIndex& index,
+                                const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+                                const int32_t queryLen, const int32_t queryId,
+                                int64_t freqCutoff) const
+{
+    return Map_(index, querySeeds, queryLen, queryId, settings_, freqCutoff);
+}
+
+MapperBaseResult MapperCLR::Align(const std::vector<FastaSequenceCached>& targetSeqs,
+                                  const FastaSequenceCached& querySeq,
+                                  const MapperBaseResult& mappingResult)
+{
+    return Align_(targetSeqs, querySeq, mappingResult, settings_, alignerGlobal_, alignerExt_);
+}
+
 void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId, const ChainedRegion& cr)
 {
     oss << "[regionId " << regionId << "] chain.hits = " << cr.chain.hits.size()
