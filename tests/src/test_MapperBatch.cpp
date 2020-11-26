@@ -177,7 +177,8 @@ TEST(MapperBatch, BatchMapping_ArrayOfTests)
         PacBio::Pancake::MapperBatch mapper(settings, 1);
 
         // Run the unit under test.
-        std::vector<std::vector<MapperBaseResult>> results = mapper.DummyMapAndAlign(batchData);
+        // std::vector<std::vector<MapperBaseResult>> results = mapper.DummyMapAndAlign(batchData);
+        std::vector<std::vector<MapperBaseResult>> results = mapper.MapAndAlignCPU(batchData);
 
         // Format the results for comparison.
         std::vector<std::vector<std::string>> resultsStr = HelperFormatBatchMappingResults(results);
