@@ -29,13 +29,20 @@ public:
     std::vector<std::vector<MapperBaseResult>> DummyMapAndAlign(
         const std::vector<MapperBatchChunk>& batchData);
 
+    std::vector<std::vector<MapperBaseResult>> MapAndAlignCPU(
+        const std::vector<MapperBatchChunk>& batchData);
+
 private:
     MapperCLRSettings settings_;
     int32_t numThreads_;
     std::unique_ptr<MapperCLR> mapper_;
 
     static std::vector<std::vector<MapperBaseResult>> DummyMapAndAlignImpl_(
-        std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchData,
+        std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchChunks,
+        MapperCLRSettings settings, int32_t numThreads);
+
+    static std::vector<std::vector<MapperBaseResult>> MapAndAlignCPUImpl_(
+        std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchChunks,
         MapperCLRSettings settings, int32_t numThreads);
 };
 
