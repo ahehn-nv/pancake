@@ -28,20 +28,11 @@ public:
     double GetMicrosecs(bool current = false) const;
     double GetNanosecs(bool current = false) const;
 
-    double GetCpuSecs(bool current = false) const;
-    double GetCpuMillisecs(bool current = false) const;
-    double GetCpuMicrosecs(bool current = false) const;
-    double GetCpuNanosecs(bool current = false) const;
-
     std::string VerboseSecs(bool current = false) const;
 
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> start_;
     std::chrono::time_point<std::chrono::high_resolution_clock> end_;
-    std::clock_t startCpu_;
-    std::clock_t endCpu_;
-
-    inline double GetCpuDuration_(bool current, double factor) const;
 };
 
 #endif /* SRC_UTIL_TICTOC_H_ */

@@ -19,17 +19,9 @@ TicToc::TicToc() : start_(), end_()
 
 TicToc::~TicToc() = default;
 
-void TicToc::Start()
-{
-    start_ = std::chrono::high_resolution_clock::now();
-    startCpu_ = std::clock();
-}
+void TicToc::Start() { start_ = std::chrono::high_resolution_clock::now(); }
 
-void TicToc::Stop()
-{
-    end_ = std::chrono::high_resolution_clock::now();
-    endCpu_ = std::clock();
-}
+void TicToc::Stop() { end_ = std::chrono::high_resolution_clock::now(); }
 
 double TicToc::GetSecs(bool current) const
 {
@@ -59,24 +51,9 @@ double TicToc::GetNanosecs(bool current) const
     return elapsed;
 }
 
-double TicToc::GetCpuDuration_(bool current, double factor) const
-{
-    auto endCpu = (current) ? std::clock() : endCpu_;
-    double elapsed = factor * static_cast<double>(endCpu - startCpu_) / CLOCKS_PER_SEC;
-    return elapsed;
-}
-
-double TicToc::GetCpuSecs(bool current) const { return GetCpuDuration_(current, 1.0); }
-
-double TicToc::GetCpuMillisecs(bool current) const { return GetCpuDuration_(current, 1000.0); }
-
-double TicToc::GetCpuMicrosecs(bool current) const { return GetCpuDuration_(current, 1000000.0); }
-
-double TicToc::GetCpuNanosecs(bool current) const { return GetCpuDuration_(current, 1000000000.0); }
-
 std::string TicToc::VerboseSecs(bool current) const
 {
     std::ostringstream oss;
-    oss << "Real: " << GetSecs(current) << " sec / CPU: " << GetCpuSecs(current) << " sec";
+    oss << "Real: " << GetSecs(current) << " sec.";
     return oss.str();
 }
