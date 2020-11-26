@@ -11,7 +11,6 @@
 #include <pacbio/pancake/Secondary.h>
 #include <pacbio/pancake/SeedHitWriter.h>
 #include <pacbio/util/RunLengthEncoding.h>
-#include <pacbio/util/TicToc.h>
 #include <pacbio/util/Util.h>
 #include <pbcopper/logging/Logging.h>
 #include <pbcopper/third-party/edlib.h>
@@ -228,16 +227,12 @@ MapperBaseResult MapperCLR::WrapMapAndAlign_(
     const int32_t queryLen = querySeq.size();
 
     // Map the query.
-    TicToc ttMap;
     auto result = Map_(index, querySeeds, queryLen, queryId, settings, freqCutoff);
-    ttMap.Stop();
 
     // Align if needed.
-    TicToc ttAlign;
     if (settings.align) {
         result = Align_(targetSeqs, querySeq, result, settings, alignerGlobal, alignerExt);
     }
-    ttAlign.Stop();
 
     // Filter mappings.
     size_t numValid = 0;
@@ -281,42 +276,32 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     }
 
     // Collect seed hits.
-    TicToc ttCollectHits;
     std::vector<SeedHit> hits;
     index.CollectHits(&querySeeds[0], querySeeds.size(), queryLen, hits, freqCutoff);
-    ttCollectHits.Stop();
 
     // Sort the seed hits.
-    TicToc ttSortHits;
     std::sort(hits.begin(), hits.end(), [](const auto& a, const auto& b) {
         return PackSeedHitWithDiagonalToTuple(a) < PackSeedHitWithDiagonalToTuple(b);
     });
-    ttSortHits.Stop();
 
     // Group seed hits by diagonal.
-    TicToc ttDiagonalGroup;
     auto groups = DiagonalGroup(hits, settings.chainBandwidth, true);
-    ttDiagonalGroup.Stop();
 
     // Process each diagonal bin to get the chains.
-    TicToc ttChain;
     std::vector<std::unique_ptr<ChainedRegion>> allChainedRegions = ChainAndMakeOverlap_(
         index, hits, groups, queryId, queryLen, settings.chainMaxSkip,
         settings.chainMaxPredecessors, settings.maxGap, settings.chainBandwidth,
         settings.minNumSeeds, settings.minCoveredBases, settings.minDPScore, settings.useLIS);
-    ttChain.Stop();
     DebugWriteChainedRegion(allChainedRegions, "1-chain-and-make-overlap", queryId, queryLen);
 
     // Take the remaining regions, merge all seed hits, and rechain.
     // Needed because diagonal chaining was greedy and a wide window could have split
     // otherwise good chains. On the other hand, diagonal binning was needed for speed
     // in low-complexity regions.
-    TicToc ttRechain;
     allChainedRegions =
         ReChainSeedHits_(allChainedRegions, index, queryId, queryLen, settings.chainMaxSkip,
                          settings.chainMaxPredecessors, settings.maxGap, settings.chainBandwidth,
                          settings.minNumSeeds, settings.minCoveredBases, settings.minDPScore);
-    ttRechain.Stop();
     DebugWriteChainedRegion(allChainedRegions, "2-rechain-hits", queryId, queryLen);
 
     // Sort all chains in descending order of the number of hits.
@@ -437,7 +422,6 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
     const std::string querySeqRev =
         PacBio::Pancake::ReverseComplement(querySeq.c_str(), 0, querySeq.size());
 
-    TicToc ttAlign;
     for (size_t i = 0; i < mappingResult.mappings.size(); ++i) {
         // const auto& chain = result.mappings[i]->chain;
         const auto& chain = mappingResult.mappings[i]->chain;
@@ -445,12 +429,10 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
         const auto& tSeqFwd = targetSeqs[ovl->Bid];
 
         // Use a custom aligner to align.
-        TicToc ttAlignmentSeeded;
         auto newOvl =
             AlignmentSeeded(ovl, chain.hits, tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
                             &querySeqRev[0], queryLen, settings.minAlignmentSpan,
                             settings.maxFlankExtensionDist, alignerGlobal, alignerExt);
-        ttAlignmentSeeded.Stop();
 
         auto newChainedRegion = std::make_unique<ChainedRegion>();
         newChainedRegion->chain = chain;
@@ -478,8 +460,6 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
     WrapFlagSecondaryAndSupplementary_(
         alignedResult.mappings, settings.secondaryAllowedOverlapFractionQuery,
         settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
-
-    ttAlign.Stop();
 
     DebugWriteChainedRegion(alignedResult.mappings, "8-result-after-align", queryId, queryLen);
 
