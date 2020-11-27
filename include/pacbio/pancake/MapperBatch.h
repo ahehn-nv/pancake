@@ -3,6 +3,7 @@
 #ifndef PANCAKE_MAPPER_BATCH_H
 #define PANCAKE_MAPPER_BATCH_H
 
+#include <pacbio/pancake/AlignerBatchCPU.h>
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/MapperBase.h>
 #include <pacbio/pancake/MapperCLR.h>
@@ -18,6 +19,13 @@ struct MapperBatchChunk
 {
     std::vector<FastaSequenceCached> targetSeqs;
     std::vector<FastaSequenceCached> querySeqs;
+};
+
+enum class BatchAlignerRegionType
+{
+    GLOBAL,
+    SEMIGLOBAL,
+    BOTH,
 };
 
 class MapperBatch
@@ -44,6 +52,11 @@ private:
     static std::vector<std::vector<MapperBaseResult>> MapAndAlignCPUImpl_(
         std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchChunks,
         MapperCLRSettings settings, int32_t numThreads);
+
+    static void PrepareSequencesForAlignment_(
+        AlignerBatchCPU& aligner, const std::vector<MapperBatchChunk>& batchChunks,
+        const std::vector<std::vector<MapperBaseResult>>& mappingResults,
+        const BatchAlignerRegionType& regionsToAdd);
 };
 
 }  // namespace Pancake
