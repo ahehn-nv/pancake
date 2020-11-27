@@ -93,6 +93,9 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
 
         alignerInternal.AlignAll();
         alignerFlanks.AlignAll();
+
+        results = StitchAlignments_(batchChunks, results, alignerInternal.GetAlnResults(),
+                                    alignerFlanks.GetAlnResults());
     }
 
     return results;
@@ -170,6 +173,14 @@ void MapperBatch::PrepareSequencesForAlignment_(
             }
         }
     }
+}
+
+std::vector<std::vector<MapperBaseResult>> MapperBatch::StitchAlignments_(
+    const std::vector<MapperBatchChunk>& batchChunks,
+    const std::vector<std::vector<MapperBaseResult>>& mappingResults,
+    const std::vector<AlignmentResult>& internalAlns, const std::vector<AlignmentResult>& flankAlns)
+{
+    return {};
 }
 
 }  // namespace Pancake
