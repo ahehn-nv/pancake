@@ -58,11 +58,10 @@ private:
         const std::vector<std::vector<MapperBaseResult>>& mappingResults,
         const BatchAlignerRegionType& regionsToAdd);
 
-    static std::vector<std::vector<MapperBaseResult>> StitchAlignments_(
-        const std::vector<MapperBatchChunk>& batchChunks,
-        const std::vector<std::vector<MapperBaseResult>>& mappingResults,
-        const std::vector<AlignmentResult>& internalAlns,
-        const std::vector<AlignmentResult>& flankAlns);
+    static void StitchAlignments_(const std::vector<MapperBatchChunk>& batchChunks,
+                                  const std::vector<std::vector<MapperBaseResult>>& mappingResults,
+                                  const std::vector<AlignmentResult>& internalAlns,
+                                  const std::vector<AlignmentResult>& flankAlns);
 };
 
 }  // namespace Pancake

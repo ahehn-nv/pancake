@@ -1,5 +1,6 @@
 // Authors: Ivan Sovic
 
+#include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignerBase.h>
 #include <pacbio/pancake/MapperBatch.h>
 #include <pacbio/pancake/OverlapWriterFactory.h>
@@ -94,8 +95,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
         alignerInternal.AlignAll();
         alignerFlanks.AlignAll();
 
-        results = StitchAlignments_(batchChunks, results, alignerInternal.GetAlnResults(),
-                                    alignerFlanks.GetAlnResults());
+        StitchAlignments_(batchChunks, results, alignerInternal.GetAlnResults(),
+                          alignerFlanks.GetAlnResults());
     }
 
     return results;
@@ -108,13 +109,13 @@ void MapperBatch::PrepareSequencesForAlignment_(
 {
     // Results are a vector for every chunk (one chunk is one ZMW).
     for (size_t resultId = 0; resultId < mappingResults.size(); ++resultId) {
-        auto& result = mappingResults[resultId];
+        const auto& result = mappingResults[resultId];
         const auto& chunk = batchChunks[resultId];
-        std::cerr << "[resultId = " << resultId << "]\n";
+        // std::cerr << "[resultId = " << resultId << "]\n";
 
         // One chunk can have multiple queries (subreads).
         for (size_t qId = 0; qId < result.size(); ++qId) {
-            std::cerr << "    [qId = " << qId << "]\n";
+            // std::cerr << "    [qId = " << qId << "]\n";
 
             // Prepare the query data in fwd and rev.
             const char* qSeqFwd = chunk.querySeqs[qId].c_str();
@@ -126,10 +127,10 @@ void MapperBatch::PrepareSequencesForAlignment_(
             for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
                 const auto& mapping = result[qId].mappings[mapId];
 
-                std::cerr << "        [mapId = " << mapId << "] "
-                          << OverlapWriterBase::PrintOverlapAsM4(mapping->mapping, "", "", true,
-                                                                 true)
-                          << "\n";
+                // std::cerr << "        [mapId = " << mapId << "] "
+                //           << OverlapWriterBase::PrintOverlapAsM4(mapping->mapping, "", "", true,
+                //                                                  true)
+                //           << "\n";
 
                 const char* tSeq = chunk.targetSeqs[mapping->mapping->Bid].c_str();
                 const int32_t tLen = chunk.targetSeqs[mapping->mapping->Bid].size();
@@ -139,12 +140,12 @@ void MapperBatch::PrepareSequencesForAlignment_(
                 std::string tSubSeq;
                 for (size_t regId = 0; regId < mapping->regionsForAln.size(); ++regId) {
                     const auto& region = mapping->regionsForAln[regId];
-                    std::cerr << "            [regId = " << regId << "] " << region << "\n";
+                    // std::cerr << "            [regId = " << regId << "] " << region << "\n";
 
-                    if (region.type == RegionType::GLOBAL &&
-                            regionsToAdd == BatchAlignerRegionType::SEMIGLOBAL ||
-                        region.type != RegionType::GLOBAL &&
-                            regionsToAdd == BatchAlignerRegionType::GLOBAL) {
+                    if ((region.type == RegionType::GLOBAL &&
+                         regionsToAdd == BatchAlignerRegionType::SEMIGLOBAL) ||
+                        (region.type != RegionType::GLOBAL &&
+                         regionsToAdd == BatchAlignerRegionType::GLOBAL)) {
                         continue;
                     }
 
@@ -175,12 +176,142 @@ void MapperBatch::PrepareSequencesForAlignment_(
     }
 }
 
-std::vector<std::vector<MapperBaseResult>> MapperBatch::StitchAlignments_(
+void MapperBatch::StitchAlignments_(
     const std::vector<MapperBatchChunk>& batchChunks,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
     const std::vector<AlignmentResult>& internalAlns, const std::vector<AlignmentResult>& flankAlns)
 {
-    return {};
+    size_t currInternal = 0;
+    size_t currFlank = 0;
+
+    // Results are a vector for every chunk (one chunk is one ZMW).
+    for (size_t resultId = 0; resultId < mappingResults.size(); ++resultId) {
+        auto& result = mappingResults[resultId];
+        const auto& chunk = batchChunks[resultId];
+        // std::cerr << "[stitch resultId = " << resultId << "]\n";
+
+        // std::vector<PacBio::Pancake::MapperBaseResult>
+        // One chunk can have multiple queries (subreads).
+        for (size_t qId = 0; qId < result.size(); ++qId) {
+            // std::cerr << "    [stitch qId = " << qId << "]\n";
+
+            // Prepare the query data in fwd and rev.
+            const char* qSeqFwd = chunk.querySeqs[qId].c_str();
+            const int32_t qLen = chunk.querySeqs[qId].size();
+            const std::string qSeqRevString = PacBio::Pancake::ReverseComplement(qSeqFwd, 0, qLen);
+            const char* qSeqRev = qSeqRevString.c_str();
+
+            // Each query can have multiple mappings.
+            // std::vector<OverlapPtr> newMappings;
+            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
+                auto& mapping = result[qId].mappings[mapId];
+                auto& ovl = mapping->mapping;
+                ovl->Cigar.clear();
+                int32_t newQueryStart = 0;
+                int32_t newTargetStart = 0;
+                int32_t newQueryEnd = 0;
+                int32_t newTargetEnd = 0;
+
+                // std::cerr << "        [stitch mapId = " << mapId << "] "
+                //           << OverlapWriterBase::PrintOverlapAsM4(mapping->mapping, "", "", true,
+                //                                                  true)
+                //           << "\n";
+
+                // Each mapping is split into regions in between seed hits for alignment.
+                for (size_t regId = 0; regId < mapping->regionsForAln.size(); ++regId) {
+                    const auto& region = mapping->regionsForAln[regId];
+                    // std::cerr << "            [stitch regId = " << regId << "] " << region << "\n";
+
+                    if (region.type == RegionType::FRONT) {
+                        if (currFlank >= flankAlns.size()) {
+                            std::ostringstream oss;
+                            oss << "Invalid number of flank alignments. About to access currFlank "
+                                   "= "
+                                << currFlank << ", but flankAlns.size() = " << flankAlns.size()
+                                << ". resultId = " << resultId << ", qId = " << qId
+                                << ", mapId = " << mapId << ", regId = " << regId;
+                            throw std::runtime_error(oss.str());
+                        }
+                        const auto& aln = flankAlns[currFlank];
+                        // std::cerr << "                (front) [currFlank = " << currFlank
+                        //           << ", currInternal = " << currInternal << "] aln = " << aln
+                        //           << "\n";
+                        size_t currCigarLen = ovl->Cigar.size();
+                        ovl->Cigar.insert(ovl->Cigar.end(), aln.cigar.begin(), aln.cigar.end());
+                        std::reverse(ovl->Cigar.begin() + currCigarLen, ovl->Cigar.end());
+                        newQueryStart = region.qStart + region.qSpan - aln.lastQueryPos;
+                        newTargetStart = region.tStart + region.tSpan - aln.lastTargetPos;
+                        ++currFlank;
+                    } else if (region.type == RegionType::BACK) {
+                        if (currFlank >= flankAlns.size()) {
+                            std::ostringstream oss;
+                            oss << "Invalid number of flank alignments. About to access currFlank "
+                                   "= "
+                                << currFlank << ", but flankAlns.size() = " << flankAlns.size()
+                                << ". resultId = " << resultId << ", qId = " << qId
+                                << ", mapId = " << mapId << ", regId = " << regId;
+                            throw std::runtime_error(oss.str());
+                        }
+                        const auto& aln = flankAlns[currFlank];
+                        // std::cerr << "                (back) [currFlank = " << currFlank
+                        //           << ", currInternal = " << currInternal << "] aln = " << aln
+                        //           << "\n";
+                        ovl->Cigar.insert(ovl->Cigar.end(), aln.cigar.begin(), aln.cigar.end());
+                        newQueryEnd = region.qStart + aln.lastQueryPos;
+                        newTargetEnd = region.tStart + aln.lastTargetPos;
+                        ++currFlank;
+                    } else {
+                        if (currInternal >= internalAlns.size()) {
+                            std::ostringstream oss;
+                            oss << "Invalid number of internal alignments. About to access "
+                                   "currInternal = "
+                                << currInternal
+                                << ", but internalAlns.size() = " << internalAlns.size()
+                                << ". resultId = " << resultId << ", qId = " << qId
+                                << ", mapId = " << mapId << ", regId = " << regId;
+                            throw std::runtime_error(oss.str());
+                        }
+                        const auto& aln = internalAlns[currInternal];
+                        // std::cerr << "                (internal) [currFlank = " << currFlank
+                        //           << ", currInternal = " << currInternal << "] aln = " << aln
+                        //           << "\n";
+                        ovl->Cigar.insert(ovl->Cigar.end(), aln.cigar.begin(), aln.cigar.end());
+                        ++currInternal;
+                    }
+                    // std::cerr << "CIGAR: " << ovl->Cigar.ToStdString() << "\n";
+                }
+                ovl->Astart = newQueryStart;
+                ovl->Aend = newQueryEnd;
+                ovl->Bstart = newTargetStart;
+                ovl->Bend = newTargetEnd;
+
+                // Reverse the CIGAR and the coordinates if needed.
+                if (ovl->Brev) {
+                    // CIGAR reversal.
+                    std::reverse(ovl->Cigar.begin(), ovl->Cigar.end());
+
+                    // Reverse the query coordinates.
+                    std::swap(ovl->Astart, ovl->Aend);
+                    ovl->Astart = ovl->Alen - ovl->Astart;
+                    ovl->Aend = ovl->Alen - ovl->Aend;
+
+                    // Get the forward-oriented target coordinates.
+                    std::swap(ovl->Bstart, ovl->Bend);
+                    ovl->Bstart = ovl->Blen - ovl->Bstart;
+                    ovl->Bend = ovl->Blen - ovl->Bend;
+                }
+
+                // Set the alignment identity and edit distance.
+                Alignment::DiffCounts diffs = CigarDiffCounts(ovl->Cigar);
+                diffs.Identity(false, false, ovl->Identity, ovl->EditDistance);
+                ovl->Score = -diffs.numEq;
+                // std::cerr << "        [stitch after mapId = " << mapId << "] "
+                //           << OverlapWriterBase::PrintOverlapAsM4(mapping->mapping, "", "", true,
+                //                                                  true)
+                //           << "\n";
+            }
+        }
+    }
 }
 
 }  // namespace Pancake
