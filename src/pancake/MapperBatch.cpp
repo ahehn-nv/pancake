@@ -75,10 +75,6 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
 {
     std::vector<std::vector<MapperBaseResult>> results(batchChunks.size());
 
-    // Deactivate alignment for the mapper.
-    MapperCLRSettings settingsCopy = settings;
-    settingsCopy.align = false;
-
     // Determine how many records should land in each thread, spread roughly evenly.
     const int32_t numRecords = batchChunks.size();
     const int32_t actualThreadCount = std::min(static_cast<int32_t>(numThreads), numRecords);
@@ -89,12 +85,22 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
         ++recordsPerThread[i];
     }
 
+    // Create a mapper for each thread.
+    MapperCLRSettings settingsCopy = settings;
+    settingsCopy.align = false;
+    std::vector<std::unique_ptr<MapperCLR>> mappers;
+    for (int32_t i = 0; i < actualThreadCount; ++i) {
+        auto mapper = std::make_unique<MapperCLR>(settingsCopy);
+        mappers.emplace_back(std::move(mapper));
+    }
+
     // Run the mapping in parallel.
     PacBio::Parallel::FireAndForget faf(numThreads);
     int32_t submittedCount = 0;
     for (int32_t i = 0; i < actualThreadCount; ++i) {
-        faf.ProduceWith(WorkerMapper_, std::cref(batchChunks), std::cref(settingsCopy),
-                        submittedCount, submittedCount + recordsPerThread[i], std::ref(results));
+        faf.ProduceWith(WorkerMapper_, std::cref(batchChunks), submittedCount,
+                        submittedCount + recordsPerThread[i], std::cref(mappers[i]),
+                        std::ref(results));
         submittedCount += recordsPerThread[i];
     }
     faf.Finalize();
@@ -124,11 +130,10 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
     return results;
 }
 
-void MapperBatch::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks,
-                                const MapperCLRSettings& settings, int32_t startId, int32_t endId,
+void MapperBatch::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
+                                int32_t endId, const std::unique_ptr<MapperCLR>& mapper,
                                 std::vector<std::vector<MapperBaseResult>>& results)
 {
-    auto mapper = std::make_unique<MapperCLR>(settings);
     for (int32_t i = startId; i < endId; ++i) {
         const auto& chunk = batchChunks[i];
         results[i] = mapper->MapAndAlign(chunk.targetSeqs, chunk.querySeqs);

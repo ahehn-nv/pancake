@@ -67,8 +67,8 @@ private:
         double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
         double secondaryMinScoreFraction, int32_t bestNSecondary);
 
-    static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks,
-                              const MapperCLRSettings& settings, int32_t startId, int32_t endId,
+    static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
+                              int32_t endId, const std::unique_ptr<MapperCLR>& mapper,
                               std::vector<std::vector<MapperBaseResult>>& results);
 };
 
