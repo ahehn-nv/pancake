@@ -43,15 +43,14 @@ public:
 private:
     MapperCLRSettings settings_;
     int32_t numThreads_;
-    std::unique_ptr<MapperCLR> mapper_;
 
     static std::vector<std::vector<MapperBaseResult>> DummyMapAndAlignImpl_(
-        std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchChunks,
-        MapperCLRSettings settings, int32_t numThreads);
+        const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
+        int32_t numThreads);
 
     static std::vector<std::vector<MapperBaseResult>> MapAndAlignCPUImpl_(
-        std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchChunks,
-        MapperCLRSettings settings, int32_t numThreads);
+        const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
+        int32_t numThreads);
 
     static void PrepareSequencesForAlignment_(
         AlignerBatchCPU& aligner, const std::vector<MapperBatchChunk>& batchChunks,
@@ -67,6 +66,10 @@ private:
         std::vector<std::vector<MapperBaseResult>>& mappingResults,
         double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
         double secondaryMinScoreFraction, int32_t bestNSecondary);
+
+    static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks,
+                              const MapperCLRSettings& settings, int32_t startId, int32_t endId,
+                              std::vector<std::vector<MapperBaseResult>>& results);
 };
 
 }  // namespace Pancake

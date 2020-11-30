@@ -6,6 +6,8 @@
 #include <pacbio/pancake/OverlapWriterFactory.h>
 #include <pacbio/util/TicToc.h>
 #include <pbcopper/logging/Logging.h>
+#include <pbcopper/parallel/FireAndForget.h>
+#include <pbcopper/parallel/WorkQueue.h>
 #include <algorithm>
 #include <array>
 #include <iostream>
@@ -16,12 +18,8 @@ namespace PacBio {
 namespace Pancake {
 
 MapperBatch::MapperBatch(const MapperCLRSettings& settings, int32_t numThreads)
-    : settings_{settings}, numThreads_(numThreads), mapper_(nullptr)
+    : settings_{settings}, numThreads_(numThreads)
 {
-    // Deactivate alignment for the mapper.
-    MapperCLRSettings settingsCopy = settings;
-    settingsCopy.align = false;
-    mapper_ = std::make_unique<MapperCLR>(settingsCopy);
 }
 
 MapperBatch::~MapperBatch() = default;
@@ -29,22 +27,28 @@ MapperBatch::~MapperBatch() = default;
 std::vector<std::vector<MapperBaseResult>> MapperBatch::DummyMapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
-    return DummyMapAndAlignImpl_(mapper_, batchData, settings_, numThreads_);
+    return DummyMapAndAlignImpl_(batchData, settings_, numThreads_);
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPU(
     const std::vector<MapperBatchChunk>& batchData)
 {
-    return MapAndAlignCPUImpl_(mapper_, batchData, settings_, numThreads_);
+    return MapAndAlignCPUImpl_(batchData, settings_, numThreads_);
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatch::DummyMapAndAlignImpl_(
-    std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchChunks,
-    MapperCLRSettings settings, int32_t /*numThreads*/)
+    const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
+    int32_t /*numThreads*/)
 {
     std::vector<std::vector<MapperBaseResult>> results;
     results.reserve(batchChunks.size());
 
+    // Deactivate alignment for the mapper.
+    MapperCLRSettings settingsCopy = settings;
+    settingsCopy.align = false;
+    auto mapper = std::make_unique<MapperCLR>(settingsCopy);
+
+    // Map.
     for (size_t i = 0; i < batchChunks.size(); ++i) {
         const auto& chunk = batchChunks[i];
         std::vector<MapperBaseResult> result =
@@ -66,18 +70,34 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::DummyMapAndAlignImpl_(
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
-    std::unique_ptr<MapperCLR>& mapper, const std::vector<MapperBatchChunk>& batchChunks,
-    MapperCLRSettings settings, int32_t numThreads)
+    const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
+    int32_t numThreads)
 {
-    std::vector<std::vector<MapperBaseResult>> results;
-    results.reserve(batchChunks.size());
+    std::vector<std::vector<MapperBaseResult>> results(batchChunks.size());
 
-    for (size_t i = 0; i < batchChunks.size(); ++i) {
-        const auto& chunk = batchChunks[i];
-        std::vector<MapperBaseResult> result =
-            mapper->MapAndAlign(chunk.targetSeqs, chunk.querySeqs);
-        results.emplace_back(std::move(result));
+    // Deactivate alignment for the mapper.
+    MapperCLRSettings settingsCopy = settings;
+    settingsCopy.align = false;
+
+    // Determine how many records should land in each thread, spread roughly evenly.
+    const int32_t numRecords = batchChunks.size();
+    const int32_t actualThreadCount = std::min(static_cast<int32_t>(numThreads), numRecords);
+    const int32_t minimumRecordsPerThreads = (numRecords / actualThreadCount);
+    const int32_t remainingRecords = (numRecords % actualThreadCount);
+    std::vector<int32_t> recordsPerThread(actualThreadCount, minimumRecordsPerThreads);
+    for (int32_t i = 0; i < remainingRecords; ++i) {
+        ++recordsPerThread[i];
     }
+
+    // Run the mapping in parallel.
+    PacBio::Parallel::FireAndForget faf(numThreads);
+    int32_t submittedCount = 0;
+    for (int32_t i = 0; i < actualThreadCount; ++i) {
+        faf.ProduceWith(WorkerMapper_, std::cref(batchChunks), std::cref(settingsCopy),
+                        submittedCount, submittedCount + recordsPerThread[i], std::ref(results));
+        submittedCount += recordsPerThread[i];
+    }
+    faf.Finalize();
 
     if (settings.align) {
         AlignerBatchCPU alignerInternal(settings.alignerTypeGlobal, settings.alnParamsGlobal,
@@ -102,6 +122,17 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
     }
 
     return results;
+}
+
+void MapperBatch::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks,
+                                const MapperCLRSettings& settings, int32_t startId, int32_t endId,
+                                std::vector<std::vector<MapperBaseResult>>& results)
+{
+    auto mapper = std::make_unique<MapperCLR>(settings);
+    for (int32_t i = startId; i < endId; ++i) {
+        const auto& chunk = batchChunks[i];
+        results[i] = mapper->MapAndAlign(chunk.targetSeqs, chunk.querySeqs);
+    }
 }
 
 void MapperBatch::PrepareSequencesForAlignment_(
