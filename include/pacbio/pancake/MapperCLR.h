@@ -276,21 +276,21 @@ private:
     static void LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,
                                  int32_t maxGap);
 
-    /*
-     * \brief Wraps the labelling of secondary and supplementary chained regions.
-    */
-    static void WrapFlagSecondaryAndSupplementary_(
-        std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
-        double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
-        double secondaryMinScoreFraction);
-
     static std::vector<AlignmentRegion> CollectAlignmentRegions_(
         const std::unique_ptr<ChainedRegion>& singleMapping, int32_t minAlignmentSpan,
         int32_t maxFlankExtensionDist, double flankExtensionFactor);
-
-    static void CondenseMappings_(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
-                                  int32_t bestNSecondary);
 };
+
+/*
+    * \brief Wraps the labelling of secondary and supplementary chained regions.
+*/
+void WrapFlagSecondaryAndSupplementary(
+    std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
+    double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
+    double secondaryMinScoreFraction);
+
+void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
+                      int32_t bestNSecondary);
 
 }  // namespace Pancake
 }  // namespace PacBio
