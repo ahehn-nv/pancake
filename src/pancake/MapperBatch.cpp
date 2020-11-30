@@ -97,6 +97,10 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
 
         StitchAlignments_(batchChunks, results, alignerInternal.GetAlnResults(),
                           alignerFlanks.GetAlnResults());
+
+        UpdateSecondaryAndFilter_(results, settings.secondaryAllowedOverlapFractionQuery,
+                                  settings.secondaryAllowedOverlapFractionTarget,
+                                  settings.secondaryMinScoreFraction, settings.bestNSecondary);
     }
 
     return results;
@@ -310,6 +314,25 @@ void MapperBatch::StitchAlignments_(
                 //                                                  true)
                 //           << "\n";
             }
+        }
+    }
+}
+
+void MapperBatch::UpdateSecondaryAndFilter_(
+    std::vector<std::vector<MapperBaseResult>>& mappingResults,
+    double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
+    double secondaryMinScoreFraction, int32_t bestNSecondary)
+{
+    // Results are a vector for every chunk (one chunk is one ZMW).
+    for (size_t resultId = 0; resultId < mappingResults.size(); ++resultId) {
+        auto& result = mappingResults[resultId];
+        // One chunk can have multiple queries (subreads).
+        for (size_t qId = 0; qId < result.size(); ++qId) {
+            // Secondary/supplementary flagging.
+            WrapFlagSecondaryAndSupplementary(
+                result[qId].mappings, secondaryAllowedOverlapFractionQuery,
+                secondaryAllowedOverlapFractionTarget, secondaryMinScoreFraction);
+            CondenseMappings(result[qId].mappings, bestNSecondary);
         }
     }
 }

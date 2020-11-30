@@ -62,6 +62,11 @@ private:
                                   const std::vector<std::vector<MapperBaseResult>>& mappingResults,
                                   const std::vector<AlignmentResult>& internalAlns,
                                   const std::vector<AlignmentResult>& flankAlns);
+
+    static void UpdateSecondaryAndFilter_(
+        std::vector<std::vector<MapperBaseResult>>& mappingResults,
+        double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
+        double secondaryMinScoreFraction, int32_t bestNSecondary);
 };
 
 }  // namespace Pancake
