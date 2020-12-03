@@ -1,6 +1,6 @@
 project(
   'pancake',
-  ['cpp', 'c'],
+  ['cpp', 'c', 'cuda'],
   version : '1.1.0',
   default_options : [
     'buildtype=release',
@@ -60,6 +60,14 @@ pancake_pbbam_dep = dependency('pbbam', fallback : ['pbbam', 'pbbam_dep'])
 # clock_gettime on old glibc systems
 pancake_rt_dep = cpp.find_library('rt', required : false)
 
+# CUDA.
+cudart_dep = dependency('cudart-11.0', version : '>=11')
+
+cpp = meson.get_compiler('cpp')
+cudaaligner = cpp.find_library('cudaaligner', dirs: meson.source_root() + '/subprojects/genomeworks/build/cudaaligner/')
+gw_base = cpp.find_library('gwbase', dirs: meson.source_root() + '/subprojects/genomeworks/build/common/base/')
+gw_io = cpp.find_library('gwio', dirs: meson.source_root() + '/subprojects/genomeworks/build/common/io/')
+
 # Collect all deps.
 pancake_lib_deps = [
   pancake_thread_dep,
@@ -69,6 +77,10 @@ pancake_lib_deps = [
   pancake_pbcopper_dep,
   pancake_pbbam_dep,
   pancake_rt_dep,
+  cudart_dep,
+  cudaaligner,
+  gw_base,
+  gw_io,
 ]
 
 ###########
@@ -76,6 +88,9 @@ pancake_lib_deps = [
 ###########
 
 subdir('include')
+
+genomeworks_include_directories = include_directories(['subprojects/genomeworks/cudaaligner/include', 'subprojects/genomeworks/common/base/include/', 'subprojects/genomeworks/common/io/include/', 'subprojects/genomeworks/3rdparty/spdlog/include'])
+pancake_include_directories = [pancake_include_directories, genomeworks_include_directories]
 
 #####################
 # sources + library #
@@ -105,7 +120,6 @@ endif
 ###################
 # dependency info #
 ###################
-
 if not meson.is_subproject()
   # need to add pbcopper into 'Requires:' field,
   # but Meson currently only allows this if it's a
