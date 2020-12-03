@@ -4,14 +4,15 @@ CURRENT_DEBUG_BUILD_DIR_SANITIZE?=build-debug-sanitize
 ENABLED_TESTS?=true
 export ENABLED_TESTS CURRENT_BUILD_DIR
 
-.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug build-debug2 conf-debug2 debug2
+.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug build-debug2 conf-debug2 debug2 genomeworks
 
 
 
 ################
 ### Release. ###
 ################
-build:
+# build: subprojects/genomeworks/build/cudaaligner/libcudaaligner.a
+build: subprojects/genomeworks/build/cudaaligner/libcudaaligner.so
 	mkdir -p ${CURRENT_BUILD_DIR} && ninja -C "${CURRENT_BUILD_DIR}" -v test
 
 conf:
@@ -19,6 +20,15 @@ conf:
 	ENABLED_SSE41=true bash -vex scripts/ci/configure_with_fallback.sh
 
 all: conf build cram check-formatting
+
+subprojects/genomeworks/README.md:
+	mkdir -p subprojects && pushd subprojects && git clone ssh://git@bitbucket.nanofluidics.com:7999/~isovic/genomeworks.git --recursive && cd genomeworks && git checkout no-exe
+
+subprojects/genomeworks/build/cudaaligner/libcudaaligner.a: subprojects/genomeworks/README.md
+	mkdir -p subprojects/genomeworks/build && cd subprojects/genomeworks/build && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install -Dgw_cuda_gen_all_arch=OFF -Dgw_build_htslib=OFF && make
+
+subprojects/genomeworks/build/cudaaligner/libcudaaligner.so: subprojects/genomeworks/README.md
+	mkdir -p subprojects/genomeworks/build && cd subprojects/genomeworks/build && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install -Dgw_build_htslib=OFF -Dgw_build_shared=ON
 
 ################
 ### Debug.   ###
