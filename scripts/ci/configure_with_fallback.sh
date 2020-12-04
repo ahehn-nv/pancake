@@ -5,7 +5,6 @@ set -vex
 # '--wrap-mode nofallback' prevents meson from downloading
 # stuff from the internet or using subprojects.
 meson \
-  --werror \
   --buildtype release \
   --default-library shared \
   --libdir lib \
@@ -14,3 +13,4 @@ meson \
   -Dtests="${ENABLED_TESTS:-false}" \
   -Dsse41="${ENABLED_SSE41:-false}" \
   "${CURRENT_BUILD_DIR:-build}" .
+#  --werror \
