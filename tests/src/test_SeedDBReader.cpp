@@ -532,7 +532,7 @@ TEST(SeedDBReader, GetNextBatch2)
                                 "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1a.seeddb";
-    int64_t batchSize = 10000;
+    int64_t batchSize = 7000;  // Number of bytes of the seeds.
 
     // Load the SeedDB.
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> seedDBCache =
@@ -584,7 +584,7 @@ TEST(SeedDBReader, GetNextBatch3)
                                 "/seqdb-writer/test-1-compressed-each-seq-one-block-and-file.seqdb";
     const std::string inSeedDB =
         PacBio::PancakeTestsConfig::Data_Dir + "/seeddb-writer/test-1b.seeddb";
-    int64_t batchSize = 10000;
+    int64_t batchSize = 7000;  // Number of bytes of the seeds.
 
     // Load the SeedDB.
     std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> seedDBCache =

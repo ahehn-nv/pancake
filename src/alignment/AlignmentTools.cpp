@@ -220,7 +220,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                 << "queryPos = " << queryPos << ", targetPos = " << targetPos
                 << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                 << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
             throw std::runtime_error(oss.str());
         }
 
@@ -232,7 +232,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
             if (strncmp(query + queryPos, target + targetPos, op.Length()) != 0) {
@@ -243,7 +243,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
             queryPos += op.Length();
@@ -256,7 +256,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
 
@@ -269,7 +269,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                         << "queryPos = " << queryPos << ", targetPos = " << targetPos
                         << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                         << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                        << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                        << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                     throw std::runtime_error(oss.str());
                 }
             }
@@ -284,7 +284,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
             queryPos += op.Length();
@@ -297,7 +297,7 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                     << "queryPos = " << queryPos << ", targetPos = " << targetPos
                     << ", offending CIGAR op: " << op.Length() << op.TypeToChar(op.Type())
                     << ", queryLen = " << queryLen << ", targetLen = " << targetLen
-                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label;
+                    << ", CIGAR: " << cigar.ToStdString() << ", label: '" << label << "'";
                 throw std::runtime_error(oss.str());
             }
             targetPos += op.Length();
@@ -309,6 +309,20 @@ void ValidateCigar(const char* query, int64_t queryLen, const char* target, int6
                 << "' not supported by the validation function.";
             throw std::runtime_error(oss.str());
         }
+    }
+
+    if (queryPos != queryLen || targetPos != targetLen) {
+        Alignment::DiffCounts diffs = CigarDiffCounts(cigar);
+        std::ostringstream oss;
+        oss << "Invalid CIGAR string (length): "
+            << "Computed query or target length does not match the sequence length. "
+            << "queryPos = " << queryPos << ", targetPos = " << targetPos
+            << ", queryLen = " << queryLen << ", targetLen = " << targetLen
+            << ", alnQuerySpan = " << (diffs.numEq + diffs.numX + diffs.numI)
+            << ", alnTargetSpan = " << (diffs.numEq + diffs.numX + diffs.numD) << ", " << diffs
+            << ", edit_dist = " << diffs.NumDiffs() << ", CIGAR: " << cigar.ToStdString()
+            << ", label: '" << label << "'";
+        throw std::runtime_error(oss.str());
     }
 }
 
@@ -1034,8 +1048,8 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
     TrimmingInfo trimInfo;
 
     const auto ProcessCigarOp = [](
-        const PacBio::BAM::Cigar& cigar, const int32_t opId, const int32_t windowSize,
-        const int32_t minMatches, const bool clipOnFirstMatch,
+        const PacBio::BAM::Cigar& _cigar, const int32_t opId, const int32_t _windowSize,
+        const int32_t _minMatches, const bool _clipOnFirstMatch,
         std::array<std::pair<int32_t, int32_t>, 512>& buff, int32_t& buffStart, int32_t& buffEnd,
         int32_t& matchCount, int32_t& foundOpId, int32_t& foundOpInternalId, int32_t& posQuery,
         int32_t& posTarget) -> bool {
@@ -1049,7 +1063,7 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
          *          internal ID of that CIGAR operation are returned via parameters.
         */
 
-        const auto& op = cigar[opId];
+        const auto& op = _cigar[opId];
         int32_t opLen = op.Length();
         int32_t buffSize = buff.size();
         for (int32_t i = 0; i < opLen; ++i) {
@@ -1057,18 +1071,18 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
                 (buffEnd >= buffStart) ? (buffEnd - buffStart) : (buffSize - buffStart + buffEnd);
 
             // This happens only after the window has been filled.
-            if (currWindowSize >= windowSize) {
+            if (currWindowSize >= _windowSize) {
                 // Get the start operation, which will be pushed outside of the window.
                 const auto& windowOpPair = buff[buffStart];
                 const int32_t startOpId = windowOpPair.first;
                 const int32_t startOpInternalId = windowOpPair.second;
-                const auto startOpType = cigar[startOpId].Type();
+                const auto startOpType = _cigar[startOpId].Type();
                 buffStart = (buffStart + 1) % buffSize;
 
                 // Check if we found our target window.
-                if (matchCount >= minMatches &&
-                    (clipOnFirstMatch == false ||
-                     (clipOnFirstMatch &&
+                if (matchCount >= _minMatches &&
+                    (_clipOnFirstMatch == false ||
+                     (_clipOnFirstMatch &&
                       startOpType == PacBio::BAM::CigarOperationType::SEQUENCE_MATCH))) {
                     foundOpId = startOpId;
                     foundOpInternalId = startOpInternalId;
@@ -1223,6 +1237,37 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, const int32_t windowSize, const 
     retTrimming = trimInfo;
 
     return true;
+}
+
+int32_t ScoreCigarAlignment(const PacBio::BAM::Cigar& cigar, int32_t match, int32_t mismatch,
+                            int32_t gapOpen, int32_t gapExt)
+{
+    int64_t score = 0;
+
+    for (const auto& op : cigar) {
+        const int32_t count = op.Length();
+        switch (op.Type()) {
+            case PacBio::BAM::CigarOperationType::SEQUENCE_MATCH:
+                // Scores are positive.
+                score += match * count;
+                break;
+            case PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH:
+                // Penalties are positive.
+                score -= mismatch * count;
+                break;
+            case PacBio::BAM::CigarOperationType::INSERTION:
+                // Penalties are positive.
+                score -= (gapOpen + gapExt * (count - 1));
+                break;
+            case PacBio::BAM::CigarOperationType::DELETION:
+                // Penalties are positive.
+                score -= (gapOpen + gapExt * (count - 1));
+                break;
+            default:
+                break;
+        }
+    }
+    return score;
 }
 
 }  // namespace Pancake

@@ -6,6 +6,12 @@ if not meson.is_subproject()
 
   #'pacbio/Version.h',
 
+  install_headers(
+    files([
+      'lib/math.hpp',
+      ]),
+      subdir : 'lib/')
+
   # lib/flat_hash_map
   install_headers(
     files([
@@ -22,12 +28,27 @@ if not meson.is_subproject()
       ]),
       subdir : 'lib/intervaltree')
 
+  # lib/istl
+  install_headers(
+    files([
+      'lib/istl/lis.hpp',
+      ]),
+      subdir : 'lib/istl')
+
   # lib/kxsort
   install_headers(
     files([
       'lib/kxsort/kxsort.h',
       ]),
       subdir : 'lib/kxsort')
+
+  # lib/ksw2
+  install_headers(
+    files([
+      'lib/ksw2/kalloc.h',
+      'lib/ksw2/ksw2.h',
+      ]),
+      subdir : 'lib/ksw2')
 
   # lib/sparsehash/internal
   install_headers(
@@ -91,11 +112,23 @@ if not meson.is_subproject()
   # pacbio/pancake
   install_headers(
     files([
+      'pacbio/pancake/AlignerBase.h',
+      'pacbio/pancake/AlignerKSW2.h',
+      'pacbio/pancake/AlignerEdlib.h',
+      'pacbio/pancake/AlignerSES1.h',
+      'pacbio/pancake/AlignerSES2.h',
+      'pacbio/pancake/AlignerFactory.h',
+      'pacbio/pancake/AlignmentParameters.h',
+      'pacbio/pancake/AlignmentResult.h',
+      'pacbio/pancake/AlignmentSeeded.h',
       'pacbio/pancake/CompressedSequence.h',
       'pacbio/pancake/ContiguousFilePart.h',
+      'pacbio/pancake/DPChain.h',
       'pacbio/pancake/FastaSequenceCached.h',
       'pacbio/pancake/FastaSequenceId.h',
       'pacbio/pancake/Lookups.h',
+      'pacbio/pancake/MapperBase.h',
+      'pacbio/pancake/MapperCLR.h',
       'pacbio/pancake/MapperHiFi.h',
       'pacbio/pancake/Minimizers.h',
       'pacbio/pancake/Overlap.h',
@@ -110,6 +143,7 @@ if not meson.is_subproject()
       'pacbio/pancake/Secondary.h',
       'pacbio/pancake/Seed.h',
       'pacbio/pancake/SeedHit.h',
+      'pacbio/pancake/SeedHitWriter.h',
       'pacbio/pancake/SeedIndex.h',
       'pacbio/pancake/SeedDBIndexCache.h',
       'pacbio/pancake/SeedDBParameters.h',
@@ -145,4 +179,5 @@ if not meson.is_subproject()
 
 endif
 
-pancake_include_directories = include_directories(['.', 'pacbio', 'lib/sparsehash'])
+pancake_include_directories = include_directories(['.', 'pacbio', 'lib/sparsehash', 'lib/ksw2'])
+ksw2_include_directories = include_directories(['lib/ksw2'])

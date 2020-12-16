@@ -1,7 +1,7 @@
 project(
   'pancake',
   ['cpp', 'c'],
-  version : '0.2.0',
+  version : '1.1.0',
   default_options : [
     'buildtype=release',
     'warning_level=3',
@@ -9,7 +9,7 @@ project(
     'c_std=c11',
     'b_ndebug=if-release'],
   license : 'BSD-3',
-  meson_version : '>= 0.46.0')
+  meson_version : '>= 0.52.0')
 
 ############
 # CXXFLAGS #
@@ -25,12 +25,21 @@ foreach cflag: [
   '-Wnull-dereference',
   '-Wuseless-cast',
   '-Wdouble-promotion',
-#  '-Wshadow',
+  '-Wshadow',
+  '-fno-new-ttp-matching',
   '-Wformat=1']
     if cpp.has_argument(cflag)
       pancake_warning_flags += cflag
     endif
 endforeach
+
+pancake_flags = pancake_warning_flags + ['-DHAVE_KALLOC']
+
+#################
+# Meson options #
+#################
+opt_sse41 = get_option('sse41')
+opt_tests = get_option('tests')
 
 ################
 # dependencies #
@@ -40,7 +49,7 @@ endforeach
 pancake_thread_dep = dependency('threads', required : true)
 
 # boost
-pancake_boost_dep = dependency('boost', required : true)
+pancake_boost_dep = dependency('boost', required : true, include_type : 'system')
 
 # zlib
 pancacke_zlib_dep = dependency('zlib', required : true, fallback : ['zlib', 'zlib_dep'])
@@ -54,6 +63,9 @@ pancake_pbcopper_dep = dependency('pbcopper', required : true, fallback : ['pbco
 # pbbam
 pancake_pbbam_dep = dependency('pbbam', fallback : ['pbbam', 'pbbam_dep'])
 
+# clock_gettime on old glibc systems
+pancake_rt_dep = cpp.find_library('rt', required : false)
+
 # Collect all deps.
 pancake_lib_deps = [
   pancake_thread_dep,
@@ -61,7 +73,8 @@ pancake_lib_deps = [
   pancacke_zlib_dep,
   pancake_htslib_dep,
   pancake_pbcopper_dep,
-  pancake_pbbam_dep
+  pancake_pbbam_dep,
+  pancake_rt_dep,
 ]
 
 ###########
@@ -78,7 +91,7 @@ subdir('src')
 
 ##########
 # extras #
-#########
+##########
 
 if not meson.is_subproject()
   # tests

@@ -125,8 +125,8 @@ void DecompressSequence(const std::vector<uint8_t>& twobit, int32_t numBases,
 
         if (rangeStartByte == rangeEndByte) {
             // Special case when the range is small and starts and ends in the same byte.
-            std::string bases(ByteToBases[twobit[rangeStartByte]]);
-            oss << bases.substr(rangeStartOffset, rangeEndOffset - rangeStartOffset);
+            std::string currBases(ByteToBases[twobit[rangeStartByte]]);
+            oss << currBases.substr(rangeStartOffset, rangeEndOffset - rangeStartOffset);
 
         } else {
             // Take the bases from the range which are stored in the first byte.
@@ -167,11 +167,12 @@ void DecompressSequence(const std::vector<uint8_t>& twobit, int32_t numBases,
     bases = oss.str();
 
     if (static_cast<int32_t>(bases.size()) != numBases) {
-        std::ostringstream oss;
-        oss << "DecompressSequence unpacked more bases than specified in the function call! This "
+        std::ostringstream ossThrow;
+        ossThrow
+            << "DecompressSequence unpacked more bases than specified in the function call! This "
                "likely corrupted the memory. numBases = "
             << numBases << ", bases.size() = " << bases.size();
-        throw std::runtime_error(oss.str());
+        throw std::runtime_error(ossThrow.str());
     }
 }
 

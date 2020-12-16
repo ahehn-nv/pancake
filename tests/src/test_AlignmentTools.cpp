@@ -43,7 +43,7 @@ TEST(Test_AlignmentTools_ValidateCigar, ArrayOfTests)
         {"Cigar with indels", "ACTT", "ACTG", "3=1I1D", false},
         {"Soft clipping", "AAAACTTAAA", "ACTG", "3S3=1X3S", false},
         {"Hard clipping", "ACTT", "ACTG", "3H3=1X3H", false},
-        {"Simple test case", "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", false},
+        {"Simple test case", "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I2D", false},
 
         // Bad cases.
         {"One base is incorrect", "ACTT", "ACTG", "4=", true},
@@ -51,6 +51,7 @@ TEST(Test_AlignmentTools_ValidateCigar, ArrayOfTests)
         {"Non-zero CIGAR, but empty seqs", "", "", "4=", true},
         {"Length mismatch with indels", "ACTT", "ACTG", "3=1I1D1I", true},
         {"Length mismatch with mismatches", "ACTT", "ACTG", "3=2X", true},
+        {"Simple test case", "GGATCAGTTTTATATACAC", "GAGTTCGTTCTATATATACAC", "1=1I1=1D1=1D1=1I3=1X3=2D4=2I", true},
 
     };
     // clang-format on
@@ -1084,6 +1085,41 @@ TEST(Test_AlignmentTools_TrimCigar, ArrayOfTests_ShouldThrow)
             EXPECT_EQ(expectedTrimmedCigar, resultsCigar.ToStdString());
             EXPECT_EQ(expectedTrimmingInfo, resultsTrimming);
         }
+    }
+}
+
+TEST(Test_AlignmentTools_ScoreCigarAlignment, ArrayOfTests)
+{
+    // clang-format off
+    struct TestDataStruct {
+        std::string name;
+        std::string cigar;
+        int32_t match = 1;
+        int32_t mismatch = 1;
+        int32_t gapOpen = 1;
+        int32_t gapExtend = 1;
+        int32_t expectedScore = 0;
+    };
+    std::vector<TestDataStruct> testData = {
+        {"Empty input", "", 8, 4, 4, 2, 0},
+        {"Single match event", "1000=", 8, 4, 4, 2, 8000},
+        {"Single mismatch event", "1000X", 8, 4, 4, 2, -4000},
+        {"Single insertion event", "1000I", 8, 4, 4, 2, -2002},
+        {"Single deletion event", "1000D", 8, 4, 4, 2, -2002},
+        {"Simple mixed CIGAR", "8=2X3=1D2=4I8=", 8, 4, 4, 2, 8*8 - 2*4 + 3*8 - 1*4 + 2*8 - (4 + 3*2) + 8*8},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const PacBio::BAM::Cigar cigar(data.cigar);
+
+        // Name the test.
+        SCOPED_TRACE("ScoreCigarAlignment-" + data.name);
+
+        const int32_t result = PacBio::Pancake::ScoreCigarAlignment(
+            cigar, data.match, data.mismatch, data.gapOpen, data.gapExtend);
+        EXPECT_EQ(data.expectedScore, result);
     }
 }
 }

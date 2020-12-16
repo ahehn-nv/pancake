@@ -89,11 +89,17 @@ private:
     /// \param skipSelfHits Ignore hits where Aid == Bid.
     /// \param skipSymmetricOverlaps Do not produce an anchor if Aid > Bid.
     ///
-    static std::vector<OverlapPtr> FormDiagonalAnchors_(
+    static std::vector<OverlapPtr> FormAnchors_(
         const std::vector<SeedHit>& sortedHits,
         const PacBio::Pancake::FastaSequenceCached& querySeq,
-        const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t chainBandwidth,
-        int32_t minNumSeeds, int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps);
+        const PacBio::Pancake::SeedIndex& index, int32_t chainBandwidth, int32_t minNumSeeds,
+        int32_t minChainSpan, bool skipSelfHits, bool skipSymmetricOverlaps);
+
+    static std::vector<OverlapPtr> FormAnchors2_(
+        const std::vector<SeedHit>& sortedHits,
+        const PacBio::Pancake::FastaSequenceCached& querySeq,
+        const PacBio::Pancake::SeedIndex& index, int32_t chainBandwidth, int32_t minNumSeeds,
+        int32_t minChainSpan, int32_t minMatch, bool skipSelfHits, bool skipSymmetricOverlaps);
 
     /// \brief  Helper function used by FormDiagonalAnchors_ which creates a new overlap object
     ///         based on the minimum and maximum hit IDs.
@@ -109,11 +115,10 @@ private:
     /// \param minTargetPosID The ID of the hit within the diagonal bin with the smallest target pos.
     /// \param maxTargetPosID The ID of the hit within the diagonal bin with the largest target pos.
     ///
-    static OverlapPtr MakeOverlap_(
-        const std::vector<SeedHit>& sortedHits,
-        const PacBio::Pancake::FastaSequenceCached& querySeq,
-        const std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> indexCache, int32_t beginId,
-        int32_t endId, int32_t minTargetPosId, int32_t maxTargetPosId);
+    static OverlapPtr MakeOverlap_(const std::vector<SeedHit>& sortedHits,
+                                   const PacBio::Pancake::FastaSequenceCached& querySeq,
+                                   const PacBio::Pancake::SeedIndex& index, int32_t numSeeds,
+                                   int32_t minTargetPosId, int32_t maxTargetPosId);
 
     /// \brief Performs alignment and alignment extension of a given vector of overlaps.
     ///         A thin wrapper around AlignOverlap_, simply calls it for each overlap.
@@ -212,7 +217,7 @@ private:
     static std::vector<OverlapPtr> FilterOverlaps_(const std::vector<OverlapPtr>& overlaps,
                                                    int32_t minNumSeeds, float minIdentity,
                                                    int32_t minMappedSpan, int32_t minQueryLen,
-                                                   int32_t minTargetLen,
+                                                   int32_t minTargetLen, int32_t diagonalBandwidth,
                                                    int32_t allowedDovetailDist,
                                                    int32_t allowedExtendDist, int32_t bestN);
     /// \brief  Filters multiple overlaps for the same query-target pair, for example tandem repeats,
@@ -222,17 +227,6 @@ private:
     /// \return A vector of filtered overlaps.
     ///
     static std::vector<OverlapPtr> FilterTandemOverlaps_(const std::vector<OverlapPtr>& overlaps);
-
-    /// \brief  Helper function which converts a SeedHit into a packed 128-bit integer.
-    ///         Difference between this one and the one native to SeedHit is that here we pack
-    ///         The diagonal of the seed hit, which is important for proper sorting of hits
-    ///         before constructing anchors.
-    ///
-    /// \param sh SeedHit which to pack into an 128-bit integer.
-    /// \returns A packed 128-bit integer composed of:
-    ///             targetId:31, targetRev:1, diag:32, targetPos:32, queryPos:32.
-    ///
-    static PacBio::Pancake::Int128t PackSeedHitWithDiagonalTo128_(const SeedHit& sh);
 
     /// \brief  Helper function which extracts a subsequence from a given sequence, and reverse
     ///         complements if needed.

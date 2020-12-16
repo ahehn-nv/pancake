@@ -76,6 +76,12 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
     auto& alnPath = ss->alnPath;    // Alignment path during traceback.
     int32_t WMatrixPos = 0;         // Tracks the current location in the WMatrix (which is implemented as a flat vector).
 
+    // A useless void cast to prevent the compiler from complaining
+    // about unused variables when the constexpr if condition is not met.
+    (void)lastK;
+    (void)lastD;
+    (void)prevK;
+
     // Allocate memory for basic alignment.
     if (rowLen > static_cast<int32_t>(W.capacity())) {
         W.resize(rowLen, -1);
@@ -332,15 +338,15 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
             const auto& currW = WMatrix[currRowStart + currK - currMinK];
             int32_t x2 = currW.x2;
             int32_t y2 = currW.x2 - currK;
-            int32_t prevK = currW.prevK;
+            int32_t trPrevK = currW.prevK;
 
             int32_t prevRowStart = dStart[currD - 1].first;
             int32_t prevMinK = dStart[currD - 1].second;
-            const auto& prevW = WMatrix[prevRowStart + prevK - prevMinK];
+            const auto& prevW = WMatrix[prevRowStart + trPrevK - prevMinK];
             int32_t prevX2 = prevW.x2;
-            int32_t prevY2 = prevW.x2 - prevK;
+            int32_t prevY2 = prevW.x2 - trPrevK;
 
-            if (currK > prevK) {
+            if (currK > trPrevK) {
                 int32_t matches = std::min(x2 - prevX2, y2 - prevY2);
                 if (matches > 0) {
                     AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::SEQUENCE_MATCH, matches);
@@ -348,7 +354,7 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
                 AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::INSERTION, 1);
                 ret.diffCounts.numEq += matches;
                 ++ret.diffCounts.numI;
-            } else if (currK < prevK) {
+            } else if (currK < trPrevK) {
                 int32_t matches = std::min(x2 - prevX2, y2 - prevY2);
                 if (matches > 0) {
                     AppendToCigar(ret.cigar, PacBio::BAM::CigarOperationType::SEQUENCE_MATCH, matches);
@@ -365,7 +371,7 @@ SesResults SES2AlignBanded(const char* query, size_t queryLen, const char* targe
                 ret.diffCounts.numEq += matches;
                 ++ret.diffCounts.numX;
             }
-            currK = prevK;
+            currK = trPrevK;
             --currD;
         }
         {

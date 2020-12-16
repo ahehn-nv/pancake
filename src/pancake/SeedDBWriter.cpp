@@ -127,8 +127,7 @@ void SeedDBWriter::WriteSeeds(const std::vector<PacBio::Pancake::FastaSequenceCa
     }
 
     for (size_t i = 0; i < seqs.size(); ++i) {
-        WriteSeeds(seqs[i].name, static_cast<int32_t>(seqs[i].id),
-                   static_cast<int32_t>(seqs[i].size), seeds[i]);
+        WriteSeeds(seqs[i].Name(), seqs[i].Id(), seqs[i].size(), seeds[i]);
     }
 }
 

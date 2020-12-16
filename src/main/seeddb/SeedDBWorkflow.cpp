@@ -1,13 +1,13 @@
 // Authors: Ivan Sovic
 
-#include "main/seeddb/SeedDBWorkflow.h"
+#include "SeedDBWorkflow.h"
 #include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/pancake/Minimizers.h>
 #include <pacbio/pancake/Seed.h>
 #include <pacbio/pancake/SeedDBWriter.h>
 #include <pacbio/pancake/SeqDBIndexCache.h>
 #include <pacbio/pancake/SeqDBReaderCachedBlock.h>
-#include "main/seeddb/SeedDBSettings.h"
+#include "SeedDBSettings.h"
 
 #include <pbcopper/parallel/FireAndForget.h>
 #include <pbcopper/parallel/WorkQueue.h>
@@ -26,13 +26,15 @@ void Worker(const std::vector<FastaSequenceCached>& records, const SeedDBSetting
 
     for (int32_t i = start; i < end; ++i) {
         const auto& record = records[i];
-        const uint8_t* seq = reinterpret_cast<const uint8_t*>(record.bases);
-        int32_t seqLen = record.size;
+        const uint8_t* seq = reinterpret_cast<const uint8_t*>(record.c_str());
+        int32_t seqLen = record.size();
         int rv = GenerateMinimizers(seeds[i], seq, seqLen, 0, record.Id(), sp.KmerSize,
-                                    sp.MinimizerWindow, sp.Spacing, sp.UseRC, false, sp.MaxHPCLen);
+                                    sp.MinimizerWindow, sp.Spacing, sp.UseRC, sp.UseHPCForSeedsOnly,
+                                    sp.MaxHPCLen);
         if (rv)
             throw std::runtime_error("Generating minimizers failed, startAbs = " +
-                                     std::to_string(startAbs));
+                                     std::to_string(startAbs) + ", return code = " +
+                                     std::to_string(rv));
     }
 }
 

@@ -16,7 +16,7 @@ build:
 
 conf:
 	rm -rf "${CURRENT_BUILD_DIR}"
-	bash -vex scripts/ci/configure_with_fallback.sh
+	ENABLED_SSE41=true bash -vex scripts/ci/configure_with_fallback.sh
 
 all: conf build cram check-formatting
 

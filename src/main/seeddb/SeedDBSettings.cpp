@@ -1,6 +1,6 @@
 // Author: Ivan Sovic
 
-#include "main/seeddb/SeedDBSettings.h"
+#include "SeedDBSettings.h"
 #include <pacbio/Version.h>
 #include <limits>
 
@@ -33,8 +33,8 @@ const CLI_v2::Option KmerSize{
 R"({
     "names" : ["k", "kmer-size"],
     "type" : "int",
-    "default" : 30,
-    "description" : "Kmer size for indexing."
+    "default" : 28,
+    "description" : "Kmer size for indexing. Maximum size is 28."
 })", SeedDBSettings::Defaults::KmerSize};
 
 const CLI_v2::Option MinimizerWindow{
@@ -42,7 +42,7 @@ R"({
     "names" : ["w", "window"],
     "type" : "int",
     "default" : 80,
-    "description" : "Minimizer window size for indexing."
+    "description" : "Minimizer window size for indexing. Maximum size is 512."
 })", SeedDBSettings::Defaults::MinimizerWindow};
 
 const CLI_v2::Option Spacing{
@@ -50,21 +50,27 @@ R"({
     "names" : ["s", "space"],
     "type" : "int",
     "default" : 0,
-    "description" : "Seed spacing."
+    "description" : "Seed spacing. Maximum spacing is 32."
 })", SeedDBSettings::Defaults::Spacing};
 
 const CLI_v2::Option UseHPC{
 R"({
     "names" : ["use-hpc"],
-    "description" : "Enable homopolymer compression."
+    "description" : "Enable homopolymer compression. This option compresses the input sequences from the SeqDB, and the resulting seeds are in the compressed space."
 })", SeedDBSettings::Defaults::UseHPC};
+
+const CLI_v2::Option UseHPCForSeedsOnly{
+R"({
+    "names" : ["use-hpc-seeds-only"],
+    "description" : "Enable homopolymer compression of seeds. Unlike '--use-hpc', here the input sequences are not physically compressed. Instead, the seed coordinates correspond to the original uncompressed sequences, but the kmers skip HP bases with their span."
+})", SeedDBSettings::Defaults::UseHPCForSeedsOnly};
 
 const CLI_v2::Option MaxHPCLen{
 R"({
     "names" : ["max-hpc-len"],
     "type" : "int",
     "default" : 10,
-    "description" : "Maximum length of a homopolymer to compress."
+    "description" : "Maximum length of a homopolymer to compress. Maximum size is 256."
 })", SeedDBSettings::Defaults::MaxHPCLen};
 
 const CLI_v2::Option NoRevCmp{
@@ -84,9 +90,13 @@ SeedDBSettings::SeedDBSettings(const PacBio::CLI_v2::Results& options)
     , OutputPrefix{options[OptionNames::OutputPrefix]}
     , NumThreads{options.NumThreads()}
     , SplitBlocks{options[OptionNames::SplitBlocks]}
-    , SeedParameters{options[OptionNames::KmerSize],  options[OptionNames::MinimizerWindow],
-                     options[OptionNames::Spacing],   options[OptionNames::UseHPC],
-                     options[OptionNames::MaxHPCLen], !options[OptionNames::NoRevCmp]}
+    , SeedParameters{options[OptionNames::KmerSize],
+                     options[OptionNames::MinimizerWindow],
+                     options[OptionNames::Spacing],
+                     options[OptionNames::UseHPC],
+                     options[OptionNames::UseHPCForSeedsOnly],
+                     options[OptionNames::MaxHPCLen],
+                     !options[OptionNames::NoRevCmp]}
 {
 }
 
@@ -102,6 +112,7 @@ PacBio::CLI_v2::Interface SeedDBSettings::CreateCLI()
         OptionNames::MinimizerWindow,
         OptionNames::Spacing,
         OptionNames::UseHPC,
+        OptionNames::UseHPCForSeedsOnly,
         OptionNames::MaxHPCLen,
         OptionNames::NoRevCmp,
     });

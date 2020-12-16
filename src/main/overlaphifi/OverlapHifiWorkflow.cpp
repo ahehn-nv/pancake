@@ -1,6 +1,6 @@
 // Authors: Ivan Sovic
 
-#include "main/overlaphifi/OverlapHifiWorkflow.h"
+#include "OverlapHifiWorkflow.h"
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
 #include <pacbio/pancake/MapperHiFi.h>
 #include <pacbio/pancake/OverlapWriterFactory.h>
@@ -104,8 +104,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         targetSeedDBReader.GetBlock(settings.TargetBlockId);
 
     ttInit.Stop();
-    PBLOG_INFO << "Loaded the target index and seqs in " << ttInit.GetSecs() << " sec / "
-               << ttInit.GetCpuSecs() << " CPU sec";
+    PBLOG_INFO << "Loaded the target index and seqs in " << ttInit.GetSecs() << " sec.";
 
     PBLOG_INFO << "Target seqs: " << targetSeqDBReader.records().size();
     PBLOG_INFO << "Target seeds: " << targetSeeds.size();
@@ -114,8 +113,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     TicToc ttIndex;
     PacBio::Pancake::SeedIndex index(targetSeedDBCache, std::move(targetSeeds));
     ttIndex.Stop();
-    PBLOG_INFO << "Built the seed index in " << ttIndex.GetSecs() << " sec / "
-               << ttIndex.GetCpuSecs() << " CPU sec";
+    PBLOG_INFO << "Built the seed index in " << ttIndex.GetSecs() << " sec.";
 
     // Seed statistics, and computing the cutoff.
     TicToc ttSeedStats;
@@ -125,8 +123,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     double freqMedian = 0.0;
     index.ComputeFrequencyStats(settings.FreqPercentile, freqMax, freqAvg, freqMedian, freqCutoff);
     ttSeedStats.Stop();
-    PBLOG_INFO << "Computed the seed frequency statistics in " << ttSeedStats.GetSecs() << " sec / "
-               << ttSeedStats.GetCpuSecs() << " CPU sec";
+    PBLOG_INFO << "Computed the seed frequency statistics in " << ttSeedStats.GetSecs() << " sec.";
 
     PBLOG_INFO << "Seed statistic: freqMax = " << freqMax << ", freqAvg = " << freqAvg
                << ", freqMedian = " << freqMedian << ", freqCutoff = " << freqCutoff;
@@ -180,13 +177,12 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         // PacBio::Pancake::SeqDBReaderCached querySeqDBReader(querySeqDBCache, queryBlockId);
         querySeqDBReader.LoadBlocks(blocksToLoad);
         PBLOG_INFO << "Loaded the query SeqDB cache block after " << ttQueryLoad.GetSecs(true)
-                   << " sec / " << ttQueryLoad.GetCpuSecs(true) << " CPU sec";
+                   << " sec.";
         querySeedDBReader.LoadBlock(blocksToLoad);
         ttQueryLoad.Stop();
         PBLOG_INFO << "Loaded the query SeedDB cache block after " << ttQueryLoad.GetSecs()
-                   << " sec / " << ttQueryLoad.GetCpuSecs() << " CPU sec";
-        PBLOG_INFO << "Loaded all query blocks in " << ttQueryLoad.GetSecs() << " sec / "
-                   << ttQueryLoad.GetCpuSecs() << " CPU sec";
+                   << " sec.";
+        PBLOG_INFO << "Loaded all query blocks in " << ttQueryLoad.GetSecs() << " sec.";
 
         std::ostringstream oss;
         oss << "About to map query blocks: " << blocksToLoadStr
@@ -235,13 +231,11 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
             ttQueryBlockMapping.Stop();
 
-            PBLOG_INFO << "Mapped query block in " << ttQueryBlockMapping.GetSecs() << " sec / "
-                       << ttQueryBlockMapping.GetCpuSecs() << " CPU sec.";
+            PBLOG_INFO << "Mapped query block in " << ttQueryBlockMapping.GetSecs() << " sec.";
         }
     }
     ttMap.Stop();
-    PBLOG_INFO << "Mapped all query blocks in " << ttMap.GetSecs() << " sec / "
-               << ttMap.GetCpuSecs() << " CPU sec.";
+    PBLOG_INFO << "Mapped all query blocks in " << ttMap.GetSecs() << " sec.";
 
     return EXIT_SUCCESS;
 }

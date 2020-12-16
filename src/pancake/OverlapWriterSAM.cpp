@@ -41,7 +41,7 @@ void OverlapWriterSAM::WriteHeader(const PacBio::Pancake::SeqDBReaderCachedBlock
     if (writeIds_) {
         char buff[100];
         for (const auto& targetSeq : targetSeqs.records()) {
-            sprintf(buff, "%09d", static_cast<int32_t>(targetSeq.Id()));
+            sprintf(buff, "%09d", targetSeq.Id());
             fprintf(fpOut_, "@SQ\tSN:%s\tLN:%d\n", buff, static_cast<int32_t>(targetSeq.Size()));
         }
     } else {
