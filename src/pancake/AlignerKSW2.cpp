@@ -228,10 +228,10 @@ void AlignerKSW2::AlignPair_(void* km, int qlen, const uint8_t* qseq, int tlen, 
                              ksw_extz_t* ez, int q, int e, int q2, int e2)
 {
     if (q == q2 && e == e2)
-        ksw_extz2_sse(km, qlen, qseq, tlen, tseq, 5, mat, q, e, w, zdrop, endBonus, flag, ez);
+        ksw_extz2_simde(km, qlen, qseq, tlen, tseq, 5, mat, q, e, w, zdrop, endBonus, flag, ez);
     else
-        ksw_extd2_sse(km, qlen, qseq, tlen, tseq, 5, mat, q, e, q2, e2, w, zdrop, endBonus, flag,
-                      ez);
+        ksw_extd2_simde(km, qlen, qseq, tlen, tseq, 5, mat, q, e, q2, e2, w, zdrop, endBonus, flag,
+                        ez);
 }
 
 void AlignerKSW2::GenerateSimpleMatrix_(int m, int8_t* mat, int8_t a, int8_t b, int8_t scAmbi)
