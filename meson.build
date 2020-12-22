@@ -35,12 +35,6 @@ endforeach
 
 pancake_flags = pancake_warning_flags + ['-DHAVE_KALLOC']
 
-#################
-# Meson options #
-#################
-opt_sse41 = get_option('sse41')
-opt_tests = get_option('tests')
-
 ################
 # dependencies #
 ################
