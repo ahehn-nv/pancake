@@ -106,6 +106,7 @@ if not meson.is_subproject()
     files([
       'pacbio/pancake/AlignerBase.h',
       'pacbio/pancake/AlignerBatchCPU.h',
+      'pacbio/pancake/AlignerBatchGPU.h',
       'pacbio/pancake/AlignerKSW2.h',
       'pacbio/pancake/AlignerEdlib.h',
       'pacbio/pancake/AlignerSES1.h',

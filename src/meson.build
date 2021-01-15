@@ -43,6 +43,7 @@ pancake_cpp_sources = files([
     'main/seqfetch/SeqFetchWorkflow.cpp',
     'pancake/AlignerBase.cpp',
     'pancake/AlignerBatchCPU.cpp',
+    'pancake/AlignerBatchGPU.cpp',
     'pancake/AlignerKSW2.cpp',
     'pancake/AlignerEdlib.cpp',
     'pancake/AlignerSES1.cpp',
