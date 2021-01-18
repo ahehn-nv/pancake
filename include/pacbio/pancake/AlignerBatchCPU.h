@@ -44,18 +44,13 @@ private:
     AlignerType alnTypeExt_;
     AlignmentParameters alnParamsExt_;
 
-    // Stores the query and target sequences.
-    std::vector<char> bases_;
-    int64_t numBases_;
-
-    // Stores locations of query and target sequences.
-    std::vector<Range> seqRangesQuery_;
-    std::vector<Range> seqRangesTarget_;
+    std::vector<std::string> queries_;
+    std::vector<std::string> targets_;
     std::vector<bool> isGlobalAlignment_;
     std::vector<AlignmentResult> alnResults_;
 
-    static void Worker_(const std::vector<char>& bases, const std::vector<Range>& seqRangesQuery,
-                        const std::vector<Range>& seqRangesTarget,
+    static void Worker_(const std::vector<std::string>& queries,
+                        const std::vector<std::string>& targets,
                         const std::vector<bool>& isGlobalAlignment, int32_t alnStartId,
                         int32_t alnEndId, AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt,
                         std::vector<AlignmentResult>& alnResults);

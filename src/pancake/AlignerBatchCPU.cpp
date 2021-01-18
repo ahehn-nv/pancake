@@ -18,12 +18,6 @@ AlignerBatchCPU::AlignerBatchCPU(const AlignerType alnTypeGlobal,
     , alnParamsGlobal_(alnParamsGlobal)
     , alnTypeExt_(alnTypeExt)
     , alnParamsExt_(alnParamsExt)
-    , bases_{}
-    , numBases_(0)
-    , seqRangesQuery_{}
-    , seqRangesTarget_{}
-    , isGlobalAlignment_{}
-    , alnResults_{}
 {
 }
 
@@ -31,10 +25,8 @@ AlignerBatchCPU::~AlignerBatchCPU() {}
 
 void AlignerBatchCPU::Clear()
 {
-    bases_.clear();
-    numBases_ = 0;
-    seqRangesQuery_.clear();
-    seqRangesTarget_.clear();
+    queries_.clear();
+    targets_.clear();
     isGlobalAlignment_.clear();
     alnResults_.clear();
 }
@@ -46,52 +38,29 @@ StatusAddSequencePair AlignerBatchCPU::AddSequencePair(const char* query, int32_
     if (queryLen < 0 || targetLen < 0) {
         return StatusAddSequencePair::SEQUENCE_LEN_BELOW_ZERO;
     }
-
-    int64_t currSize = bases_.size();
-    while ((numBases_ + queryLen + targetLen) > currSize) {
-        currSize = std::max(static_cast<int64_t>(1), currSize * 2);
-    }
-    if (currSize > static_cast<int64_t>(bases_.size())) {
-        bases_.resize(currSize);
-    }
-
-    Range rangeQuery;
-    rangeQuery.start = numBases_;
-    rangeQuery.end = numBases_ + queryLen;
-    seqRangesQuery_.emplace_back(std::move(rangeQuery));
-    memcpy(&bases_[numBases_], query, queryLen);
-    numBases_ += queryLen;
-
-    Range rangeTarget;
-    rangeTarget.start = numBases_;
-    rangeTarget.end = numBases_ + targetLen;
-    seqRangesTarget_.emplace_back(std::move(rangeTarget));
-    memcpy(&bases_[numBases_], target, targetLen);
-    numBases_ += targetLen;
-
+    queries_.emplace_back(std::string(query, queryLen));
+    targets_.emplace_back(std::string(target, targetLen));
     isGlobalAlignment_.emplace_back(isGlobalAlignment);
-
     return StatusAddSequencePair::OK;
 }
 
 void AlignerBatchCPU::AlignAll(int32_t numThreads)
 {
-    if (seqRangesQuery_.size() != seqRangesTarget_.size()) {
+    if (queries_.size() != targets_.size()) {
         std::ostringstream oss;
-        oss << "Number of query and target ranges does not match. seqRangesQuery_.size() = "
-            << seqRangesQuery_.size() << ", seqRangesTarget_.size() = " << seqRangesTarget_.size();
+        oss << "Number of query and target ranges does not match. queries_.size() = "
+            << queries_.size() << ", targets_.size() = " << targets_.size();
         throw std::runtime_error(oss.str());
     }
-    if (seqRangesQuery_.size() != isGlobalAlignment_.size()) {
+    if (queries_.size() != isGlobalAlignment_.size()) {
         std::ostringstream oss;
         oss << "Number of isGlobalAlignment_ elements does not match the number of ranges. "
-               "seqRangesQuery_.size() = "
-            << seqRangesQuery_.size()
-            << ", isGlobalAlignment_.size() = " << isGlobalAlignment_.size();
+               "queries_.size() = "
+            << queries_.size() << ", isGlobalAlignment_.size() = " << isGlobalAlignment_.size();
         throw std::runtime_error(oss.str());
     }
 
-    const int32_t numAlns = seqRangesQuery_.size();
+    const int32_t numAlns = queries_.size();
 
     alnResults_.clear();
     alnResults_.resize(numAlns);
@@ -120,8 +89,8 @@ void AlignerBatchCPU::AlignAll(int32_t numThreads)
     PacBio::Parallel::FireAndForget faf(numThreads);
     int32_t submittedCount = 0;
     for (int32_t i = 0; i < actualThreadCount; ++i) {
-        faf.ProduceWith(Worker_, std::cref(bases_), std::cref(seqRangesQuery_),
-                        std::cref(seqRangesTarget_), std::cref(isGlobalAlignment_), submittedCount,
+        faf.ProduceWith(Worker_, std::cref(queries_), std::cref(targets_),
+                        std::cref(isGlobalAlignment_), submittedCount,
                         submittedCount + recordsPerThread[i], std::ref(alignersGlobal[i]),
                         std::ref(alignersExt[i]), std::ref(alnResults_));
         submittedCount += recordsPerThread[i];
@@ -129,26 +98,24 @@ void AlignerBatchCPU::AlignAll(int32_t numThreads)
     faf.Finalize();
 }
 
-void AlignerBatchCPU::Worker_(const std::vector<char>& bases,
-                              const std::vector<Range>& seqRangesQuery,
-                              const std::vector<Range>& seqRangesTarget,
+void AlignerBatchCPU::Worker_(const std::vector<std::string>& queries,
+                              const std::vector<std::string>& targets,
                               const std::vector<bool>& isGlobalAlignment, int32_t alnStartId,
                               int32_t alnEndId, AlignerBasePtr& alignerGlobal,
                               AlignerBasePtr& alignerExt, std::vector<AlignmentResult>& alnResults)
 {
 
     for (int32_t alnId = alnStartId; alnId < alnEndId; ++alnId) {
-        const auto& qRange = seqRangesQuery[alnId];
-        const auto& tRange = seqRangesTarget[alnId];
+        const auto& query = queries[alnId];
+        const auto& target = targets[alnId];
         const bool isGlobal = isGlobalAlignment[alnId];
 
         AlignmentResult alnRes;
         if (isGlobal) {
-            alnRes = alignerGlobal->Global(bases.data() + qRange.start, qRange.Span(),
-                                           bases.data() + tRange.start, tRange.Span());
+            alnRes =
+                alignerGlobal->Global(query.c_str(), query.size(), target.c_str(), target.size());
         } else {
-            alnRes = alignerExt->Extend(bases.data() + qRange.start, qRange.Span(),
-                                        bases.data() + tRange.start, tRange.Span());
+            alnRes = alignerExt->Extend(query.c_str(), query.size(), target.c_str(), target.size());
         }
         alnResults[alnId] = std::move(alnRes);
     }
