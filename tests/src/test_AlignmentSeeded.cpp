@@ -143,8 +143,8 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
                 // qStart, qSpan, tStart, tSpan, queryRev, regionType, regionId
                 {0, 5, 0, 5, false, RegionType::FRONT, 0},
                 {5, 95, 5, 95, false, RegionType::GLOBAL, 1},
-                {100, 800, 100, 800, false, RegionType::GLOBAL, 1},
-                {900, 100, 900, 100, false, RegionType::BACK, 2},
+                {100, 800, 100, 800, false, RegionType::GLOBAL, 2},
+                {900, 100, 900, 100, false, RegionType::BACK, 3},
             },
         },
 
@@ -622,27 +622,29 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             PacBio::Pancake::ReverseComplement(data.querySeq, 0, data.querySeq.size());
         auto ovl = createOverlap(data.ovl);
 
+        std::vector<AlignmentRegion> regions = ExtractAlignmentRegions(
+            data.sortedHits, data.querySeq.size(), data.targetSeq.size(), data.ovl.Brev,
+            data.minAlignmentSpan, data.maxFlankExtensionDist, data.flankExtensionFactor);
+
+        // std::cerr << "Test name: " << data.testName << "\n";
+        // std::cerr << "Input overlap: "<< OverlapWriterBase::PrintOverlapAsM4(data.ovl, "", "", true, true) << "\n";
+
         if (data.expectedThrow) {
             EXPECT_THROW(
                 {
-                    AlignmentSeeded(ovl, data.sortedHits, data.targetSeq.c_str(),
-                                    data.targetSeq.size(), data.querySeq.c_str(),
-                                    querySeqRev.c_str(), data.querySeq.size(),
-                                    data.minAlignmentSpan, data.maxFlankExtensionDist,
-                                    data.flankExtensionFactor, alignerGlobal, alignerExt);
+                    AlignmentSeeded(ovl, regions, data.targetSeq.c_str(), data.targetSeq.size(),
+                                    data.querySeq.c_str(), querySeqRev.c_str(),
+                                    data.querySeq.size(), alignerGlobal, alignerExt);
                 },
                 std::runtime_error);
 
         } else {
 
             // Run the unit under test.
-            OverlapPtr result =
-                AlignmentSeeded(ovl, data.sortedHits, data.targetSeq.c_str(), data.targetSeq.size(),
-                                data.querySeq.c_str(), querySeqRev.c_str(), data.querySeq.size(),
-                                data.minAlignmentSpan, data.maxFlankExtensionDist,
-                                data.flankExtensionFactor, alignerGlobal, alignerExt);
+            OverlapPtr result = AlignmentSeeded(
+                ovl, regions, data.targetSeq.c_str(), data.targetSeq.size(), data.querySeq.c_str(),
+                querySeqRev.c_str(), data.querySeq.size(), alignerGlobal, alignerExt);
 
-            // std::cerr << "Test name: " << data.testName << "\n";
             // std::cerr << "Expected overlap:\n"
             //           << OverlapWriterBase::PrintOverlapAsM4(data.expectedOvl, "", "", true, true)
             //           << "\n";

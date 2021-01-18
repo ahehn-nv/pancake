@@ -284,18 +284,14 @@ AlignRegionsGenericResult AlignRegionsGeneric(const char* targetSeq, const int32
     return ret;
 }
 
-OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& sortedHits,
+OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<AlignmentRegion>& alnRegions,
                            const char* targetSeq, const int32_t targetLen, const char* queryFwd,
-                           const char* queryRev, const int32_t queryLen, int32_t minAlignmentSpan,
-                           int32_t maxFlankExtensionDist, double flankExtensionFactor,
+                           const char* queryRev, const int32_t queryLen,
                            AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt)
 {
     // Sanity checks.
     if (ovl->Arev) {
         throw std::runtime_error("The ovl->Arev should always be false! In Align_.");
-    }
-    if (sortedHits.empty()) {
-        throw std::runtime_error("There are no seed hits provided to Align_ for alignment.");
     }
     if (ovl->Alen != queryLen) {
         std::ostringstream oss;
@@ -311,36 +307,15 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
             << ovl->Blen << ", queryLen = " << targetLen;
         throw std::runtime_error(oss.str());
     }
-    if (ovl->Astart != sortedHits.front().queryPos || ovl->Aend != sortedHits.back().queryPos ||
-        ovl->Bstart != sortedHits.front().targetPos || ovl->Bend != sortedHits.back().targetPos) {
+    if (alnRegions.empty()) {
         std::ostringstream oss;
-        oss << "(AlignmentSeeded) Provided overlap coordinates do not match the first/last seed "
-               "hit!"
-            << " ovl: " << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false)
-            << "; sortedHits.front() = " << sortedHits.front()
-            << "; sortedHits.back() = " << sortedHits.back();
+        oss << "(AlignmentSeeded) There needs to be at least one region to align.";
         throw std::runtime_error(oss.str());
     }
-    if (ovl->Brev != sortedHits.front().targetRev || ovl->Brev != sortedHits.back().targetRev) {
-        std::ostringstream oss;
-        oss << "(AlignmentSeeded) Strand of the provided overlap does not match the first/last "
-               "seed hit."
-            << " ovl->Brev = " << (ovl->Brev ? "true" : "false")
-            << ", sortedHits.front().targetRev = "
-            << (sortedHits.front().targetRev ? "true" : "false")
-            << ", sortedHits.back().targetRev = "
-            << (sortedHits.back().targetRev ? "true" : "false");
-        throw std::runtime_error(oss.str());
-    }
-
-    // Prepare the regions for alignment.
-    std::vector<AlignmentRegion> regions =
-        ExtractAlignmentRegions(sortedHits, ovl->Alen, ovl->Blen, ovl->Brev, minAlignmentSpan,
-                                maxFlankExtensionDist, flankExtensionFactor);
 
     // Run the alignment.
     AlignRegionsGenericResult alns = AlignRegionsGeneric(
-        targetSeq, targetLen, queryFwd, queryRev, queryLen, regions, alignerGlobal, alignerExt);
+        targetSeq, targetLen, queryFwd, queryRev, queryLen, alnRegions, alignerGlobal, alignerExt);
 
     // Process the alignment results and make a new overlap.
     int32_t globalAlnQueryStart = 0;
@@ -348,21 +323,21 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& so
     int32_t globalAlnQueryEnd = 0;
     int32_t globalAlnTargetEnd = 0;
     // Find the leftmost coordinate for global alignment.
-    for (int32_t i = 0; i < static_cast<int32_t>(regions.size()); ++i) {
-        if (regions[i].type != RegionType::GLOBAL) {
+    for (int32_t i = 0; i < static_cast<int32_t>(alnRegions.size()); ++i) {
+        if (alnRegions[i].type != RegionType::GLOBAL) {
             continue;
         }
-        globalAlnQueryStart = regions[i].qStart;
-        globalAlnTargetStart = regions[i].tStart;
+        globalAlnQueryStart = alnRegions[i].qStart;
+        globalAlnTargetStart = alnRegions[i].tStart;
         break;
     }
     // Find the rightmost coordinate for global alignment.
-    for (int32_t i = static_cast<int32_t>(regions.size()) - 1; i >= 0; --i) {
-        if (regions[i].type != RegionType::GLOBAL) {
+    for (int32_t i = static_cast<int32_t>(alnRegions.size()) - 1; i >= 0; --i) {
+        if (alnRegions[i].type != RegionType::GLOBAL) {
             continue;
         }
-        globalAlnQueryEnd = regions[i].qStart + regions[i].qSpan;
-        globalAlnTargetEnd = regions[i].tStart + regions[i].tSpan;
+        globalAlnQueryEnd = alnRegions[i].qStart + alnRegions[i].qSpan;
+        globalAlnTargetEnd = alnRegions[i].tStart + alnRegions[i].tSpan;
         break;
     }
     // Construct the new overlap.

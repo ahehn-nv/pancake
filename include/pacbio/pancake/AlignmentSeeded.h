@@ -47,7 +47,7 @@ public:
     bool operator==(const AlignmentRegion& b) const
     {
         return qStart == b.qStart && qSpan == b.qSpan && tStart == b.tStart && tSpan == b.tSpan &&
-               queryRev == b.queryRev && type == b.type;
+               queryRev == b.queryRev && type == b.type && regionId == b.regionId;
     }
 };
 inline std::ostream& operator<<(std::ostream& os, const AlignmentRegion& b)
@@ -86,10 +86,9 @@ AlignRegionsGenericResult AlignRegionsGeneric(const char* targetSeq, const int32
                                               AlignerBasePtr& alignerGlobal,
                                               AlignerBasePtr& alignerExt);
 
-OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<SeedHit>& sortedHits,
+OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<AlignmentRegion>& alnRegions,
                            const char* targetSeq, const int32_t targetLen, const char* queryFwd,
-                           const char* queryRev, const int32_t queryLen, int32_t minAlignmentSpan,
-                           int32_t maxFlankExtensionDist, double flankExtensionFactor,
+                           const char* queryRev, const int32_t queryLen,
                            AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt);
 
 }  // namespace Pancake
