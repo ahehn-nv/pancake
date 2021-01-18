@@ -80,15 +80,13 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
     }
 
     if (settings.align) {
-        AlignerBasePtr alignerGlobal =
-            AlignerFactory(settings.alignerTypeGlobal, settings.alnParamsGlobal);
-        AlignerBasePtr alignerExt = AlignerFactory(settings.alignerTypeExt, settings.alnParamsExt);
-
-        AlignerBatchCPU alignerInternal(alignerGlobal, alignerExt);
+        AlignerBatchCPU alignerInternal(settings.alignerTypeGlobal, settings.alnParamsGlobal,
+                                        settings.alignerTypeExt, settings.alnParamsExt);
         PrepareSequencesForAlignment_(alignerInternal, batchChunks, results,
                                       BatchAlignerRegionType::GLOBAL);
 
-        AlignerBatchCPU alignerFlanks(alignerGlobal, alignerExt);
+        AlignerBatchCPU alignerFlanks(settings.alignerTypeGlobal, settings.alnParamsGlobal,
+                                      settings.alignerTypeExt, settings.alnParamsExt);
         PrepareSequencesForAlignment_(alignerFlanks, batchChunks, results,
                                       BatchAlignerRegionType::SEMIGLOBAL);
 
