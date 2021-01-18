@@ -110,8 +110,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
         PrepareSequencesForAlignment_(alignerFlanks, batchChunks, results,
                                       BatchAlignerRegionType::SEMIGLOBAL);
 
-        alignerInternal.AlignAll();
-        alignerFlanks.AlignAll();
+        alignerInternal.AlignAll(numThreads);
+        alignerFlanks.AlignAll(numThreads);
 
         StitchAlignments_(batchChunks, results, alignerInternal.GetAlnResults(),
                           alignerFlanks.GetAlnResults());
