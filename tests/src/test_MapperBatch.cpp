@@ -1,6 +1,6 @@
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
-#include <pacbio/pancake/MapperBatch.h>
+#include <pacbio/pancake/MapperBatchCPU.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
 #include <iostream>
 #include "TestHelperUtils.h"

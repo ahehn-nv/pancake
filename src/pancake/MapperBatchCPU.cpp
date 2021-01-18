@@ -2,7 +2,7 @@
 
 #include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignerBase.h>
-#include <pacbio/pancake/MapperBatch.h>
+#include <pacbio/pancake/MapperBatchCPU.h>
 #include <pacbio/pancake/OverlapWriterFactory.h>
 #include <pacbio/util/TicToc.h>
 #include <pbcopper/logging/Logging.h>
