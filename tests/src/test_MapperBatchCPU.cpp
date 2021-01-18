@@ -14,7 +14,7 @@ void HelperLoadBatchData(
      * This function takes a vector of pairs, where each pair is a pair of filename paths, one
      * for the target sequences and one for the query sequences; and then loads the sequences.
      * One pair is what a single MapperCLR::MapAndAlign would be run on.
-     * Here, the MapperBatch will take a vector of those chunks and align them at once.
+     * Here, the MapperBatchCPU will take a vector of those chunks and align them at once.
      *
      * This function returns a flat vector of all sequences that were loaded (targets and queries),
      * and a vector of MapperBatchChunk.
@@ -83,7 +83,7 @@ std::vector<std::vector<std::string>> HelperFormatBatchMappingResults(
     return resultsStr;
 }
 
-TEST(MapperBatch, BatchMapping_ArrayOfTests)
+TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
 {
     using namespace PacBio::Pancake;
 
@@ -174,11 +174,11 @@ TEST(MapperBatch, BatchMapping_ArrayOfTests)
         // Set the seed parameter settings and create a mapper.
         settings.seedParams = data.seedParamsPrimary;
         settings.seedParamsFallback = data.seedParamsFallback;
-        PacBio::Pancake::MapperBatch mapper(settings, 1);
+        PacBio::Pancake::MapperBatchCPU mapper(settings, 1);
 
         // Run the unit under test.
         // std::vector<std::vector<MapperBaseResult>> results = mapper.DummyMapAndAlign(batchData);
-        std::vector<std::vector<MapperBaseResult>> results = mapper.MapAndAlignCPU(batchData);
+        std::vector<std::vector<MapperBaseResult>> results = mapper.MapAndAlign(batchData);
 
         // Format the results for comparison.
         std::vector<std::vector<std::string>> resultsStr = HelperFormatBatchMappingResults(results);

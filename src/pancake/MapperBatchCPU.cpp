@@ -17,26 +17,26 @@
 namespace PacBio {
 namespace Pancake {
 
-MapperBatch::MapperBatch(const MapperCLRSettings& settings, int32_t numThreads)
+MapperBatchCPU::MapperBatchCPU(const MapperCLRSettings& settings, int32_t numThreads)
     : settings_{settings}, numThreads_(numThreads)
 {
 }
 
-MapperBatch::~MapperBatch() = default;
+MapperBatchCPU::~MapperBatchCPU() = default;
 
-std::vector<std::vector<MapperBaseResult>> MapperBatch::DummyMapAndAlign(
+std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::DummyMapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
     return DummyMapAndAlignImpl_(batchData, settings_, numThreads_);
 }
 
-std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPU(
+std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
-    return MapAndAlignCPUImpl_(batchData, settings_, numThreads_);
+    return MapAndAlignImpl_(batchData, settings_, numThreads_);
 }
 
-std::vector<std::vector<MapperBaseResult>> MapperBatch::DummyMapAndAlignImpl_(
+std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::DummyMapAndAlignImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
     int32_t /*numThreads*/)
 {
@@ -69,7 +69,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::DummyMapAndAlignImpl_(
     return results;
 }
 
-std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
+std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
     int32_t numThreads)
 {
@@ -129,7 +129,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
     return results;
 }
 
-void MapperBatch::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
+void MapperBatchCPU::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
                                 int32_t endId, const std::unique_ptr<MapperCLR>& mapper,
                                 std::vector<std::vector<MapperBaseResult>>& results)
 {
@@ -139,7 +139,7 @@ void MapperBatch::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks
     }
 }
 
-void MapperBatch::PrepareSequencesForAlignment_(
+void MapperBatchCPU::PrepareSequencesForAlignment_(
     AlignerBatchCPU& aligner, const std::vector<MapperBatchChunk>& batchChunks,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
     const BatchAlignerRegionType& regionsToAdd)
@@ -213,7 +213,7 @@ void MapperBatch::PrepareSequencesForAlignment_(
     }
 }
 
-void MapperBatch::StitchAlignments_(
+void MapperBatchCPU::StitchAlignments_(
     const std::vector<MapperBatchChunk>& batchChunks,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
     const std::vector<AlignmentResult>& internalAlns, const std::vector<AlignmentResult>& flankAlns)
@@ -351,7 +351,7 @@ void MapperBatch::StitchAlignments_(
     }
 }
 
-void MapperBatch::UpdateSecondaryAndFilter_(
+void MapperBatchCPU::UpdateSecondaryAndFilter_(
     std::vector<std::vector<MapperBaseResult>>& mappingResults,
     double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
     double secondaryMinScoreFraction, int32_t bestNSecondary)

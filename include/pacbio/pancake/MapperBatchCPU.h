@@ -28,16 +28,16 @@ enum class BatchAlignerRegionType
     BOTH,
 };
 
-class MapperBatch
+class MapperBatchCPU
 {
 public:
-    MapperBatch(const MapperCLRSettings& settings, int32_t numThreads);
-    ~MapperBatch();
+    MapperBatchCPU(const MapperCLRSettings& settings, int32_t numThreads);
+    ~MapperBatchCPU();
 
     std::vector<std::vector<MapperBaseResult>> DummyMapAndAlign(
         const std::vector<MapperBatchChunk>& batchData);
 
-    std::vector<std::vector<MapperBaseResult>> MapAndAlignCPU(
+    std::vector<std::vector<MapperBaseResult>> MapAndAlign(
         const std::vector<MapperBatchChunk>& batchData);
 
 private:
@@ -48,7 +48,7 @@ private:
         const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
         int32_t numThreads);
 
-    static std::vector<std::vector<MapperBaseResult>> MapAndAlignCPUImpl_(
+    static std::vector<std::vector<MapperBaseResult>> MapAndAlignImpl_(
         const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
         int32_t numThreads);
 
