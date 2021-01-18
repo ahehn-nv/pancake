@@ -1,4 +1,5 @@
 pancake_test_cpp_sources = files([
+  'src/test_AlignerBatchCPU.cpp',
   'src/test_AlignmentSeeded.cpp',
   'src/test_AlignmentTools.cpp',
   'src/test_DPChain.cpp',
