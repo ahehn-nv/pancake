@@ -5,7 +5,7 @@ pancake_test_cpp_sources = files([
   'src/test_DPChain.cpp',
   'src/test_FileIO.cpp',
   'src/test_LIS.cpp',
-  'src/test_MapperBatch.cpp',
+  'src/test_MapperBatchCPU.cpp',
   'src/test_MapperCLR.cpp',
   'src/test_Minimizers.cpp',
   'src/test_Overlap.cpp',
