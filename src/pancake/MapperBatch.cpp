@@ -73,11 +73,9 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
     int32_t numThreads)
 {
-    std::vector<std::vector<MapperBaseResult>> results(batchChunks.size());
-
     // Determine how many records should land in each thread, spread roughly evenly.
     const int32_t numRecords = batchChunks.size();
-    const int32_t actualThreadCount = std::min(static_cast<int32_t>(numThreads), numRecords);
+    const int32_t actualThreadCount = std::min(numThreads, numRecords);
     const int32_t minimumRecordsPerThreads = (numRecords / actualThreadCount);
     const int32_t remainingRecords = (numRecords % actualThreadCount);
     std::vector<int32_t> recordsPerThread(actualThreadCount, minimumRecordsPerThreads);
@@ -95,6 +93,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatch::MapAndAlignCPUImpl_(
     }
 
     // Run the mapping in parallel.
+    std::vector<std::vector<MapperBaseResult>> results(batchChunks.size());
     PacBio::Parallel::FireAndForget faf(numThreads);
     int32_t submittedCount = 0;
     for (int32_t i = 0; i < actualThreadCount; ++i) {
