@@ -32,9 +32,9 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
             1024 * 1024,
             // Expected results.
             {
-                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4=1X5="), 10, 10, 10, 10, true, 0, 0, false},
-                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4="), 4, 4, 4, 4, true, 0, 0, false},
-                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1X"), 1, 1, 1, 1, true, 0, 0, false},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4=1X5="), 10, 10, 10, 10, true, 14, 14, false},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4="), 4, 4, 4, 4, true, 8, 8, false},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1X"), 1, 1, 1, 1, true, -4, -4, false},
             },
         },
     };
@@ -42,13 +42,14 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
 
     uint32_t maxBandwidth = 2000;
     uint32_t deviceId = 0;
+    PacBio::Pancake::AlignmentParameters alnParams;
 
     for (const auto& data : testData) {
         // Debug info.
         SCOPED_TRACE(data.testName);
         std::cerr << "testName = " << data.testName << "\n";
 
-        auto aligner = PacBio::Pancake::AlignerBatchGPU(maxBandwidth, deviceId,
+        auto aligner = PacBio::Pancake::AlignerBatchGPU(alnParams, maxBandwidth, deviceId,
                                                         data.maxMemoryFraction, data.maxMemoryCap);
 
         for (const auto& seqPair : data.batchData) {

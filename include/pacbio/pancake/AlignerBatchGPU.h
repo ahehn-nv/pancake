@@ -34,8 +34,8 @@ int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFract
 class AlignerBatchGPU
 {
 public:
-    AlignerBatchGPU(uint32_t maxBandwidth, uint32_t deviceId, double maxGPUMemoryFraction,
-                    int64_t maxGPUMemoryCap);
+    AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t maxBandwidth, uint32_t deviceId,
+                    double maxGPUMemoryFraction, int64_t maxGPUMemoryCap);
     ~AlignerBatchGPU();
 
     void Clear();
@@ -48,6 +48,7 @@ public:
     const std::vector<AlignmentResult>& GetAlnResults() const { return alnResults_; }
 
 private:
+    AlignmentParameters alnParams_;
     std::unique_ptr<claraparabricks::genomeworks::cudaaligner::Aligner> aligner_;
     cudaStream_t stream_;
     int64_t cudaalignerBatches_;

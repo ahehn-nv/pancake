@@ -26,9 +26,14 @@ int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFract
     return usableMemoryPerAligner;
 }
 
-AlignerBatchGPU::AlignerBatchGPU(uint32_t maxBandwidth, uint32_t deviceId,
-                                 double maxGPUMemoryFraction, int64_t maxGPUMemoryCap)
-    : aligner_(nullptr), stream_(0), cudaalignerBatches_(1), numAlignments_(0)
+AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t maxBandwidth,
+                                 uint32_t deviceId, double maxGPUMemoryFraction,
+                                 int64_t maxGPUMemoryCap)
+    : alnParams_(alnParams)
+    , aligner_(nullptr)
+    , stream_(0)
+    , cudaalignerBatches_(1)
+    , numAlignments_(0)
 {
     GW_CU_CHECK_ERR(cudaSetDevice(deviceId));
     GW_CU_CHECK_ERR(cudaStreamCreate(&stream_));
@@ -120,9 +125,9 @@ void AlignerBatchGPU::AlignAll()
         const Alignment::DiffCounts diffs = CigarDiffCounts(cigar);
         const int32_t querySpan = diffs.numEq + diffs.numX + diffs.numI;
         const int32_t targetSpan = diffs.numEq + diffs.numX + diffs.numD;
-        alnRes.score = 0;
-        // alnRes.score = ScoreCigarAlignment(alnRes.cigar, opt_.matchScore, opt_.mismatchPenalty, opt_.gapOpen1,
-        //                                 opt_.gapExtend1);
+        alnRes.score =
+            ScoreCigarAlignment(alnRes.cigar, alnParams_.matchScore, alnParams_.mismatchPenalty,
+                                alnParams_.gapOpen1, alnParams_.gapExtend1);
         alnRes.valid = (querySpan == querySpans_[i] && targetSpan == targetSpans_[i]);
         alnRes.maxScore = alnRes.score;
         alnRes.zdropped = false;
