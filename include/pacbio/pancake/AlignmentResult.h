@@ -33,6 +33,14 @@ inline std::ostream& operator<<(std::ostream& os, const AlignmentResult& b)
     return os;
 }
 
+inline bool operator==(const AlignmentResult& lhs, const AlignmentResult& rhs)
+{
+    return lhs.cigar == rhs.cigar && lhs.lastQueryPos == rhs.lastQueryPos &&
+           lhs.lastTargetPos == rhs.lastTargetPos && lhs.maxQueryPos == rhs.maxQueryPos &&
+           lhs.maxTargetPos == rhs.maxTargetPos && lhs.valid == rhs.valid &&
+           lhs.score == rhs.score && lhs.maxScore == rhs.maxScore && lhs.zdropped == rhs.zdropped;
+}
+
 }  // namespace Pancake
 }  // namespace PacBio
 

@@ -105,6 +105,7 @@ if not meson.is_subproject()
   install_headers(
     files([
       'pacbio/pancake/AlignerBase.h',
+      'pacbio/pancake/AlignerBatchCPU.h',
       'pacbio/pancake/AlignerKSW2.h',
       'pacbio/pancake/AlignerEdlib.h',
       'pacbio/pancake/AlignerSES1.h',
