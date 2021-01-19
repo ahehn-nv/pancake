@@ -173,6 +173,20 @@ public:
                                             const std::vector<PacBio::Pancake::Int128t>& querySeeds,
                                             const int32_t queryId, int64_t freqCutoff) override;
 
+    /*
+     * \brief Maps the query sequence to the targets, where targets are provided by the SeedIndex.
+    */
+    MapperBaseResult Map(const PacBio::Pancake::SeedIndex& index,
+                         const std::vector<PacBio::Pancake::Int128t>& querySeeds,
+                         const int32_t queryLen, const int32_t queryId, int64_t freqCutoff) const;
+
+    /*
+     * \brief Aligns a precomputed mapping result.
+    */
+    MapperBaseResult Align(const std::vector<FastaSequenceCached>& targetSeqs,
+                           const FastaSequenceCached& querySeq,
+                           const MapperBaseResult& mappingResult);
+
 private:
     MapperCLRSettings settings_;
     AlignerBasePtr alignerGlobal_;
@@ -273,6 +287,9 @@ private:
     static std::vector<AlignmentRegion> CollectAlignmentRegions_(
         const std::unique_ptr<ChainedRegion>& singleMapping, int32_t minAlignmentSpan,
         int32_t maxFlankExtensionDist, double flankExtensionFactor);
+
+    static void CondenseMappings_(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
+                                  int32_t bestNSecondary);
 };
 
 }  // namespace Pancake
