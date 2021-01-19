@@ -255,40 +255,6 @@ MapperBaseResult MapperCLR::WrapMapAndAlign_(
     return result;
 }
 
-void MapperCLR::CondenseMappings_(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
-                                  int32_t bestNSecondary)
-{
-    // Filter mappings.
-    size_t numValid = 0;
-    int32_t numSelectedSecondary = 0;
-    for (size_t i = 0; i < mappings.size(); ++i) {
-        if (mappings[i] == nullptr) {
-            continue;
-        }
-        const auto& region = mappings[i];
-        if (region->mapping == nullptr) {
-            continue;
-        }
-        if (region->priority > 1) {
-            continue;
-        }
-        if (bestNSecondary >= 0 && region->priority == 1 &&
-            numSelectedSecondary >= bestNSecondary) {
-            continue;
-        }
-
-        if (bestNSecondary < 0 || (bestNSecondary >= 0 && region->priority == 1 &&
-                                   numSelectedSecondary < bestNSecondary)) {
-            ++numSelectedSecondary;
-        }
-        if (i != numValid) {
-            std::swap(mappings[i], mappings[numValid]);
-        }
-        ++numValid;
-    }
-    mappings.resize(numValid);
-}
-
 MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
                                  const std::vector<PacBio::Pancake::Int128t>& querySeeds,
                                  const int32_t queryLen, const int32_t queryId,
@@ -333,7 +299,7 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
               [](const auto& a, const auto& b) { return a->chain.score > b->chain.score; });
 
     // Secondary/supplementary flagging.
-    WrapFlagSecondaryAndSupplementary_(
+    WrapFlagSecondaryAndSupplementary(
         allChainedRegions, settings.secondaryAllowedOverlapFractionQuery,
         settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
     DebugWriteChainedRegion(allChainedRegions, "3-wrap-flag-secondary-suppl-1", queryId, queryLen);
@@ -343,7 +309,7 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     DebugWriteChainedRegion(allChainedRegions, "4-long-merge-chains", queryId, queryLen);
 
     // Again relabel, because some chains are longer now.
-    WrapFlagSecondaryAndSupplementary_(
+    WrapFlagSecondaryAndSupplementary(
         allChainedRegions, settings.secondaryAllowedOverlapFractionQuery,
         settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
     DebugWriteChainedRegion(allChainedRegions, "5-wrap-flag-secondary-suppl-2", queryId, queryLen);
@@ -431,7 +397,7 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
             settings.flankExtensionFactor);
     }
 
-    CondenseMappings_(result.mappings, settings.bestNSecondary);
+    CondenseMappings(result.mappings, settings.bestNSecondary);
 
     return result;
 }
@@ -491,13 +457,13 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
     }
 
     // Secondary/supplementary flagging.
-    WrapFlagSecondaryAndSupplementary_(
+    WrapFlagSecondaryAndSupplementary(
         alignedResult.mappings, settings.secondaryAllowedOverlapFractionQuery,
         settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
 
     DebugWriteChainedRegion(alignedResult.mappings, "8-result-after-align", queryId, queryLen);
 
-    CondenseMappings_(alignedResult.mappings, settings.bestNSecondary);
+    CondenseMappings(alignedResult.mappings, settings.bestNSecondary);
 
     return alignedResult;
 }
@@ -547,39 +513,6 @@ std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(
                                 maxFlankExtensionDist, flankExtensionFactor);
 
     return regions;
-}
-
-void MapperCLR::WrapFlagSecondaryAndSupplementary_(
-    std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
-    double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
-    double secondaryMinScoreFraction)
-{
-    /*
-     * Edits the objects in place.
-    */
-    // Copy the overlaps so we can satisfy the FlagSecondaryAndSupplementary API.
-    std::vector<OverlapPtr> tmpOverlaps;
-    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        if (allChainedRegions[i] == nullptr || allChainedRegions[i]->mapping == nullptr) {
-            continue;
-        }
-        tmpOverlaps.emplace_back(createOverlap(allChainedRegions[i]->mapping));
-    }
-    // Flag the secondary and supplementary overlaps.
-    std::vector<OverlapPriority> overlapPriorities = FlagSecondaryAndSupplementary(
-        tmpOverlaps, secondaryAllowedOverlapFractionQuery, secondaryAllowedOverlapFractionTarget,
-        secondaryMinScoreFraction);
-    // Set the flags.
-    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        if (allChainedRegions[i] == nullptr || allChainedRegions[i]->mapping == nullptr) {
-            continue;
-        }
-        auto& cr = allChainedRegions[i];
-        cr->mapping->IsSecondary = (overlapPriorities[i].priority > 0);
-        cr->mapping->IsSupplementary = overlapPriorities[i].isSupplementary;
-        cr->priority = overlapPriorities[i].priority;
-        cr->isSupplementary = overlapPriorities[i].isSupplementary;
-    }
 }
 
 std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
@@ -886,6 +819,72 @@ void MapperCLR::LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& ch
     }
 
     std::swap(chainedRegions, ret);
+}
+
+void WrapFlagSecondaryAndSupplementary(
+    std::vector<std::unique_ptr<ChainedRegion>>& allChainedRegions,
+    double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
+    double secondaryMinScoreFraction)
+{
+    /*
+     * Edits the objects in place.
+    */
+    // Copy the overlaps so we can satisfy the FlagSecondaryAndSupplementary API.
+    std::vector<OverlapPtr> tmpOverlaps;
+    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
+        if (allChainedRegions[i] == nullptr || allChainedRegions[i]->mapping == nullptr) {
+            continue;
+        }
+        tmpOverlaps.emplace_back(createOverlap(allChainedRegions[i]->mapping));
+    }
+    // Flag the secondary and supplementary overlaps.
+    std::vector<OverlapPriority> overlapPriorities = FlagSecondaryAndSupplementary(
+        tmpOverlaps, secondaryAllowedOverlapFractionQuery, secondaryAllowedOverlapFractionTarget,
+        secondaryMinScoreFraction);
+    // Set the flags.
+    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
+        if (allChainedRegions[i] == nullptr || allChainedRegions[i]->mapping == nullptr) {
+            continue;
+        }
+        auto& cr = allChainedRegions[i];
+        cr->mapping->IsSecondary = (overlapPriorities[i].priority > 0);
+        cr->mapping->IsSupplementary = overlapPriorities[i].isSupplementary;
+        cr->priority = overlapPriorities[i].priority;
+        cr->isSupplementary = overlapPriorities[i].isSupplementary;
+    }
+}
+
+void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings, int32_t bestNSecondary)
+{
+    // Filter mappings.
+    size_t numValid = 0;
+    int32_t numSelectedSecondary = 0;
+    for (size_t i = 0; i < mappings.size(); ++i) {
+        if (mappings[i] == nullptr) {
+            continue;
+        }
+        const auto& region = mappings[i];
+        if (region->mapping == nullptr) {
+            continue;
+        }
+        if (region->priority > 1) {
+            continue;
+        }
+        if (bestNSecondary >= 0 && region->priority == 1 &&
+            numSelectedSecondary >= bestNSecondary) {
+            continue;
+        }
+
+        if (bestNSecondary < 0 || (bestNSecondary >= 0 && region->priority == 1 &&
+                                   numSelectedSecondary < bestNSecondary)) {
+            ++numSelectedSecondary;
+        }
+        if (i != numValid) {
+            std::swap(mappings[i], mappings[numValid]);
+        }
+        ++numValid;
+    }
+    mappings.resize(numValid);
 }
 
 }  // namespace Pancake
