@@ -78,6 +78,8 @@ bool TrimCigar(const PacBio::BAM::Cigar& cigar, int32_t windowSize, int32_t minM
 int32_t ScoreCigarAlignment(const PacBio::BAM::Cigar& cigar, int32_t match, int32_t mismatch,
                             int32_t gapOpen, int32_t gapExt);
 
+void MergeCigars(PacBio::Data::Cigar& dest, const PacBio::Data::Cigar& src);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
