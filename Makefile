@@ -4,7 +4,7 @@ CURRENT_DEBUG_BUILD_DIR_SANITIZE?=build-debug-sanitize
 ENABLED_TESTS?=true
 export ENABLED_TESTS CURRENT_BUILD_DIR
 
-.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug build-debug2 conf-debug2 debug2 genomeworks
+.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug build-debug2 conf-debug2 debug2 genomeworks libcudaaligner
 
 
 
@@ -26,6 +26,8 @@ subprojects/genomeworks/README.md:
 
 subprojects/genomeworks/build/cudaaligner/libcudaaligner.a: subprojects/genomeworks/README.md
 	mkdir -p subprojects/genomeworks/build && cd subprojects/genomeworks/build && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install -Dgw_cuda_gen_all_arch=OFF -Dgw_build_htslib=OFF && make
+
+libcudaaligner: suibprojects/genomeworks/build/cudaaligner/libcudaaligner.so
 
 suibprojects/genomeworks/build/cudaaligner/libcudaaligner.so: subprojects/genomeworks/README.md
 	cd subprojects/genomeworks && make shared
