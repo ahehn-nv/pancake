@@ -63,6 +63,8 @@ void AlignerBatchCPU::AlignAll(int32_t numThreads)
 
     const int32_t numAlns = queries_.size();
 
+    std::cerr << "[AlignerBatchCPU::AlignAll] Aligning numAlns = " << numAlns << "\n";
+
     alnResults_.clear();
     alnResults_.resize(numAlns);
 

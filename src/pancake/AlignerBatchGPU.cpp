@@ -70,11 +70,16 @@ StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_
         aligner_->add_alignment(target, targetLen, query, queryLen);
 
     if (s == claraparabricks::genomeworks::cudaaligner::StatusType::exceeded_max_alignments) {
+        std::cerr << "Added alignments so far: " << numAlignments_ << "\n";
+        std::cerr.flush();
         throw std::runtime_error("Exceeded max alignments.");
 
     } else if (s == claraparabricks::genomeworks::cudaaligner::StatusType::
                         exceeded_max_alignment_difference ||
                s == claraparabricks::genomeworks::cudaaligner::StatusType::exceeded_max_length) {
+        std::cerr << "Added alignments so far: " << numAlignments_ << "\n";
+        std::cerr.flush();
+
         // Do nothing as this case will be handled by CPU aligner.
         throw std::runtime_error(
             "Not implemented yet: s == StatusType::exceeded_max_alignment_difference || s == "
