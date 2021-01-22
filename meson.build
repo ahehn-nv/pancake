@@ -89,7 +89,7 @@ pancake_lib_deps = [
 
 subdir('include')
 
-genomeworks_include_directories = include_directories(['subprojects/genomeworks/cudaaligner/include', 'subprojects/genomeworks/common/base/include/', 'subprojects/genomeworks/common/io/include/', 'subprojects/genomeworks/3rdparty/spdlog/include'])
+genomeworks_include_directories = include_directories(['subprojects/genomeworks/cudaaligner/include', 'subprojects/genomeworks/common/base/include/', 'subprojects/genomeworks/common/io/include/'])
 pancake_include_directories = [pancake_include_directories, genomeworks_include_directories]
 
 #####################

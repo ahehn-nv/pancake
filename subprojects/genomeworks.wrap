@@ -2,3 +2,4 @@
 directory=genomeworks
 url=ssh://git@bitbucket.nanofluidics.com:7999/~isovic/genomeworks.git
 revision=no-exe-2
+clone-recursive=true
