@@ -876,8 +876,8 @@ void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings, int
             continue;
         }
 
-        if (bestNSecondary < 0 || (bestNSecondary >= 0 && region->priority == 1 &&
-                                   numSelectedSecondary < bestNSecondary)) {
+        if (bestNSecondary < 0 ||
+            (region->priority == 1 && numSelectedSecondary < bestNSecondary)) {
             ++numSelectedSecondary;
         }
         if (i != numValid) {
