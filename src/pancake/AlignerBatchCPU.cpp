@@ -1,6 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <pacbio/pancake/AlignerBatchCPU.h>
+#include <pacbio/util/Util.h>
 #include <pbcopper/parallel/FireAndForget.h>
 #include <pbcopper/parallel/WorkQueue.h>
 #include <cstring>
@@ -67,18 +68,13 @@ void AlignerBatchCPU::AlignAll(int32_t numThreads)
 
     // Determine how many records should land in each thread, spread roughly evenly.
     const int32_t numRecords = numAlns;
-    const int32_t actualThreadCount = std::min(numThreads, numRecords);
-    const int32_t minimumRecordsPerThreads = (numRecords / actualThreadCount);
-    const int32_t remainingRecords = (numRecords % actualThreadCount);
-    std::vector<int32_t> recordsPerThread(actualThreadCount, minimumRecordsPerThreads);
-    for (int32_t i = 0; i < remainingRecords; ++i) {
-        ++recordsPerThread[i];
-    }
+    const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
+        PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
 
     // Initialize the aligners for each thread.
     std::vector<AlignerBasePtr> alignersGlobal;
     std::vector<AlignerBasePtr> alignersExt;
-    for (int32_t i = 0; i < actualThreadCount; ++i) {
+    for (size_t i = 0; i < jobsPerThread.size(); ++i) {
         AlignerBasePtr alignerGlobal = AlignerFactory(alnTypeGlobal_, alnParamsGlobal_);
         alignersGlobal.emplace_back(alignerGlobal);
         AlignerBasePtr alignerExt = AlignerFactory(alnTypeExt_, alnParamsExt_);
@@ -87,13 +83,13 @@ void AlignerBatchCPU::AlignAll(int32_t numThreads)
 
     // Run the mapping in parallel.
     PacBio::Parallel::FireAndForget faf(numThreads);
-    int32_t submittedCount = 0;
-    for (int32_t i = 0; i < actualThreadCount; ++i) {
+    for (size_t i = 0; i < jobsPerThread.size(); ++i) {
+        const int32_t jobStart = jobsPerThread[i].first;
+        const int32_t jobEnd = jobsPerThread[i].second;
         faf.ProduceWith(Worker_, std::cref(queries_), std::cref(targets_),
-                        std::cref(isGlobalAlignment_), submittedCount,
-                        submittedCount + recordsPerThread[i], std::ref(alignersGlobal[i]),
-                        std::ref(alignersExt[i]), std::ref(alnResults_));
-        submittedCount += recordsPerThread[i];
+                        std::cref(isGlobalAlignment_), jobStart, jobEnd,
+                        std::ref(alignersGlobal[i]), std::ref(alignersExt[i]),
+                        std::ref(alnResults_));
     }
     faf.Finalize();
 }
