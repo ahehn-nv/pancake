@@ -291,7 +291,7 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<AlignmentReg
 {
     // Sanity checks.
     if (ovl->Arev) {
-        throw std::runtime_error("The ovl->Arev should always be false! In Align_.");
+        throw std::runtime_error("(AlignmentSeeded) The ovl->Arev should always be false!");
     }
     if (ovl->Alen != queryLen) {
         std::ostringstream oss;
@@ -303,8 +303,8 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<AlignmentReg
     if (ovl->Blen != targetLen) {
         std::ostringstream oss;
         oss << "(AlignmentSeeded) The target length in the overlap is not the same as the provided "
-               "sequence! ovl->Alen = "
-            << ovl->Blen << ", queryLen = " << targetLen;
+               "sequence! ovl->Blen = "
+            << ovl->Blen << ", targetLen = " << targetLen;
         throw std::runtime_error(oss.str());
     }
     if (alnRegions.empty()) {
