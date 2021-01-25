@@ -393,7 +393,7 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
             continue;
         }
         result.mappings[i]->regionsForAln = CollectAlignmentRegions_(
-            result.mappings[i], settings.minAlignmentSpan, +settings.maxFlankExtensionDist,
+            *result.mappings[i], settings.minAlignmentSpan, +settings.maxFlankExtensionDist,
             settings.flankExtensionFactor);
     }
 
@@ -468,16 +468,17 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
     return alignedResult;
 }
 
-std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(
-    const std::unique_ptr<ChainedRegion>& singleMapping, int32_t minAlignmentSpan,
-    int32_t maxFlankExtensionDist, double flankExtensionFactor)
+std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(const ChainedRegion& singleMapping,
+                                                                 int32_t minAlignmentSpan,
+                                                                 int32_t maxFlankExtensionDist,
+                                                                 double flankExtensionFactor)
 {
-    if (singleMapping == nullptr || singleMapping->mapping == nullptr) {
+    if (singleMapping.mapping == nullptr) {
         return {};
     }
 
-    const auto& ovl = singleMapping->mapping;
-    const auto& chain = singleMapping->chain;
+    const auto& ovl = singleMapping.mapping;
+    const auto& chain = singleMapping.chain;
     const auto& sortedHits = chain.hits;
 
     // Sanity checks.
