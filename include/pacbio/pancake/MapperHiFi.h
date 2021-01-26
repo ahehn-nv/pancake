@@ -6,6 +6,7 @@
 #include <pacbio/alignment/SesResults.h>
 #include <pacbio/overlaphifi/OverlapHifiSettings.h>
 #include <pacbio/pancake/FastaSequenceCached.h>
+#include <pacbio/pancake/FastaSequenceCachedStore.h>
 #include <pacbio/pancake/Overlap.h>
 #include <pacbio/pancake/Seed.h>
 #include <pacbio/pancake/SeedDBIndexCache.h>
@@ -37,6 +38,12 @@ public:
     }
     ~Mapper() = default;
 
+    MapperResult Map(const PacBio::Pancake::FastaSequenceCachedStore& targetSeqs,
+                     const PacBio::Pancake::SeedIndex& index,
+                     const PacBio::Pancake::FastaSequenceCached& querySeq,
+                     const PacBio::Pancake::SequenceSeedsCached& querySeeds, int64_t freqCutoff,
+                     bool generateFlippedOverlap) const;
+
     /// \brief Maps a single query to a given set of targets. The targets
     ///         are provided with their sequences (targetSeqs) and the seeds (index).
     ///
@@ -57,6 +64,12 @@ public:
 private:
     OverlapHifiSettings settings_;
     std::shared_ptr<PacBio::Pancake::Alignment::SESScratchSpace> sesScratch_;
+
+    MapperResult MapSingleQuery_(const PacBio::Pancake::FastaSequenceCachedStore& targetSeqs,
+                                 const PacBio::Pancake::SeedIndex& index,
+                                 const PacBio::Pancake::FastaSequenceCached& querySeq,
+                                 const PacBio::Pancake::SequenceSeedsCached& querySeeds,
+                                 int64_t freqCutoff, bool generateFlippedOverlap) const;
 
     /// \brief Writes the seed hits to a specified file, in a CSV format, useful for visualization.
     /// The header line contains:
@@ -142,7 +155,7 @@ private:
     /// \returns A new vector of overlaps with alignment information and modified coordinates.
     ///
     static std::vector<OverlapPtr> AlignOverlaps_(
-        const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
+        const PacBio::Pancake::FastaSequenceCachedStore& targetSeqs,
         const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
         const std::vector<OverlapPtr>& overlaps, double alignBandwidth, double alignMaxDiff,
         bool useTraceback, bool noSNPs, bool noIndels, bool maskHomopolymers,
@@ -163,7 +176,7 @@ private:
     ///                             Also, converts them to lowercase in the variant strings.
     /// \param maskSimpleRepeats Ignores indel errors in simple repeats, such as di-nuc.
     static std::vector<OverlapPtr> GenerateFlippedOverlaps_(
-        const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
+        const PacBio::Pancake::FastaSequenceCachedStore& targetSeqs,
         const PacBio::Pancake::FastaSequenceCached& querySeq, const std::string reverseQuerySeq,
         const std::vector<OverlapPtr>& overlaps, bool noSNPs, bool noIndels, bool maskHomopolymers,
         bool maskSimpleRepeats, bool maskHomopolymerSNPs, bool maskHomopolymersArbitrary);
@@ -243,6 +256,18 @@ private:
     static std::string FetchTargetSubsequence_(const char* seq, int32_t seqLen, int32_t seqStart,
                                                int32_t seqEnd, bool revCmp);
 };
+
+std::vector<MapperResult> MapHiFiSeqs(const std::vector<std::string>& targetSeqs,
+                                      const std::vector<std::string>& querySeqs,
+                                      const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
+                                      const OverlapHifiSettings& settings,
+                                      bool generateFlippedOverlap);
+
+std::vector<MapperResult> MapHiFiSeqs(const FastaSequenceCachedStore& targetSeqs,
+                                      const FastaSequenceCachedStore& querySeqs,
+                                      const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
+                                      const OverlapHifiSettings& settings,
+                                      bool generateFlippedOverlap);
 
 }  // namespace OverlapHiFi
 }  // namespace Pancake
