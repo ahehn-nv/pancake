@@ -172,6 +172,13 @@ if not meson.is_subproject()
       ]),
       subdir : 'pacbio/util')
 
+  if opt_cuda
+      install_headers(
+        files([
+          'pacbio/pancake/AlignerBatchGPU.h',
+          ]),
+          subdir : 'pacbio/pancake')
+  endif
 endif
 
 pancake_include_directories = include_directories(['.', 'pacbio', 'lib/sparsehash'])

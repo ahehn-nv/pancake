@@ -43,7 +43,6 @@ pancake_cpp_sources = files([
     'main/seqfetch/SeqFetchWorkflow.cpp',
     'pancake/AlignerBase.cpp',
     'pancake/AlignerBatchCPU.cpp',
-    'pancake/AlignerBatchGPU.cpp',
     'pancake/AlignerKSW2.cpp',
     'pancake/AlignerEdlib.cpp',
     'pancake/AlignerSES1.cpp',
@@ -86,6 +85,12 @@ pancake_cpp_sources = files([
     'util/RunLengthEncoding.cpp',
     'util/TicToc.cpp',
 ])
+
+if opt_cuda
+    pancake_cpp_sources += files([
+        'pancake/AlignerBatchGPU.cpp',
+    ])
+endif
 
 pancake_cpp_sources += pancake_version_sources
 

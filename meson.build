@@ -1,6 +1,6 @@
 project(
   'pancake',
-  ['cpp', 'c', 'cuda'],
+  ['cpp', 'c'],
   version : '1.1.0',
   default_options : [
     'buildtype=release',
@@ -35,6 +35,9 @@ endforeach
 
 pancake_flags = pancake_warning_flags + ['-DHAVE_KALLOC']
 
+opt_tests = get_option('tests')
+opt_cuda = get_option('gpu')
+
 ################
 # dependencies #
 ################
@@ -60,14 +63,6 @@ pancake_pbbam_dep = dependency('pbbam', fallback : ['pbbam', 'pbbam_dep'])
 # clock_gettime on old glibc systems
 pancake_rt_dep = cpp.find_library('rt', required : false)
 
-# CUDA.
-cudart_dep = dependency('cudart-11.0', version : '>=11')
-
-cpp = meson.get_compiler('cpp')
-cudaaligner = cpp.find_library('cudaaligner', dirs: meson.source_root() + '/subprojects/genomeworks/build/cudaaligner/')
-gw_base = cpp.find_library('gwbase', dirs: meson.source_root() + '/subprojects/genomeworks/build/common/base/')
-gw_io = cpp.find_library('gwio', dirs: meson.source_root() + '/subprojects/genomeworks/build/common/io/')
-
 # Collect all deps.
 pancake_lib_deps = [
   pancake_thread_dep,
@@ -77,11 +72,22 @@ pancake_lib_deps = [
   pancake_pbcopper_dep,
   pancake_pbbam_dep,
   pancake_rt_dep,
-  cudart_dep,
-  cudaaligner,
-  gw_base,
-  gw_io,
 ]
+
+if opt_cuda
+    add_languages('cuda')
+    nvcc = meson.get_compiler('cuda')
+    cudart_dep = dependency('cudart-11.0', version : '>=11')
+    cudaaligner = cpp.find_library('cudaaligner', dirs: meson.source_root() + '/subprojects/genomeworks/build/cudaaligner/')
+    gw_base = cpp.find_library('gwbase', dirs: meson.source_root() + '/subprojects/genomeworks/build/common/base/')
+    gw_io = cpp.find_library('gwio', dirs: meson.source_root() + '/subprojects/genomeworks/build/common/io/')
+    pancake_lib_deps += [
+      cudart_dep,
+      cudaaligner,
+      gw_base,
+      gw_io,
+    ]
+endif
 
 ###########
 # headers #
@@ -104,7 +110,7 @@ subdir('src')
 
 if not meson.is_subproject()
   # tests
-  if get_option('tests')
+  if opt_tests
     pancake_clang_formatter = find_program('tools/check-formatting')
 
     pancake_cram_script = find_program('cram', required : false)
