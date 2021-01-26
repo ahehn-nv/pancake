@@ -75,19 +75,14 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
 {
     // Determine how many records should land in each thread, spread roughly evenly.
     const int32_t numRecords = batchChunks.size();
-    const int32_t actualThreadCount = std::min(numThreads, numRecords);
-    const int32_t minimumRecordsPerThreads = (numRecords / actualThreadCount);
-    const int32_t remainingRecords = (numRecords % actualThreadCount);
-    std::vector<int32_t> recordsPerThread(actualThreadCount, minimumRecordsPerThreads);
-    for (int32_t i = 0; i < remainingRecords; ++i) {
-        ++recordsPerThread[i];
-    }
+    const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
+        PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
 
     // Create a mapper for each thread.
     MapperCLRSettings settingsCopy = settings;
     settingsCopy.align = false;
     std::vector<std::unique_ptr<MapperCLR>> mappers;
-    for (int32_t i = 0; i < actualThreadCount; ++i) {
+    for (size_t i = 0; i < jobsPerThread.size(); ++i) {
         auto mapper = std::make_unique<MapperCLR>(settingsCopy);
         mappers.emplace_back(std::move(mapper));
     }
@@ -95,12 +90,11 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
     // Run the mapping in parallel.
     std::vector<std::vector<MapperBaseResult>> results(batchChunks.size());
     PacBio::Parallel::FireAndForget faf(numThreads);
-    int32_t submittedCount = 0;
-    for (int32_t i = 0; i < actualThreadCount; ++i) {
-        faf.ProduceWith(WorkerMapper_, std::cref(batchChunks), submittedCount,
-                        submittedCount + recordsPerThread[i], std::cref(mappers[i]),
-                        std::ref(results));
-        submittedCount += recordsPerThread[i];
+    for (size_t i = 0; i < jobsPerThread.size(); ++i) {
+        const int32_t jobStart = jobsPerThread[i].first;
+        const int32_t jobEnd = jobsPerThread[i].second;
+        faf.ProduceWith(WorkerMapper_, std::cref(batchChunks), jobStart, jobEnd,
+                        std::cref(mappers[i]), std::ref(results));
     }
     faf.Finalize();
 

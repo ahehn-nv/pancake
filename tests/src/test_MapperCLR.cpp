@@ -3,6 +3,7 @@
 #include <pacbio/pancake/MapperCLR.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
 #include <iostream>
+#include <memory>
 #include "TestHelperUtils.h"
 
 TEST(MapperCLR, CheckMappping_LoadFromFile)
@@ -314,4 +315,170 @@ TEST(MapperCLR, CheckMappingAndSeedHits)
     }
 
     // exit(1);
+}
+
+TEST(MapperCLR, CondenseMappings)
+{
+    using namespace PacBio::Pancake;
+
+    struct TestData
+    {
+        std::string testName;
+        // tuple: <Overlap, priority, isSupplementary, isOverlapNullptr>
+        std::vector<std::tuple<std::string, int32_t, bool, bool>> inMappings;
+        int32_t bestNSecondary = 0;
+        std::vector<std::tuple<std::string, int32_t, bool, bool>> expected;
+    };
+
+    // clang-format off
+    std::vector<TestData> testData = {
+        {
+            "Empty input",
+            {
+            },
+            0,
+            {
+            },
+        },
+        {
+            "Single overlap, keeper",
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+            },
+            0,
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+            },
+        },
+        {
+            "Single overlap, nullptr",
+            {
+                {"", 0, false, true},
+            },
+            0,
+            {
+            },
+        },
+        {
+            "Multiple nullptr overlap",
+            {
+                {"", 0, false, true},
+                {"", 0, false, true},
+                {"", 0, false, true},
+            },
+            0,
+            {
+            },
+        },
+        {
+            "Multiple keeper overlaps",
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+                {"000000000 000000002 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+                {"000000000 000000003 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+            },
+            0,
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+                {"000000000 000000002 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+                {"000000000 000000003 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+            },
+        },
+        {
+            "One nullptr overlap to remove",
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+                {"", 0, false, true},
+                {"000000000 000000002 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+            },
+            0,
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+                {"000000000 000000002 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 0, false, false},
+            },
+        },
+        {
+            "Filtering all secondary overlaps",
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 12000 0 0 5000 10000 u", 0, false, false},       // Primary
+                {"000000000 000000001 -1000 99.90 0 10000 12000 12000 0 7000 9000 10000 u", 0, true, false},    // Supplementary
+                {"000000000 000000002 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 1, false, false},       // Secondary
+                {"000000000 000000003 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 1, false, false},       // Secondary
+                {"000000000 000000004 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 1, false, false},       // Secondary
+                {"000000005 000000006 -1000 99.90 0 5000 10000 12000 0 0 5000 10000 u", 0, false, false},       // Another primary
+            },
+            0,
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 12000 0 0 5000 10000 u", 0, false, false},       // Primary
+                {"000000000 000000001 -1000 99.90 0 10000 12000 12000 0 7000 9000 10000 u", 0, true, false},    // Supplementary
+                {"000000005 000000006 -1000 99.90 0 5000 10000 12000 0 0 5000 10000 u", 0, false, false},       // Another primary
+            },
+        },
+        {
+            "Keeping only bestN = 2 secondary overlaps. The unit under test does not sort, just picks the first overlaps it finds",
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 12000 0 0 5000 10000 u", 0, false, false},       // Primary
+                {"000000000 000000001 -1000 99.90 0 10000 12000 12000 0 7000 9000 10000 u", 0, true, false},    // Supplementary
+                {"000000000 000000002 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 1, false, false},       // Secondary
+                {"", 0, false, true},
+                {"000000000 000000003 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 1, false, false},       // Secondary
+                {"000000000 000000004 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 1, false, false},       // Secondary
+                {"000000005 000000006 -1000 99.90 0 5000 10000 12000 0 0 5000 10000 u", 0, false, false},       // Another primary
+            },
+            2,
+            {
+                {"000000000 000000001 -1000 99.90 0 5000 10000 12000 0 0 5000 10000 u", 0, false, false},       // Primary
+                {"000000000 000000001 -1000 99.90 0 10000 12000 12000 0 7000 9000 10000 u", 0, true, false},    // Supplementary
+                {"000000000 000000002 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 1, false, false},       // Secondary
+                {"000000000 000000003 -1000 99.90 0 5000 10000 10000 0 0 5000 10000 u", 1, false, false},       // Secondary
+                {"000000005 000000006 -1000 99.90 0 5000 10000 12000 0 0 5000 10000 u", 0, false, false},       // Another primary
+            },
+        },
+
+    };
+    // clang-format on
+
+    PacBio::Pancake::MapperCLRSettings settings;
+    settings.freqPercentile = 0.000;
+
+    for (const auto& data : testData) {
+        SCOPED_TRACE(data.testName);
+
+        std::cerr << "testName = " << data.testName << "\n";
+
+        // Prepare the input for the test.
+        std::vector<std::unique_ptr<ChainedRegion>> mappings;
+        for (const auto& vals : data.inMappings) {
+            const std::string& ovlStr = std::get<0>(vals);
+            const int32_t priority = std::get<1>(vals);
+            const bool isSupplementary = std::get<2>(vals);
+            const bool isOverlapNullptr = std::get<3>(vals);
+
+            OverlapPtr ovl =
+                (isOverlapNullptr) ? nullptr : PacBio::Pancake::ParseM4OverlapFromString(ovlStr);
+            auto newChainedRegion = std::make_unique<ChainedRegion>();
+            newChainedRegion->mapping = std::move(ovl);
+            newChainedRegion->priority = priority;
+            newChainedRegion->isSupplementary = isSupplementary;
+            mappings.emplace_back(std::move(newChainedRegion));
+        }
+
+        // Run the unit under test.
+        CondenseMappings(mappings, data.bestNSecondary);
+
+        // Convert the results to a form we can compare.
+        std::vector<std::tuple<std::string, int32_t, bool, bool>> results;
+        for (const auto& mapping : mappings) {
+            if (mapping->mapping == nullptr) {
+                results.emplace_back(
+                    std::make_tuple(nullptr, mapping->priority, mapping->isSupplementary, true));
+            } else {
+                results.emplace_back(std::make_tuple(
+                    OverlapWriterBase::PrintOverlapAsM4(mapping->mapping, "", "", true, false),
+                    mapping->priority, mapping->isSupplementary, false));
+            }
+        }
+
+        EXPECT_EQ(data.expected, results);
+    }
 }

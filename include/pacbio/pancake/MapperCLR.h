@@ -276,9 +276,10 @@ private:
     static void LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,
                                  int32_t maxGap);
 
-    static std::vector<AlignmentRegion> CollectAlignmentRegions_(
-        const std::unique_ptr<ChainedRegion>& singleMapping, int32_t minAlignmentSpan,
-        int32_t maxFlankExtensionDist, double flankExtensionFactor);
+    static std::vector<AlignmentRegion> CollectAlignmentRegions_(const ChainedRegion& singleMapping,
+                                                                 int32_t minAlignmentSpan,
+                                                                 int32_t maxFlankExtensionDist,
+                                                                 double flankExtensionFactor);
 };
 
 /*
