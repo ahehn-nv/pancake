@@ -2,6 +2,8 @@
 
 #include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignerBatchGPU.h>
+#include <array>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -114,12 +116,9 @@ void AlignerBatchGPU::AlignAll()
     for (size_t i = 0; i < alignments.size(); i++) {
         auto& alnRes = alnResults_[i];
 
-        const std::string cigar = alignments[i]->convert_to_cigar(
-            claraparabricks::genomeworks::cudaaligner::CigarFormat::extended);
+        Alignment::DiffCounts diffs;
+        alnRes.cigar = CudaalignToCigar_(alignments[i]->get_alignment(), diffs);
 
-        alnRes.cigar = PacBio::BAM::Cigar(cigar);
-
-        const Alignment::DiffCounts diffs = CigarDiffCounts(cigar);
         const int32_t querySpan = diffs.numEq + diffs.numX + diffs.numI;
         const int32_t targetSpan = diffs.numEq + diffs.numX + diffs.numD;
         alnRes.score =
@@ -133,6 +132,63 @@ void AlignerBatchGPU::AlignAll()
         alnRes.maxQueryPos = querySpans_[i];
         alnRes.maxTargetPos = targetSpans_[i];
     }
+}
+
+PacBio::Data::CigarOperationType AlignerBatchGPU::CudaalignStateToPbbamState_(
+    const claraparabricks::genomeworks::cudaaligner::AlignmentState& s)
+{
+    switch (s) {
+        case claraparabricks::genomeworks::cudaaligner::AlignmentState::match:
+            return PacBio::Data::CigarOperationType::SEQUENCE_MATCH;
+        case claraparabricks::genomeworks::cudaaligner::AlignmentState::mismatch:
+            return PacBio::Data::CigarOperationType::SEQUENCE_MISMATCH;
+        case claraparabricks::genomeworks::cudaaligner::AlignmentState::insertion:
+            return PacBio::Data::CigarOperationType::INSERTION;
+        case claraparabricks::genomeworks::cudaaligner::AlignmentState::deletion:
+            return PacBio::Data::CigarOperationType::DELETION;
+        default:
+            return PacBio::Data::CigarOperationType::UNKNOWN_OP;
+    }
+    return PacBio::Data::CigarOperationType::UNKNOWN_OP;
+}
+
+PacBio::Data::Cigar AlignerBatchGPU::CudaalignToCigar_(
+    const std::vector<claraparabricks::genomeworks::cudaaligner::AlignmentState>& alignment,
+    Alignment::DiffCounts& retDiffs)
+{
+    retDiffs.Clear();
+
+    if (alignment.empty()) {
+        return {};
+    }
+
+    std::array<uint32_t, 4> counts{0, 0, 0, 0};
+
+    PacBio::Data::Cigar cigar;
+    auto lastState = alignment[0];
+    uint32_t count = 0;
+    for (auto const& currState : alignment) {
+        if (currState == lastState) {
+            ++count;
+        } else {
+            PacBio::Data::CigarOperationType cigarOpType = CudaalignStateToPbbamState_(lastState);
+            PacBio::Data::CigarOperation newOp(cigarOpType, count);
+            cigar.emplace_back(std::move(newOp));
+            counts[lastState] += count;
+            count = 1;
+            lastState = currState;
+        }
+    }
+    PacBio::Data::CigarOperationType cigarOpType = CudaalignStateToPbbamState_(lastState);
+    PacBio::Data::CigarOperation newOp(cigarOpType, count);
+    cigar.emplace_back(std::move(newOp));
+    counts[lastState] += count;
+    retDiffs.numEq = counts[claraparabricks::genomeworks::cudaaligner::AlignmentState::match];
+    retDiffs.numX = counts[claraparabricks::genomeworks::cudaaligner::AlignmentState::mismatch];
+    retDiffs.numI = counts[claraparabricks::genomeworks::cudaaligner::AlignmentState::insertion];
+    retDiffs.numD = counts[claraparabricks::genomeworks::cudaaligner::AlignmentState::deletion];
+
+    return cigar;
 }
 
 }  // namespace Pancake

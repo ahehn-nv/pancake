@@ -46,6 +46,12 @@ private:
     std::vector<int32_t> querySpans_;
     std::vector<int32_t> targetSpans_;
     std::vector<AlignmentResult> alnResults_;
+
+    static PacBio::Data::CigarOperationType CudaalignStateToPbbamState_(
+        const claraparabricks::genomeworks::cudaaligner::AlignmentState& s);
+    static PacBio::Data::Cigar CudaalignToCigar_(
+        const std::vector<claraparabricks::genomeworks::cudaaligner::AlignmentState>& alignment,
+        Alignment::DiffCounts& retDiffs);
 };
 
 }  // namespace Pancake
