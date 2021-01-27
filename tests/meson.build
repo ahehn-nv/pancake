@@ -1,6 +1,4 @@
 pancake_test_cpp_sources = files([
-  'src/test_AlignerBatchGPU.cpp',
-
   'src/test_AlignerBatchCPU.cpp',
   'src/test_AlignmentSeeded.cpp',
   'src/test_AlignmentTools.cpp',
@@ -30,6 +28,12 @@ pancake_test_cpp_sources = files([
   'src/test_Util.cpp',
   'src/TestHelperUtils.cpp',
 ])
+
+if opt_cuda
+    pancake_test_cpp_sources += files([
+      'src/test_AlignerBatchGPU.cpp',
+    ])
+endif
 
 pancake_test_cram_sources = files([
   'cram/test_bugfixes.t',

@@ -4,33 +4,26 @@ CURRENT_DEBUG_BUILD_DIR_SANITIZE?=build-debug-sanitize
 ENABLED_TESTS?=true
 export ENABLED_TESTS CURRENT_BUILD_DIR
 
-.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug build-debug2 conf-debug2 debug2 genomeworks libcudaaligner
+.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug build-debug2 conf-debug2 debug2 genomeworks
 
 
 
 ################
 ### Release. ###
 ################
-# build: subprojects/genomeworks/build/cudaaligner/libcudaaligner.a
-build: subprojects/genomeworks/build/cudaaligner/libcudaaligner.so
+build:
 	mkdir -p ${CURRENT_BUILD_DIR} && ninja -C "${CURRENT_BUILD_DIR}" -v test
 
-conf: suibprojects/genomeworks/build/cudaaligner/libcudaaligner.so
+conf:
 	rm -rf "${CURRENT_BUILD_DIR}"
-	ENABLED_SSE41=true bash -vex scripts/ci/configure_with_fallback.sh
+	ENABLED_GPU=false ENABLED_SSE41=true ENABLED_TESTS=true bash -vex scripts/ci/configure_with_fallback.sh
 
-all: subprojects/genomeworks/build/cudaaligner/libcudaaligner.so conf build cram check-formatting
+conf-gpu:
+	rm -rf "${CURRENT_BUILD_DIR}"
+	ENABLED_GPU=true ENABLED_SSE41=true ENABLED_TESTS=true bash -vex scripts/ci/configure_with_fallback.sh
 
-subprojects/genomeworks/README.md:
-	mkdir -p subprojects && pushd subprojects && git clone ssh://git@bitbucket.nanofluidics.com:7999/~isovic/genomeworks.git --recursive && cd genomeworks && git checkout no-exe-2
-
-subprojects/genomeworks/build/cudaaligner/libcudaaligner.a: subprojects/genomeworks/README.md
-	mkdir -p subprojects/genomeworks/build && cd subprojects/genomeworks/build && cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install -Dgw_cuda_gen_all_arch=OFF -Dgw_build_htslib=OFF && make
-
-libcudaaligner: suibprojects/genomeworks/build/cudaaligner/libcudaaligner.so
-
-suibprojects/genomeworks/build/cudaaligner/libcudaaligner.so: subprojects/genomeworks/README.md
-	cd subprojects/genomeworks && make shared
+all: conf build cram check-formatting
+all-gpu: conf-gpu build cram check-formatting
 
 ################
 ### Debug.   ###

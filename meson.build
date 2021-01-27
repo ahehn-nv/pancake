@@ -78,14 +78,10 @@ if opt_cuda
     add_languages('cuda')
     nvcc = meson.get_compiler('cuda')
     cudart_dep = dependency('cudart-11.0', version : '>=11')
-    cudaaligner = cpp.find_library('cudaaligner', dirs: meson.source_root() + '/subprojects/genomeworks/build/cudaaligner/')
-    gw_base = cpp.find_library('gwbase', dirs: meson.source_root() + '/subprojects/genomeworks/build/common/base/')
-    gw_io = cpp.find_library('gwio', dirs: meson.source_root() + '/subprojects/genomeworks/build/common/io/')
+    pancake_gw_dep = dependency('genomeworks', fallback : ['genomeworks', 'genomeworks_dep'])
     pancake_lib_deps += [
-      cudart_dep,
-      cudaaligner,
-      gw_base,
-      gw_io,
+        cudart_dep,
+        pancake_gw_dep,
     ]
 endif
 
@@ -94,9 +90,6 @@ endif
 ###########
 
 subdir('include')
-
-genomeworks_include_directories = include_directories(['subprojects/genomeworks/cudaaligner/include', 'subprojects/genomeworks/common/base/include/', 'subprojects/genomeworks/common/io/include/'])
-pancake_include_directories = [pancake_include_directories, genomeworks_include_directories]
 
 #####################
 # sources + library #
