@@ -19,16 +19,6 @@
 namespace PacBio {
 namespace Pancake {
 
-// enum class StatusAddSequencePair
-// {
-//     OK,
-//     SEQUENCE_LEN_BELOW_ZERO,
-//     EXCEEDED_MAX_ALIGNMENTS,
-//     SEQUENCE_TOO_LONG,
-// };
-
-// external enum class StatusAddSequencePair;
-
 int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFraction);
 
 class AlignerBatchGPU

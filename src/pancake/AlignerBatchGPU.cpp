@@ -70,16 +70,11 @@ StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_
         aligner_->add_alignment(target, targetLen, query, queryLen);
 
     if (s == claraparabricks::genomeworks::cudaaligner::StatusType::exceeded_max_alignments) {
-        std::cerr << "Added alignments so far: " << numAlignments_ << "\n";
-        std::cerr.flush();
         throw std::runtime_error("Exceeded max alignments.");
 
     } else if (s == claraparabricks::genomeworks::cudaaligner::StatusType::
                         exceeded_max_alignment_difference ||
                s == claraparabricks::genomeworks::cudaaligner::StatusType::exceeded_max_length) {
-        std::cerr << "Added alignments so far: " << numAlignments_ << "\n";
-        std::cerr.flush();
-
         // Do nothing as this case will be handled by CPU aligner.
         throw std::runtime_error(
             "Not implemented yet: s == StatusType::exceeded_max_alignment_difference || s == "
@@ -93,7 +88,6 @@ StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_
         ++numAlignments_;
         querySpans_.emplace_back(queryLen);
         targetSpans_.emplace_back(targetLen);
-        // std::cerr << "Added:\n  -> Q: '" << std::string(query, queryLen) << "'\n  -> T: '" << std::string(target, targetLen) << "'\n";
     }
 
     return StatusAddSequencePair::OK;
@@ -122,8 +116,6 @@ void AlignerBatchGPU::AlignAll()
 
         const std::string cigar = alignments[i]->convert_to_cigar(
             claraparabricks::genomeworks::cudaaligner::CigarFormat::extended);
-
-        // std::cerr << "[i = " << i << "] CUDA CIGAR: " << cigar << "\n";
 
         alnRes.cigar = PacBio::BAM::Cigar(cigar);
 
