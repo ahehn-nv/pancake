@@ -38,12 +38,6 @@ public:
     }
     ~Mapper() = default;
 
-    MapperResult Map(const PacBio::Pancake::FastaSequenceCachedStore& targetSeqs,
-                     const PacBio::Pancake::SeedIndex& index,
-                     const PacBio::Pancake::FastaSequenceCached& querySeq,
-                     const PacBio::Pancake::SequenceSeedsCached& querySeeds, int64_t freqCutoff,
-                     bool generateFlippedOverlap) const;
-
     /// \brief Maps a single query to a given set of targets. The targets
     ///         are provided with their sequences (targetSeqs) and the seeds (index).
     ///
@@ -55,7 +49,8 @@ public:
     /// \param freqCutoff Maximum allowed frequency of any particular seed to retain it.
     /// \returns An object which contains a vector of all found overlaps.
     ///
-    MapperResult Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
+
+    MapperResult Map(const PacBio::Pancake::FastaSequenceCachedStore& targetSeqs,
                      const PacBio::Pancake::SeedIndex& index,
                      const PacBio::Pancake::FastaSequenceCached& querySeq,
                      const PacBio::Pancake::SequenceSeedsCached& querySeeds, int64_t freqCutoff,

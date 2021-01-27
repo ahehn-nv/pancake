@@ -63,16 +63,6 @@ MapperResult Mapper::Map(const PacBio::Pancake::FastaSequenceCachedStore& target
                            generateFlippedOverlap);
 }
 
-MapperResult Mapper::Map(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqs,
-                         const PacBio::Pancake::SeedIndex& index,
-                         const PacBio::Pancake::FastaSequenceCached& querySeq,
-                         const PacBio::Pancake::SequenceSeedsCached& querySeeds, int64_t freqCutoff,
-                         bool generateFlippedOverlap) const
-{
-    return MapSingleQuery_(targetSeqs.recordStore(), index, querySeq, querySeeds, freqCutoff,
-                           generateFlippedOverlap);
-}
-
 MapperResult Mapper::MapSingleQuery_(const PacBio::Pancake::FastaSequenceCachedStore& targetSeqs,
                                      const PacBio::Pancake::SeedIndex& index,
                                      const PacBio::Pancake::FastaSequenceCached& querySeq,
