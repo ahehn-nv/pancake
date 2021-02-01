@@ -45,13 +45,14 @@ AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t 
 
 AlignerBatchGPU::~AlignerBatchGPU()
 {
+    aligner_->reset();
     aligner_.reset();
     GW_CU_CHECK_ERR(cudaStreamDestroy(stream_));
 }
 
 void AlignerBatchGPU::Clear()
 {
-    aligner_.reset();
+    aligner_->reset();
     alnResults_.clear();
     querySpans_.clear();
     targetSpans_.clear();
@@ -116,13 +117,13 @@ void AlignerBatchGPU::AlignAll()
         Alignment::DiffCounts diffs;
         alnRes.cigar = CudaalignToCigar_(alignments[i]->get_alignment(), diffs);
 
-        // const int32_t querySpan = diffs.numEq + diffs.numX + diffs.numI;
-        // const int32_t targetSpan = diffs.numEq + diffs.numX + diffs.numD;
+        const int32_t querySpan = diffs.numEq + diffs.numX + diffs.numI;
+        const int32_t targetSpan = diffs.numEq + diffs.numX + diffs.numD;
         alnRes.score =
             ScoreCigarAlignment(alnRes.cigar, alnParams_.matchScore, alnParams_.mismatchPenalty,
                                 alnParams_.gapOpen1, alnParams_.gapExtend1);
-        // alnRes.valid = (querySpan == querySpans_[i] && targetSpan == targetSpans_[i] && alignments[i]->is_optimal());
-        alnRes.valid = (alignments[i]->is_optimal());
+        alnRes.valid = (querySpan == querySpans_[i] && targetSpan == targetSpans_[i] &&
+                        alignments[i]->is_optimal());
         alnRes.maxScore = alnRes.score;
         alnRes.zdropped = false;
         alnRes.lastQueryPos = querySpans_[i];
