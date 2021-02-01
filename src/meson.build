@@ -86,6 +86,12 @@ pancake_cpp_sources = files([
     'util/TicToc.cpp',
 ])
 
+if opt_cuda
+    pancake_cpp_sources += files([
+        'pancake/AlignerBatchGPU.cpp',
+    ])
+endif
+
 pancake_cpp_sources += pancake_version_sources
 
 ###########

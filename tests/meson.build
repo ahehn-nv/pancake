@@ -29,6 +29,12 @@ pancake_test_cpp_sources = files([
   'src/TestHelperUtils.cpp',
 ])
 
+if opt_cuda
+    pancake_test_cpp_sources += files([
+      'src/test_AlignerBatchGPU.cpp',
+    ])
+endif
+
 pancake_test_cram_sources = files([
   'cram/test_bugfixes.t',
   'cram/test_hifi_ovl.t',
