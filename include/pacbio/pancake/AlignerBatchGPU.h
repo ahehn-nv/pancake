@@ -3,12 +3,10 @@
 #ifndef PANCAKE_ALIGNER_BATCH_GPU_H
 #define PANCAKE_ALIGNER_BATCH_GPU_H
 
-#include <pacbio/pancake/AlignerBase.h>
 #include <pacbio/pancake/AlignerBatchCPU.h>
 #include <pacbio/pancake/AlignerFactory.h>
 #include <pacbio/pancake/Range.h>
 #include <pbbam/Cigar.h>
-#include <array>
 #include <claraparabricks/genomeworks/cudaaligner/aligner.hpp>
 #include <claraparabricks/genomeworks/cudaaligner/alignment.hpp>
 #include <claraparabricks/genomeworks/cudaaligner/cudaaligner.hpp>
