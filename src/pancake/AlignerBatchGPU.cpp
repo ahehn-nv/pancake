@@ -67,7 +67,7 @@ StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_
         aligner_->add_alignment(target, targetLen, query, queryLen);
 
     if (s == claraparabricks::genomeworks::cudaaligner::StatusType::exceeded_max_alignments) {
-        throw std::runtime_error("Exceeded max alignments.");
+        return StatusAddSequencePair::EXCEEDED_MAX_ALIGNMENTS;
 
     } else if (s == claraparabricks::genomeworks::cudaaligner::StatusType::
                         exceeded_max_alignment_difference ||
@@ -100,10 +100,11 @@ void AlignerBatchGPU::AlignAll()
     const std::vector<std::shared_ptr<claraparabricks::genomeworks::cudaaligner::Alignment>>&
         alignments = aligner_->get_alignments();
 
-    // Number of alignments should be the same as number of overlaps.
+    // Number of alignments should be the same as number of sequences added.
     if (querySpans_.size() != alignments.size()) {
         throw std::runtime_error(
-            "Number of alignments doesn't match number of overlaps in cudaaligner.");
+            "Number of alignments doesn't match number of input sequences, in " +
+            std::string(__func__) + ".");
     }
 
     alnResults_.resize(querySpans_.size());
