@@ -12,8 +12,6 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
     {
         std::string testName;
         std::vector<std::pair<std::string, std::string>> batchData;
-        double maxMemoryFraction;
-        int64_t maxMemoryCap;
         std::vector<PacBio::Pancake::AlignmentResult> expectedAlns;
     };
 
@@ -26,15 +24,29 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
                 {"ACTG", "ACTG"},
                 {"A", "T"},
             },
-            // Maximum memory fraction of total free memory.
-            0.50,
-            // Maximum memory cap.
-            1024 * 1024,
             // Expected results.
             {
                 PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4=1X5="), 10, 10, 10, 10, true, 14, 14, false},
                 PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4="), 4, 4, 4, 4, true, 8, 8, false},
                 PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1X"), 1, 1, 1, 1, true, -4, -4, false},
+            },
+        },
+        {
+            "Empty batch.",
+            {
+            },
+            // Expected results.
+            {
+            },
+        },
+        {
+            "Another batch.",
+            {
+                {"AAAAA", "AAAAA"},
+            },
+            // Expected results.
+            {
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("5="), 5, 5, 5, 5, true, 10, 10, false},
             },
         },
     };
@@ -44,13 +56,18 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
     uint32_t deviceId = 0;
     PacBio::Pancake::AlignmentParameters alnParams;
 
+    const double maxMemoryFraction = 0.50;
+    const int32_t maxMemoryCap = 1024 * 1024;
+    auto aligner = PacBio::Pancake::AlignerBatchGPU(alnParams, maxBandwidth, deviceId,
+                                                    maxMemoryFraction, maxMemoryCap);
+
     for (const auto& data : testData) {
         // Debug info.
         SCOPED_TRACE(data.testName);
         std::cerr << "testName = " << data.testName << "\n";
 
-        auto aligner = PacBio::Pancake::AlignerBatchGPU(alnParams, maxBandwidth, deviceId,
-                                                        data.maxMemoryFraction, data.maxMemoryCap);
+        // Reuse the aligner in multiple batches.
+        aligner.Clear();
 
         for (const auto& seqPair : data.batchData) {
             const auto& query = seqPair.first;
