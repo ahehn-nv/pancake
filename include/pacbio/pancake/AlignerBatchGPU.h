@@ -37,6 +37,8 @@ public:
 
     const std::vector<AlignmentResult>& GetAlnResults() const { return alnResults_; }
 
+    std::vector<AlignmentResult>& GetAlnResults() { return alnResults_; }
+
 private:
     AlignmentParameters alnParams_;
     std::unique_ptr<claraparabricks::genomeworks::cudaaligner::Aligner> aligner_;
