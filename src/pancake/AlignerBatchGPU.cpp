@@ -53,6 +53,8 @@ void AlignerBatchGPU::Clear()
 {
     aligner_.reset();
     alnResults_.clear();
+    querySpans_.clear();
+    targetSpans_.clear();
 }
 
 StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_t queryLen,
