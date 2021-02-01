@@ -17,6 +17,8 @@ module load pbbam
 
 module load samtools
 
+module load cuda/11.0.2_450.51.05
+
 case "${bamboo_planRepository_branchName}" in
   master)
     module load pbcopper/master
