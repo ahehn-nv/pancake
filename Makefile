@@ -4,7 +4,7 @@ CURRENT_DEBUG_BUILD_DIR_SANITIZE?=build-debug-sanitize
 ENABLED_TESTS?=true
 export ENABLED_TESTS CURRENT_BUILD_DIR
 
-.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug build-debug2 conf-debug2 debug2 genomeworks
+.PHONY: all build conf conf-debug unit cram modules check-formatting build-debug build-debug2 conf-debug2 debug2
 
 
 
