@@ -28,15 +28,40 @@ public:
                     double maxGPUMemoryFraction, int64_t maxGPUMemoryCap);
     ~AlignerBatchGPU();
 
+    /*
+     * Clears the internal states (sequences for alignment and results).
+    */
     void Clear();
 
+    /*
+     * Adds a single sequence pair for alignment to the internal state (modifies the state),
+     * but does not align the sequences right away. Alignment will be performed only when the
+     * AlignAll function is called.
+     * The data will be copied internally, so the query and target pointers do not have to
+     * remain valid after this function has been called.
+     * The return value is either StatusAddSequencePair::OK if the sequences were added successfully,
+     * or another value describing the reason for rejecting the sequence pair.
+     * Calling this function will clear the internal alignment results.
+    */
     StatusAddSequencePair AddSequencePair(const char* query, int32_t queryLen, const char* target,
                                           int32_t targetLen);
 
+    /*
+     * Aligns all the sequence pairs added to the aligner, in parallel.
+     * This function modifies the internal state, because the alignment results are stored internally.
+    */
     void AlignAll();
 
+    /*
+     * Const getter for the alignment results. Returns an empty vector if the sequences have not
+     * been aligned yet.
+    */
     const std::vector<AlignmentResult>& GetAlnResults() const { return alnResults_; }
 
+    /*
+     * Non-const getter for the alignment results. Returns an empty vector if the sequences have not
+     * been aligned yet.
+    */
     std::vector<AlignmentResult>& GetAlnResults() { return alnResults_; }
 
 private:
@@ -49,8 +74,16 @@ private:
     std::vector<int32_t> targetSpans_;
     std::vector<AlignmentResult> alnResults_;
 
+    /*
+     * Decodes a single alignment state from the Cudaaligner format to PacBio::Data::CigarOperationType.
+    */
     static PacBio::Data::CigarOperationType CudaalignStateToPbbamState_(
         const claraparabricks::genomeworks::cudaaligner::AlignmentState& s);
+
+    /*
+     * Helper conversion function to convert the Cudaaligner's alignment into the
+     * PacBio::Data::Cigar format. IT also calcualtes the total number of diffs on the fly.
+    */
     static PacBio::Data::Cigar CudaalignToCigar_(
         const std::vector<claraparabricks::genomeworks::cudaaligner::AlignmentState>& alignment,
         Alignment::DiffCounts& retDiffs);
