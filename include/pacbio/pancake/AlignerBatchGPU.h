@@ -69,7 +69,6 @@ private:
     std::unique_ptr<claraparabricks::genomeworks::cudaaligner::Aligner> aligner_;
     cudaStream_t stream_;
     int64_t cudaalignerBatches_;
-    int64_t numAlignments_;
     std::vector<int32_t> querySpans_;
     std::vector<int32_t> targetSpans_;
     std::vector<AlignmentResult> alnResults_;

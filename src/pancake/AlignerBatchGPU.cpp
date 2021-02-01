@@ -31,11 +31,7 @@ int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFract
 AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t maxBandwidth,
                                  uint32_t deviceId, double maxGPUMemoryFraction,
                                  int64_t maxGPUMemoryCap)
-    : alnParams_(alnParams)
-    , aligner_(nullptr)
-    , stream_(0)
-    , cudaalignerBatches_(1)
-    , numAlignments_(0)
+    : alnParams_(alnParams), aligner_(nullptr), stream_(0), cudaalignerBatches_(1)
 {
     GW_CU_CHECK_ERR(cudaSetDevice(deviceId));
     GW_CU_CHECK_ERR(cudaStreamCreate(&stream_));
@@ -56,9 +52,8 @@ AlignerBatchGPU::~AlignerBatchGPU()
 
 void AlignerBatchGPU::Clear()
 {
+    aligner_.reset();
     alnResults_.clear();
-    alnResults_.resize(numAlignments_);
-    numAlignments_ = 0;
 }
 
 StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_t queryLen,
@@ -87,9 +82,9 @@ StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_
         throw std::runtime_error("Unknown error in cuda aligner!\n");
 
     } else {
-        ++numAlignments_;
         querySpans_.emplace_back(queryLen);
         targetSpans_.emplace_back(targetLen);
+        alnResults_.clear();
     }
 
     return StatusAddSequencePair::OK;
@@ -106,12 +101,12 @@ void AlignerBatchGPU::AlignAll()
         alignments = aligner_->get_alignments();
 
     // Number of alignments should be the same as number of overlaps.
-    if (numAlignments_ != static_cast<int64_t>(alignments.size())) {
+    if (querySpans_.size() != alignments.size()) {
         throw std::runtime_error(
             "Number of alignments doesn't match number of overlaps in cudaaligner.");
     }
 
-    alnResults_.resize(numAlignments_);
+    alnResults_.resize(querySpans_.size());
 
     for (size_t i = 0; i < alignments.size(); i++) {
         auto& alnRes = alnResults_[i];
