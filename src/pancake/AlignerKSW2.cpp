@@ -138,7 +138,7 @@ AlignmentResult AlignerKSW2::Extend(const char* qseq, int64_t qlen, const char* 
                                  tAlnLen, ret.diffs);
 
     ret.cigar = std::move(currCigar);
-    ret.valid = (ez.n_cigar == 0) ? false : true;
+    ret.valid = true;
     ret.lastQueryPos = (ez.reach_end ? qlen : ez.max_q + 1);
     ret.lastTargetPos = (ez.reach_end ? ez.mqe_t + 1 : ez.max_t + 1);
     ret.maxQueryPos = ez.max_q;
