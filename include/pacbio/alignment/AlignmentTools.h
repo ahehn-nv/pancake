@@ -23,7 +23,8 @@ inline bool operator==(const TrimmingInfo& lhs, const TrimmingInfo& rhs)
            lhs.targetFront == rhs.targetFront && lhs.targetBack == rhs.targetBack;
 }
 
-PacBio::BAM::Cigar EdlibAlignmentToCigar(const unsigned char* aln, int32_t alnLen);
+PacBio::BAM::Cigar EdlibAlignmentToCigar(const unsigned char* aln, int32_t alnLen,
+                                         Alignment::DiffCounts& retDiffs);
 
 void EdlibAlignmentDiffCounts(const unsigned char* aln, int32_t alnLen, int32_t& numEq,
                               int32_t& numX, int32_t& numI, int32_t& numD);
