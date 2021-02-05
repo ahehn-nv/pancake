@@ -24,6 +24,10 @@ class AlignerBatchGPU
 public:
     AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t maxBandwidth, uint32_t deviceId,
                     double maxGPUMemoryFraction, int64_t maxGPUMemoryCap);
+
+    AlignerBatchGPU(const AlignmentParameters& alnParams,
+                    std::unique_ptr<claraparabricks::genomeworks::cudaaligner::Aligner> aligner);
+
     ~AlignerBatchGPU();
 
     /*
