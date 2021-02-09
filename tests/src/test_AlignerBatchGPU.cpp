@@ -87,7 +87,7 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
     for (const auto& data : testData) {
         // Debug info.
         SCOPED_TRACE(data.testName);
-        std::cerr << "testName = " << data.testName << "\n";
+        // std::cerr << "testName = " << data.testName << "\n";
 
         // Reuse the aligner in multiple batches.
         aligner.Clear();
@@ -103,11 +103,11 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
 
         const std::vector<PacBio::Pancake::AlignmentResult>& results = aligner.GetAlnResults();
 
-        std::cerr << "results.size() = " << results.size() << "\n";
-        for (size_t i = 0; i < results.size(); ++i) {
-            const auto& aln = results[i];
-            std::cerr << "[result " << i << "] " << aln << "\n";
-        }
+        // std::cerr << "results.size() = " << results.size() << "\n";
+        // for (size_t i = 0; i < results.size(); ++i) {
+        //     const auto& aln = results[i];
+        //     std::cerr << "[result " << i << "] " << aln << "\n";
+        // }
 
         // Evaluate.
         ASSERT_EQ(data.expectedAlns, results);
@@ -145,7 +145,7 @@ TEST(AlignerBatchGPU, DependencyInjection)
     for (const auto& data : testData) {
         // Debug info.
         SCOPED_TRACE(data.testName);
-        std::cerr << "testName = " << data.testName << "\n";
+        // std::cerr << "testName = " << data.testName << "\n";
 
         // Reuse the aligner in multiple batches.
         aligner->Clear();
@@ -161,11 +161,11 @@ TEST(AlignerBatchGPU, DependencyInjection)
 
         const std::vector<PacBio::Pancake::AlignmentResult>& results = aligner->GetAlnResults();
 
-        std::cerr << "results.size() = " << results.size() << "\n";
-        for (size_t i = 0; i < results.size(); ++i) {
-            const auto& aln = results[i];
-            std::cerr << "[result " << i << "] " << aln << "\n";
-        }
+        // std::cerr << "results.size() = " << results.size() << "\n";
+        // for (size_t i = 0; i < results.size(); ++i) {
+        //     const auto& aln = results[i];
+        //     std::cerr << "[result " << i << "] " << aln << "\n";
+        // }
 
         // Evaluate.
         ASSERT_EQ(data.expectedAlns, results);
