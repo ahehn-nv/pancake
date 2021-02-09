@@ -43,11 +43,25 @@ AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t 
         stream_, deviceId, requestedMemory);
 }
 
+AlignerBatchGPU::AlignerBatchGPU(
+    const AlignmentParameters& alnParams,
+    std::unique_ptr<claraparabricks::genomeworks::cudaaligner::Aligner> aligner)
+    : alnParams_(alnParams), aligner_(std::move(aligner)), stream_(0), cudaalignerBatches_(1)
+{
+    if (aligner_ == nullptr) {
+        throw std::runtime_error(
+            "Given aligner is nullptr (passed to the constructor "
+            "AlignerBatchGPU::AlignerBatchGPU).");
+    }
+}
+
 AlignerBatchGPU::~AlignerBatchGPU()
 {
     aligner_->reset();
     aligner_.reset();
-    GW_CU_CHECK_ERR(cudaStreamDestroy(stream_));
+    if (stream_ != 0) {
+        GW_CU_CHECK_ERR(cudaStreamDestroy(stream_));
+    }
 }
 
 void AlignerBatchGPU::Clear()
