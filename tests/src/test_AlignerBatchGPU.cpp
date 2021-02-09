@@ -46,7 +46,7 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
             },
             // Expected results.
             {
-                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("5="), 5, 5, 5, 5, true, 10, 10, false},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("5="), 5, 5, 5, 5, true, 10, 10, false, Alignment::DiffCounts(5, 0, 0, 0)},
             },
         },
     };
