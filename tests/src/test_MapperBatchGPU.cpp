@@ -1,11 +1,11 @@
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
-#include <pacbio/pancake/MapperBatchCPU.h>
+#include <pacbio/pancake/MapperBatchGPU.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
 #include <iostream>
 #include "TestHelperUtils.h"
 
-void HelperLoadBatchData(
+void HelperLoadBatchData2(
     const std::vector<std::pair<std::string, std::string>>& batchDataSequenceFiles,
     std::vector<PacBio::Pancake::MapperBatchChunk>& retBatchData,
     std::vector<PacBio::BAM::FastaSequence>& retAllSeqs)
@@ -14,7 +14,7 @@ void HelperLoadBatchData(
      * This function takes a vector of pairs, where each pair is a pair of filename paths, one
      * for the target sequences and one for the query sequences; and then loads the sequences.
      * One pair is what a single MapperCLR::MapAndAlign would be run on.
-     * Here, the MapperBatchCPU will take a vector of those chunks and align them at once.
+     * Here, the MapperBatchGPU will take a vector of those chunks and align them at once.
      *
      * This function returns a flat vector of all sequences that were loaded (targets and queries),
      * and a vector of MapperBatchChunk.
@@ -60,7 +60,7 @@ void HelperLoadBatchData(
     }
 }
 
-std::vector<std::vector<std::string>> HelperFormatBatchMappingResults(
+std::vector<std::vector<std::string>> HelperFormatBatchMappingResults2(
     const std::vector<std::vector<PacBio::Pancake::MapperBaseResult>>& results)
 {
     std::vector<std::vector<std::string>> resultsStr;
@@ -83,7 +83,7 @@ std::vector<std::vector<std::string>> HelperFormatBatchMappingResults(
     return resultsStr;
 }
 
-TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
+TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
 {
     using namespace PacBio::Pancake;
 
@@ -100,7 +100,7 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
     // clang-format off
     std::vector<TestData> testData = {
         {
-            "Batch 1 of multiple query/target vectors.",
+            "Batch of multiple query/target vectors.",
             {
                 {
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-2-real-insert-target.fasta",
@@ -126,10 +126,6 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.target.fasta",
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
                 },
-                {
-                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-target.fasta",
-                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-query.fasta",
-                },
 
             },
             // Aligner type for global alignment.
@@ -141,25 +137,22 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
             // Expected results.
             {
                 {
-                    "000000000 000000000 -16391 81.12 0 0 18779 18779 0 0 18864 18865 *",
+                    "000000000 000000000 -16493 81.17 0 0 18779 18779 0 0 18864 18865 *",
                 },
                 {
-                    "000000000 000000000 -8049 98.71 0 0 8111 8111 0 0 8138 8138 *"
+                    "000000000 000000000 -8051 98.71 0 0 8111 8111 0 0 8138 8138 *"
                 },
                 {
                     "000000000 000000000 -150 100.00 0 0 150 150 1 0 150 150 *"
                 },
                 {
-                    "000000000 000000000 -17688 74.58 0 0 21382 22015 1 701 22028 22028 *"
+                    "000000000 000000000 -17828 75.40 0 0 21382 22015 1 701 22028 22028 *"
                 },
                 {
                     "000000000 000000000 -150 96.77 0 0 155 155 1 0 150 150 *"
                 },
                 {
                     "000000000 000000000 -1345 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
-                },
-                {
-                    "000000000 000000000 -13260 75.87 0 0 15753 15753 1 2 15953 15953 *"
                 },
             },
         },
@@ -209,7 +202,7 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
         // a vector of target-query filename pairs.
         std::vector<MapperBatchChunk> batchData;
         std::vector<PacBio::BAM::FastaSequence> allSeqs;
-        HelperLoadBatchData(data.batchData, batchData, allSeqs);
+        HelperLoadBatchData2(data.batchData, batchData, allSeqs);
 
         // Set the seed parameter settings and create a mapper.
         PacBio::Pancake::MapperCLRSettings settings;
@@ -217,14 +210,26 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
         settings.seedParams = data.seedParamsPrimary;
         settings.seedParamsFallback = data.seedParamsFallback;
         settings.alignerTypeGlobal = data.alignerTypeGlobal;
-        PacBio::Pancake::MapperBatchCPU mapper(settings, 1);
+
+        const uint32_t gpuDeviceId = 0;
+        const double gpuMaxFreeMemoryFraction = 0.90;
+        const int64_t gpuMaxMemoryCap =
+            static_cast<int64_t>(100) * static_cast<int64_t>(1024 * 1024);
+        const int32_t numThreads = 1;
+        const int32_t startBandwidth = 500;
+        const int32_t maxBandwidth = 2000;
+        bool alignRemainingOnCpu = false;
+        PacBio::Pancake::MapperBatchGPU mapper(settings, numThreads, startBandwidth, maxBandwidth,
+                                               gpuDeviceId, gpuMaxFreeMemoryFraction,
+                                               gpuMaxMemoryCap, alignRemainingOnCpu);
 
         // Run the unit under test.
         // std::vector<std::vector<MapperBaseResult>> results = mapper.DummyMapAndAlign(batchData);
         std::vector<std::vector<MapperBaseResult>> results = mapper.MapAndAlign(batchData);
 
         // Format the results for comparison.
-        std::vector<std::vector<std::string>> resultsStr = HelperFormatBatchMappingResults(results);
+        std::vector<std::vector<std::string>> resultsStr =
+            HelperFormatBatchMappingResults2(results);
 
         // Evaluate.
         ASSERT_EQ(data.expectedOverlaps, resultsStr);

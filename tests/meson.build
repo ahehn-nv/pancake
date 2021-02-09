@@ -34,6 +34,7 @@ pancake_test_cpp_sources = files([
 if opt_cuda
     pancake_test_cpp_sources += files([
       'src/test_AlignerBatchGPU.cpp',
+      'src/test_MapperBatchGPU.cpp',
     ])
 endif
 
