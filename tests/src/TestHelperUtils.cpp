@@ -38,5 +38,19 @@ std::vector<std::string> HelperLoadFastaAsStringVector(const std::string& inFast
     return ret;
 }
 
+std::vector<std::string> HelperLoadFile(const std::string& inFile)
+{
+    std::vector<std::string> ret;
+    std::string line;
+    std::ifstream ifs(inFile);
+    if (ifs.is_open() == false) {
+        throw std::runtime_error("Cannot open file " + inFile + " for reading!");
+    }
+    while (std::getline(ifs, line)) {
+        ret.emplace_back(std::move(line));
+    }
+    return ret;
+}
+
 }  // namespace PancakeTests
 }  // namespace PacBio
