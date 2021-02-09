@@ -33,10 +33,10 @@ TEST(AlignerBatchCPU, ArrayOfTests_Small)
             4,
             // Expected results.
             {
-                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4=1X5="), 10, 10, 10, 10, true, 14, 14, false},
-                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4="), 4, 4, 4, 4, true, 8, 8, false},
-                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1X"), 1, 1, 1, 1, true, -4, -4, false},
-                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("20="), 20, 20, 19, 19, true, 40, 40, true},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4=1X5="), 10, 10, 10, 10, true, 14, 14, false, Alignment::DiffCounts(9, 1, 0, 0)},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4="), 4, 4, 4, 4, true, 8, 8, false, Alignment::DiffCounts(4, 0, 0, 0)},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1X"), 1, 1, 1, 1, true, -4, -4, false, Alignment::DiffCounts(0, 1, 0, 0)},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("20="), 20, 20, 19, 19, true, 40, 40, true, Alignment::DiffCounts(20, 0, 0, 0)},
             },
         },
     };
