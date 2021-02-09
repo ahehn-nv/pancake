@@ -71,6 +71,9 @@ private:
     std::vector<int32_t> targetSpans_;
     std::vector<AlignmentResult> alnResults_;
 
+    StatusAddSequencePair AddSequencePair_(const char* query, int32_t queryLen, const char* target,
+                                           int32_t targetLen);
+
     /*
      * Decodes a single alignment state from the Cudaaligner format to PacBio::Data::CigarOperationType.
     */
