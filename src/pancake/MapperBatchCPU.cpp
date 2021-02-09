@@ -3,6 +3,7 @@
 #include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignerBase.h>
 #include <pacbio/pancake/MapperBatchCPU.h>
+#include <pacbio/pancake/MapperBatchUtility.h>
 #include <pacbio/pancake/OverlapWriterFactory.h>
 #include <pacbio/util/TicToc.h>
 #include <pbcopper/logging/Logging.h>
@@ -99,25 +100,47 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
     faf.Finalize();
 
     if (settings.align) {
-        AlignerBatchCPU alignerInternal(settings.alignerTypeGlobal, settings.alnParamsGlobal,
-                                        settings.alignerTypeExt, settings.alnParamsExt);
-        PrepareSequencesForAlignment_(alignerInternal, batchChunks, results,
-                                      BatchAlignerRegionType::GLOBAL);
+        // Compute the reverse complements for alignment.
+        std::vector<std::vector<std::string>> querySeqsRev;
+        for (const auto& chunk : batchChunks) {
+            std::vector<std::string> revSeqs;
+            for (const auto& query : chunk.querySeqs) {
+                revSeqs.emplace_back(
+                    PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size()));
+            }
+            querySeqsRev.emplace_back(std::move(revSeqs));
+        }
 
-        AlignerBatchCPU alignerFlanks(settings.alignerTypeGlobal, settings.alnParamsGlobal,
-                                      settings.alignerTypeExt, settings.alnParamsExt);
-        PrepareSequencesForAlignment_(alignerFlanks, batchChunks, results,
-                                      BatchAlignerRegionType::SEMIGLOBAL);
+        // Prepare the sequences for alignment.
+        std::vector<PairForBatchAlignment> partsGlobal;
+        std::vector<PairForBatchAlignment> partsSemiglobal;
+        std::vector<AlignmentStitchInfo> alnStitchInfo;
+        int32_t longestSequenceForAln = 0;
+        PrepareSequencesForBatchAlignment(batchChunks, querySeqsRev, results, partsGlobal,
+                                          partsSemiglobal, alnStitchInfo, longestSequenceForAln);
+        PBLOG_INFO << "partsGlobal.size() = " << partsGlobal.size();
+        PBLOG_INFO << "partsSemiglobal.size() = " << partsSemiglobal.size();
 
-        alignerInternal.AlignAll(numThreads);
-        alignerFlanks.AlignAll(numThreads);
+        // Internal alignment on CPU.
+        std::vector<AlignmentResult> internalAlns;
+        AlignPartsOnCpu(settings.alignerTypeGlobal, settings.alnParamsGlobal,
+                        settings.alignerTypeExt, settings.alnParamsExt, partsGlobal, numThreads,
+                        internalAlns);
+        PBLOG_INFO << "internalAlns.size() = " << internalAlns.size();
 
-        StitchAlignments_(batchChunks, results, alignerInternal.GetAlnResults(),
-                          alignerFlanks.GetAlnResults());
+        // Flank alignment on CPU.
+        std::vector<AlignmentResult> flankAlns;
+        AlignPartsOnCpu(settings.alignerTypeGlobal, settings.alnParamsGlobal,
+                        settings.alignerTypeExt, settings.alnParamsExt, partsSemiglobal, numThreads,
+                        flankAlns);
+        PBLOG_INFO << "flankAlns.size() = " << flankAlns.size();
 
-        UpdateSecondaryAndFilter_(results, settings.secondaryAllowedOverlapFractionQuery,
-                                  settings.secondaryAllowedOverlapFractionTarget,
-                                  settings.secondaryMinScoreFraction, settings.bestNSecondary);
+        StitchAlignments(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
+                         alnStitchInfo);
+
+        UpdateSecondaryAndFilter(results, settings.secondaryAllowedOverlapFractionQuery,
+                                 settings.secondaryAllowedOverlapFractionTarget,
+                                 settings.secondaryMinScoreFraction, settings.bestNSecondary);
     }
 
     return results;
@@ -134,186 +157,10 @@ void MapperBatchCPU::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChu
     }
 }
 
-void MapperBatchCPU::PrepareSequencesForAlignment_(
-    AlignerBatchCPU& aligner, const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<MapperBaseResult>>& mappingResults,
-    const BatchAlignerRegionType& regionsToAdd)
-{
-    // Results are a vector for every chunk (one chunk is one ZMW).
-    for (size_t resultId = 0; resultId < mappingResults.size(); ++resultId) {
-        const auto& result = mappingResults[resultId];
-        const auto& chunk = batchChunks[resultId];
-
-        // One chunk can have multiple queries (subreads).
-        for (size_t qId = 0; qId < result.size(); ++qId) {
-            // Prepare the query data in fwd and rev.
-            const char* qSeqFwd = chunk.querySeqs[qId].c_str();
-            const int32_t qLen = chunk.querySeqs[qId].size();
-            const std::string qSeqRevString = PacBio::Pancake::ReverseComplement(qSeqFwd, 0, qLen);
-            const char* qSeqRev = qSeqRevString.c_str();
-
-            // Each query can have multiple mappings.
-            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
-                const auto& mapping = result[qId].mappings[mapId];
-
-                const char* tSeq = chunk.targetSeqs[mapping->mapping->Bid].c_str();
-
-                // Each mapping is split into regions in between seed hits for alignment.
-                std::string qSubSeq;
-                std::string tSubSeq;
-                for (size_t regId = 0; regId < mapping->regionsForAln.size(); ++regId) {
-                    const auto& region = mapping->regionsForAln[regId];
-
-                    if ((region.type == RegionType::GLOBAL &&
-                         regionsToAdd == BatchAlignerRegionType::SEMIGLOBAL) ||
-                        (region.type != RegionType::GLOBAL &&
-                         regionsToAdd == BatchAlignerRegionType::GLOBAL)) {
-                        continue;
-                    }
-
-                    // Prepare the sequences for alignment.
-                    const char* qSeqInStrand = region.queryRev ? qSeqRev : qSeqFwd;
-                    const char* tSeqInStrand = tSeq;
-                    int32_t qStart = region.qStart;
-                    int32_t tStart = region.tStart;
-                    const int32_t qSpan = region.qSpan;
-                    const int32_t tSpan = region.tSpan;
-                    if (region.type == RegionType::FRONT) {
-                        qSubSeq = std::string(qSeqInStrand + qStart, qSpan);
-                        tSubSeq = std::string(tSeqInStrand + tStart, tSpan);
-                        std::reverse(qSubSeq.begin(), qSubSeq.end());
-                        std::reverse(tSubSeq.begin(), tSubSeq.end());
-                        qSeqInStrand = qSubSeq.c_str();
-                        tSeqInStrand = tSubSeq.c_str();
-                        qStart = 0;
-                        tStart = 0;
-                    }
-
-                    // Add the region.
-                    aligner.AddSequencePair(qSeqInStrand + qStart, qSpan, tSeqInStrand + tStart,
-                                            tSpan, region.type == RegionType::GLOBAL);
-                }
-            }
-        }
-    }
-}
-
-void MapperBatchCPU::StitchAlignments_(
-    const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<MapperBaseResult>>& mappingResults,
-    const std::vector<AlignmentResult>& internalAlns, const std::vector<AlignmentResult>& flankAlns)
-{
-    size_t currInternal = 0;
-    size_t currFlank = 0;
-
-    // Results are a vector for every chunk (one chunk is one ZMW).
-    for (size_t resultId = 0; resultId < mappingResults.size(); ++resultId) {
-        auto& result = mappingResults[resultId];
-        const auto& chunk = batchChunks[resultId];
-
-        // One chunk can have multiple queries (subreads).
-        for (size_t qId = 0; qId < result.size(); ++qId) {
-            // Prepare the query data in fwd and rev.
-            const char* qSeqFwd = chunk.querySeqs[qId].c_str();
-            const int32_t qLen = chunk.querySeqs[qId].size();
-            const std::string qSeqRevString = PacBio::Pancake::ReverseComplement(qSeqFwd, 0, qLen);
-
-            // Each query can have multiple mappings.
-            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
-                auto& mapping = result[qId].mappings[mapId];
-                auto& ovl = mapping->mapping;
-                ovl->Cigar.clear();
-                int32_t newQueryStart = 0;
-                int32_t newTargetStart = 0;
-                int32_t newQueryEnd = 0;
-                int32_t newTargetEnd = 0;
-
-                // Each mapping is split into regions in between seed hits for alignment.
-                for (size_t regId = 0; regId < mapping->regionsForAln.size(); ++regId) {
-                    const auto& region = mapping->regionsForAln[regId];
-
-                    if (region.type == RegionType::FRONT) {
-                        if (currFlank >= flankAlns.size()) {
-                            std::ostringstream oss;
-                            oss << "Invalid number of flank alignments. About to access currFlank "
-                                   "= "
-                                << currFlank << ", but flankAlns.size() = " << flankAlns.size()
-                                << ". resultId = " << resultId << ", qId = " << qId
-                                << ", mapId = " << mapId << ", regId = " << regId;
-                            throw std::runtime_error(oss.str());
-                        }
-                        const auto& aln = flankAlns[currFlank];
-                        size_t currCigarLen = ovl->Cigar.size();
-                        ovl->Cigar.insert(ovl->Cigar.end(), aln.cigar.begin(), aln.cigar.end());
-                        std::reverse(ovl->Cigar.begin() + currCigarLen, ovl->Cigar.end());
-                        newQueryStart = region.qStart + region.qSpan - aln.lastQueryPos;
-                        newTargetStart = region.tStart + region.tSpan - aln.lastTargetPos;
-                        ++currFlank;
-                    } else if (region.type == RegionType::BACK) {
-                        if (currFlank >= flankAlns.size()) {
-                            std::ostringstream oss;
-                            oss << "Invalid number of flank alignments. About to access currFlank "
-                                   "= "
-                                << currFlank << ", but flankAlns.size() = " << flankAlns.size()
-                                << ". resultId = " << resultId << ", qId = " << qId
-                                << ", mapId = " << mapId << ", regId = " << regId;
-                            throw std::runtime_error(oss.str());
-                        }
-                        const auto& aln = flankAlns[currFlank];
-                        ovl->Cigar.insert(ovl->Cigar.end(), aln.cigar.begin(), aln.cigar.end());
-                        newQueryEnd = region.qStart + aln.lastQueryPos;
-                        newTargetEnd = region.tStart + aln.lastTargetPos;
-                        ++currFlank;
-                    } else {
-                        if (currInternal >= internalAlns.size()) {
-                            std::ostringstream oss;
-                            oss << "Invalid number of internal alignments. About to access "
-                                   "currInternal = "
-                                << currInternal
-                                << ", but internalAlns.size() = " << internalAlns.size()
-                                << ". resultId = " << resultId << ", qId = " << qId
-                                << ", mapId = " << mapId << ", regId = " << regId;
-                            throw std::runtime_error(oss.str());
-                        }
-                        const auto& aln = internalAlns[currInternal];
-                        ovl->Cigar.insert(ovl->Cigar.end(), aln.cigar.begin(), aln.cigar.end());
-                        ++currInternal;
-                    }
-                }
-                ovl->Astart = newQueryStart;
-                ovl->Aend = newQueryEnd;
-                ovl->Bstart = newTargetStart;
-                ovl->Bend = newTargetEnd;
-
-                // Reverse the CIGAR and the coordinates if needed.
-                if (ovl->Brev) {
-                    // CIGAR reversal.
-                    std::reverse(ovl->Cigar.begin(), ovl->Cigar.end());
-
-                    // Reverse the query coordinates.
-                    std::swap(ovl->Astart, ovl->Aend);
-                    ovl->Astart = ovl->Alen - ovl->Astart;
-                    ovl->Aend = ovl->Alen - ovl->Aend;
-
-                    // Get the forward-oriented target coordinates.
-                    std::swap(ovl->Bstart, ovl->Bend);
-                    ovl->Bstart = ovl->Blen - ovl->Bstart;
-                    ovl->Bend = ovl->Blen - ovl->Bend;
-                }
-
-                // Set the alignment identity and edit distance.
-                Alignment::DiffCounts diffs = CigarDiffCounts(ovl->Cigar);
-                diffs.Identity(false, false, ovl->Identity, ovl->EditDistance);
-                ovl->Score = -diffs.numEq;
-            }
-        }
-    }
-}
-
-void MapperBatchCPU::UpdateSecondaryAndFilter_(
-    std::vector<std::vector<MapperBaseResult>>& mappingResults,
-    double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
-    double secondaryMinScoreFraction, int32_t bestNSecondary)
+void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappingResults,
+                              double secondaryAllowedOverlapFractionQuery,
+                              double secondaryAllowedOverlapFractionTarget,
+                              double secondaryMinScoreFraction, int32_t bestNSecondary)
 {
     // Results are a vector for every chunk (one chunk is one ZMW).
     for (size_t resultId = 0; resultId < mappingResults.size(); ++resultId) {
@@ -327,6 +174,51 @@ void MapperBatchCPU::UpdateSecondaryAndFilter_(
             CondenseMappings(result[qId].mappings, bestNSecondary);
         }
     }
+}
+
+int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
+                        const AlignmentParameters& alnParamsGlobal,
+                        const AlignerType& alignerTypeExt, const AlignmentParameters& alnParamsExt,
+                        const std::vector<PairForBatchAlignment>& parts, const int32_t numThreads,
+                        std::vector<AlignmentResult>& retAlns)
+{
+    retAlns.resize(parts.size());
+
+    std::vector<size_t> partIds;
+
+    AlignerBatchCPU aligner(alignerTypeGlobal, alnParamsGlobal, alignerTypeExt, alnParamsExt);
+
+    for (size_t i = 0; i < parts.size(); ++i) {
+        const auto& part = parts[i];
+        if (retAlns[i].valid) {
+            continue;
+        }
+        partIds.emplace_back(i);
+        if (part.regionType == RegionType::FRONT) {
+            // Reverse the sequences for front flank alignment. No need to complement.
+            std::string query(part.query, part.queryLen);
+            std::reverse(query.begin(), query.end());
+            std::string target(part.target, part.targetLen);
+            std::reverse(target.begin(), target.end());
+            aligner.AddSequencePair(query.c_str(), part.queryLen, target.c_str(), part.targetLen,
+                                    part.regionType == RegionType::GLOBAL);
+        } else {
+            aligner.AddSequencePair(part.query, part.queryLen, part.target, part.targetLen,
+                                    part.regionType == RegionType::GLOBAL);
+        }
+    }
+    aligner.AlignAll(numThreads);
+
+    const std::vector<AlignmentResult>& partInternalAlns = aligner.GetAlnResults();
+    int32_t numNotValid = 0;
+    for (size_t i = 0; i < partInternalAlns.size(); ++i) {
+        const auto& aln = partInternalAlns[i];
+        if (aln.valid == false) {
+            ++numNotValid;
+        }
+        retAlns[partIds[i]] = std::move(partInternalAlns[i]);
+    }
+    return numNotValid;
 }
 
 }  // namespace Pancake

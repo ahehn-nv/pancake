@@ -106,7 +106,6 @@ if not meson.is_subproject()
     files([
       'pacbio/pancake/AlignerBase.h',
       'pacbio/pancake/AlignerBatchCPU.h',
-      'pacbio/pancake/AlignerBatchGPU.h',
       'pacbio/pancake/AlignerKSW2.h',
       'pacbio/pancake/AlignerEdlib.h',
       'pacbio/pancake/AlignerSES1.h',
@@ -124,6 +123,7 @@ if not meson.is_subproject()
       'pacbio/pancake/Lookups.h',
       'pacbio/pancake/MapperBase.h',
       'pacbio/pancake/MapperBatchCPU.h',
+      'pacbio/pancake/MapperBatchUtility.h',
       'pacbio/pancake/MapperCLR.h',
       'pacbio/pancake/MapperHiFi.h',
       'pacbio/pancake/Minimizers.h',
