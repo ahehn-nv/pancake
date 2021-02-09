@@ -66,6 +66,11 @@ void AlignerBatchCPU::AlignAll(int32_t numThreads)
     alnResults_.clear();
     alnResults_.resize(numAlns);
 
+    // Nothing to do.
+    if (numAlns == 0) {
+        return;
+    }
+
     // Determine how many records should land in each thread, spread roughly evenly.
     const int32_t numRecords = numAlns;
     const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
