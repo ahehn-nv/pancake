@@ -1130,4 +1130,40 @@ TEST(Test_AlignmentTools_ScoreCigarAlignment, ArrayOfTests)
         EXPECT_EQ(data.expectedScore, result);
     }
 }
+
+TEST(Test_AlignmentTools_MergeCigars, ArrayOfTests)
+{
+    // clang-format off
+    struct TestDataStruct {
+        std::string name;
+        std::string destCigar;
+        std::string sourceCigar;
+        std::string expected;
+    };
+    std::vector<TestDataStruct> testData = {
+        {"Empty input", "", "", ""},
+        {"Empty destination", "", "5=1X3I", "5=1X3I"},
+        {"Empty source", "5=1X3I", "", "5=1X3I"},
+        {"Nonempty source and destination, no events to merge", "1X", "5=1X3I", "1X5=1X3I"},
+        {"Nonempty source and destination with merging of same events", "3=1X3=", "5=1X3I", "3=1X8=1X3I"},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        PacBio::BAM::Cigar destCigar(data.destCigar);
+        const PacBio::BAM::Cigar sourceCigar(data.sourceCigar);
+
+        // Name the test.
+        SCOPED_TRACE("MergeCigars-" + data.name);
+
+        // Run the unit under test.
+        PacBio::Pancake::MergeCigars(destCigar, sourceCigar);
+
+        // Convert the result for comparison.
+        const std::string result = destCigar.ToStdString();
+
+        EXPECT_EQ(data.expected, result);
+    }
+}
 }
