@@ -14,7 +14,7 @@ using namespace PacBio::Pancake;
 
 namespace AlignmentToolsTests {
 
-TEST(Test_AlignmentTools, EmptyInput)
+TEST(Test_AlignmentTools_EdlibAlignmentToCigar, EmptyInput)
 {
     std::vector<unsigned char> input = {};
     PacBio::BAM::Cigar expected;
@@ -26,7 +26,20 @@ TEST(Test_AlignmentTools, EmptyInput)
     EXPECT_EQ(expectedDiffs, diffs);
 }
 
-TEST(Test_AlignmentTools, SimpleTest)
+TEST(Test_AlignmentTools_EdlibAlignmentToCigar, SingleOp)
+{
+    // Edlib move codes: 0: '=', 1: 'I', 2: 'D', 3: 'X'
+    std::vector<unsigned char> input = {EDLIB_EDOP_MISMATCH};
+    PacBio::BAM::Cigar expected("1X");
+    PacBio::Pancake::Alignment::DiffCounts expectedDiffs(0, 1, 0, 0);
+
+    PacBio::Pancake::Alignment::DiffCounts diffs;
+    PacBio::BAM::Cigar result = EdlibAlignmentToCigar(input.data(), input.size(), diffs);
+    EXPECT_EQ(expected, result);
+    EXPECT_EQ(expectedDiffs, diffs);
+}
+
+TEST(Test_AlignmentTools_EdlibAlignmentToCigar, SimpleTest)
 {
     // Edlib move codes: 0: '=', 1: 'I', 2: 'D', 3: 'X'
     std::vector<unsigned char> input = {EDLIB_EDOP_MATCH,    EDLIB_EDOP_MATCH,  EDLIB_EDOP_MATCH,
