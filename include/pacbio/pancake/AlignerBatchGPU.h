@@ -66,6 +66,8 @@ public:
     */
     std::vector<AlignmentResult>& GetAlnResults() { return alnResults_; }
 
+    size_t BatchSize() const { return querySpans_.size(); }
+
 private:
     AlignmentParameters alnParams_;
     std::unique_ptr<claraparabricks::genomeworks::cudaaligner::Aligner> aligner_;
