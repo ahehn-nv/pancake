@@ -49,24 +49,22 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
                 PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("5="), 5, 5, 5, 5, true, 10, 10, false, Alignment::DiffCounts(5, 0, 0, 0)},
             },
         },
-        ///// Cudaaligner can not handle zero-length query or target sequences at the moment, so these edge cases would be failing.
-        ///// This needs to be wrapped in the AlignerBatchGPU class.
-        // {
-        //     "Another batch of edge cases.",
-        //     {
-        //         {"", ""},
-        //         {"A", ""},
-        //         {"", "A"},
-        //         {"A", "T"},
-        //     },
-        //     // Expected results.
-        //     {
-        //         PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar(""), 0, 0, 0, 0, false, 0, 0, false, Alignment::DiffCounts(0, 0, 0, 0)},
-        //         PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1I"), 1, 0, 1, 0, true, -4, -4, false, Alignment::DiffCounts(0, 0, 1, 0)},
-        //         PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1D"), 0, 1, 0, 1, true, -4, -4, false, Alignment::DiffCounts(0, 0, 0, 1)},
-        //         PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1X"), 1, 1, 1, 1, true, -4, -4, false, Alignment::DiffCounts(0, 1, 0, 0)},
-        //     },
-        // },
+        {   // Cudaaligner can not handle zero-length query or target sequences at the moment. These are handled in the AlignerBatchGPU class.
+            "Another batch of edge cases.",
+            {
+                {"", ""},
+                {"A", ""},
+                {"", "A"},
+                {"A", "T"},
+            },
+            // Expected results.
+            {
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar(""), 0, 0, 0, 0, false, 0, 0, false, Alignment::DiffCounts(0, 0, 0, 0)},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1I"), 1, 0, 1, 0, true, -4, -4, false, Alignment::DiffCounts(0, 0, 1, 0)},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1D"), 0, 1, 0, 1, true, -4, -4, false, Alignment::DiffCounts(0, 0, 0, 1)},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1X"), 1, 1, 1, 1, true, -4, -4, false, Alignment::DiffCounts(0, 1, 0, 0)},
+            },
+        },
     };
     // clang-format on
 
