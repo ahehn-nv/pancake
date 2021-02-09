@@ -27,5 +27,16 @@ std::string HelperLoadFastaAsString(const std::string& inFasta)
     return oss.str();
 }
 
+std::vector<std::string> HelperLoadFastaAsStringVector(const std::string& inFasta)
+{
+    std::vector<std::string> ret;
+    PacBio::BAM::FastaReader inReader{inFasta};
+    PacBio::BAM::FastaSequence record;
+    while (inReader.GetNext(record)) {
+        ret.emplace_back(record.Bases());
+    }
+    return ret;
+}
+
 }  // namespace PancakeTests
 }  // namespace PacBio
