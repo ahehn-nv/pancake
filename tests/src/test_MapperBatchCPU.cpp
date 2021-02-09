@@ -91,6 +91,7 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
     {
         std::string testName;
         std::vector<std::pair<std::string, std::string>> batchData;
+        PacBio::Pancake::AlignerType alignerTypeGlobal;
         PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
         PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
         std::vector<std::vector<std::string>> expectedOverlaps;
@@ -99,7 +100,7 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
     // clang-format off
     std::vector<TestData> testData = {
         {
-            "Batch of multiple query/target vectors.",
+            "Batch 1 of multiple query/target vectors.",
             {
                 {
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-2-real-insert-target.fasta",
@@ -125,8 +126,14 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.target.fasta",
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
                 },
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-query.fasta",
+                },
 
             },
+            // Aligner type for global alignment.
+            AlignerType::KSW2,
             // SeedParams - primary.
             PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true},
             // SeedParams - fallback.
@@ -151,14 +158,47 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
                 {
                     "000000000 000000000 -1345 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
                 },
-
+                {
+                    "000000000 000000000 -13260 75.87 0 0 15753 15753 1 2 15953 15953 *"
+                },
             },
         },
+        {
+            "Batch 2 of multiple query/target vectors. Using different seeding parameters.",
+            {
+                {
+                    // This pair will result in a seed hit to be placed at the very end of the target sequence, which means
+                    // that there will be no flank sequence to align (extend). This is a useful test to verify that
+                    // a stitching end condition works well.
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-query.fasta",
+                },
+                {
+                    // This pair will result in a seed hit to be placed at the very beginning of the query sequence, which means
+                    // that there will be no flank sequence to align (extend). This is a useful test to verify that
+                    // a stitching end condition works well.
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-9-no-front-flank-extension-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-9-no-front-flank-extension-query.fasta",
+                },
+            },
+            // Aligner type for global alignment.
+            AlignerType::EDLIB,
+            // SeedParams - primary.
+            PacBio::Pancake::SeedDB::SeedDBParameters{15, 5, 0, false, true, 100, true},
+            // SeedParams - fallback.
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
+            // Expected results.
+            {
+                {
+                    "000000000 000000000 -13389 76.10 0 0 15753 15753 1 2 15953 15953 *"
+                },
+                {
+                    "000000000 000000000 -7934 78.47 0 0 9230 9230 0 8372 17577 17578 *"
+                },
+            },
+        }
     };
     // clang-format on
-
-    PacBio::Pancake::MapperCLRSettings settings;
-    settings.freqPercentile = 0.000;
 
     for (const auto& data : testData) {
         // Debug info.
@@ -172,8 +212,11 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
         HelperLoadBatchData(data.batchData, batchData, allSeqs);
 
         // Set the seed parameter settings and create a mapper.
+        PacBio::Pancake::MapperCLRSettings settings;
+        settings.freqPercentile = 0.000;
         settings.seedParams = data.seedParamsPrimary;
         settings.seedParamsFallback = data.seedParamsFallback;
+        settings.alignerTypeGlobal = data.alignerTypeGlobal;
         PacBio::Pancake::MapperBatchCPU mapper(settings, 1);
 
         // Run the unit under test.
