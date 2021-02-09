@@ -177,6 +177,7 @@ if not meson.is_subproject()
       install_headers(
         files([
           'pacbio/pancake/AlignerBatchGPU.h',
+          'pacbio/pancake/MapperBatchGPU.h',
           ]),
           subdir : 'pacbio/pancake')
   endif

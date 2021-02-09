@@ -90,6 +90,7 @@ pancake_cpp_sources = files([
 if opt_cuda
     pancake_cpp_sources += files([
         'pancake/AlignerBatchGPU.cpp',
+        'pancake/MapperBatchGPU.cpp',
     ])
 endif
 
