@@ -120,8 +120,8 @@ TEST(MapperHiFi, CheckMappping_LoadFromFile)
         std::cerr << "testName = " << data.testName << "\n";
 
         std::vector<PacBio::Pancake::OverlapHiFi::MapperResult> result =
-            PacBio::Pancake::OverlapHiFi::MapHiFiSeqs(allTargetSeqs, allQuerySeqs, data.seedParams,
-                                                      settings);
+            PacBio::Pancake::OverlapHiFi::MapHiFi(allTargetSeqs, allQuerySeqs, data.seedParams,
+                                                  settings);
 
         std::vector<std::string> resultsStr;
         for (const auto& queryMappings : result) {

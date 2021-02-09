@@ -252,15 +252,15 @@ private:
                                                int32_t seqEnd, bool revCmp);
 };
 
-std::vector<MapperResult> MapHiFiSeqs(const std::vector<std::string>& targetSeqs,
-                                      const std::vector<std::string>& querySeqs,
-                                      const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
-                                      const OverlapHifiSettings& settings);
+std::vector<MapperResult> MapHiFi(const std::vector<std::string>& targetSeqs,
+                                  const std::vector<std::string>& querySeqs,
+                                  const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
+                                  const OverlapHifiSettings& settings);
 
-std::vector<MapperResult> MapHiFiSeqs(const FastaSequenceCachedStore& targetSeqs,
-                                      const FastaSequenceCachedStore& querySeqs,
-                                      const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
-                                      const OverlapHifiSettings& settings);
+std::vector<MapperResult> MapHiFi(const FastaSequenceCachedStore& targetSeqs,
+                                  const FastaSequenceCachedStore& querySeqs,
+                                  const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
+                                  const OverlapHifiSettings& settings);
 
 }  // namespace OverlapHiFi
 }  // namespace Pancake

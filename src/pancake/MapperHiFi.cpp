@@ -1099,10 +1099,10 @@ void Mapper::DebugWriteSeedHits_(const std::string& outPath, const std::vector<S
     }
 }
 
-std::vector<MapperResult> MapHiFiSeqs(const std::vector<std::string>& targetSeqs,
-                                      const std::vector<std::string>& querySeqs,
-                                      const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
-                                      const OverlapHifiSettings& settings)
+std::vector<MapperResult> MapHiFi(const std::vector<std::string>& targetSeqs,
+                                  const std::vector<std::string>& querySeqs,
+                                  const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
+                                  const OverlapHifiSettings& settings)
 {
     PacBio::Pancake::FastaSequenceCachedStore targetSeqsCached;
     for (int32_t i = 0; i < static_cast<int32_t>(targetSeqs.size()); ++i) {
@@ -1116,13 +1116,13 @@ std::vector<MapperResult> MapHiFiSeqs(const std::vector<std::string>& targetSeqs
             FastaSequenceCached(std::to_string(i), querySeqs[i].c_str(), querySeqs[i].size(), i));
     }
 
-    return MapHiFiSeqs(targetSeqsCached, querySeqsCached, seedParams, settings);
+    return MapHiFi(targetSeqsCached, querySeqsCached, seedParams, settings);
 }
 
-std::vector<MapperResult> MapHiFiSeqs(const FastaSequenceCachedStore& targetSeqs,
-                                      const FastaSequenceCachedStore& querySeqs,
-                                      const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
-                                      const OverlapHifiSettings& settings)
+std::vector<MapperResult> MapHiFi(const FastaSequenceCachedStore& targetSeqs,
+                                  const FastaSequenceCachedStore& querySeqs,
+                                  const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
+                                  const OverlapHifiSettings& settings)
 {
     const bool generateFlippedOverlap = settings.WriteReverseOverlaps;
 
