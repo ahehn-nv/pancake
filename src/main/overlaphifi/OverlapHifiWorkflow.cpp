@@ -41,8 +41,8 @@ void Worker(const PacBio::Pancake::SeqDBReaderCachedBlock& targetSeqDBReader,
     for (int32_t i = start; i < end; ++i) {
         const auto& querySeq = querySeqDBReader.records()[i];
         const auto& querySeeds = querySeedDBReader.GetSeedsForSequence(querySeq.Id());
-        results[i] = mapper.Map(targetSeqDBReader, index, querySeq, querySeeds, freqCutoff,
-                                generateFlippedOverlaps);
+        results[i] = mapper.Map(targetSeqDBReader.recordStore(), index, querySeq, querySeeds,
+                                freqCutoff, generateFlippedOverlaps);
     }
 }
 
