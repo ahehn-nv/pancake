@@ -1282,5 +1282,19 @@ int32_t ScoreCigarAlignment(const PacBio::BAM::Cigar& cigar, int32_t match, int3
     return score;
 }
 
+void MergeCigars(PacBio::Data::Cigar& dest, const PacBio::Data::Cigar& src)
+{
+    if (src.empty()) {
+        return;
+    }
+    if (dest.size() > 0 && src.front().Type() == dest.back().Type()) {
+        dest.back() = PacBio::Data::CigarOperation(src.front().Type(),
+                                                   dest.back().Length() + src.front().Length());
+    } else {
+        dest.emplace_back(src.front());
+    }
+    dest.insert(dest.end(), src.begin() + 1, src.end());
+}
+
 }  // namespace Pancake
 }  // namespace PacBio

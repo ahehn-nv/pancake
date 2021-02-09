@@ -26,12 +26,36 @@ struct ChainedRegion
     int32_t priority = 0;
     bool isSupplementary = false;
 };
+inline bool operator==(const ChainedRegion& lhs, const ChainedRegion& rhs)
+{
+    return true;
+    return lhs.chain == rhs.chain && lhs.regionsForAln == rhs.regionsForAln &&
+           ((lhs.mapping == nullptr && rhs.mapping == nullptr) ||
+            (lhs.mapping != nullptr && rhs.mapping != nullptr &&
+             *(lhs.mapping) == *(rhs.mapping))) &&
+           lhs.priority == rhs.priority && lhs.isSupplementary == rhs.isSupplementary;
+}
 
 class MapperBaseResult
 {
 public:
     std::vector<std::unique_ptr<ChainedRegion>> mappings;
 };
+inline bool operator==(const MapperBaseResult& lhs, const MapperBaseResult& rhs)
+{
+    if (lhs.mappings.size() != rhs.mappings.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < lhs.mappings.size(); ++i) {
+        if ((lhs.mappings[i] == nullptr && rhs.mappings[i] == nullptr) ||
+            (lhs.mappings[i] != nullptr && rhs.mappings[i] != nullptr &&
+             *lhs.mappings[i] == *rhs.mappings[i])) {
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
 
 class MapperBase
 {

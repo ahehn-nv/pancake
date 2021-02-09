@@ -61,6 +61,20 @@ void AlignerBatchGPU::Clear()
 StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_t queryLen,
                                                        const char* target, int32_t targetLen)
 {
+    if (queryLen == 0 || targetLen == 0) {
+        // Add a dummy sequence pair to keep the place for the alignment.
+        StatusAddSequencePair rv = AddSequencePair_("A", 1, "A", 1);
+        querySpans_.back() = queryLen;
+        targetSpans_.back() = targetLen;
+        return rv;
+    }
+
+    return AddSequencePair_(query, queryLen, target, targetLen);
+}
+
+StatusAddSequencePair AlignerBatchGPU::AddSequencePair_(const char* query, int32_t queryLen,
+                                                        const char* target, int32_t targetLen)
+{
     if (queryLen < 0 || targetLen < 0) {
         return StatusAddSequencePair::SEQUENCE_LEN_BELOW_ZERO;
     }
@@ -114,8 +128,15 @@ void AlignerBatchGPU::AlignAll()
     for (size_t i = 0; i < alignments.size(); i++) {
         auto& alnRes = alnResults_[i];
 
-        alnRes.cigar = CudaalignToCigar_(alignments[i]->get_alignment(), alnRes.diffs);
+        // Handle the edge cases which Cudaaligner does not handle properly.
+        if (querySpans_[i] == 0 || targetSpans_[i] == 0) {
+            alnRes = EdgeCaseAlignmentResult(querySpans_[i], targetSpans_[i], alnParams_.matchScore,
+                                             alnParams_.mismatchPenalty, alnParams_.gapOpen1,
+                                             alnParams_.gapExtend1);
+            continue;
+        }
 
+        alnRes.cigar = CudaalignToCigar_(alignments[i]->get_alignment(), alnRes.diffs);
         const int32_t querySpan = alnRes.diffs.numEq + alnRes.diffs.numX + alnRes.diffs.numI;
         const int32_t targetSpan = alnRes.diffs.numEq + alnRes.diffs.numX + alnRes.diffs.numD;
         alnRes.score =

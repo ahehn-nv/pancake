@@ -13,6 +13,7 @@ TEST(AlignerBatchCPU, ArrayOfTests_Small)
     struct TestData
     {
         std::string testName;
+        // Tuple: <query, target, isGlobal>
         std::vector<std::tuple<std::string, std::string, bool>> batchData;
         int32_t numThreads;
         std::vector<PacBio::Pancake::AlignmentResult> expectedAlns;
@@ -37,6 +38,33 @@ TEST(AlignerBatchCPU, ArrayOfTests_Small)
                 PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("4="), 4, 4, 4, 4, true, 8, 8, false, Alignment::DiffCounts(4, 0, 0, 0)},
                 PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1X"), 1, 1, 1, 1, true, -4, -4, false, Alignment::DiffCounts(0, 1, 0, 0)},
                 PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("20="), 20, 20, 19, 19, true, 40, 40, true, Alignment::DiffCounts(20, 0, 0, 0)},
+            },
+        },
+        {
+            "Empty batch.",
+            {
+            },
+            4,
+            // Expected results.
+            {
+            },
+        },
+        {
+            "Another batch of edge cases.",
+            {
+                // Global alignment.
+                {"", "", true},
+                {"A", "", true},
+                {"", "A", true},
+                {"A", "T", true},
+            },
+            4,
+            // Expected results.
+            {
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar(""), 0, 0, 0, 0, false, 0, 0, false, Alignment::DiffCounts(0, 0, 0, 0)},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1I"), 1, 0, 1, 0, true, -4, -4, false, Alignment::DiffCounts(0, 0, 1, 0)},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1D"), 0, 1, 0, 1, true, -4, -4, false, Alignment::DiffCounts(0, 0, 0, 1)},
+                PacBio::Pancake::AlignmentResult{PacBio::BAM::Cigar("1X"), 1, 1, 1, 1, true, -4, -4, false, Alignment::DiffCounts(0, 1, 0, 0)},
             },
         },
     };
