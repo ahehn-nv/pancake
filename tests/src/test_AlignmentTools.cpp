@@ -18,8 +18,12 @@ TEST(Test_AlignmentTools, EmptyInput)
 {
     std::vector<unsigned char> input = {};
     PacBio::BAM::Cigar expected;
-    PacBio::BAM::Cigar result = EdlibAlignmentToCigar(input.data(), input.size());
+    PacBio::Pancake::Alignment::DiffCounts expectedDiffs;
+
+    PacBio::Pancake::Alignment::DiffCounts diffs;
+    PacBio::BAM::Cigar result = EdlibAlignmentToCigar(input.data(), input.size(), diffs);
     EXPECT_EQ(expected, result);
+    EXPECT_EQ(expectedDiffs, diffs);
 }
 
 TEST(Test_AlignmentTools, SimpleTest)
@@ -29,8 +33,12 @@ TEST(Test_AlignmentTools, SimpleTest)
                                         EDLIB_EDOP_MISMATCH, EDLIB_EDOP_INSERT, EDLIB_EDOP_DELETE,
                                         EDLIB_EDOP_DELETE,   EDLIB_EDOP_INSERT};
     PacBio::BAM::Cigar expected("3=1X1I2D1I");
-    PacBio::BAM::Cigar result = EdlibAlignmentToCigar(input.data(), input.size());
+    PacBio::Pancake::Alignment::DiffCounts expectedDiffs(3, 1, 2, 2);
+
+    PacBio::Pancake::Alignment::DiffCounts diffs;
+    PacBio::BAM::Cigar result = EdlibAlignmentToCigar(input.data(), input.size(), diffs);
     EXPECT_EQ(expected, result);
+    EXPECT_EQ(expectedDiffs, diffs);
 }
 
 TEST(Test_AlignmentTools_ValidateCigar, ArrayOfTests)

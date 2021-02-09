@@ -114,11 +114,10 @@ void AlignerBatchGPU::AlignAll()
     for (size_t i = 0; i < alignments.size(); i++) {
         auto& alnRes = alnResults_[i];
 
-        Alignment::DiffCounts diffs;
-        alnRes.cigar = CudaalignToCigar_(alignments[i]->get_alignment(), diffs);
+        alnRes.cigar = CudaalignToCigar_(alignments[i]->get_alignment(), alnRes.diffs);
 
-        const int32_t querySpan = diffs.numEq + diffs.numX + diffs.numI;
-        const int32_t targetSpan = diffs.numEq + diffs.numX + diffs.numD;
+        const int32_t querySpan = alnRes.diffs.numEq + alnRes.diffs.numX + alnRes.diffs.numI;
+        const int32_t targetSpan = alnRes.diffs.numEq + alnRes.diffs.numX + alnRes.diffs.numD;
         alnRes.score =
             ScoreCigarAlignment(alnRes.cigar, alnParams_.matchScore, alnParams_.mismatchPenalty,
                                 alnParams_.gapOpen1, alnParams_.gapExtend1);

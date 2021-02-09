@@ -13,8 +13,11 @@
 namespace PacBio {
 namespace Pancake {
 
-PacBio::BAM::Cigar EdlibAlignmentToCigar(const unsigned char* aln, int32_t alnLen)
+PacBio::BAM::Cigar EdlibAlignmentToCigar(const unsigned char* aln, int32_t alnLen,
+                                         Alignment::DiffCounts& retDiffs)
 {
+    retDiffs.Clear();
+
     if (alnLen <= 0) {
         return {};
     }
@@ -25,20 +28,29 @@ PacBio::BAM::Cigar EdlibAlignmentToCigar(const unsigned char* aln, int32_t alnLe
         PacBio::BAM::CigarOperationType::DELETION,
         PacBio::BAM::CigarOperationType::SEQUENCE_MISMATCH};
 
+    std::array<int32_t, 4> counts{0, 0, 0, 0};
+
     PacBio::BAM::CigarOperationType prevOp = PacBio::BAM::CigarOperationType::UNKNOWN_OP;
+    unsigned char prevOpRaw = 0;
     int32_t count = 0;
     PacBio::BAM::Cigar ret;
     for (int32_t i = 0; i <= alnLen; i++) {
         if (i == alnLen || (opToCigar[aln[i]] != prevOp &&
                             prevOp != PacBio::BAM::CigarOperationType::UNKNOWN_OP)) {
             ret.emplace_back(PacBio::BAM::CigarOperation(prevOp, count));
+            counts[prevOpRaw] += count;
             count = 0;
         }
         if (i < alnLen) {
             prevOp = opToCigar[aln[i]];
+            prevOpRaw = aln[i];
             count += 1;
         }
     }
+    retDiffs.numEq = counts[EDLIB_EDOP_MATCH];
+    retDiffs.numX = counts[EDLIB_EDOP_MISMATCH];
+    retDiffs.numI = counts[EDLIB_EDOP_INSERT];
+    retDiffs.numD = counts[EDLIB_EDOP_DELETE];
     return ret;
 }
 

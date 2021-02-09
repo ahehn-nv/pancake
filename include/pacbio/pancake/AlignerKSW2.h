@@ -46,7 +46,8 @@ private:
                                       const std::vector<uint8_t>& qseq,
                                       const std::vector<uint8_t>& tseq,
                                       PacBio::Data::Cigar& retCigar, int32_t& retQueryAlignmentLen,
-                                      int32_t& retTargetAlignmentLen);
+                                      int32_t& retTargetAlignmentLen,
+                                      Alignment::DiffCounts& retDiffs);
 
     static std::vector<uint8_t> ConvertSeqAlphabet_(const char* seq, size_t seqlen,
                                                     const int8_t* conv_table);
