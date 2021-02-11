@@ -77,10 +77,8 @@ pancake_lib_deps = [
 if opt_cuda
     add_languages('cuda')
     nvcc = meson.get_compiler('cuda')
-    cudart_dep = dependency('cudart-11.0', version : '>=11')
     pancake_gw_dep = dependency('genomeworks', fallback : ['genomeworks', 'genomeworks_dep'])
     pancake_lib_deps += [
-        cudart_dep,
         pancake_gw_dep,
     ]
 endif
