@@ -36,7 +36,7 @@ endforeach
 pancake_flags = pancake_warning_flags + ['-DHAVE_KALLOC']
 
 opt_tests = get_option('tests')
-opt_cuda = get_option('gpu')
+opt_cuda = get_option('gpu-cuda')
 
 ################
 # dependencies #
