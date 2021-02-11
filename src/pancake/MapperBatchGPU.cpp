@@ -110,7 +110,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
             querySeqsRev.emplace_back(std::move(revSeqs));
         }
 
-        PBLOG_INFO << "Preparing parts for alignment.";
+        PBLOG_TRACE << "Preparing parts for alignment.";
 
         // Prepare the sequences for alignment.
         std::vector<PairForBatchAlignment> partsGlobal;
@@ -119,8 +119,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         int32_t longestSequenceForAln = 0;
         PrepareSequencesForBatchAlignment(batchChunks, querySeqsRev, results, partsGlobal,
                                           partsSemiglobal, alnStitchInfo, longestSequenceForAln);
-        PBLOG_INFO << "partsGlobal.size() = " << partsGlobal.size();
-        PBLOG_INFO << "partsSemiglobal.size() = " << partsSemiglobal.size();
+        PBLOG_TRACE << "partsGlobal.size() = " << partsGlobal.size();
+        PBLOG_TRACE << "partsSemiglobal.size() = " << partsSemiglobal.size();
 
         // Global alignment on GPU. Try using different bandwidths,
         // increasing the bandwidth for the failed parts each iteration.
@@ -131,7 +131,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
             (gpuMaxBandwidth <= 0) ? (longestSequenceForAln * 2 + 1) : gpuMaxBandwidth;
 
         while (true) {
-            PBLOG_INFO << "Trying bandwidth: " << currentBandwidth;
+            PBLOG_TRACE << "Trying bandwidth: " << currentBandwidth;
             numInternalNotValid =
                 AlignPartsOnGPU_(currentBandwidth, gpuDeviceId, gpuStream, deviceAllocator,
                                  settings.alnParamsGlobal, partsGlobal, internalAlns);
@@ -149,21 +149,22 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         }
         // Fallback to the CPU if there are any unaligned parts left.
         if (alignRemainingOnCpu && numInternalNotValid > 0) {
-            PBLOG_INFO << "Trying to align remaining parts on CPU.";
+            PBLOG_TRACE << "Trying to align remaining parts on CPU.";
             const int32_t numNotValidInternal = AlignPartsOnCpu(
                 settings.alignerTypeGlobal, settings.alnParamsGlobal, settings.alignerTypeExt,
                 settings.alnParamsExt, partsGlobal, numThreads, internalAlns);
-            PBLOG_INFO << "Total not valid: " << numNotValidInternal << " / " << internalAlns.size()
-                       << "\n";
+            PBLOG_TRACE << "Total not valid: " << numNotValidInternal << " / "
+                        << internalAlns.size() << "\n";
         }
-        PBLOG_INFO << "internalAlns.size() = " << internalAlns.size();
+        PBLOG_TRACE << "internalAlns.size() = " << internalAlns.size();
 
         // Flank alignment on CPU.
         std::vector<AlignmentResult> flankAlns;
         const int32_t numNotValidFlanks = AlignPartsOnCpu(
             settings.alignerTypeGlobal, settings.alnParamsGlobal, settings.alignerTypeExt,
             settings.alnParamsExt, partsSemiglobal, numThreads, flankAlns);
-        PBLOG_INFO << "Total not valid: " << numNotValidFlanks << " / " << flankAlns.size() << "\n";
+        PBLOG_TRACE << "Total not valid: " << numNotValidFlanks << " / " << flankAlns.size()
+                    << "\n";
 
         StitchAlignments(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
                          alnStitchInfo);
@@ -208,7 +209,7 @@ int32_t MapperBatchGPU::AlignPartsOnGPU_(
 
         std::vector<size_t> partIds;
 
-        PBLOG_INFO << "Preparing sequences for GPU alignment.";
+        PBLOG_TRACE << "Preparing sequences for GPU alignment.";
         for (; partId < parts.size(); ++partId) {
             const PairForBatchAlignment& part = parts[partId];
 
@@ -241,7 +242,7 @@ int32_t MapperBatchGPU::AlignPartsOnGPU_(
             }
         }
 
-        PBLOG_INFO << "Aligning batch of " << aligner->BatchSize() << " sequence pairs.";
+        PBLOG_TRACE << "Aligning batch of " << aligner->BatchSize() << " sequence pairs.";
         aligner->AlignAll();
 
         const std::vector<AlignmentResult>& partInternalAlns = aligner->GetAlnResults();
@@ -257,8 +258,8 @@ int32_t MapperBatchGPU::AlignPartsOnGPU_(
         }
         totalNumNotValid += numNotValid;
     }
-    PBLOG_INFO << "Total not valid: " << totalNumNotValid << " / " << retInternalAlns.size()
-               << "\n";
+    PBLOG_TRACE << "Total not valid: " << totalNumNotValid << " / " << retInternalAlns.size()
+                << "\n";
     return totalNumNotValid;
 }
 
