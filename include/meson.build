@@ -122,6 +122,7 @@ if not meson.is_subproject()
       'pacbio/pancake/FastaSequenceId.h',
       'pacbio/pancake/Lookups.h',
       'pacbio/pancake/MapperBase.h',
+      'pacbio/pancake/MapperBatchBase.h',
       'pacbio/pancake/MapperBatchCPU.h',
       'pacbio/pancake/MapperBatchUtility.h',
       'pacbio/pancake/MapperCLR.h',
