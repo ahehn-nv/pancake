@@ -116,22 +116,22 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
         int32_t longestSequenceForAln = 0;
         PrepareSequencesForBatchAlignment(batchChunks, querySeqsRev, results, partsGlobal,
                                           partsSemiglobal, alnStitchInfo, longestSequenceForAln);
-        PBLOG_INFO << "partsGlobal.size() = " << partsGlobal.size();
-        PBLOG_INFO << "partsSemiglobal.size() = " << partsSemiglobal.size();
+        PBLOG_TRACE << "partsGlobal.size() = " << partsGlobal.size();
+        PBLOG_TRACE << "partsSemiglobal.size() = " << partsSemiglobal.size();
 
         // Internal alignment on CPU.
         std::vector<AlignmentResult> internalAlns;
         AlignPartsOnCpu(settings.alignerTypeGlobal, settings.alnParamsGlobal,
                         settings.alignerTypeExt, settings.alnParamsExt, partsGlobal, numThreads,
                         internalAlns);
-        PBLOG_INFO << "internalAlns.size() = " << internalAlns.size();
+        PBLOG_TRACE << "internalAlns.size() = " << internalAlns.size();
 
         // Flank alignment on CPU.
         std::vector<AlignmentResult> flankAlns;
         AlignPartsOnCpu(settings.alignerTypeGlobal, settings.alnParamsGlobal,
                         settings.alignerTypeExt, settings.alnParamsExt, partsSemiglobal, numThreads,
                         flankAlns);
-        PBLOG_INFO << "flankAlns.size() = " << flankAlns.size();
+        PBLOG_TRACE << "flankAlns.size() = " << flankAlns.size();
 
         StitchAlignments(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
                          alnStitchInfo);
