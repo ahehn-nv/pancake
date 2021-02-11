@@ -23,8 +23,6 @@ MapperBatchCPU::MapperBatchCPU(const MapperCLRSettings& settings, int32_t numThr
 {
 }
 
-MapperBatchCPU::~MapperBatchCPU() = default;
-
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::DummyMapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {

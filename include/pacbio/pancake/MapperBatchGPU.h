@@ -6,6 +6,7 @@
 #include <pacbio/pancake/AlignerBatchGPU.h>
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/MapperBase.h>
+#include <pacbio/pancake/MapperBatchBase.h>
 #include <pacbio/pancake/MapperBatchCPU.h>
 #include <pacbio/pancake/MapperBatchUtility.h>
 #include <pacbio/pancake/MapperCLR.h>
@@ -17,16 +18,16 @@
 namespace PacBio {
 namespace Pancake {
 
-class MapperBatchGPU
+class MapperBatchGPU : public MapperBatchBase
 {
 public:
     MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThreads, int32_t gpuStartBandwidth,
                    int32_t gpuMaxBandwidth, uint32_t gpuDeviceId, double gpuMaxFreeMemoryFraction,
                    int64_t gpuMaxMemoryCap, bool alignRemainingOnCpu);
-    ~MapperBatchGPU();
+    ~MapperBatchGPU() override;
 
     std::vector<std::vector<MapperBaseResult>> MapAndAlign(
-        const std::vector<MapperBatchChunk>& batchData);
+        const std::vector<MapperBatchChunk>& batchData) override;
 
 private:
     MapperCLRSettings settings_;

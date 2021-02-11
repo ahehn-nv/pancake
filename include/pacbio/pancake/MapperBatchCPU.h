@@ -6,6 +6,7 @@
 #include <pacbio/pancake/AlignerBatchCPU.h>
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/MapperBase.h>
+#include <pacbio/pancake/MapperBatchBase.h>
 #include <pacbio/pancake/MapperBatchUtility.h>
 #include <pacbio/pancake/MapperCLR.h>
 #include <cstdint>
@@ -16,17 +17,16 @@
 namespace PacBio {
 namespace Pancake {
 
-class MapperBatchCPU
+class MapperBatchCPU : public MapperBatchBase
 {
 public:
     MapperBatchCPU(const MapperCLRSettings& settings, int32_t numThreads);
-    ~MapperBatchCPU();
 
     std::vector<std::vector<MapperBaseResult>> DummyMapAndAlign(
         const std::vector<MapperBatchChunk>& batchData);
 
     std::vector<std::vector<MapperBaseResult>> MapAndAlign(
-        const std::vector<MapperBatchChunk>& batchData);
+        const std::vector<MapperBatchChunk>& batchData) override;
 
 private:
     MapperCLRSettings settings_;
