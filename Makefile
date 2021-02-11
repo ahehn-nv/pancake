@@ -16,11 +16,11 @@ build:
 
 conf:
 	rm -rf "${CURRENT_BUILD_DIR}"
-	ENABLED_GPU=false ENABLED_SSE41=true ENABLED_TESTS=true bash -vex scripts/ci/configure_with_fallback.sh
+	ENABLED_GPU_CUDA=false ENABLED_SSE41=true ENABLED_TESTS=true bash -vex scripts/ci/configure_with_fallback.sh
 
 conf-gpu:
 	rm -rf "${CURRENT_BUILD_DIR}"
-	ENABLED_GPU=true ENABLED_SSE41=true ENABLED_TESTS=true bash -vex scripts/ci/configure_with_fallback.sh
+	ENABLED_GPU_CUDA=true ENABLED_SSE41=true ENABLED_TESTS=true bash -vex scripts/ci/configure_with_fallback.sh
 
 all: conf build cram check-formatting
 all-gpu: conf-gpu build cram check-formatting

@@ -11,9 +11,9 @@ Ninja
 Boost
 ```
 
-Note: to use the GPU functionalities, please specify the `-Dgpu=true` flag when configuring the Meson build.  
+Note: to use the GPU functionalities, please specify the `-Dgpu-cuda=true` flag when configuring the Meson build.
 ```
-ENABLED_GPU=true bash -vex scripts/ci/configure_with_fallback.sh
+ENABLED_GPU_CUDA=true bash -vex scripts/ci/configure_with_fallback.sh
 make build
 ```
 Alternatively, the following Make rule can be used:

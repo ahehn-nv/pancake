@@ -1,2 +1,2 @@
 option('tests', type : 'boolean', value : true,  description : 'Enable dependencies required for testing')
-option('gpu', type : 'boolean', value : false,  description : 'Compile the CUDA code.')
+option('gpu-cuda', type : 'boolean', value : false,  description : 'Compile the CUDA code.')

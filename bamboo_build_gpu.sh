@@ -58,7 +58,7 @@ popd
 
 module load python/3 ninja
 
-export ENABLED_GPU="true"
+export ENABLED_GPU_CUDA="true"
 ####################################
 
 # call the main build+test scripts
