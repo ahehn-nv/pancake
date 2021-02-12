@@ -24,8 +24,18 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThr
                                int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
                                uint32_t gpuDeviceId, double gpuMaxFreeMemoryFraction,
                                int64_t gpuMaxMemoryCap, bool alignRemainingOnCpu)
+    : MapperBatchGPU(settings, nullptr, gpuStartBandwidth, gpuMaxBandwidth, gpuDeviceId,
+                     gpuMaxFreeMemoryFraction, gpuMaxMemoryCap, alignRemainingOnCpu)
+{
+    fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
+    faf_ = fafFallback_.get();
+}
+
+MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf,
+                               int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
+                               uint32_t gpuDeviceId, double gpuMaxFreeMemoryFraction,
+                               int64_t gpuMaxMemoryCap, bool alignRemainingOnCpu)
     : settings_{settings}
-    , numThreads_(numThreads)
     , gpuStartBandwidth_(gpuStartBandwidth)
     , gpuMaxBandwidth_(gpuMaxBandwidth)
     , gpuDeviceId_(gpuDeviceId)
@@ -33,11 +43,12 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThr
     , gpuMaxMemoryCap_(gpuMaxMemoryCap)
     , gpuStream_(0)
     , alignRemainingOnCpu_(alignRemainingOnCpu)
+    , faf_{faf}
 {
     const int64_t requestedMemory = std::min(
-        gpuMaxMemoryCap, PacBio::Pancake::ComputeMaxGPUMemory(1, gpuMaxFreeMemoryFraction));
+        gpuMaxMemoryCap_, PacBio::Pancake::ComputeMaxGPUMemory(1, gpuMaxFreeMemoryFraction_));
 
-    GW_CU_CHECK_ERR(cudaSetDevice(gpuDeviceId));
+    GW_CU_CHECK_ERR(cudaSetDevice(gpuDeviceId_));
     GW_CU_CHECK_ERR(cudaStreamCreate(&gpuStream_));
 
     deviceAllocator_ =
@@ -49,22 +60,26 @@ MapperBatchGPU::~MapperBatchGPU()
     if (gpuStream_ != 0) {
         GW_CU_CHECK_ERR(cudaStreamDestroy(gpuStream_));
     }
+    if (fafFallback_) {
+        fafFallback_->Finalize();
+    }
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
-    return MapAndAlignImpl_(batchData, settings_, numThreads_, alignRemainingOnCpu_,
-                            gpuStartBandwidth_, gpuMaxBandwidth_, gpuDeviceId_, gpuStream_,
-                            deviceAllocator_);
+    return MapAndAlignImpl_(batchData, settings_, alignRemainingOnCpu_, gpuStartBandwidth_,
+                            gpuMaxBandwidth_, gpuDeviceId_, gpuStream_, deviceAllocator_, faf_);
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRSettings& settings,
-    int32_t numThreads, bool alignRemainingOnCpu, int32_t gpuStartBandwidth,
-    int32_t gpuMaxBandwidth, uint32_t gpuDeviceId, cudaStream_t& gpuStream,
-    claraparabricks::genomeworks::DefaultDeviceAllocator& deviceAllocator)
+    bool alignRemainingOnCpu, int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
+    uint32_t gpuDeviceId, cudaStream_t& gpuStream,
+    claraparabricks::genomeworks::DefaultDeviceAllocator& deviceAllocator,
+    Parallel::FireAndForget* faf)
 {
+    const int32_t numThreads = faf ? faf->NumThreads() : 1;
     // Determine how many records should land in each thread, spread roughly evenly.
     const int32_t numRecords = batchChunks.size();
     const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
@@ -81,14 +96,13 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
 
     // Run the mapping in parallel.
     std::vector<std::vector<MapperBaseResult>> results(batchChunks.size());
-    PacBio::Parallel::FireAndForget faf(numThreads);
-    for (size_t i = 0; i < jobsPerThread.size(); ++i) {
-        const int32_t jobStart = jobsPerThread[i].first;
-        const int32_t jobEnd = jobsPerThread[i].second;
-        faf.ProduceWith(WorkerMapper_, std::cref(batchChunks), jobStart, jobEnd,
-                        std::ref(*mappers[i]), std::ref(results));
-    }
-    faf.Finalize();
+
+    const auto Submit = [&batchChunks, &mappers, &jobsPerThread, &results](int32_t idx) {
+        const int32_t jobStart = jobsPerThread[idx].first;
+        const int32_t jobEnd = jobsPerThread[idx].second;
+        WorkerMapper_(batchChunks, jobStart, jobEnd, *mappers[idx], results);
+    };
+    Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
 
     // Align the mappings if required.
     if (settings.align) {

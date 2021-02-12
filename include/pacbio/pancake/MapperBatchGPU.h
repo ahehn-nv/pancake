@@ -10,6 +10,7 @@
 #include <pacbio/pancake/MapperBatchCPU.h>
 #include <pacbio/pancake/MapperBatchUtility.h>
 #include <pacbio/pancake/MapperCLR.h>
+#include <pbcopper/parallel/FireAndForget.h>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -21,6 +22,10 @@ namespace Pancake {
 class MapperBatchGPU : public MapperBatchBase
 {
 public:
+    MapperBatchGPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf,
+                   int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth, uint32_t gpuDeviceId,
+                   double gpuMaxFreeMemoryFraction, int64_t gpuMaxMemoryCap,
+                   bool alignRemainingOnCpu);
     MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThreads, int32_t gpuStartBandwidth,
                    int32_t gpuMaxBandwidth, uint32_t gpuDeviceId, double gpuMaxFreeMemoryFraction,
                    int64_t gpuMaxMemoryCap, bool alignRemainingOnCpu);
@@ -39,13 +44,16 @@ private:
     int64_t gpuMaxMemoryCap_;
     cudaStream_t gpuStream_;
     bool alignRemainingOnCpu_;
+    Parallel::FireAndForget* faf_;
+    std::unique_ptr<Parallel::FireAndForget> fafFallback_;
     claraparabricks::genomeworks::DefaultDeviceAllocator deviceAllocator_;
 
     static std::vector<std::vector<MapperBaseResult>> MapAndAlignImpl_(
         const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRSettings& settings,
-        int32_t numThreads, bool alignRemainingOnCpu, int32_t gpuStartBandwidth,
-        int32_t gpuMaxBandwidth, uint32_t gpuDeviceId, cudaStream_t& gpuStream,
-        claraparabricks::genomeworks::DefaultDeviceAllocator& deviceAllocator);
+        bool alignRemainingOnCpu, int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
+        uint32_t gpuDeviceId, cudaStream_t& gpuStream,
+        claraparabricks::genomeworks::DefaultDeviceAllocator& deviceAllocator,
+        Parallel::FireAndForget* faf);
 
     static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
                               int32_t endId, MapperCLR& mapper,
