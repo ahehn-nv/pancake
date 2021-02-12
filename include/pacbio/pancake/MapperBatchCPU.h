@@ -22,6 +22,9 @@ class MapperBatchCPU : public MapperBatchBase
 {
 public:
     MapperBatchCPU(const MapperCLRSettings& settings, int32_t numThreads);
+    MapperBatchCPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf);
+
+    ~MapperBatchCPU();
 
     std::vector<std::vector<MapperBaseResult>> DummyMapAndAlign(
         const std::vector<MapperBatchChunk>& batchData);
@@ -31,15 +34,16 @@ public:
 
 private:
     MapperCLRSettings settings_;
-    int32_t numThreads_;
+    Parallel::FireAndForget* faf_;
+    std::unique_ptr<Parallel::FireAndForget> fafFallback_;
 
     static std::vector<std::vector<MapperBaseResult>> DummyMapAndAlignImpl_(
         const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
-        int32_t numThreads);
+        Parallel::FireAndForget* faf);
 
     static std::vector<std::vector<MapperBaseResult>> MapAndAlignImpl_(
         const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
-        int32_t numThreads);
+        Parallel::FireAndForget* faf);
 
     static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
                               int32_t endId, const std::unique_ptr<MapperCLR>& mapper,
