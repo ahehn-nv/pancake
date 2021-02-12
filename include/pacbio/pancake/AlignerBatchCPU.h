@@ -7,6 +7,7 @@
 #include <pacbio/pancake/AlignerFactory.h>
 #include <pacbio/pancake/Range.h>
 #include <pbbam/Cigar.h>
+#include <pbcopper/parallel/FireAndForget.h>
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -35,6 +36,7 @@ public:
     StatusAddSequencePair AddSequencePair(const char* query, int32_t queryLen, const char* target,
                                           int32_t targetLen, bool isGlobalAlignment);
     void AlignAll(int32_t numThreads);
+    void AlignAll(Parallel::FireAndForget* faf);
 
     const std::vector<AlignmentResult>& GetAlnResults() const { return alnResults_; }
 

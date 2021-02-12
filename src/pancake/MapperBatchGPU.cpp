@@ -166,7 +166,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
             PBLOG_TRACE << "Trying to align remaining parts on CPU.";
             const int32_t numNotValidInternal = AlignPartsOnCpu(
                 settings.alignerTypeGlobal, settings.alnParamsGlobal, settings.alignerTypeExt,
-                settings.alnParamsExt, partsGlobal, numThreads, internalAlns);
+                settings.alnParamsExt, partsGlobal, faf, internalAlns);
             PBLOG_TRACE << "Total not valid: " << numNotValidInternal << " / "
                         << internalAlns.size() << "\n";
         }
@@ -176,7 +176,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         std::vector<AlignmentResult> flankAlns;
         const int32_t numNotValidFlanks = AlignPartsOnCpu(
             settings.alignerTypeGlobal, settings.alnParamsGlobal, settings.alignerTypeExt,
-            settings.alnParamsExt, partsSemiglobal, numThreads, flankAlns);
+            settings.alnParamsExt, partsSemiglobal, faf, flankAlns);
         PBLOG_TRACE << "Total not valid: " << numNotValidFlanks << " / " << flankAlns.size()
                     << "\n";
 

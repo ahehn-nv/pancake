@@ -180,6 +180,18 @@ int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
                         const std::vector<PairForBatchAlignment>& parts, const int32_t numThreads,
                         std::vector<AlignmentResult>& retAlns)
 {
+    Parallel::FireAndForget faf(numThreads);
+    const int32_t result = AlignPartsOnCpu(alignerTypeGlobal, alnParamsGlobal, alignerTypeExt,
+                                           alnParamsExt, parts, &faf, retAlns);
+    faf.Finalize();
+    return result;
+}
+int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
+                        const AlignmentParameters& alnParamsGlobal,
+                        const AlignerType& alignerTypeExt, const AlignmentParameters& alnParamsExt,
+                        const std::vector<PairForBatchAlignment>& parts,
+                        Parallel::FireAndForget* faf, std::vector<AlignmentResult>& retAlns)
+{
     retAlns.resize(parts.size());
 
     std::vector<size_t> partIds;
@@ -205,7 +217,7 @@ int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
                                     part.regionType == RegionType::GLOBAL);
         }
     }
-    aligner.AlignAll(numThreads);
+    aligner.AlignAll(faf);
 
     const std::vector<AlignmentResult>& partInternalAlns = aligner.GetAlnResults();
     int32_t numNotValid = 0;

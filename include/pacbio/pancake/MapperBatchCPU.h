@@ -9,6 +9,7 @@
 #include <pacbio/pancake/MapperBatchBase.h>
 #include <pacbio/pancake/MapperBatchUtility.h>
 #include <pacbio/pancake/MapperCLR.h>
+#include <pbcopper/parallel/FireAndForget.h>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -55,6 +56,12 @@ int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
                         const AlignerType& alignerTypeExt, const AlignmentParameters& alnParamsExt,
                         const std::vector<PairForBatchAlignment>& parts, const int32_t numThreads,
                         std::vector<AlignmentResult>& retAlns);
+
+int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
+                        const AlignmentParameters& alnParamsGlobal,
+                        const AlignerType& alignerTypeExt, const AlignmentParameters& alnParamsExt,
+                        const std::vector<PairForBatchAlignment>& parts,
+                        Parallel::FireAndForget* faf, std::vector<AlignmentResult>& retAlns);
 
 }  // namespace Pancake
 }  // namespace PacBio
