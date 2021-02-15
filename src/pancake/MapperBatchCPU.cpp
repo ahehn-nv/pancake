@@ -19,25 +19,39 @@ namespace PacBio {
 namespace Pancake {
 
 MapperBatchCPU::MapperBatchCPU(const MapperCLRSettings& settings, int32_t numThreads)
-    : settings_{settings}, numThreads_(numThreads)
+    : MapperBatchCPU{settings, nullptr}
 {
+    fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
+    faf_ = fafFallback_.get();
+}
+
+MapperBatchCPU::MapperBatchCPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf)
+    : settings_{settings}, faf_{faf}, fafFallback_{nullptr}
+{
+}
+
+MapperBatchCPU::~MapperBatchCPU()
+{
+    if (fafFallback_) {
+        fafFallback_->Finalize();
+    }
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::DummyMapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
-    return DummyMapAndAlignImpl_(batchData, settings_, numThreads_);
+    return DummyMapAndAlignImpl_(batchData, settings_, faf_);
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
-    return MapAndAlignImpl_(batchData, settings_, numThreads_);
+    return MapAndAlignImpl_(batchData, settings_, faf_);
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::DummyMapAndAlignImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
-    int32_t /*numThreads*/)
+    Parallel::FireAndForget* /*faf*/)
 {
     std::vector<std::vector<MapperBaseResult>> results;
     results.reserve(batchChunks.size());
@@ -70,10 +84,11 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::DummyMapAndAlignImpl_
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
-    int32_t numThreads)
+    Parallel::FireAndForget* faf)
 {
     // Determine how many records should land in each thread, spread roughly evenly.
     const int32_t numRecords = batchChunks.size();
+    const int32_t numThreads = faf ? faf->NumThreads() : 1;
     const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
         PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
 
@@ -88,14 +103,13 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
 
     // Run the mapping in parallel.
     std::vector<std::vector<MapperBaseResult>> results(batchChunks.size());
-    PacBio::Parallel::FireAndForget faf(numThreads);
-    for (size_t i = 0; i < jobsPerThread.size(); ++i) {
+    const auto Submit = [&jobsPerThread, &batchChunks, &mappers, &results](int32_t i) {
         const int32_t jobStart = jobsPerThread[i].first;
         const int32_t jobEnd = jobsPerThread[i].second;
-        faf.ProduceWith(WorkerMapper_, std::cref(batchChunks), jobStart, jobEnd,
-                        std::cref(mappers[i]), std::ref(results));
-    }
-    faf.Finalize();
+        WorkerMapper_(batchChunks, jobStart, jobEnd, mappers[i], results);
+    };
+
+    Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
 
     if (settings.align) {
         // Compute the reverse complements for alignment.
@@ -122,14 +136,14 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
         // Internal alignment on CPU.
         std::vector<AlignmentResult> internalAlns;
         AlignPartsOnCpu(settings.alignerTypeGlobal, settings.alnParamsGlobal,
-                        settings.alignerTypeExt, settings.alnParamsExt, partsGlobal, numThreads,
+                        settings.alignerTypeExt, settings.alnParamsExt, partsGlobal, faf,
                         internalAlns);
         PBLOG_TRACE << "internalAlns.size() = " << internalAlns.size();
 
         // Flank alignment on CPU.
         std::vector<AlignmentResult> flankAlns;
         AlignPartsOnCpu(settings.alignerTypeGlobal, settings.alnParamsGlobal,
-                        settings.alignerTypeExt, settings.alnParamsExt, partsSemiglobal, numThreads,
+                        settings.alignerTypeExt, settings.alnParamsExt, partsSemiglobal, faf,
                         flankAlns);
         PBLOG_TRACE << "flankAlns.size() = " << flankAlns.size();
 
@@ -180,11 +194,23 @@ int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
                         const std::vector<PairForBatchAlignment>& parts, const int32_t numThreads,
                         std::vector<AlignmentResult>& retAlns)
 {
+    Parallel::FireAndForget faf(numThreads);
+    const int32_t result = AlignPartsOnCpu(alignerTypeGlobal, alnParamsGlobal, alignerTypeExt,
+                                           alnParamsExt, parts, &faf, retAlns);
+    faf.Finalize();
+    return result;
+}
+int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
+                        const AlignmentParameters& alnParamsGlobal,
+                        const AlignerType& alignerTypeExt, const AlignmentParameters& alnParamsExt,
+                        const std::vector<PairForBatchAlignment>& parts,
+                        Parallel::FireAndForget* faf, std::vector<AlignmentResult>& retAlns)
+{
     retAlns.resize(parts.size());
 
     std::vector<size_t> partIds;
 
-    AlignerBatchCPU aligner(alignerTypeGlobal, alnParamsGlobal, alignerTypeExt, alnParamsExt);
+    AlignerBatchCPU aligner(faf, alignerTypeGlobal, alnParamsGlobal, alignerTypeExt, alnParamsExt);
 
     for (size_t i = 0; i < parts.size(); ++i) {
         const auto& part = parts[i];
@@ -205,7 +231,7 @@ int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
                                     part.regionType == RegionType::GLOBAL);
         }
     }
-    aligner.AlignAll(numThreads);
+    aligner.AlignAll();
 
     const std::vector<AlignmentResult>& partInternalAlns = aligner.GetAlnResults();
     int32_t numNotValid = 0;

@@ -94,8 +94,8 @@ TEST(AlignerBatchCPU, ArrayOfTests_Small)
         SCOPED_TRACE(data.testName);
         std::cerr << "testName = " << data.testName << "\n";
 
-        PacBio::Pancake::AlignerBatchCPU aligner(alignerTypeGlobal, alnParamsGlobal, alignerTypeExt,
-                                                 alnParamsExt);
+        PacBio::Pancake::AlignerBatchCPU aligner(data.numThreads, alignerTypeGlobal,
+                                                 alnParamsGlobal, alignerTypeExt, alnParamsExt);
 
         for (const auto& seqPair : data.batchData) {
             const auto& query = std::get<0>(seqPair);
@@ -106,7 +106,7 @@ TEST(AlignerBatchCPU, ArrayOfTests_Small)
         }
 
         // Run alignment.
-        aligner.AlignAll(data.numThreads);
+        aligner.AlignAll();
 
         const std::vector<PacBio::Pancake::AlignmentResult>& results = aligner.GetAlnResults();
 

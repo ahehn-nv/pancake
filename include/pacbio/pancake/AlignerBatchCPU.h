@@ -7,6 +7,7 @@
 #include <pacbio/pancake/AlignerFactory.h>
 #include <pacbio/pancake/Range.h>
 #include <pbbam/Cigar.h>
+#include <pbcopper/parallel/FireAndForget.h>
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -26,19 +27,26 @@ enum class StatusAddSequencePair
 class AlignerBatchCPU
 {
 public:
-    AlignerBatchCPU(const AlignerType alnTypeGlobal, const AlignmentParameters& alnParamsGlobal,
-                    const AlignerType alnTypeExt, const AlignmentParameters& alnParamsExt);
+    AlignerBatchCPU(int32_t numThreads, const AlignerType alnTypeGlobal,
+                    const AlignmentParameters& alnParamsGlobal, const AlignerType alnTypeExt,
+                    const AlignmentParameters& alnParamsExt);
+    AlignerBatchCPU(Parallel::FireAndForget* faf, const AlignerType alnTypeGlobal,
+                    const AlignmentParameters& alnParamsGlobal, const AlignerType alnTypeExt,
+                    const AlignmentParameters& alnParamsExt);
     ~AlignerBatchCPU();
 
     void Clear();
 
     StatusAddSequencePair AddSequencePair(const char* query, int32_t queryLen, const char* target,
                                           int32_t targetLen, bool isGlobalAlignment);
-    void AlignAll(int32_t numThreads);
+    void AlignAll();
 
     const std::vector<AlignmentResult>& GetAlnResults() const { return alnResults_; }
 
 private:
+    Parallel::FireAndForget* faf_;
+    std::unique_ptr<Parallel::FireAndForget> fafFallback_;
+
     AlignerType alnTypeGlobal_;
     AlignmentParameters alnParamsGlobal_;
     AlignerType alnTypeExt_;

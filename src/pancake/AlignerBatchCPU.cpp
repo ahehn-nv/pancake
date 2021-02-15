@@ -2,7 +2,6 @@
 
 #include <pacbio/pancake/AlignerBatchCPU.h>
 #include <pacbio/util/Util.h>
-#include <pbcopper/parallel/FireAndForget.h>
 #include <pbcopper/parallel/WorkQueue.h>
 #include <cstring>
 #include <iostream>
@@ -11,18 +10,35 @@
 namespace PacBio {
 namespace Pancake {
 
-AlignerBatchCPU::AlignerBatchCPU(const AlignerType alnTypeGlobal,
+AlignerBatchCPU::AlignerBatchCPU(const int32_t numThreads, const AlignerType alnTypeGlobal,
                                  const AlignmentParameters& alnParamsGlobal,
                                  const AlignerType alnTypeExt,
                                  const AlignmentParameters& alnParamsExt)
-    : alnTypeGlobal_(alnTypeGlobal)
+    : AlignerBatchCPU(nullptr, alnTypeGlobal, alnParamsGlobal, alnTypeExt, alnParamsExt)
+{
+    fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
+    faf_ = fafFallback_.get();
+}
+
+AlignerBatchCPU::AlignerBatchCPU(Parallel::FireAndForget* faf, const AlignerType alnTypeGlobal,
+                                 const AlignmentParameters& alnParamsGlobal,
+                                 const AlignerType alnTypeExt,
+                                 const AlignmentParameters& alnParamsExt)
+    : faf_{faf}
+    , fafFallback_{nullptr}
+    , alnTypeGlobal_(alnTypeGlobal)
     , alnParamsGlobal_(alnParamsGlobal)
     , alnTypeExt_(alnTypeExt)
     , alnParamsExt_(alnParamsExt)
 {
 }
 
-AlignerBatchCPU::~AlignerBatchCPU() {}
+AlignerBatchCPU::~AlignerBatchCPU()
+{
+    if (fafFallback_) {
+        fafFallback_->Finalize();
+    }
+}
 
 void AlignerBatchCPU::Clear()
 {
@@ -45,7 +61,7 @@ StatusAddSequencePair AlignerBatchCPU::AddSequencePair(const char* query, int32_
     return StatusAddSequencePair::OK;
 }
 
-void AlignerBatchCPU::AlignAll(int32_t numThreads)
+void AlignerBatchCPU::AlignAll()
 {
     if (queries_.size() != targets_.size()) {
         std::ostringstream oss;
@@ -74,7 +90,7 @@ void AlignerBatchCPU::AlignAll(int32_t numThreads)
     // Determine how many records should land in each thread, spread roughly evenly.
     const int32_t numRecords = numAlns;
     const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
-        PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
+        PacBio::Pancake::DistributeJobLoad<int32_t>(faf_ ? faf_->NumThreads() : 1, numRecords);
 
     // Initialize the aligners for each thread.
     std::vector<AlignerBasePtr> alignersGlobal;
@@ -87,16 +103,13 @@ void AlignerBatchCPU::AlignAll(int32_t numThreads)
     }
 
     // Run the mapping in parallel.
-    PacBio::Parallel::FireAndForget faf(numThreads);
-    for (size_t i = 0; i < jobsPerThread.size(); ++i) {
+    const auto Submit = [&jobsPerThread, &alignersGlobal, &alignersExt, this](int32_t i) {
         const int32_t jobStart = jobsPerThread[i].first;
         const int32_t jobEnd = jobsPerThread[i].second;
-        faf.ProduceWith(Worker_, std::cref(queries_), std::cref(targets_),
-                        std::cref(isGlobalAlignment_), jobStart, jobEnd,
-                        std::ref(alignersGlobal[i]), std::ref(alignersExt[i]),
-                        std::ref(alnResults_));
-    }
-    faf.Finalize();
+        Worker_(queries_, targets_, isGlobalAlignment_, jobStart, jobEnd, alignersGlobal[i],
+                alignersExt[i], alnResults_);
+    };
+    Parallel::Dispatch(faf_, jobsPerThread.size(), Submit);
 }
 
 void AlignerBatchCPU::Worker_(const std::vector<std::string>& queries,
