@@ -39,6 +39,8 @@ pancake_cpp_sources = files([
     'main/seeddb/SeedDBWorkflow.cpp',
     'main/seqdb/SeqDBSettings.cpp',
     'main/seqdb/SeqDBWorkflow.cpp',
+    'main/seqdbdump/SeqDBDumpSettings.cpp',
+    'main/seqdbdump/SeqDBDumpWorkflow.cpp',
     'main/seqfetch/SeqFetchSettings.cpp',
     'main/seqfetch/SeqFetchWorkflow.cpp',
     'pancake/AlignerBase.cpp',

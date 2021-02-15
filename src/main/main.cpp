@@ -16,6 +16,8 @@
 #include "seeddb/SeedDBWorkflow.h"
 #include "seqdb/SeqDBSettings.h"
 #include "seqdb/SeqDBWorkflow.h"
+#include "seqdbdump/SeqDBDumpSettings.h"
+#include "seqdbdump/SeqDBDumpWorkflow.h"
 #include "seqfetch/SeqFetchSettings.h"
 #include "seqfetch/SeqFetchWorkflow.h"
 
@@ -42,6 +44,9 @@ PacBio::CLI_v2::MultiToolInterface CreateMultiInterface()
         {"seqfetch",
             PacBio::Pancake::SeqFetchSettings::CreateCLI(),
            &PacBio::Pancake::SeqFetchWorkflow::Runner},
+        {"seqdb-dump",
+            PacBio::Pancake::SeqDBDumpSettings::CreateCLI(),
+           &PacBio::Pancake::SeqDBDumpWorkflow::Runner},
     });
 
     // clang-format on

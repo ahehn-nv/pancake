@@ -43,6 +43,7 @@ pancake_test_cram_sources = files([
   'cram/test_hifi_ovl.t',
   'cram/test_hifi_ovl_mapping.t',
   'cram/test_robustness.t',
+  'cram/test_seqdb_dump.t',
   'cram/test_seqdb_filter.t',
   'cram/test_seqdb_writer.t',
   'cram/test_seeddb_writer.t',
