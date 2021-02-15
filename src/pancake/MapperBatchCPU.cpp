@@ -210,7 +210,7 @@ int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
 
     std::vector<size_t> partIds;
 
-    AlignerBatchCPU aligner(alignerTypeGlobal, alnParamsGlobal, alignerTypeExt, alnParamsExt);
+    AlignerBatchCPU aligner(faf, alignerTypeGlobal, alnParamsGlobal, alignerTypeExt, alnParamsExt);
 
     for (size_t i = 0; i < parts.size(); ++i) {
         const auto& part = parts[i];
@@ -231,7 +231,7 @@ int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
                                     part.regionType == RegionType::GLOBAL);
         }
     }
-    aligner.AlignAll(faf);
+    aligner.AlignAll();
 
     const std::vector<AlignmentResult>& partInternalAlns = aligner.GetAlnResults();
     int32_t numNotValid = 0;
