@@ -60,7 +60,7 @@ int SeqDBDumpWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     // Write the sequences.
     const int32_t startBlockId = std::max(settings.BlockId, 0);
-    const int32_t endBlockId = (settings.BlockId > 0) ? (settings.BlockId + 1) : numBlocks;
+    const int32_t endBlockId = (settings.BlockId >= 0) ? (settings.BlockId + 1) : numBlocks;
     char nameIdBuffer[50];
     for (int32_t blockId = startBlockId; blockId < endBlockId; ++blockId) {
         reader.LoadBlocks({blockId});
