@@ -15,18 +15,11 @@ namespace Pancake {
 // clang-format off
 struct SeqDBInfoSettings
 {
-    struct Defaults
-    {
-        static const int32_t BlockId = -1;    // -1 to write all blocks, a valid block ID otherwise.
-        static const bool WriteIds = false;
-        static const bool UseHPC = false;
-    };
+    // struct Defaults
+    // {
+    // };
 
     std::string InputSeqDB;
-    std::string OutputFile;
-    int32_t BlockId = Defaults::BlockId;
-    bool WriteIds = Defaults::WriteIds;
-    bool UseHPC = Defaults::UseHPC;
 
     SeqDBInfoSettings();
     SeqDBInfoSettings(const PacBio::CLI_v2::Results& options);
