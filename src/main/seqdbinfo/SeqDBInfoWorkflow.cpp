@@ -24,15 +24,15 @@ struct SeqLengthStats
     int32_t lenMax = 0;
     double lenAvg = 0.0;
     double lenMedian = 0.0;
-    std::array<int32_t, 101> Nx;
-    std::array<int32_t, 101> Nxn;
+    double nxAUC = 0.0;
+    std::array<std::tuple<int32_t, int32_t, int32_t>, 101> Nx;
 
     void Clear()
     {
         totalLength = numSeqs = lenMin = lenMax = 0;
-        lenAvg = lenMedian = 0.0;
+        lenAvg = lenMedian = nxAUC = 0.0;
         for (size_t i = 0; i < Nx.size(); ++i) {
-            Nx[i] = Nxn[i] = 0;
+            Nx[i] = std::make_tuple(0, 0, 0);
         }
     }
 };
@@ -45,6 +45,7 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
         return;
     }
     ret.totalLength = 0;
+    ret.nxAUC = 0.0;
     int32_t prevVal = reverseSortedLengths.front();
     for (const int32_t& val : reverseSortedLengths) {
         if (val > prevVal) {
@@ -52,7 +53,9 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
                 "Input vector 'reverseSortedLengths' is not reverse sorted!\n");
         }
         ret.totalLength += val;
+        ret.nxAUC += val * val;
     }
+    ret.nxAUC = (ret.totalLength == 0) ? 0.0 : ret.nxAUC / static_cast<double>(ret.totalLength);
     ret.numSeqs = reverseSortedLengths.size();
     ret.lenMin = reverseSortedLengths.back();
     ret.lenMax = reverseSortedLengths.front();
@@ -69,13 +72,10 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
     double nextThreshold = 0;  // percStep;
     double subtotal = 0;
     int32_t x = 0;
-    for (size_t lenId = 0; lenId < reverseSortedLengths.size(); ++lenId) {
+    for (int32_t lenId = 0; lenId < static_cast<int32_t>(reverseSortedLengths.size()); ++lenId) {
         subtotal += reverseSortedLengths[lenId];
         while (subtotal >= nextThreshold && x < 101) {
-            ret.Nx[x] = reverseSortedLengths[lenId];
-            ;
-            ret.Nxn[x] = lenId + 1;
-            ;
+            ret.Nx[x] = std::make_tuple(x, reverseSortedLengths[lenId], lenId + 1);
             nextThreshold += percStep;
             ++x;
         }
@@ -89,15 +89,10 @@ PacBio::JSON::Json SeqLengthStatsToJson(const SeqLengthStats& stats)
     result["num_seqs"] = stats.numSeqs;
     result["len_min"] = stats.lenMin;
     result["len_max"] = stats.lenMax;
-    result["lenAvg"] = stats.lenAvg;
-    result["lenMedian"] = stats.lenMedian;
-    // result["Nx"] = stats.Nx;
-    // result["Nxn"] = stats.Nxn;
-    std::array<std::tuple<int32_t, int32_t, int32_t>, 101> Nx;
-    for (size_t i = 0; i < stats.Nx.size(); ++i) {
-        Nx[i] = std::make_tuple(i, stats.Nx[i], stats.Nxn[i]);
-    }
-    result["Nx"] = Nx;
+    result["len_avg"] = stats.lenAvg;
+    result["len_median"] = stats.lenMedian;
+    result["AUC"] = stats.nxAUC;
+    result["Nx"] = stats.Nx;
     return result;
 }
 
@@ -124,16 +119,6 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     PacBio::JSON::Json statsJson = SeqLengthStatsToJson(stats);
     statsJson["total_bytes"] = totalBytes;
-    statsJson["N0"] = stats.Nx[0];
-    statsJson["N0n"] = stats.Nxn[0];
-    statsJson["N10"] = stats.Nx[10];
-    statsJson["N10n"] = stats.Nxn[10];
-    statsJson["N50"] = stats.Nx[50];
-    statsJson["N50n"] = stats.Nxn[50];
-    statsJson["N90"] = stats.Nx[90];
-    statsJson["N90n"] = stats.Nxn[90];
-    statsJson["N100"] = stats.Nx[100];
-    statsJson["N100n"] = stats.Nxn[100];
 
     std::cout << statsJson.dump(4) << "\n";
 
