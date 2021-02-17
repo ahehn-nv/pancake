@@ -45,6 +45,7 @@ int SeqDBDumpWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         PBLOG_INFO << "Output is to stdout.";
     }
 
+    PBLOG_INFO << "Loading the SeqDB.";
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(settings.InputSeqDB);
 
@@ -59,8 +60,9 @@ int SeqDBDumpWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     PacBio::Pancake::SeqDBReaderCachedBlock reader(seqDBCache, settings.UseHPC);
 
     // Write the sequences.
+    PBLOG_INFO << "Fetching the data.";
     const int32_t startBlockId = std::max(settings.BlockId, 0);
-    const int32_t endBlockId = (settings.BlockId > 0) ? (settings.BlockId + 1) : numBlocks;
+    const int32_t endBlockId = (settings.BlockId >= 0) ? (settings.BlockId + 1) : numBlocks;
     char nameIdBuffer[50];
     for (int32_t blockId = startBlockId; blockId < endBlockId; ++blockId) {
         reader.LoadBlocks({blockId});
