@@ -16,14 +16,46 @@ R"({
     "name" : "seqdb",
     "description" : "Input SeqDB."
 })"};
+
+const CLI_v2::Option HumanReadableOutput {
+R"({
+    "names" : ["human"],
+    "description" : "Write human-readable output instead of Json.",
+    "type" : "bool"
+})", SeqDBInfoSettings::Defaults::HumanReadableOutput};
+
+const CLI_v2::Option GenomicUnit {
+R"({
+    "names" : ["unit"],
+    "choices" : ["bp", "kbp", "Mbp", "Gbp"],
+    "description" : "Unit for genomic length for the output stats.",
+    "type" : "string"
+})", "bp"};
+
 // clang-format on
 
 }  // namespace OptionNames
+
+GenomicUnit GenomicUnitFromString(const std::string& val)
+{
+    if (val == "bp") {
+        return GenomicUnit::bp;
+    } else if (val == "kbp") {
+        return GenomicUnit::kbp;
+    } else if (val == "Mbp") {
+        return GenomicUnit::Mbp;
+    } else if (val == "Gbp") {
+        return GenomicUnit::Gbp;
+    }
+    throw std::runtime_error("Unknown genomic unit: '" + val + "'.");
+}
 
 SeqDBInfoSettings::SeqDBInfoSettings() = default;
 
 SeqDBInfoSettings::SeqDBInfoSettings(const PacBio::CLI_v2::Results& options)
     : InputSeqDB{options[OptionNames::InputSeqDB]}
+    , HumanReadableOutput(options[OptionNames::HumanReadableOutput])
+    , Unit(GenomicUnitFromString(options[OptionNames::GenomicUnit]))
 {
 }
 
@@ -36,8 +68,10 @@ PacBio::CLI_v2::Interface SeqDBInfoSettings::CreateCLI()
     i.DisableNumThreadsOption();
 
     // clang-format off
-    // i.AddOptionGroup("Algorithm Options", {
-    // });
+    i.AddOptionGroup("Options", {
+        OptionNames::HumanReadableOutput,
+        OptionNames::GenomicUnit,
+    });
     i.AddPositionalArguments({
         OptionNames::InputSeqDB,
     });

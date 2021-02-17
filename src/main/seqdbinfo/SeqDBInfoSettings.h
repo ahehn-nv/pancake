@@ -12,14 +12,26 @@
 namespace PacBio {
 namespace Pancake {
 
+enum class GenomicUnit
+{
+    bp,
+    kbp,
+    Mbp,
+    Gbp
+};
+
 // clang-format off
 struct SeqDBInfoSettings
 {
-    // struct Defaults
-    // {
-    // };
+    struct Defaults
+    {
+        static const bool HumanReadableOutput = false;
+        static const GenomicUnit Unit = GenomicUnit::bp;
+    };
 
     std::string InputSeqDB;
+    bool HumanReadableOutput = Defaults::HumanReadableOutput;
+    GenomicUnit Unit = Defaults::Unit;
 
     SeqDBInfoSettings();
     SeqDBInfoSettings(const PacBio::CLI_v2::Results& options);
