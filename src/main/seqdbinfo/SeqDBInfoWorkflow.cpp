@@ -4,6 +4,7 @@
 #include "SeqDBInfoSettings.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -59,7 +60,8 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
     if (reverseSortedLengths.empty()) {
         return;
     }
-    ret.unit = GenomicUnit::bp;
+
+    // Compute the total length and Nx AUC.
     ret.totalLength = 0;
     ret.nxAUC = 0.0;
     int32_t prevVal = reverseSortedLengths.front();
@@ -72,6 +74,9 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
         ret.nxAUC += val * val;
     }
     ret.nxAUC = (ret.totalLength == 0) ? 0.0 : ret.nxAUC / static_cast<double>(ret.totalLength);
+
+    // Compute other basic stats.
+    ret.unit = GenomicUnit::bp;
     ret.numSeqs = reverseSortedLengths.size();
     ret.lenMin = reverseSortedLengths.back();
     ret.lenMax = reverseSortedLengths.front();
@@ -83,6 +88,7 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
                                           reverseSortedLengths[(ret.numSeqs - 1) / 2]) /
                                              2;
 
+    // Compute the Nx graph for 1% increase in intervals.
     const int64_t nxGenomeSize = (genomeSize > 0) ? genomeSize : ret.totalLength;
     const double percStep = 0.01 * nxGenomeSize;
     double nextThreshold = 0;
@@ -97,12 +103,6 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
         }
     }
 }
-
-// void ConvertStatsToBp(SeqLengthStats& stats) {
-//     const double factor = ConvertGenomicUnitToBpFactor(stats.unit);
-//     stats.ScaleLengthsByFactor(factor);
-//     stats.unit = GenomicUnit::bp;
-// }
 
 void ConvertStatsToUnit(SeqLengthStats& stats, const GenomicUnit& unit)
 {
@@ -134,7 +134,7 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 {
     SeqDBInfoSettings settings{options};
 
-    PBLOG_INFO << "Loading the SeqDB.";
+    // Load the SeqDB index cache.
     std::shared_ptr<PacBio::Pancake::SeqDBIndexCache> seqDBCache =
         PacBio::Pancake::LoadSeqDBIndexCache(settings.InputSeqDB);
 
@@ -148,11 +148,14 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     }
     std::sort(lengths.begin(), lengths.end(), [](const auto& a, const auto& b) { return a > b; });
 
+    // Compute stats.
     SeqLengthStats stats;
     ComputeSeqLengthStats(lengths, 0, stats);
 
+    // Convert to the desired unit.
     ConvertStatsToUnit(stats, settings.Unit);
 
+    // Write the output.
     if (settings.HumanReadableOutput) {
         // clang-format off
         fprintf(stdout, "input\tunit\ttotal\tnum\tmin\tmax\tavg\tmedian\tAUC\tN10\tN10_n\tN25\tN25_n\tN50\tN50_n\tN75\tN75_n\tN90\tN90_n\n");
@@ -186,8 +189,6 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
         statsJson["input"] = settings.InputSeqDB;
         std::cout << statsJson.dump(4) << "\n";
     }
-
-    PBLOG_INFO << "Done!";
 
     return EXIT_SUCCESS;
 }
