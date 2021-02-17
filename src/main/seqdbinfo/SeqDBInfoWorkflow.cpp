@@ -25,7 +25,7 @@ struct SeqLengthStats
     double lenAvg = 0.0;
     double lenMedian = 0.0;
     double nxAUC = 0.0;
-    std::array<std::tuple<int32_t, double, double>, 101> Nx;
+    std::array<std::tuple<int32_t, double, int32_t>, 101> Nx;
     GenomicUnit unit;
 
     void Clear()
@@ -155,49 +155,29 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     if (settings.HumanReadableOutput) {
         // clang-format off
-        std::cout << "input"
-                    << "\t" << "unit"
-                    << "\t" << "total"
-                    << "\t" << "num"
-                    << "\t" << "min"
-                    << "\t" << "max"
-                    << "\t" << "avg"
-                    << "\t" << "median"
-                    << "\t" << "auc"
+        fprintf(stdout, "input\tunit\ttotal\tnum\tmin\tmax\tavg\tmedian\tAUC\tN10\tN10_n\tN25\tN25_n\tN50\tN50_n\tN75\tN75_n\tN90\tN90_n\n");
 
-                    << "\t" << "N10"
-                    << "\t" << "N10_n"
-                    << "\t" << "N25"
-                    << "\t" << "N25_n"
-                    << "\t" << "N50"
-                    << "\t" << "N50_n"
-                    << "\t" << "N75"
-                    << "\t" << "N75_n"
-                    << "\t" << "N90"
-                    << "\t" << "N90_n"
-                    << "\n";
-
-        std::cout << settings.InputSeqDB
-                    << "\t" << GenomicUnitToString(stats.unit)
-                    << "\t" << stats.totalLength
-                    << "\t" << stats.numSeqs
-                    << "\t" << stats.lenMin
-                    << "\t" << stats.lenMax
-                    << "\t" << stats.lenAvg
-                    << "\t" << stats.lenMedian
-                    << "\t" << stats.nxAUC
-
-                    << "\t" << std::get<1>(stats.Nx[10])
-                    << "\t" << std::get<2>(stats.Nx[10])
-                    << "\t" << std::get<1>(stats.Nx[25])
-                    << "\t" << std::get<2>(stats.Nx[25])
-                    << "\t" << std::get<1>(stats.Nx[50])
-                    << "\t" << std::get<2>(stats.Nx[50])
-                    << "\t" << std::get<1>(stats.Nx[75])
-                    << "\t" << std::get<2>(stats.Nx[75])
-                    << "\t" << std::get<1>(stats.Nx[90])
-                    << "\t" << std::get<2>(stats.Nx[90])
-                    << "\n";
+        fprintf(stdout, "%s\t%s\t%.2lf\t%d\t%.2lf\t%.2lf\t%.2lf\t%.2lf\t%.2lf"
+                        "\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\n",
+                        settings.InputSeqDB.c_str(),
+                        GenomicUnitToString(stats.unit).c_str(),
+                        stats.totalLength,
+                        stats.numSeqs,
+                        stats.lenMin,
+                        stats.lenMax,
+                        stats.lenAvg,
+                        stats.lenMedian,
+                        stats.nxAUC,
+                        std::get<1>(stats.Nx[10]),
+                        std::get<2>(stats.Nx[10]),
+                        std::get<1>(stats.Nx[25]),
+                        std::get<2>(stats.Nx[25]),
+                        std::get<1>(stats.Nx[50]),
+                        std::get<2>(stats.Nx[50]),
+                        std::get<1>(stats.Nx[75]),
+                        std::get<2>(stats.Nx[75]),
+                        std::get<1>(stats.Nx[90]),
+                        std::get<2>(stats.Nx[90]));
         // clang-format on
 
     } else {
