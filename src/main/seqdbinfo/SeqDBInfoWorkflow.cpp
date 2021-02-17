@@ -18,21 +18,36 @@ namespace Pancake {
 
 struct SeqLengthStats
 {
-    int64_t totalLength = 0;
+    double totalLength = 0;
     int32_t numSeqs = 0;
-    int32_t lenMin = 0;
-    int32_t lenMax = 0;
+    double lenMin = 0;
+    double lenMax = 0;
     double lenAvg = 0.0;
     double lenMedian = 0.0;
     double nxAUC = 0.0;
-    std::array<std::tuple<int32_t, int32_t, int32_t>, 101> Nx;
+    std::array<std::tuple<int32_t, double, double>, 101> Nx;
+    GenomicUnit unit;
 
     void Clear()
     {
         totalLength = numSeqs = lenMin = lenMax = 0;
         lenAvg = lenMedian = nxAUC = 0.0;
+        unit = GenomicUnit::bp;
         for (size_t i = 0; i < Nx.size(); ++i) {
             Nx[i] = std::make_tuple(0, 0, 0);
+        }
+    }
+
+    void ScaleLengthsByFactor(double factor)
+    {
+        totalLength *= factor;
+        lenMin *= factor;
+        lenMax *= factor;
+        lenAvg *= factor;
+        lenMedian *= factor;
+        nxAUC *= factor;
+        for (size_t i = 0; i < Nx.size(); ++i) {
+            std::get<1>(Nx[i]) *= factor;
         }
     }
 };
@@ -44,6 +59,7 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
     if (reverseSortedLengths.empty()) {
         return;
     }
+    ret.unit = GenomicUnit::bp;
     ret.totalLength = 0;
     ret.nxAUC = 0.0;
     int32_t prevVal = reverseSortedLengths.front();
@@ -69,7 +85,7 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
 
     const int64_t nxGenomeSize = (genomeSize > 0) ? genomeSize : ret.totalLength;
     const double percStep = 0.01 * nxGenomeSize;
-    double nextThreshold = 0;  // percStep;
+    double nextThreshold = 0;
     double subtotal = 0;
     int32_t x = 0;
     for (int32_t lenId = 0; lenId < static_cast<int32_t>(reverseSortedLengths.size()); ++lenId) {
@@ -80,6 +96,23 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
             ++x;
         }
     }
+}
+
+// void ConvertStatsToBp(SeqLengthStats& stats) {
+//     const double factor = ConvertGenomicUnitToBpFactor(stats.unit);
+//     stats.ScaleLengthsByFactor(factor);
+//     stats.unit = GenomicUnit::bp;
+// }
+
+void ConvertStatsToUnit(SeqLengthStats& stats, const GenomicUnit& unit)
+{
+    const double factor1 = ConvertGenomicUnitToBpFactor(stats.unit);
+    stats.ScaleLengthsByFactor(factor1);
+
+    const double factor2 = ConvertBpToGenomicUnitFactor(unit);
+    stats.ScaleLengthsByFactor(factor2);
+
+    stats.unit = unit;
 }
 
 PacBio::JSON::Json SeqLengthStatsToJson(const SeqLengthStats& stats)
@@ -93,6 +126,7 @@ PacBio::JSON::Json SeqLengthStatsToJson(const SeqLengthStats& stats)
     result["len_median"] = stats.lenMedian;
     result["AUC"] = stats.nxAUC;
     result["Nx"] = stats.Nx;
+    result["unit"] = GenomicUnitToString(stats.unit);
     return result;
 }
 
@@ -117,10 +151,61 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     SeqLengthStats stats;
     ComputeSeqLengthStats(lengths, 0, stats);
 
-    PacBio::JSON::Json statsJson = SeqLengthStatsToJson(stats);
-    statsJson["total_bytes"] = totalBytes;
+    ConvertStatsToUnit(stats, settings.Unit);
 
-    std::cout << statsJson.dump(4) << "\n";
+    if (settings.HumanReadableOutput) {
+        // clang-format off
+        std::cout << "input"
+                    << "\t" << "unit"
+                    << "\t" << "total"
+                    << "\t" << "num"
+                    << "\t" << "min"
+                    << "\t" << "max"
+                    << "\t" << "avg"
+                    << "\t" << "median"
+                    << "\t" << "auc"
+
+                    << "\t" << "N10"
+                    << "\t" << "N10_n"
+                    << "\t" << "N25"
+                    << "\t" << "N25_n"
+                    << "\t" << "N50"
+                    << "\t" << "N50_n"
+                    << "\t" << "N75"
+                    << "\t" << "N75_n"
+                    << "\t" << "N90"
+                    << "\t" << "N90_n"
+                    << "\n";
+
+        std::cout << settings.InputSeqDB
+                    << "\t" << GenomicUnitToString(stats.unit)
+                    << "\t" << stats.totalLength
+                    << "\t" << stats.numSeqs
+                    << "\t" << stats.lenMin
+                    << "\t" << stats.lenMax
+                    << "\t" << stats.lenAvg
+                    << "\t" << stats.lenMedian
+                    << "\t" << stats.nxAUC
+
+                    << "\t" << std::get<1>(stats.Nx[10])
+                    << "\t" << std::get<2>(stats.Nx[10])
+                    << "\t" << std::get<1>(stats.Nx[25])
+                    << "\t" << std::get<2>(stats.Nx[25])
+                    << "\t" << std::get<1>(stats.Nx[50])
+                    << "\t" << std::get<2>(stats.Nx[50])
+                    << "\t" << std::get<1>(stats.Nx[75])
+                    << "\t" << std::get<2>(stats.Nx[75])
+                    << "\t" << std::get<1>(stats.Nx[90])
+                    << "\t" << std::get<2>(stats.Nx[90])
+                    << "\n";
+        // clang-format on
+
+    } else {
+        PacBio::JSON::Json statsJson = SeqLengthStatsToJson(stats);
+        statsJson["total_bytes"] = totalBytes;
+        statsJson["input"] = settings.InputSeqDB;
+        std::cout << statsJson.dump(4) << "\n";
+    }
 
     PBLOG_INFO << "Done!";
 
