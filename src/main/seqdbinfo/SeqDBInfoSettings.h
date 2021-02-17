@@ -4,21 +4,13 @@
 #define PANCAKE_SEQDB_INFO_SETTINGS_H
 
 #include <pacbio/util/CommonTypes.h>
+#include <pacbio/util/GenomicUnit.h>
+#include <pbcopper/cli2/CLI.h>
 #include <cstdint>
 #include <string>
 
-#include <pbcopper/cli2/CLI.h>
-
 namespace PacBio {
 namespace Pancake {
-
-enum class GenomicUnit
-{
-    bp,
-    kbp,
-    Mbp,
-    Gbp
-};
 
 // clang-format off
 struct SeqDBInfoSettings

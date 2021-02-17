@@ -8,7 +8,7 @@
 
 namespace PacBio {
 namespace Pancake {
-namespace OptionNames {
+namespace SeqDBInfoOptionNames {
 
 // clang-format off
 const CLI_v2::PositionalArgument InputSeqDB {
@@ -28,35 +28,25 @@ const CLI_v2::Option GenomicUnit {
 R"({
     "names" : ["unit"],
     "choices" : ["bp", "kbp", "Mbp", "Gbp"],
-    "description" : "Unit for genomic length for the output stats.",
+    "description" : "Unit for genomic length for the output stats. Valid choices: bp, kbp, Mbp, Gbp.",
     "type" : "string"
-})", "bp"};
+})", std::string("bp")};
 
 // clang-format on
 
-}  // namespace OptionNames
-
-GenomicUnit GenomicUnitFromString(const std::string& val)
-{
-    if (val == "bp") {
-        return GenomicUnit::bp;
-    } else if (val == "kbp") {
-        return GenomicUnit::kbp;
-    } else if (val == "Mbp") {
-        return GenomicUnit::Mbp;
-    } else if (val == "Gbp") {
-        return GenomicUnit::Gbp;
-    }
-    throw std::runtime_error("Unknown genomic unit: '" + val + "'.");
-}
+}  // namespace SeqDBInfoOptionNames
 
 SeqDBInfoSettings::SeqDBInfoSettings() = default;
 
 SeqDBInfoSettings::SeqDBInfoSettings(const PacBio::CLI_v2::Results& options)
-    : InputSeqDB{options[OptionNames::InputSeqDB]}
-    , HumanReadableOutput(options[OptionNames::HumanReadableOutput])
-    , Unit(GenomicUnitFromString(options[OptionNames::GenomicUnit]))
+    : InputSeqDB{options[SeqDBInfoOptionNames::InputSeqDB]}
+    , HumanReadableOutput(options[SeqDBInfoOptionNames::HumanReadableOutput])
+    , Unit(GenomicUnitFromString(options[SeqDBInfoOptionNames::GenomicUnit]))
 {
+    if (Unit == GenomicUnit::Unknown) {
+        const std::string unitStr = options[SeqDBInfoOptionNames::GenomicUnit];
+        throw std::runtime_error("Unknown genomic unit: '" + unitStr + "'.");
+    }
 }
 
 PacBio::CLI_v2::Interface SeqDBInfoSettings::CreateCLI()
@@ -69,11 +59,11 @@ PacBio::CLI_v2::Interface SeqDBInfoSettings::CreateCLI()
 
     // clang-format off
     i.AddOptionGroup("Options", {
-        OptionNames::HumanReadableOutput,
-        OptionNames::GenomicUnit,
+        SeqDBInfoOptionNames::HumanReadableOutput,
+        SeqDBInfoOptionNames::GenomicUnit,
     });
     i.AddPositionalArguments({
-        OptionNames::InputSeqDB,
+        SeqDBInfoOptionNames::InputSeqDB,
     });
 
     // clang-format on

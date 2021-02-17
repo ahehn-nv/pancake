@@ -168,6 +168,7 @@ if not meson.is_subproject()
       'pacbio/util/CommonTypes.h',
       'pacbio/util/Conversion.h',
       'pacbio/util/FileIO.h',
+      'pacbio/util/GenomicUnit.h',
       'pacbio/util/RunLengthEncoding.h',
       'pacbio/util/TicToc.h',
       'pacbio/util/Util.h',
