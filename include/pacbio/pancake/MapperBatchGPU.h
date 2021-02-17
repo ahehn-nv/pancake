@@ -11,6 +11,7 @@
 #include <pacbio/pancake/MapperBatchUtility.h>
 #include <pacbio/pancake/MapperCLR.h>
 #include <pbcopper/parallel/FireAndForget.h>
+#include <claraparabricks/genomeworks/utils/cudautils.hpp>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -24,11 +25,10 @@ class MapperBatchGPU : public MapperBatchBase
 public:
     MapperBatchGPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf,
                    int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth, uint32_t gpuDeviceId,
-                   double gpuMaxFreeMemoryFraction, int64_t gpuMaxMemoryCap,
-                   bool alignRemainingOnCpu);
+                   int64_t gpuMemoryBytes, bool alignRemainingOnCpu);
     MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThreads, int32_t gpuStartBandwidth,
-                   int32_t gpuMaxBandwidth, uint32_t gpuDeviceId, double gpuMaxFreeMemoryFraction,
-                   int64_t gpuMaxMemoryCap, bool alignRemainingOnCpu);
+                   int32_t gpuMaxBandwidth, uint32_t gpuDeviceId, int64_t gpuMemoryBytes,
+                   bool alignRemainingOnCpu);
     ~MapperBatchGPU() override;
 
     std::vector<std::vector<MapperBaseResult>> MapAndAlign(
@@ -39,31 +39,23 @@ private:
     int32_t numThreads_;
     int32_t gpuStartBandwidth_;
     int32_t gpuMaxBandwidth_;
-    uint32_t gpuDeviceId_;
-    double gpuMaxFreeMemoryFraction_;
-    int64_t gpuMaxMemoryCap_;
-    cudaStream_t gpuStream_;
     bool alignRemainingOnCpu_;
     Parallel::FireAndForget* faf_;
     std::unique_ptr<Parallel::FireAndForget> fafFallback_;
-    claraparabricks::genomeworks::DefaultDeviceAllocator deviceAllocator_;
+    std::unique_ptr<AlignerBatchGPU> aligner_;
 
     static std::vector<std::vector<MapperBaseResult>> MapAndAlignImpl_(
         const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRSettings& settings,
         bool alignRemainingOnCpu, int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
-        uint32_t gpuDeviceId, cudaStream_t& gpuStream,
-        claraparabricks::genomeworks::DefaultDeviceAllocator& deviceAllocator,
-        Parallel::FireAndForget* faf);
+        AlignerBatchGPU& aligner, Parallel::FireAndForget* faf);
 
     static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
                               int32_t endId, MapperCLR& mapper,
                               std::vector<std::vector<MapperBaseResult>>& results);
 
-    static int32_t AlignPartsOnGPU_(
-        int32_t gpuMaxBandwidth, uint32_t gpuDeviceId, cudaStream_t& gpuStream,
-        claraparabricks::genomeworks::DefaultDeviceAllocator& deviceAllocator,
-        const AlignmentParameters& alnParamsGlobal, const std::vector<PairForBatchAlignment>& parts,
-        std::vector<AlignmentResult>& retInternalAlns);
+    static int32_t AlignPartsOnGPU_(AlignerBatchGPU& aligner,
+                                    const std::vector<PairForBatchAlignment>& parts,
+                                    std::vector<AlignmentResult>& retInternalAlns);
 };
 
 }  // namespace Pancake

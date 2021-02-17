@@ -212,7 +212,6 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
         settings.alignerTypeGlobal = data.alignerTypeGlobal;
 
         const uint32_t gpuDeviceId = 0;
-        const double gpuMaxFreeMemoryFraction = 0.90;
         const int64_t gpuMaxMemoryCap =
             static_cast<int64_t>(100) * static_cast<int64_t>(1024 * 1024);
         const int32_t numThreads = 1;
@@ -220,8 +219,7 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
         const int32_t maxBandwidth = 2000;
         bool alignRemainingOnCpu = false;
         PacBio::Pancake::MapperBatchGPU mapper(settings, numThreads, startBandwidth, maxBandwidth,
-                                               gpuDeviceId, gpuMaxFreeMemoryFraction,
-                                               gpuMaxMemoryCap, alignRemainingOnCpu);
+                                               gpuDeviceId, gpuMaxMemoryCap, alignRemainingOnCpu);
 
         // Run the unit under test.
         // std::vector<std::vector<MapperBaseResult>> results = mapper.DummyMapAndAlign(batchData);

@@ -12,6 +12,7 @@
 #include <pbcopper/parallel/WorkQueue.h>
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <claraparabricks/genomeworks/utils/allocator.hpp>
 #include <iostream>
 #include <sstream>
@@ -22,10 +23,10 @@ namespace Pancake {
 
 MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThreads,
                                int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
-                               uint32_t gpuDeviceId, double gpuMaxFreeMemoryFraction,
-                               int64_t gpuMaxMemoryCap, bool alignRemainingOnCpu)
+                               uint32_t gpuDeviceId, int64_t gpuMemoryBytes,
+                               bool alignRemainingOnCpu)
     : MapperBatchGPU(settings, nullptr, gpuStartBandwidth, gpuMaxBandwidth, gpuDeviceId,
-                     gpuMaxFreeMemoryFraction, gpuMaxMemoryCap, alignRemainingOnCpu)
+                     gpuMemoryBytes, alignRemainingOnCpu)
 {
     fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
     faf_ = fafFallback_.get();
@@ -33,33 +34,20 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThr
 
 MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf,
                                int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
-                               uint32_t gpuDeviceId, double gpuMaxFreeMemoryFraction,
-                               int64_t gpuMaxMemoryCap, bool alignRemainingOnCpu)
+                               uint32_t gpuDeviceId, int64_t gpuMemoryBytes,
+                               bool alignRemainingOnCpu)
     : settings_{settings}
     , gpuStartBandwidth_(gpuStartBandwidth)
     , gpuMaxBandwidth_(gpuMaxBandwidth)
-    , gpuDeviceId_(gpuDeviceId)
-    , gpuMaxFreeMemoryFraction_(gpuMaxFreeMemoryFraction)
-    , gpuMaxMemoryCap_(gpuMaxMemoryCap)
-    , gpuStream_(0)
     , alignRemainingOnCpu_(alignRemainingOnCpu)
     , faf_{faf}
+    , aligner_{std::make_unique<AlignerBatchGPU>(settings.alnParamsGlobal, gpuStartBandwidth,
+                                                 gpuDeviceId, gpuMemoryBytes)}
 {
-    const int64_t requestedMemory = std::min(
-        gpuMaxMemoryCap_, PacBio::Pancake::ComputeMaxGPUMemory(1, gpuMaxFreeMemoryFraction_));
-
-    GW_CU_CHECK_ERR(cudaSetDevice(gpuDeviceId_));
-    GW_CU_CHECK_ERR(cudaStreamCreate(&gpuStream_));
-
-    deviceAllocator_ =
-        claraparabricks::genomeworks::create_default_device_allocator(requestedMemory, gpuStream_);
 }
 
 MapperBatchGPU::~MapperBatchGPU()
 {
-    if (gpuStream_ != 0) {
-        GW_CU_CHECK_ERR(cudaStreamDestroy(gpuStream_));
-    }
     if (fafFallback_) {
         fafFallback_->Finalize();
     }
@@ -68,16 +56,15 @@ MapperBatchGPU::~MapperBatchGPU()
 std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
+    assert(aligner_);
     return MapAndAlignImpl_(batchData, settings_, alignRemainingOnCpu_, gpuStartBandwidth_,
-                            gpuMaxBandwidth_, gpuDeviceId_, gpuStream_, deviceAllocator_, faf_);
+                            gpuMaxBandwidth_, *aligner_, faf_);
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRSettings& settings,
     bool alignRemainingOnCpu, int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
-    uint32_t gpuDeviceId, cudaStream_t& gpuStream,
-    claraparabricks::genomeworks::DefaultDeviceAllocator& deviceAllocator,
-    Parallel::FireAndForget* faf)
+    AlignerBatchGPU& aligner, Parallel::FireAndForget* faf)
 {
     const int32_t numThreads = faf ? faf->NumThreads() : 1;
     // Determine how many records should land in each thread, spread roughly evenly.
@@ -146,9 +133,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
 
         while (true) {
             PBLOG_TRACE << "Trying bandwidth: " << currentBandwidth;
-            numInternalNotValid =
-                AlignPartsOnGPU_(currentBandwidth, gpuDeviceId, gpuStream, deviceAllocator,
-                                 settings.alnParamsGlobal, partsGlobal, internalAlns);
+            aligner.ResetMaxBandwidth(gpuMaxBandwidth);
+            numInternalNotValid = AlignPartsOnGPU_(aligner, partsGlobal, internalAlns);
             if (numInternalNotValid == 0) {
                 break;
             }
@@ -201,25 +187,16 @@ void MapperBatchGPU::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChu
     }
 }
 
-int32_t MapperBatchGPU::AlignPartsOnGPU_(
-    int32_t gpuMaxBandwidth, uint32_t gpuDeviceId, cudaStream_t& gpuStream,
-    claraparabricks::genomeworks::DefaultDeviceAllocator& deviceAllocator,
-    const AlignmentParameters& alnParamsGlobal, const std::vector<PairForBatchAlignment>& parts,
-    std::vector<AlignmentResult>& retInternalAlns)
+int32_t MapperBatchGPU::AlignPartsOnGPU_(AlignerBatchGPU& aligner,
+                                         const std::vector<PairForBatchAlignment>& parts,
+                                         std::vector<AlignmentResult>& retInternalAlns)
 {
-    auto cudaAligner = claraparabricks::genomeworks::cudaaligner::create_aligner(
-        claraparabricks::genomeworks::cudaaligner::AlignmentType::global_alignment, gpuMaxBandwidth,
-        gpuStream, gpuDeviceId, deviceAllocator, -1);
-
-    std::unique_ptr<AlignerBatchGPU> aligner =
-        std::make_unique<AlignerBatchGPU>(alnParamsGlobal, std::move(cudaAligner));
-
     retInternalAlns.resize(parts.size());
 
     int32_t totalNumNotValid = 0;
     size_t partId = 0;
     while (partId < parts.size()) {
-        aligner->Clear();
+        aligner.Clear();
 
         std::vector<size_t> partIds;
 
@@ -239,11 +216,11 @@ int32_t MapperBatchGPU::AlignPartsOnGPU_(
                 std::reverse(query.begin(), query.end());
                 std::string target(part.target, part.targetLen);
                 std::reverse(target.begin(), target.end());
-                rv = aligner->AddSequencePair(query.c_str(), part.queryLen, target.c_str(),
-                                              part.targetLen);
+                rv = aligner.AddSequencePair(query.c_str(), part.queryLen, target.c_str(),
+                                             part.targetLen);
             } else {
-                rv = aligner->AddSequencePair(part.query, part.queryLen, part.target,
-                                              part.targetLen);
+                rv =
+                    aligner.AddSequencePair(part.query, part.queryLen, part.target, part.targetLen);
             }
 
             if (rv == StatusAddSequencePair::EXCEEDED_MAX_ALIGNMENTS) {
@@ -256,10 +233,10 @@ int32_t MapperBatchGPU::AlignPartsOnGPU_(
             }
         }
 
-        PBLOG_TRACE << "Aligning batch of " << aligner->BatchSize() << " sequence pairs.";
-        aligner->AlignAll();
+        PBLOG_TRACE << "Aligning batch of " << aligner.BatchSize() << " sequence pairs.";
+        aligner.AlignAll();
 
-        const std::vector<AlignmentResult>& partInternalAlns = aligner->GetAlnResults();
+        const std::vector<AlignmentResult>& partInternalAlns = aligner.GetAlnResults();
 
         int32_t numNotValid = 0;
         for (size_t i = 0; i < partInternalAlns.size(); ++i) {
