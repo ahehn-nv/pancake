@@ -39,10 +39,12 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, Parallel::Fire
     : settings_{settings}
     , gpuStartBandwidth_(gpuStartBandwidth)
     , gpuMaxBandwidth_(gpuMaxBandwidth)
+    , gpuDeviceId_(gpuDeviceId)
+    , gpuMemoryBytes_(gpuMemoryBytes)
     , alignRemainingOnCpu_(alignRemainingOnCpu)
     , faf_{faf}
-    , aligner_{std::make_unique<AlignerBatchGPU>(settings.alnParamsGlobal, gpuStartBandwidth,
-                                                 gpuDeviceId, gpuMemoryBytes)}
+// , aligner_{std::make_unique<AlignerBatchGPU>(settings.alnParamsGlobal, gpuStartBandwidth,
+//                                              gpuDeviceId, gpuMemoryBytes)}
 {
 }
 
@@ -56,15 +58,14 @@ MapperBatchGPU::~MapperBatchGPU()
 std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
-    assert(aligner_);
     return MapAndAlignImpl_(batchData, settings_, alignRemainingOnCpu_, gpuStartBandwidth_,
-                            gpuMaxBandwidth_, *aligner_, faf_);
+                            gpuMaxBandwidth_, gpuDeviceId_, gpuMemoryBytes_, faf_);
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRSettings& settings,
     bool alignRemainingOnCpu, int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
-    AlignerBatchGPU& aligner, Parallel::FireAndForget* faf)
+    uint32_t gpuDeviceId, int64_t gpuMemoryBytes, Parallel::FireAndForget* faf)
 {
     const int32_t numThreads = faf ? faf->NumThreads() : 1;
     // Determine how many records should land in each thread, spread roughly evenly.
@@ -123,6 +124,12 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         PBLOG_TRACE << "partsGlobal.size() = " << partsGlobal.size();
         PBLOG_TRACE << "partsSemiglobal.size() = " << partsSemiglobal.size();
 
+        const int32_t maxAlignments = partsGlobal.size(); // 5000;
+        std::cerr << "maxAlignments = " << maxAlignments << "\n";
+        auto aligner =
+            std::make_unique<AlignerBatchGPU>(settings.alnParamsGlobal, longestSequenceForAln,
+                                              maxAlignments, gpuDeviceId, gpuMemoryBytes);
+
         // Global alignment on GPU. Try using different bandwidths,
         // increasing the bandwidth for the failed parts each iteration.
         std::vector<AlignmentResult> internalAlns;
@@ -133,8 +140,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
 
         while (true) {
             PBLOG_TRACE << "Trying bandwidth: " << currentBandwidth;
-            aligner.ResetMaxBandwidth(gpuMaxBandwidth);
-            numInternalNotValid = AlignPartsOnGPU_(aligner, partsGlobal, internalAlns);
+            aligner->ResetMaxBandwidth(gpuMaxBandwidth);
+            numInternalNotValid = AlignPartsOnGPU_(*aligner, partsGlobal, internalAlns);
             if (numInternalNotValid == 0) {
                 break;
             }

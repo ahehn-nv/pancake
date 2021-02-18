@@ -39,15 +39,16 @@ private:
     int32_t numThreads_;
     int32_t gpuStartBandwidth_;
     int32_t gpuMaxBandwidth_;
+    uint32_t gpuDeviceId_;
+    int64_t gpuMemoryBytes_;
     bool alignRemainingOnCpu_;
     Parallel::FireAndForget* faf_;
     std::unique_ptr<Parallel::FireAndForget> fafFallback_;
-    std::unique_ptr<AlignerBatchGPU> aligner_;
 
     static std::vector<std::vector<MapperBaseResult>> MapAndAlignImpl_(
         const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRSettings& settings,
         bool alignRemainingOnCpu, int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
-        AlignerBatchGPU& aligner, Parallel::FireAndForget* faf);
+        uint32_t gpuDeviceId, int64_t gpuMemoryBytes, Parallel::FireAndForget* faf);
 
     static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
                               int32_t endId, MapperCLR& mapper,
