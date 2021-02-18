@@ -79,10 +79,9 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
     uint32_t deviceId = 0;
     PacBio::Pancake::AlignmentParameters alnParams;
 
-    const double maxMemoryFraction = 0.50;
-    const int32_t maxMemoryCap = 1024 * 1024;
-    auto aligner = PacBio::Pancake::AlignerBatchGPU(alnParams, maxBandwidth, deviceId,
-                                                    maxMemoryFraction, maxMemoryCap);
+    const int32_t maxMemoryCap = 100 * 1024 * 1024;
+    auto aligner =
+        PacBio::Pancake::AlignerBatchGPU(alnParams, maxBandwidth, deviceId, maxMemoryCap);
 
     for (const auto& data : testData) {
         // Debug info.
@@ -113,62 +112,4 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
         ASSERT_EQ(data.expectedAlns, results);
     }
 }
-
-TEST(AlignerBatchGPU, DependencyInjection)
-{
-    using namespace PacBio::Pancake;
-
-    uint32_t gpuMaxBandwidth = 2000;
-    uint32_t gpuDeviceId = 0;
-    PacBio::Pancake::AlignmentParameters alnParams;
-
-    const double gpuMaxFreeMemoryFraction = 0.50;
-    const int64_t gpuMaxMemoryCap = 1024 * 1024;
-
-    // Manually construct the Cudaaligner.
-    const int64_t requestedMemory = std::min(
-        gpuMaxMemoryCap, PacBio::Pancake::ComputeMaxGPUMemory(1, gpuMaxFreeMemoryFraction));
-    cudaStream_t gpuStream;
-    GW_CU_CHECK_ERR(cudaSetDevice(gpuDeviceId));
-    GW_CU_CHECK_ERR(cudaStreamCreate(&gpuStream));
-    claraparabricks::genomeworks::DefaultDeviceAllocator deviceAllocator =
-        claraparabricks::genomeworks::create_default_device_allocator(requestedMemory, gpuStream);
-    auto cudaAligner = claraparabricks::genomeworks::cudaaligner::create_aligner(
-        claraparabricks::genomeworks::cudaaligner::AlignmentType::global_alignment, gpuMaxBandwidth,
-        gpuStream, gpuDeviceId, deviceAllocator, -1);
-
-    // Create the AlignerBatchGPU using dependency injection.
-    std::unique_ptr<AlignerBatchGPU> aligner =
-        std::make_unique<AlignerBatchGPU>(alnParams, std::move(cudaAligner));
-
-    // The rest of the tests are the same as before.
-    for (const auto& data : testData) {
-        // Debug info.
-        SCOPED_TRACE(data.testName);
-        // std::cerr << "testName = " << data.testName << "\n";
-
-        // Reuse the aligner in multiple batches.
-        aligner->Clear();
-
-        for (const auto& seqPair : data.batchData) {
-            const auto& query = seqPair.first;
-            const auto& target = seqPair.second;
-            aligner->AddSequencePair(query.c_str(), query.size(), target.c_str(), target.size());
-        }
-
-        // Run alignment.
-        aligner->AlignAll();
-
-        const std::vector<PacBio::Pancake::AlignmentResult>& results = aligner->GetAlnResults();
-
-        // std::cerr << "results.size() = " << results.size() << "\n";
-        // for (size_t i = 0; i < results.size(); ++i) {
-        //     const auto& aln = results[i];
-        //     std::cerr << "[result " << i << "] " << aln << "\n";
-        // }
-
-        // Evaluate.
-        ASSERT_EQ(data.expectedAlns, results);
-    }
-}
-}
+}  // namespace TestsAlignerBatchGPU

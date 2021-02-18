@@ -28,40 +28,19 @@ int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFract
 }
 
 AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t maxBandwidth,
-                                 uint32_t deviceId, double maxGPUMemoryFraction,
-                                 int64_t maxGPUMemoryCap)
-    : alnParams_(alnParams), aligner_(nullptr), stream_(0), cudaalignerBatches_(1)
+                                 uint32_t deviceId, int64_t maxGPUMemoryCap)
+    : alnParams_(alnParams)
 {
-    GW_CU_CHECK_ERR(cudaSetDevice(deviceId));
-    GW_CU_CHECK_ERR(cudaStreamCreate(&stream_));
-
-    const int64_t requestedMemory =
-        std::min(maxGPUMemoryCap, PacBio::Pancake::ComputeMaxGPUMemory(1, maxGPUMemoryFraction));
-
+    gpuStream_ = claraparabricks::genomeworks::make_cuda_stream();
     aligner_ = claraparabricks::genomeworks::cudaaligner::create_aligner(
         claraparabricks::genomeworks::cudaaligner::AlignmentType::global_alignment, maxBandwidth,
-        stream_, deviceId, requestedMemory);
-}
-
-AlignerBatchGPU::AlignerBatchGPU(
-    const AlignmentParameters& alnParams,
-    std::unique_ptr<claraparabricks::genomeworks::cudaaligner::Aligner> aligner)
-    : alnParams_(alnParams), aligner_(std::move(aligner)), stream_(0), cudaalignerBatches_(1)
-{
-    if (aligner_ == nullptr) {
-        throw std::runtime_error(
-            "Given aligner is nullptr (passed to the constructor "
-            "AlignerBatchGPU::AlignerBatchGPU).");
-    }
+        gpuStream_.get(), deviceId, maxGPUMemoryCap);
 }
 
 AlignerBatchGPU::~AlignerBatchGPU()
 {
     aligner_->reset();
     aligner_.reset();
-    if (stream_ != 0) {
-        GW_CU_CHECK_ERR(cudaStreamDestroy(stream_));
-    }
 }
 
 void AlignerBatchGPU::Clear()
@@ -70,6 +49,11 @@ void AlignerBatchGPU::Clear()
     alnResults_.clear();
     querySpans_.clear();
     targetSpans_.clear();
+}
+
+void AlignerBatchGPU::ResetMaxBandwidth(int32_t maxBandwidth)
+{
+    aligner_->reset_max_bandwidth(maxBandwidth);
 }
 
 StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_t queryLen,

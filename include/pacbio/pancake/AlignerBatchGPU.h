@@ -10,6 +10,7 @@
 #include <claraparabricks/genomeworks/cudaaligner/aligner.hpp>
 #include <claraparabricks/genomeworks/cudaaligner/alignment.hpp>
 #include <claraparabricks/genomeworks/cudaaligner/cudaaligner.hpp>
+#include <claraparabricks/genomeworks/utils/cudautils.hpp>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -23,10 +24,7 @@ class AlignerBatchGPU
 {
 public:
     AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t maxBandwidth, uint32_t deviceId,
-                    double maxGPUMemoryFraction, int64_t maxGPUMemoryCap);
-
-    AlignerBatchGPU(const AlignmentParameters& alnParams,
-                    std::unique_ptr<claraparabricks::genomeworks::cudaaligner::Aligner> aligner);
+                    int64_t maxGPUMemoryCap);
 
     ~AlignerBatchGPU();
 
@@ -34,6 +32,11 @@ public:
      * Clears the internal states (sequences for alignment and results).
     */
     void Clear();
+
+    /*
+     * Reset the cuda aligner to tthe provided maxiumum bandwidth.
+    */
+    void ResetMaxBandwidth(int32_t maxBandwidth);
 
     /*
      * Adds a single sequence pair for alignment to the internal state (modifies the state),
@@ -70,9 +73,8 @@ public:
 
 private:
     AlignmentParameters alnParams_;
-    std::unique_ptr<claraparabricks::genomeworks::cudaaligner::Aligner> aligner_;
-    cudaStream_t stream_;
-    int64_t cudaalignerBatches_;
+    std::unique_ptr<claraparabricks::genomeworks::cudaaligner::FixedBandAligner> aligner_;
+    claraparabricks::genomeworks::CudaStream gpuStream_;
     std::vector<int32_t> querySpans_;
     std::vector<int32_t> targetSpans_;
     std::vector<AlignmentResult> alnResults_;
