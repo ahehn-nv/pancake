@@ -94,13 +94,21 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
     double nextThreshold = 0;
     double subtotal = 0;
     int32_t x = 0;
+    int32_t lastLen = reverseSortedLengths[0];
+    int32_t lastLenId = 0;
     for (int32_t lenId = 0; lenId < static_cast<int32_t>(reverseSortedLengths.size()); ++lenId) {
         subtotal += reverseSortedLengths[lenId];
         while (subtotal >= nextThreshold && x < 101) {
-            ret.Nx[x] = std::make_tuple(x, reverseSortedLengths[lenId], lenId + 1);
+            lastLen = reverseSortedLengths[lenId];
+            lastLenId = lenId;
+            ret.Nx[x] = std::make_tuple(x, lastLen, lastLenId + 1);
             nextThreshold += percStep;
             ++x;
         }
+    }
+    // Fill in any remaining bins.
+    for (int32_t lenId = lastLenId; lenId < 101; ++lenId) {
+        ret.Nx[x] = std::make_tuple(x, lastLen, lastLenId + 1);
     }
 }
 
@@ -158,10 +166,10 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     // Write the output.
     if (settings.HumanReadableOutput) {
         // clang-format off
-        fprintf(stdout, "input\tunit\ttotal\tnum\tmin\tmax\tavg\tmedian\tAUC\tN10\tN10_n\tN25\tN25_n\tN50\tN50_n\tN75\tN75_n\tN90\tN90_n\n");
+        fprintf(stdout, "input\tunit\ttotal\tnum\tmin\tmax\tavg\tmedian\tAUC\tN10\tN10_n\tN25\tN25_n\tN50\tN50_n\tN75\tN75_n\tN90\tN90_n\tN100\tN100_n\n");
 
         fprintf(stdout, "%s\t%s\t%.2lf\t%d\t%.2lf\t%.2lf\t%.2lf\t%.2lf\t%.2lf"
-                        "\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\n",
+                        "\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\n",
                         settings.InputSeqDB.c_str(),
                         GenomicUnitToString(stats.unit).c_str(),
                         stats.totalLength,
@@ -180,14 +188,17 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                         std::get<1>(stats.Nx[75]),
                         std::get<2>(stats.Nx[75]),
                         std::get<1>(stats.Nx[90]),
-                        std::get<2>(stats.Nx[90]));
+                        std::get<2>(stats.Nx[90]),
+                        std::get<1>(stats.Nx[100]),
+                        std::get<2>(stats.Nx[100])
+        );
         // clang-format on
 
     } else {
         PacBio::JSON::Json statsJson = SeqLengthStatsToJson(stats);
         statsJson["total_bytes"] = totalBytes;
-        statsJson["input"] = settings.InputSeqDB;
-        std::cout << statsJson.dump(4) << "\n";
+        // statsJson["input"] = settings.InputSeqDB;
+        std::cout << statsJson.dump(4);
     }
 
     return EXIT_SUCCESS;
