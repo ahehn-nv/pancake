@@ -77,6 +77,7 @@ pancake_lib_deps = [
 if opt_cuda
     add_languages('cuda')
     nvcc = meson.get_compiler('cuda')
+    add_project_arguments('-DGW_ENABLE_CACHING_ALLOCATOR', language : ['cpp', 'cuda'])
     pancake_gw_dep = dependency('genomeworks', fallback : ['genomeworks', 'genomeworks_dep'])
     pancake_lib_deps += [
         pancake_gw_dep,
