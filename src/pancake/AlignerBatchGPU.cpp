@@ -27,6 +27,27 @@ int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFract
     return usableMemoryPerAligner;
 }
 
+int64_t GetMaxDeviceMemory(int64_t maxDeviceMemoryAllocatorCachingSize)
+{
+    if (maxDeviceMemoryAllocatorCachingSize < -1) {
+        throw std::invalid_argument(
+            "maxDeviceMemoryAllocatorCachingSize has to be either -1 (=all available GPU "
+            "memory) or greater or equal than 0.");
+    }
+
+    if (maxDeviceMemoryAllocatorCachingSize >= 0) {
+        return maxDeviceMemoryAllocatorCachingSize;
+    }
+
+    maxDeviceMemoryAllocatorCachingSize =
+        claraparabricks::genomeworks::cudautils::find_largest_contiguous_device_memory_section();
+
+    if (maxDeviceMemoryAllocatorCachingSize == 0) {
+        throw std::runtime_error("No memory available for caching");
+    }
+    return maxDeviceMemoryAllocatorCachingSize;
+}
+
 AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, int32_t maxSeqLen,
                                  int32_t maxAlignments, uint32_t deviceId, int64_t maxGPUMemoryCap)
     : alnParams_(alnParams)
@@ -37,29 +58,8 @@ AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, int32_t m
     //     claraparabricks::genomeworks::cudaaligner::AlignmentType::global_alignment, maxBandwidth,
     //     gpuStream_.get(), deviceId, maxGPUMemoryCap);
 
-    // #ifdef GW_ENABLE_CACHING_ALLOCATOR
-    int64_t max_device_memory_allocator_caching_size = -1;
-    if (max_device_memory_allocator_caching_size < -1) {
-        throw std::invalid_argument(
-            "max_device_memory_allocator_caching_size has to be either -1 (=all available GPU "
-            "memory) or greater or equal than 0.");
-    }
-    // uses CachingDeviceAllocator
-    if (max_device_memory_allocator_caching_size == -1) {
-        max_device_memory_allocator_caching_size =
-            claraparabricks::genomeworks::cudautils::
-                find_largest_contiguous_device_memory_section() *
-            0.90;
-        if (max_device_memory_allocator_caching_size == 0) {
-            throw std::runtime_error("No memory available for caching");
-        }
-    }
-    std::cerr << "max_device_memory_allocator_caching_size = "
-              << max_device_memory_allocator_caching_size / (1024.0 * 1024.0 * 1024.0) << " GB\n";
-    allocator_ = claraparabricks::genomeworks::DefaultDeviceAllocator(
-        max_device_memory_allocator_caching_size);
+    allocator_ = claraparabricks::genomeworks::DefaultDeviceAllocator(maxGPUMemoryCap);
     std::cerr << "After allocator_.\n";
-    // #endif
 
     aligner_ = claraparabricks::genomeworks::cudaaligner::create_aligner(
         maxSeqLen, maxSeqLen, maxAlignments,
