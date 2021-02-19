@@ -19,7 +19,6 @@ namespace PacBio {
 namespace Pancake {
 
 int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFraction);
-int64_t GetMaxDeviceMemory(int64_t maxDeviceMemoryAllocatorCachingSize);
 
 class AlignerBatchGPU
 {

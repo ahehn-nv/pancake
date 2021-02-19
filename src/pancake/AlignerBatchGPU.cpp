@@ -27,27 +27,6 @@ int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFract
     return usableMemoryPerAligner;
 }
 
-int64_t GetMaxDeviceMemory(int64_t maxDeviceMemoryAllocatorCachingSize)
-{
-    if (maxDeviceMemoryAllocatorCachingSize < -1) {
-        throw std::invalid_argument(
-            "maxDeviceMemoryAllocatorCachingSize has to be either -1 (=all available GPU "
-            "memory) or greater or equal than 0.");
-    }
-
-    if (maxDeviceMemoryAllocatorCachingSize >= 0) {
-        return maxDeviceMemoryAllocatorCachingSize;
-    }
-
-    maxDeviceMemoryAllocatorCachingSize =
-        claraparabricks::genomeworks::cudautils::find_largest_contiguous_device_memory_section();
-
-    if (maxDeviceMemoryAllocatorCachingSize == 0) {
-        throw std::runtime_error("No memory available for caching");
-    }
-    return maxDeviceMemoryAllocatorCachingSize;
-}
-
 AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, int32_t maxSeqLen,
                                  int32_t maxAlignments, uint32_t deviceId, int64_t maxGPUMemoryCap)
     : alnParams_(alnParams)
@@ -59,13 +38,11 @@ AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, int32_t m
     //     gpuStream_.get(), deviceId, maxGPUMemoryCap);
 
     allocator_ = claraparabricks::genomeworks::DefaultDeviceAllocator(maxGPUMemoryCap);
-    std::cerr << "After allocator_.\n";
 
     aligner_ = claraparabricks::genomeworks::cudaaligner::create_aligner(
         maxSeqLen, maxSeqLen, maxAlignments,
         claraparabricks::genomeworks::cudaaligner::AlignmentType::global_alignment, allocator_,
         gpuStream_.get(), deviceId);
-    std::cerr << "After aligner_ construction.\n";
 }
 
 AlignerBatchGPU::~AlignerBatchGPU()
@@ -82,7 +59,7 @@ void AlignerBatchGPU::Clear()
     targetSpans_.clear();
 }
 
-void AlignerBatchGPU::ResetMaxBandwidth(int32_t maxBandwidth)
+void AlignerBatchGPU::ResetMaxBandwidth(int32_t /*maxBandwidth*/)
 {
     // aligner_->reset_max_bandwidth(maxBandwidth);
 }
