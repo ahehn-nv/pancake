@@ -147,22 +147,26 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         const int32_t maxBandwidth =
             (gpuMaxBandwidth <= 0) ? (longestSequenceForAln * 2 + 1) : gpuMaxBandwidth;
 
-        while (true) {
-            PBLOG_TRACE << "Trying bandwidth: " << currentBandwidth;
-            aligner->ResetMaxBandwidth(gpuMaxBandwidth);
-            numInternalNotValid = AlignPartsOnGPU_(*aligner, partsGlobal, internalAlns);
-            if (numInternalNotValid == 0) {
-                break;
-            }
-            if (currentBandwidth >= maxBandwidth) {
-                break;
-            }
-            currentBandwidth *= 2;
-            // Ensure that the last bandwidth tried is the maxBandwidth.
-            if (currentBandwidth > maxBandwidth) {
-                currentBandwidth = maxBandwidth;
-            }
-        }
+        PBLOG_TRACE
+            << "Aligning using the AlignerGlobalHirschbergMyers, no bandwidths will be applied.";
+
+        // while (true) {
+        //     PBLOG_TRACE << "Trying bandwidth: " << currentBandwidth;
+        //     aligner->ResetMaxBandwidth(gpuMaxBandwidth);
+        numInternalNotValid = AlignPartsOnGPU_(*aligner, partsGlobal, internalAlns);
+        //     if (numInternalNotValid == 0) {
+        //         break;
+        //     }
+        //     if (currentBandwidth >= maxBandwidth) {
+        //         break;
+        //     }
+        //     currentBandwidth *= 2;
+        //     // Ensure that the last bandwidth tried is the maxBandwidth.
+        //     if (currentBandwidth > maxBandwidth) {
+        //         currentBandwidth = maxBandwidth;
+        //     }
+        // }
+
         // Fallback to the CPU if there are any unaligned parts left.
         if (alignRemainingOnCpu && numInternalNotValid > 0) {
             PBLOG_TRACE << "Trying to align remaining parts on CPU.";
