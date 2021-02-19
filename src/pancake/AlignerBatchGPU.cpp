@@ -75,7 +75,17 @@ StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_
         return rv;
     }
 
-    return AddSequencePair_(query, queryLen, target, targetLen);
+    StatusAddSequencePair rv = AddSequencePair_(query, queryLen, target, targetLen);
+
+    if (rv == StatusAddSequencePair::SEQUENCE_TOO_LONG) {
+        StatusAddSequencePair rv2 = AddSequencePair_("A", 1, "A", 1);
+        querySpans_.back() = queryLen;
+        targetSpans_.back() = targetLen;
+        validInput_.back() = false;
+        return rv2;
+    }
+
+    return rv;
 }
 
 StatusAddSequencePair AlignerBatchGPU::AddSequencePair_(const char* query, int32_t queryLen,
@@ -91,13 +101,12 @@ StatusAddSequencePair AlignerBatchGPU::AddSequencePair_(const char* query, int32
     if (s == claraparabricks::genomeworks::cudaaligner::StatusType::exceeded_max_alignments) {
         return StatusAddSequencePair::EXCEEDED_MAX_ALIGNMENTS;
 
+    } else if (s == claraparabricks::genomeworks::cudaaligner::StatusType::exceeded_max_length) {
+        return StatusAddSequencePair::SEQUENCE_TOO_LONG;
+
     } else if (s == claraparabricks::genomeworks::cudaaligner::StatusType::
-                        exceeded_max_alignment_difference ||
-               s == claraparabricks::genomeworks::cudaaligner::StatusType::exceeded_max_length) {
-        // Do nothing as this case will be handled by CPU aligner.
-        throw std::runtime_error(
-            "Not implemented yet: s == StatusType::exceeded_max_alignment_difference || s == "
-            "StatusType::exceeded_max_length.\n");
+                        exceeded_max_alignment_difference) {
+        throw std::runtime_error("Exceeded max alignment difference!\n");
 
     } else if (s != claraparabricks::genomeworks::cudaaligner::StatusType::success) {
         // fprintf(stderr, "Unknown error in cuda aligner!\n");
@@ -106,6 +115,7 @@ StatusAddSequencePair AlignerBatchGPU::AddSequencePair_(const char* query, int32
     } else {
         querySpans_.emplace_back(queryLen);
         targetSpans_.emplace_back(targetLen);
+        validInput_.emplace_back(true);
         alnResults_.clear();
     }
 
@@ -139,6 +149,11 @@ void AlignerBatchGPU::AlignAll()
             alnRes = EdgeCaseAlignmentResult(querySpans_[i], targetSpans_[i], alnParams_.matchScore,
                                              alnParams_.mismatchPenalty, alnParams_.gapOpen1,
                                              alnParams_.gapExtend1);
+            continue;
+        }
+
+        if (validInput_[i] == false) {
+            alnRes.valid = false;
             continue;
         }
 

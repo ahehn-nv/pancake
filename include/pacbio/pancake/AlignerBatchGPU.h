@@ -77,6 +77,7 @@ private:
     claraparabricks::genomeworks::CudaStream gpuStream_;
     std::vector<int32_t> querySpans_;
     std::vector<int32_t> targetSpans_;
+    std::vector<bool> validInput_;
     std::vector<AlignmentResult> alnResults_;
     claraparabricks::genomeworks::DefaultDeviceAllocator allocator_;
 
