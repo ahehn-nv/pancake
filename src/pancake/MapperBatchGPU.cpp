@@ -124,11 +124,20 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         PBLOG_TRACE << "partsGlobal.size() = " << partsGlobal.size();
         PBLOG_TRACE << "partsSemiglobal.size() = " << partsSemiglobal.size();
 
-        const int32_t maxAlignments = partsGlobal.size(); // 5000;
+        // const int32_t maxAlignments = partsGlobal.size(); // 5000;
+        const int64_t maxDeviceMemoryAllocatorCachingSize = GetMaxDeviceMemory(gpuMemoryBytes);
+        std::cerr << "maxDeviceMemoryAllocatorCachingSize = "
+                  << maxDeviceMemoryAllocatorCachingSize / (1024.0 * 1024.0 * 1024.0) << " GB\n";
+
+        const int64_t maxBytesPerAlignment =
+            1.175 * (17 * longestSequenceForAln + 8 * (longestSequenceForAln + 1) + 512);
+        const int64_t maxAlignments = maxDeviceMemoryAllocatorCachingSize / maxBytesPerAlignment;
+        std::cerr << "longestSequenceForAln = " << longestSequenceForAln << "\n";
+        std::cerr << "maxBytesPerAlignment = " << maxBytesPerAlignment << "\n";
         std::cerr << "maxAlignments = " << maxAlignments << "\n";
-        auto aligner =
-            std::make_unique<AlignerBatchGPU>(settings.alnParamsGlobal, longestSequenceForAln,
-                                              maxAlignments, gpuDeviceId, gpuMemoryBytes);
+        auto aligner = std::make_unique<AlignerBatchGPU>(
+            settings.alnParamsGlobal, longestSequenceForAln, maxAlignments, gpuDeviceId,
+            maxDeviceMemoryAllocatorCachingSize);
 
         // Global alignment on GPU. Try using different bandwidths,
         // increasing the bandwidth for the failed parts each iteration.
