@@ -213,8 +213,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         PBLOG_TRACE << "Total not valid: " << numNotValidFlanks << " / " << flankAlns.size()
                     << "\n";
 
-        StitchAlignments(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
-                         alnStitchInfo);
+        StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
+                                   alnStitchInfo, faf);
 
         UpdateSecondaryAndFilter(results, settings.secondaryAllowedOverlapFractionQuery,
                                  settings.secondaryAllowedOverlapFractionTarget,
