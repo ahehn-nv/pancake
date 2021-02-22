@@ -7,6 +7,7 @@
 #include <pacbio/pancake/AlignerFactory.h>
 #include <pacbio/pancake/Range.h>
 #include <pbbam/Cigar.h>
+#include <pbcopper/parallel/FireAndForget.h>
 #include <claraparabricks/genomeworks/cudaaligner/aligner.hpp>
 #include <claraparabricks/genomeworks/cudaaligner/alignment.hpp>
 #include <claraparabricks/genomeworks/cudaaligner/cudaaligner.hpp>
@@ -23,8 +24,10 @@ int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFract
 class AlignerBatchGPU
 {
 public:
-    AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t maxBandwidth, uint32_t deviceId,
-                    int64_t maxGPUMemoryCap);
+    AlignerBatchGPU(int32_t numThreads, const AlignmentParameters& alnParams, uint32_t maxBandwidth,
+                    uint32_t deviceId, int64_t maxGPUMemoryCap);
+    AlignerBatchGPU(Parallel::FireAndForget* faf, const AlignmentParameters& alnParams,
+                    uint32_t maxBandwidth, uint32_t deviceId, int64_t maxGPUMemoryCap);
 
     ~AlignerBatchGPU();
 
@@ -72,6 +75,9 @@ public:
     size_t BatchSize() const { return querySpans_.size(); }
 
 private:
+    Parallel::FireAndForget* faf_;
+    std::unique_ptr<Parallel::FireAndForget> fafFallback_;
+
     AlignmentParameters alnParams_;
     std::unique_ptr<claraparabricks::genomeworks::cudaaligner::FixedBandAligner> aligner_;
     claraparabricks::genomeworks::CudaStream gpuStream_;
@@ -81,6 +87,13 @@ private:
 
     StatusAddSequencePair AddSequencePair_(const char* query, int32_t queryLen, const char* target,
                                            int32_t targetLen);
+
+    void WorkerConstructAlignmentResult(
+        int32_t jobStart, int32_t jobEnd, const std::vector<int32_t>& querySpans,
+        const std::vector<int32_t>& targetSpans, const AlignmentParameters& alnParams,
+        const std::vector<std::shared_ptr<claraparabricks::genomeworks::cudaaligner::Alignment>>&
+            alignments,
+        std::vector<AlignmentResult>& alnResults);
 
     /*
      * Decodes a single alignment state from the Cudaaligner format to PacBio::Data::CigarOperationType.

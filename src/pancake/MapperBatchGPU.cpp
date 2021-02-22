@@ -25,11 +25,18 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThr
                                int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
                                uint32_t gpuDeviceId, int64_t gpuMemoryBytes,
                                bool alignRemainingOnCpu)
-    : MapperBatchGPU(settings, nullptr, gpuStartBandwidth, gpuMaxBandwidth, gpuDeviceId,
-                     gpuMemoryBytes, alignRemainingOnCpu)
+    : settings_{settings}
+    , gpuStartBandwidth_(gpuStartBandwidth)
+    , gpuMaxBandwidth_(gpuMaxBandwidth)
+    , alignRemainingOnCpu_(alignRemainingOnCpu)
+    , faf_{nullptr}
+    , fafFallback_(nullptr)
+    , aligner_{nullptr}
 {
     fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
     faf_ = fafFallback_.get();
+    aligner_ = std::make_unique<AlignerBatchGPU>(faf_, settings.alnParamsGlobal, gpuStartBandwidth,
+                                                 gpuDeviceId, gpuMemoryBytes);
 }
 
 MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf,
@@ -41,7 +48,8 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, Parallel::Fire
     , gpuMaxBandwidth_(gpuMaxBandwidth)
     , alignRemainingOnCpu_(alignRemainingOnCpu)
     , faf_{faf}
-    , aligner_{std::make_unique<AlignerBatchGPU>(settings.alnParamsGlobal, gpuStartBandwidth,
+    , fafFallback_(nullptr)
+    , aligner_{std::make_unique<AlignerBatchGPU>(faf, settings.alnParamsGlobal, gpuStartBandwidth,
                                                  gpuDeviceId, gpuMemoryBytes)}
 {
 }

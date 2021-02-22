@@ -2,6 +2,7 @@
 
 #include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignerBatchGPU.h>
+#include <pacbio/util/Util.h>
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -27,9 +28,17 @@ int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFract
     return usableMemoryPerAligner;
 }
 
-AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t maxBandwidth,
-                                 uint32_t deviceId, int64_t maxGPUMemoryCap)
-    : alnParams_(alnParams)
+AlignerBatchGPU::AlignerBatchGPU(int32_t numThreads, const AlignmentParameters& alnParams,
+                                 uint32_t maxBandwidth, uint32_t deviceId, int64_t maxGPUMemoryCap)
+    : AlignerBatchGPU(nullptr, alnParams, maxBandwidth, deviceId, maxGPUMemoryCap)
+{
+    fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
+    faf_ = fafFallback_.get();
+}
+
+AlignerBatchGPU::AlignerBatchGPU(Parallel::FireAndForget* faf, const AlignmentParameters& alnParams,
+                                 uint32_t maxBandwidth, uint32_t deviceId, int64_t maxGPUMemoryCap)
+    : faf_{faf}, fafFallback_{nullptr}, alnParams_(alnParams)
 {
     gpuStream_ = claraparabricks::genomeworks::make_cuda_stream();
     aligner_ = claraparabricks::genomeworks::cudaaligner::create_aligner(
@@ -41,6 +50,9 @@ AlignerBatchGPU::~AlignerBatchGPU()
 {
     aligner_->reset();
     aligner_.reset();
+    if (fafFallback_) {
+        fafFallback_->Finalize();
+    }
 }
 
 void AlignerBatchGPU::Clear()
@@ -121,33 +133,56 @@ void AlignerBatchGPU::AlignAll()
             std::string(__func__) + ".");
     }
 
+    // Convert the results to a form we can use downstream.
     alnResults_.resize(querySpans_.size());
 
-    for (size_t i = 0; i < alignments.size(); i++) {
-        auto& alnRes = alnResults_[i];
+    // Determine how many records should land in each thread, spread roughly evenly.
+    const int32_t numRecords = alignments.size();
+    const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
+        PacBio::Pancake::DistributeJobLoad<int32_t>(faf_ ? faf_->NumThreads() : 1, numRecords);
+
+    // Run the mapping in parallel.
+    const auto Submit = [&jobsPerThread, &alignments, this](int32_t i) {
+        const int32_t jobStart = jobsPerThread[i].first;
+        const int32_t jobEnd = jobsPerThread[i].second;
+        WorkerConstructAlignmentResult(jobStart, jobEnd, querySpans_, targetSpans_, alnParams_,
+                                       alignments, alnResults_);
+    };
+    Parallel::Dispatch(faf_, jobsPerThread.size(), Submit);
+}
+
+void AlignerBatchGPU::WorkerConstructAlignmentResult(
+    int32_t jobStart, int32_t jobEnd, const std::vector<int32_t>& querySpans,
+    const std::vector<int32_t>& targetSpans, const AlignmentParameters& alnParams,
+    const std::vector<std::shared_ptr<claraparabricks::genomeworks::cudaaligner::Alignment>>&
+        alignments,
+    std::vector<AlignmentResult>& alnResults)
+{
+    for (int32_t jobId = jobStart; jobId < jobEnd; ++jobId) {
+        auto& alnRes = alnResults[jobId];
 
         // Handle the edge cases which Cudaaligner does not handle properly.
-        if (querySpans_[i] == 0 || targetSpans_[i] == 0) {
-            alnRes = EdgeCaseAlignmentResult(querySpans_[i], targetSpans_[i], alnParams_.matchScore,
-                                             alnParams_.mismatchPenalty, alnParams_.gapOpen1,
-                                             alnParams_.gapExtend1);
+        if (querySpans[jobId] == 0 || targetSpans[jobId] == 0) {
+            alnRes = EdgeCaseAlignmentResult(querySpans[jobId], targetSpans[jobId],
+                                             alnParams.matchScore, alnParams.mismatchPenalty,
+                                             alnParams.gapOpen1, alnParams.gapExtend1);
             continue;
         }
 
-        alnRes.cigar = CudaalignToCigar_(alignments[i]->get_alignment(), alnRes.diffs);
+        alnRes.cigar = CudaalignToCigar_(alignments[jobId]->get_alignment(), alnRes.diffs);
         const int32_t querySpan = alnRes.diffs.numEq + alnRes.diffs.numX + alnRes.diffs.numI;
         const int32_t targetSpan = alnRes.diffs.numEq + alnRes.diffs.numX + alnRes.diffs.numD;
         alnRes.score =
-            ScoreCigarAlignment(alnRes.cigar, alnParams_.matchScore, alnParams_.mismatchPenalty,
-                                alnParams_.gapOpen1, alnParams_.gapExtend1);
-        alnRes.valid = (querySpan == querySpans_[i] && targetSpan == targetSpans_[i] &&
-                        alignments[i]->is_optimal());
+            ScoreCigarAlignment(alnRes.cigar, alnParams.matchScore, alnParams.mismatchPenalty,
+                                alnParams.gapOpen1, alnParams.gapExtend1);
+        alnRes.valid = (querySpan == querySpans[jobId] && targetSpan == targetSpans[jobId] &&
+                        alignments[jobId]->is_optimal());
         alnRes.maxScore = alnRes.score;
         alnRes.zdropped = false;
-        alnRes.lastQueryPos = querySpans_[i];
-        alnRes.lastTargetPos = targetSpans_[i];
-        alnRes.maxQueryPos = querySpans_[i];
-        alnRes.maxTargetPos = targetSpans_[i];
+        alnRes.lastQueryPos = querySpans[jobId];
+        alnRes.lastTargetPos = targetSpans[jobId];
+        alnRes.maxQueryPos = querySpans[jobId];
+        alnRes.maxTargetPos = targetSpans[jobId];
     }
 }
 
