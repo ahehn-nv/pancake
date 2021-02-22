@@ -39,6 +39,9 @@ struct SeqLengthStats
         }
     }
 
+    void ChangeUnitOfLengths(GenomicUnit unit);
+
+private:
     void ScaleLengthsByFactor(double factor)
     {
         totalLength *= factor;
@@ -110,17 +113,6 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
     }
 }
 
-void ConvertStatsToUnit(SeqLengthStats& stats, const GenomicUnit& unit)
-{
-    const double factor1 = ConvertGenomicUnitToBpFactor(stats.unit);
-    stats.ScaleLengthsByFactor(factor1);
-
-    const double factor2 = ConvertBpToGenomicUnitFactor(unit);
-    stats.ScaleLengthsByFactor(factor2);
-
-    stats.unit = unit;
-}
-
 PacBio::JSON::Json SeqLengthStatsToJson(const SeqLengthStats& stats)
 {
     auto result = PacBio::JSON::Json::object();
@@ -134,6 +126,13 @@ PacBio::JSON::Json SeqLengthStatsToJson(const SeqLengthStats& stats)
     result["Nx"] = stats.Nx;
     result["unit"] = GenomicUnitToString(stats.unit);
     return result;
+}
+
+void SeqLengthStats::ChangeUnitOfLengths(GenomicUnit unitNew)
+{
+    const auto converter = GenomicUnitFromTo(unit, unitNew);
+    ScaleLengthsByFactor(converter.conversionFactor_);
+    unit = unitNew;
 }
 
 int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
@@ -159,7 +158,7 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
     ComputeSeqLengthStats(lengths, 0, stats);
 
     // Convert to the desired unit.
-    ConvertStatsToUnit(stats, settings.Unit);
+    stats.ChangeUnitOfLengths(settings.Unit);
 
     // Write the output.
     if (settings.HumanReadableOutput) {

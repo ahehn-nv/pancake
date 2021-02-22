@@ -49,33 +49,36 @@ inline std::string GenomicUnitToString(const GenomicUnit& unit)
     return "Unknown";
 }
 
-inline double ConvertGenomicUnitToBpFactor(const GenomicUnit& sourceUnit)
+inline double EnumToDouble(GenomicUnit unit)
 {
-    if (sourceUnit == GenomicUnit::bp) {
-        return 1.0;
-    } else if (sourceUnit == GenomicUnit::kbp) {
-        return 1000.0;
-    } else if (sourceUnit == GenomicUnit::Mbp) {
-        return 1000000.0;
-    } else if (sourceUnit == GenomicUnit::Gbp) {
-        return 1000000000.0;
+    switch (unit) {
+        case GenomicUnit::bp:
+            return 1.0;
+        case GenomicUnit::kbp:
+            return 1'000.0;
+        case GenomicUnit::Mbp:
+            return 1'000'000.0;
+        case GenomicUnit::Gbp:
+            return 1'000'000'000.0;
+        case GenomicUnit::Unknown:
+        default:
+            return 0.0;
     }
-    return 0.0;
 }
 
-inline double ConvertBpToGenomicUnitFactor(const GenomicUnit& targetUnit)
+class GenomicUnitFromTo
 {
-    if (targetUnit == GenomicUnit::bp) {
-        return 1.0;
-    } else if (targetUnit == GenomicUnit::kbp) {
-        return 1.0 / 1000.0;
-    } else if (targetUnit == GenomicUnit::Mbp) {
-        return 1.0 / 1000000.0;
-    } else if (targetUnit == GenomicUnit::Gbp) {
-        return 1.0 / 1000000000.0;
+public:  // until we update ScaleLengthByFactor() elsewhere
+    double conversionFactor_;
+
+public:
+    GenomicUnitFromTo(GenomicUnit fromUnit, GenomicUnit toUnit)
+        : conversionFactor_(EnumToDouble(fromUnit) / EnumToDouble(toUnit))
+    {
     }
-    return 0.0;
-}
+    double Convert(double fromValue) { return fromValue * conversionFactor_; }
+    //int ConvertInt(int fromValue); // if needed
+};
 
 }  // namespace Pancake
 }  // namespace PacBio
