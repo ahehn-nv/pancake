@@ -73,16 +73,14 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
         ret.totalLength += val;
         ret.nxAUC += val * val;
     }
-    ret.nxAUC = (ret.totalLength == 0) ? 0.0 : ret.nxAUC / static_cast<double>(ret.totalLength);
+    ret.nxAUC = (ret.totalLength == 0) ? 0.0 : ret.nxAUC / ret.totalLength;
 
     // Compute other basic stats.
     ret.unit = GenomicUnit::bp;
     ret.numSeqs = reverseSortedLengths.size();
     ret.lenMin = reverseSortedLengths.back();
     ret.lenMax = reverseSortedLengths.front();
-    ret.lenAvg = (ret.numSeqs == 0)
-                     ? 0
-                     : static_cast<double>(ret.totalLength) / static_cast<double>(ret.numSeqs);
+    ret.lenAvg = (ret.numSeqs == 0) ? 0 : ret.totalLength / static_cast<double>(ret.numSeqs);
     ret.lenMedian = (ret.numSeqs == 0) ? 0
                                        : (reverseSortedLengths[ret.numSeqs / 2] +
                                           reverseSortedLengths[(ret.numSeqs - 1) / 2]) /
