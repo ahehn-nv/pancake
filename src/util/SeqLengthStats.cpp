@@ -5,13 +5,19 @@
 namespace PacBio {
 namespace Pancake {
 
+SeqLengthStats::SeqLengthStats()
+{
+    // Initialize the Nx array to all zeros.
+    Clear();
+}
+
 void SeqLengthStats::Clear()
 {
     totalLength = numSeqs = lenMin = lenMax = 0;
     lenAvg = lenMedian = nxAUC = 0.0;
     unit = GenomicUnit::bp;
     for (size_t i = 0; i < Nx.size(); ++i) {
-        Nx[i] = std::make_tuple(0, 0, 0);
+        Nx[i] = std::make_tuple(i, 0, 0);
     }
 }
 
@@ -87,7 +93,7 @@ void ComputeSeqLengthStats(const std::vector<int32_t>& reverseSortedLengths, int
         }
     }
     // Fill in any remaining bins.
-    for (int32_t lenId = lastLenId; lenId < 101; ++lenId) {
+    for (; x < static_cast<int32_t>(ret.Nx.size()); ++x) {
         ret.Nx[x] = std::make_tuple(x, lastLen, lastLenId + 1);
     }
 }
