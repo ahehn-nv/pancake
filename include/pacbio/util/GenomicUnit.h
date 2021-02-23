@@ -35,18 +35,22 @@ inline GenomicUnit GenomicUnitFromString(const std::string& val)
     return GenomicUnit::Unknown;
 }
 
-inline std::string GenomicUnitToString(const GenomicUnit& unit)
+inline std::string GenomicUnitToString(GenomicUnit unit)
 {
-    if (unit == GenomicUnit::bp) {
-        return "bp";
-    } else if (unit == GenomicUnit::kbp) {
-        return "kbp";
-    } else if (unit == GenomicUnit::Mbp) {
-        return "Mbp";
-    } else if (unit == GenomicUnit::Gbp) {
-        return "Gbp";
+    switch (unit) {
+        case GenomicUnit::bp:
+            return "bp";
+        case GenomicUnit::kbp:
+            return "kbp";
+        case GenomicUnit::Mbp:
+            return "Mbp";
+        case GenomicUnit::Gbp:
+            return "Gbp";
+        case GenomicUnit::Unknown:
+            return "Unknown";
+        default:
+            return "Asdfqwe";
     }
-    return "Unknown";
 }
 
 inline double GenomicUnitToDouble(GenomicUnit unit)
