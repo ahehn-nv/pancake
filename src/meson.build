@@ -41,6 +41,8 @@ pancake_cpp_sources = files([
     'main/seqdb/SeqDBWorkflow.cpp',
     'main/seqdbdump/SeqDBDumpSettings.cpp',
     'main/seqdbdump/SeqDBDumpWorkflow.cpp',
+    'main/seqdbinfo/SeqDBInfoSettings.cpp',
+    'main/seqdbinfo/SeqDBInfoWorkflow.cpp',
     'main/seqfetch/SeqFetchSettings.cpp',
     'main/seqfetch/SeqFetchWorkflow.cpp',
     'pancake/AlignerBase.cpp',
@@ -86,6 +88,7 @@ pancake_cpp_sources = files([
     'pancake/Twobit.cpp',
     'util/FileIO.cpp',
     'util/RunLengthEncoding.cpp',
+    'util/SeqLengthStats.cpp',
     'util/TicToc.cpp',
 ])
 
