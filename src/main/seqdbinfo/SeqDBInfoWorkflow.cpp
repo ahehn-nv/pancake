@@ -169,25 +169,14 @@ int SeqDBInfoWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                         "\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\t%.2lf\t%d\n",
                         settings.InputSeqDB.c_str(),
                         GenomicUnitToString(stats.unit).c_str(),
-                        stats.totalLength,
-                        stats.numSeqs,
-                        stats.lenMin,
-                        stats.lenMax,
-                        stats.lenAvg,
-                        stats.lenMedian,
-                        stats.nxAUC,
-                        std::get<1>(stats.Nx[10]),
-                        std::get<2>(stats.Nx[10]),
-                        std::get<1>(stats.Nx[25]),
-                        std::get<2>(stats.Nx[25]),
-                        std::get<1>(stats.Nx[50]),
-                        std::get<2>(stats.Nx[50]),
-                        std::get<1>(stats.Nx[75]),
-                        std::get<2>(stats.Nx[75]),
-                        std::get<1>(stats.Nx[90]),
-                        std::get<2>(stats.Nx[90]),
-                        std::get<1>(stats.Nx[100]),
-                        std::get<2>(stats.Nx[100])
+                        stats.totalLength, stats.numSeqs, stats.lenMin,
+                        stats.lenMax, stats.lenAvg, stats.lenMedian, stats.nxAUC,
+                        std::get<1>(stats.Nx[10]), std::get<2>(stats.Nx[10]),
+                        std::get<1>(stats.Nx[25]), std::get<2>(stats.Nx[25]),
+                        std::get<1>(stats.Nx[50]), std::get<2>(stats.Nx[50]),
+                        std::get<1>(stats.Nx[75]), std::get<2>(stats.Nx[75]),
+                        std::get<1>(stats.Nx[90]), std::get<2>(stats.Nx[90]),
+                        std::get<1>(stats.Nx[100]), std::get<2>(stats.Nx[100])
         );
         // clang-format on
 
