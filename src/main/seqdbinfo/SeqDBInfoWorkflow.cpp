@@ -131,7 +131,7 @@ PacBio::JSON::Json SeqLengthStatsToJson(const SeqLengthStats& stats)
 void SeqLengthStats::ChangeUnitOfLengths(GenomicUnit unitNew)
 {
     const auto converter = GenomicUnitFromTo(unit, unitNew);
-    ScaleLengthsByFactor(converter.conversionFactor_);
+    ScaleLengthsByFactor(converter.conversionFactor());
     unit = unitNew;
 }
 

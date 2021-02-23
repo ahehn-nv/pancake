@@ -49,7 +49,7 @@ inline std::string GenomicUnitToString(const GenomicUnit& unit)
     return "Unknown";
 }
 
-inline double EnumToDouble(GenomicUnit unit)
+inline double GenomicUnitToDouble(GenomicUnit unit)
 {
     switch (unit) {
         case GenomicUnit::bp:
@@ -68,16 +68,16 @@ inline double EnumToDouble(GenomicUnit unit)
 
 class GenomicUnitFromTo
 {
-public:  // until we update ScaleLengthByFactor() elsewhere
-    double conversionFactor_;
-
 public:
     GenomicUnitFromTo(GenomicUnit fromUnit, GenomicUnit toUnit)
-        : conversionFactor_(EnumToDouble(fromUnit) / EnumToDouble(toUnit))
+        : conversionFactor_(GenomicUnitToDouble(fromUnit) / GenomicUnitToDouble(toUnit))
     {
     }
     double Convert(double fromValue) { return fromValue * conversionFactor_; }
-    //int ConvertInt(int fromValue); // if needed
+    double conversionFactor() const { return conversionFactor_; }
+
+private:  // until we update ScaleLengthByFactor() elsewhere
+    double conversionFactor_;
 };
 
 }  // namespace Pancake
