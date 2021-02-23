@@ -88,6 +88,7 @@ pancake_cpp_sources = files([
     'pancake/Twobit.cpp',
     'util/FileIO.cpp',
     'util/RunLengthEncoding.cpp',
+    'util/SeqLengthStats.cpp',
     'util/TicToc.cpp',
 ])
 

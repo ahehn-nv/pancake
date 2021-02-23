@@ -170,6 +170,7 @@ if not meson.is_subproject()
       'pacbio/util/FileIO.h',
       'pacbio/util/GenomicUnit.h',
       'pacbio/util/RunLengthEncoding.h',
+      'pacbio/util/SeqLengthStats.h',
       'pacbio/util/TicToc.h',
       'pacbio/util/Util.h',
       ]),
