@@ -14,11 +14,11 @@ namespace Pancake {
 
 enum class GenomicUnit
 {
+    Unknown,
     bp,
     kbp,
     Mbp,
     Gbp,
-    Unknown,
 };
 
 inline GenomicUnit GenomicUnitFromString(const std::string& val)
