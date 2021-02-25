@@ -127,6 +127,7 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
     int32_t newTargetEnd = 0;
 
     Alignment::DiffCounts diffs;
+    int32_t score = 0;
 
     for (const auto& part : parts) {
         const auto& region = regionsForAln[part.regionId];
@@ -144,6 +145,7 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
             newQueryEnd = region.qStart + region.qSpan;
             newTargetEnd = region.tStart + region.tSpan;
             diffs += partAln.diffs;
+            score += partAln.score;
 
         } else if (part.regionType == RegionType::BACK) {
             const auto& partAln = flankAlns[part.partId];
@@ -158,6 +160,7 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
             newQueryEnd = region.qStart + partAln.lastQueryPos;
             newTargetEnd = region.tStart + partAln.lastTargetPos;
             diffs += partAln.diffs;
+            score += partAln.score;
 
         } else {
             const auto& partAln = internalAlns[part.partId];
@@ -172,6 +175,7 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
             newQueryEnd = region.qStart + partAln.lastQueryPos;
             newTargetEnd = region.tStart + partAln.lastTargetPos;
             diffs += partAln.diffs;
+            score += partAln.score;
         }
     }
 
@@ -204,7 +208,7 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
     // Set the alignment identity and edit distance.
     // Alignment::DiffCounts diffs = CigarDiffCounts(ret->Cigar);
     diffs.Identity(false, false, ret->Identity, ret->EditDistance);
-    ret->Score = -diffs.numEq;
+    ret->Score = score;
 
     // std::cerr << "Testing: " << OverlapWriterBase::PrintOverlapAsM4(ret, "", "", true, false)
     //           << "\n";
