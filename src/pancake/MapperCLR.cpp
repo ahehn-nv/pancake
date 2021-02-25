@@ -94,7 +94,7 @@ void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId, const ChainedR
         << ", chain.score = " << cr.chain.score << ", chain.covQ = " << cr.chain.coveredBasesQuery
         << ", chain.covT = " << cr.chain.coveredBasesTarget << ", priority = " << cr.priority
         << ", isSuppl = " << (cr.isSupplementary ? "true" : "false")
-        << ", ovl: " << OverlapWriterBase::PrintOverlapAsM4(cr.mapping, "", "", true, false)
+        << ", ovl: " << OverlapWriterBase::PrintOverlapAsM4(*cr.mapping, "", "", true, false)
         << ", diagStart = " << (cr.mapping->Astart - cr.mapping->Bstart)
         << ", diagEnd = " << (cr.mapping->Aend - cr.mapping->Bend);
 
@@ -443,11 +443,11 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
         std::cerr << "[mapping i = " << i << ", before alignment] ovl: "
-                  << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, true) << "\n";
+                  << OverlapWriterBase::PrintOverlapAsM4(*ovl, "", "", true, true) << "\n";
         const auto& updatedOvl = alignedResult.mappings[i]->mapping;
         std::cerr << "[mapping i = " << i << ", after alignment] ovl: ";
         if (updatedOvl != nullptr) {
-            std::cerr << OverlapWriterBase::PrintOverlapAsM4(updatedOvl, "", "", true, true)
+            std::cerr << OverlapWriterBase::PrintOverlapAsM4(*updatedOvl, "", "", true, true)
                       << "\n";
         } else {
             std::cerr << "nullptr\n";
@@ -491,7 +491,7 @@ std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(const ChainedRe
         oss << "(AlignmentSeeded) Provided overlap coordinates do not match the first/last "
                "seed "
                "hit!"
-            << " ovl: " << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false)
+            << " ovl: " << OverlapWriterBase::PrintOverlapAsM4(*ovl, "", "", true, false)
             << "; sortedHits.front() = " << sortedHits.front()
             << "; sortedHits.back() = " << sortedHits.back();
         throw std::runtime_error(oss.str());

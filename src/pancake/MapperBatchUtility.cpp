@@ -210,7 +210,7 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
     diffs.Identity(false, false, ret->Identity, ret->EditDistance);
     ret->Score = score;
 
-    // std::cerr << "Testing: " << OverlapWriterBase::PrintOverlapAsM4(ret, "", "", true, false)
+    // std::cerr << "Testing: " << OverlapWriterBase::PrintOverlapAsM4(*ret, "", "", true, false)
     //           << "\n";
     // std::cerr << "    - qSpan = " << (diffs.numEq + diffs.numX + diffs.numI) << "\n";
     // std::cerr << "    - tSpan = " << (diffs.numEq + diffs.numX + diffs.numD) << "\n";

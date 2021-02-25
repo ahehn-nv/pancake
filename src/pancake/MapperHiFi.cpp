@@ -172,14 +172,14 @@ MapperResult Mapper::MapSingleQuery_(const PacBio::Pancake::FastaSequenceCachedS
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Overlaps after alignment: " << overlaps.size();
     for (const auto& ovl : overlaps) {
-        PBLOG_INFO << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
+        PBLOG_INFO << OverlapWriterBase::PrintOverlapAsM4(*ovl, "", "", true, false);
     }
 #endif
 
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Overlaps after filtering: " << overlaps.size();
     for (const auto& ovl : overlaps) {
-        OverlapWriterBase::PrintOverlapAsM4(stderr, ovl, querySeq.Name(),
+        OverlapWriterBase::PrintOverlapAsM4(stderr, *ovl, querySeq.Name(),
                                             targetSeqs.GetSequence(ovl->Bid).Name(), false, false);
     }
     PBLOG_INFO << "Num anchors: " << overlaps.size();
@@ -299,7 +299,7 @@ std::vector<OverlapPtr> Mapper::FormAnchors_(const std::vector<SeedHit>& sortedH
                       << ", ovl->BSpan() = " << ovl->BSpan() << ", skipSelfHits = " << skipSelfHits
                       << ", ovl->Aid = " << ovl->Aid << ", ovl->Bid = " << ovl->Bid
                       << ", skipSymmetricOverlaps = " << skipSymmetricOverlaps << "\n";
-            std::cerr << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false) << "\n";
+            std::cerr << OverlapWriterBase::PrintOverlapAsM4(*ovl, "", "", true, false) << "\n";
 #endif
 
             // Add a new overlap.
@@ -536,7 +536,7 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(const std::vector<SeedHit>& sorted
                       << ", ovl->BSpan() = " << ovl->BSpan() << ", skipSelfHits = " << skipSelfHits
                       << ", ovl->Aid = " << ovl->Aid << ", ovl->Bid = " << ovl->Bid
                       << ", skipSymmetricOverlaps = " << skipSymmetricOverlaps << "\n";
-            std::cerr << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false) << "\n";
+            std::cerr << OverlapWriterBase::PrintOverlapAsM4(*ovl, "", "", true, false) << "\n";
 #endif
 
             // Add a new overlap.
@@ -701,7 +701,7 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
     for (size_t i = 0; i < overlaps.size(); ++i) {
 #ifdef PANCAKE_DEBUG_ALN
         PBLOG_INFO << "Aligning overlap: [" << i << "] "
-                   << OverlapWriterBase::PrintOverlapAsM4(overlaps[i], "", "", true, false);
+                   << OverlapWriterBase::PrintOverlapAsM4(*overlaps[i], "", "", true, false);
 #endif
         const auto& targetSeq = targetSeqs.GetSequence(overlaps[i]->Bid);
         OverlapPtr newOverlap = AlignOverlap_(
@@ -713,7 +713,7 @@ std::vector<OverlapPtr> Mapper::AlignOverlaps_(
             ret.emplace_back(std::move(newOverlap));
 #ifdef PANCAKE_DEBUG_ALN
             PBLOG_INFO << "After alignment: "
-                       << OverlapWriterBase::PrintOverlapAsM4(overlaps[i], "", "", true, false);
+                       << OverlapWriterBase::PrintOverlapAsM4(*overlaps[i], "", "", true, false);
 #endif
         }
 
@@ -745,7 +745,7 @@ std::vector<OverlapPtr> Mapper::GenerateFlippedOverlaps_(
         if (newOverlapFlipped == nullptr) {
             throw std::runtime_error(
                 "Problem generating the flipped overlap, it's nullptr! Before flipping: " +
-                OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false));
+                OverlapWriterBase::PrintOverlapAsM4(*ovl, "", "", true, false));
         }
 
         ret.emplace_back(std::move(newOverlapFlipped));
@@ -797,7 +797,7 @@ OverlapPtr Mapper::AlignOverlap_(
     }
 
 #ifdef PANCAKE_DEBUG_ALN
-    PBLOG_INFO << "Initial: " << OverlapWriterBase::PrintOverlapAsM4(ovl, "", "", true, false);
+    PBLOG_INFO << "Initial: " << OverlapWriterBase::PrintOverlapAsM4(*ovl, "", "", true, false);
 #endif
 
     OverlapPtr ret = createOverlap(ovl);
@@ -862,7 +862,7 @@ OverlapPtr Mapper::AlignOverlap_(
         PBLOG_INFO << "dMax = " << dMax << ", bandwidth = " << bandwidth;
         PBLOG_INFO << "Right: diffs = " << sesResultRight.numDiffs;
         PBLOG_INFO << "After right: "
-                   << OverlapWriterBase::PrintOverlapAsM4(ret, "", "", true, false);
+                   << OverlapWriterBase::PrintOverlapAsM4*ret, "", "", true, false);
 #endif
     }
 
@@ -950,7 +950,7 @@ OverlapPtr Mapper::AlignOverlap_(
                                         maskHomopolymersArbitrary);
 
 #ifdef PANCAKE_DEBUG_ALN
-    PBLOG_INFO << "Final: " << OverlapWriterBase::PrintOverlapAsM4(ret, "", "", true, false);
+    PBLOG_INFO << "Final: " << OverlapWriterBase::PrintOverlapAsM4(*ret, "", "", true, false);
 #endif
 
     return ret;

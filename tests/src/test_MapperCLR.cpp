@@ -169,11 +169,11 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
         for (const auto& queryMappings : result) {
             for (const auto& mapping : queryMappings.mappings) {
                 std::cerr << PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
-                                 mapping->mapping, "", "", true, false)
+                                 *mapping->mapping, "", "", true, false)
                           << "\n";
 
                 resultsStr.emplace_back(PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
-                    mapping->mapping, "", "", true, false));
+                    *mapping->mapping, "", "", true, false));
             }
         }
 
@@ -188,7 +188,7 @@ void DebugPrintChainedRegion(std::ostream& oss, int32_t regionId,
         << ", chain.score = " << cr.chain.score << ", chain.covQ = " << cr.chain.coveredBasesQuery
         << ", chain.covT = " << cr.chain.coveredBasesTarget << ", priority = " << cr.priority
         << ", isSuppl = " << (cr.isSupplementary ? "true" : "false") << ", ovl: "
-        << PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(cr.mapping, "", "", true, false)
+        << PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(*cr.mapping, "", "", true, false)
         << ", diagStart = " << (cr.mapping->Astart - cr.mapping->Bstart)
         << ", diagEnd = " << (cr.mapping->Aend - cr.mapping->Bend);
 
@@ -299,14 +299,14 @@ TEST(MapperCLR, CheckMappingAndSeedHits)
         for (const auto& queryMappings : result) {
             for (const auto& mapping : queryMappings.mappings) {
                 std::cerr << PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
-                                 mapping->mapping, "", "", true, false)
+                                 *mapping->mapping, "", "", true, false)
                           << "\n";
 
                 // DebugPrintChainedRegion(std::cerr, 0, *mapping);
                 resultSeedHits.emplace_back(mapping->chain.hits);
 
                 resultsMappings.emplace_back(PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
-                    mapping->mapping, "", "", true, false));
+                    *mapping->mapping, "", "", true, false));
             }
         }
 
@@ -474,7 +474,7 @@ TEST(MapperCLR, CondenseMappings)
                     std::make_tuple(nullptr, mapping->priority, mapping->isSupplementary, true));
             } else {
                 results.emplace_back(std::make_tuple(
-                    OverlapWriterBase::PrintOverlapAsM4(mapping->mapping, "", "", true, false),
+                    OverlapWriterBase::PrintOverlapAsM4(*mapping->mapping, "", "", true, false),
                     mapping->priority, mapping->isSupplementary, false));
             }
         }
