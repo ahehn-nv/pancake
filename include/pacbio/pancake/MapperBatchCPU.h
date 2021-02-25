@@ -53,7 +53,8 @@ private:
 void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                               double secondaryAllowedOverlapFractionQuery,
                               double secondaryAllowedOverlapFractionTarget,
-                              double secondaryMinScoreFraction, int32_t bestNSecondary);
+                              double secondaryMinScoreFraction, int32_t bestNSecondary,
+                              Parallel::FireAndForget* faf);
 
 int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
                         const AlignmentParameters& alnParamsGlobal,

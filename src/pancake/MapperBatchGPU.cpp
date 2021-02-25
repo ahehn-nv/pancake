@@ -226,7 +226,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
 
         UpdateSecondaryAndFilter(results, settings.secondaryAllowedOverlapFractionQuery,
                                  settings.secondaryAllowedOverlapFractionTarget,
-                                 settings.secondaryMinScoreFraction, settings.bestNSecondary);
+                                 settings.secondaryMinScoreFraction, settings.bestNSecondary, faf);
     }
 
     return results;
