@@ -6,6 +6,7 @@
 #include <pacbio/pancake/AlignmentSeeded.h>
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/MapperBase.h>
+#include <pbcopper/parallel/FireAndForget.h>
 #include <cstdint>
 #include <string>
 #include <tuple>
@@ -98,6 +99,14 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
                       const std::vector<AlignmentResult>& internalAlns,
                       const std::vector<AlignmentResult>& flankAlns,
                       const std::vector<AlignmentStitchInfo>& alnStitchInfo);
+
+void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
+                                const std::vector<MapperBatchChunk>& batchChunks,
+                                const std::vector<std::vector<std::string>>& querySeqsRev,
+                                const std::vector<AlignmentResult>& internalAlns,
+                                const std::vector<AlignmentResult>& flankAlns,
+                                const std::vector<AlignmentStitchInfo>& alnStitchInfo,
+                                Parallel::FireAndForget* faf);
 
 }  // namespace Pancake
 }  // namespace PacBio

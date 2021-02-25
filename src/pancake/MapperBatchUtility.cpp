@@ -278,5 +278,84 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
     }
 }
 
+void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
+                                const std::vector<MapperBatchChunk>& batchChunks,
+                                const std::vector<std::vector<std::string>>& querySeqsRev,
+                                const std::vector<AlignmentResult>& internalAlns,
+                                const std::vector<AlignmentResult>& flankAlns,
+                                const std::vector<AlignmentStitchInfo>& alnStitchInfo,
+                                Parallel::FireAndForget* faf)
+{
+    // Determine how many records should land in each thread, spread roughly evenly.
+    const int32_t numThreads = faf ? faf->NumThreads() : 1;
+    const int32_t numRecords = alnStitchInfo.size();
+    const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
+        PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
+
+    const auto Submit = [&jobsPerThread, &batchChunks, &querySeqsRev, &internalAlns, &flankAlns,
+                         &alnStitchInfo, &mappingResults](int32_t idx) {
+        const int32_t jobStart = jobsPerThread[idx].first;
+        const int32_t jobEnd = jobsPerThread[idx].second;
+        for (int32_t jobId = jobStart; jobId < jobEnd; ++jobId) {
+            const AlignmentStitchInfo& singleAlnInfo = alnStitchInfo[jobId];
+
+            // Not initialized for some reason, skip it.
+            if (singleAlnInfo.batchId < 0 || singleAlnInfo.queryId < 0 || singleAlnInfo.mapId < 0) {
+                continue;
+            }
+
+            // Sanity check.
+            if (mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
+                    .mappings[singleAlnInfo.mapId] == nullptr) {
+                continue;
+            }
+            auto& mapping = mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
+                                .mappings[singleAlnInfo.mapId];
+
+            // Sanity check.
+            if (mapping->mapping == nullptr) {
+                continue;
+            }
+            auto& aln = mapping->mapping;
+
+            // Do the stitching, and swap.
+            OverlapPtr newAln = StitchSingleAlignment(aln, mapping->regionsForAln, internalAlns,
+                                                      flankAlns, singleAlnInfo.parts);
+
+            {  // Validation of the final alignment.
+                const char* querySeq =
+                    (aln->Brev) ? querySeqsRev[singleAlnInfo.batchId][singleAlnInfo.queryId].c_str()
+                                : batchChunks[singleAlnInfo.batchId]
+                                      .querySeqs[singleAlnInfo.queryId]
+                                      .c_str();
+                const char* targetSeq =
+                    batchChunks[singleAlnInfo.batchId].targetSeqs[aln->Bid].c_str();
+
+                const int32_t qStart = (aln->Brev) ? (aln->Alen - aln->Aend) : aln->Astart;
+                const int32_t tStart = aln->BstartFwd();
+
+                PacBio::BAM::Cigar revCigar;
+                if (aln->Brev) {
+                    revCigar.insert(revCigar.end(), aln->Cigar.rbegin(), aln->Cigar.rend());
+                }
+                PacBio::BAM::Cigar& cigarInStrand = (aln->Brev) ? revCigar : aln->Cigar;
+
+                try {
+                    ValidateCigar(querySeq + qStart, aln->ASpan(), targetSeq + tStart, aln->BSpan(),
+                                  cigarInStrand, "Full length validation, fwd.");
+
+                } catch (std::exception& e) {
+                    PBLOG_DEBUG << "[Note: Exception caused by ValidateCigar in StitchAlignments] "
+                                << e.what() << "\n";
+                    aln = nullptr;
+                }
+            }
+
+            std::swap(aln, newAln);
+        }
+    };
+    Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
+}
+
 }  // namespace Pancake
 }  // namespace PacBio

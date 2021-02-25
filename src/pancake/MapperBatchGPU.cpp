@@ -25,11 +25,18 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThr
                                int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
                                uint32_t gpuDeviceId, int64_t gpuMemoryBytes,
                                bool alignRemainingOnCpu)
-    : MapperBatchGPU(settings, nullptr, gpuStartBandwidth, gpuMaxBandwidth, gpuDeviceId,
-                     gpuMemoryBytes, alignRemainingOnCpu)
+    : settings_{settings}
+    , gpuStartBandwidth_(gpuStartBandwidth)
+    , gpuMaxBandwidth_(gpuMaxBandwidth)
+    , alignRemainingOnCpu_(alignRemainingOnCpu)
+    , faf_{nullptr}
+    , fafFallback_(nullptr)
+    , aligner_{nullptr}
 {
     fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
     faf_ = fafFallback_.get();
+    aligner_ = std::make_unique<AlignerBatchGPU>(faf_, settings.alnParamsGlobal, gpuStartBandwidth,
+                                                 gpuDeviceId, gpuMemoryBytes);
 }
 
 MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf,
@@ -41,7 +48,8 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, Parallel::Fire
     , gpuMaxBandwidth_(gpuMaxBandwidth)
     , alignRemainingOnCpu_(alignRemainingOnCpu)
     , faf_{faf}
-    , aligner_{std::make_unique<AlignerBatchGPU>(settings.alnParamsGlobal, gpuStartBandwidth,
+    , fafFallback_(nullptr)
+    , aligner_{std::make_unique<AlignerBatchGPU>(faf, settings.alnParamsGlobal, gpuStartBandwidth,
                                                  gpuDeviceId, gpuMemoryBytes)}
 {
 }
@@ -59,6 +67,60 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlign(
     assert(aligner_);
     return MapAndAlignImpl_(batchData, settings_, alignRemainingOnCpu_, gpuStartBandwidth_,
                             gpuMaxBandwidth_, *aligner_, faf_);
+}
+
+std::vector<std::vector<std::string>> ComputeReverseComplements(
+    const std::vector<MapperBatchChunk>& batchChunks,
+    const std::vector<std::vector<MapperBaseResult>>& mappingResults, Parallel::FireAndForget* faf)
+{
+    std::vector<std::vector<uint8_t>> shouldReverse(batchChunks.size());
+    for (size_t i = 0; i < batchChunks.size(); ++i) {
+        shouldReverse[i].resize(batchChunks[i].querySeqs.size(), false);
+    }
+
+    // Results are a vector for every chunk (one chunk is one ZMW).
+    for (size_t chunkId = 0; chunkId < mappingResults.size(); ++chunkId) {
+        auto& result = mappingResults[chunkId];
+        // One chunk can have multiple queries (subreads).
+        for (size_t qId = 0; qId < result.size(); ++qId) {
+            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
+                if (result[qId].mappings[mapId] == nullptr ||
+                    result[qId].mappings[mapId]->mapping == nullptr) {
+                    continue;
+                }
+                const OverlapPtr& aln = result[qId].mappings[mapId]->mapping;
+                shouldReverse[chunkId][qId] |= aln->Brev;
+            }
+        }
+    }
+
+    // Determine how many records should land in each thread, spread roughly evenly.
+    const int32_t numThreads = faf ? faf->NumThreads() : 1;
+    const int32_t numRecords = batchChunks.size();
+    const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
+        PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
+
+    std::vector<std::vector<std::string>> querySeqsRev(batchChunks.size());
+
+    const auto Submit = [&batchChunks, &jobsPerThread, &shouldReverse, &querySeqsRev](int32_t idx) {
+        const int32_t jobStart = jobsPerThread[idx].first;
+        const int32_t jobEnd = jobsPerThread[idx].second;
+        for (int32_t chunkId = jobStart; chunkId < jobEnd; ++chunkId) {
+            auto& revSeqs = querySeqsRev[chunkId];
+            for (size_t qId = 0; qId < batchChunks[chunkId].querySeqs.size(); ++qId) {
+                if (shouldReverse[chunkId][qId]) {
+                    const auto& query = batchChunks[chunkId].querySeqs[qId];
+                    revSeqs.emplace_back(
+                        PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size()));
+                } else {
+                    revSeqs.emplace_back("");
+                }
+            }
+        }
+    };
+    Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
+
+    return querySeqsRev;
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
@@ -101,15 +163,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         }
 
         // Compute the reverse complements for alignment.
-        std::vector<std::vector<std::string>> querySeqsRev;
-        for (const auto& chunk : batchChunks) {
-            std::vector<std::string> revSeqs;
-            for (const auto& query : chunk.querySeqs) {
-                revSeqs.emplace_back(
-                    PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size()));
-            }
-            querySeqsRev.emplace_back(std::move(revSeqs));
-        }
+        std::vector<std::vector<std::string>> querySeqsRev =
+            ComputeReverseComplements(batchChunks, results, faf);
 
         PBLOG_TRACE << "Preparing parts for alignment.";
 
@@ -166,12 +221,12 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         PBLOG_TRACE << "Total not valid: " << numNotValidFlanks << " / " << flankAlns.size()
                     << "\n";
 
-        StitchAlignments(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
-                         alnStitchInfo);
+        StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
+                                   alnStitchInfo, faf);
 
         UpdateSecondaryAndFilter(results, settings.secondaryAllowedOverlapFractionQuery,
                                  settings.secondaryAllowedOverlapFractionTarget,
-                                 settings.secondaryMinScoreFraction, settings.bestNSecondary);
+                                 settings.secondaryMinScoreFraction, settings.bestNSecondary, faf);
     }
 
     return results;
