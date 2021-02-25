@@ -32,7 +32,7 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
             // Expected results.
             {
-                "000000000 000000000 -16391 81.12 0 0 18779 18779 0 0 18864 18865 *"
+                "000000000 000000000 16398 81.12 0 0 18779 18779 0 0 18864 18865 *"
             },
         },
         {
@@ -47,7 +47,7 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
             // Expected results.
             {
-                "000000000 000000000 -8049 98.71 0 0 8111 8111 0 0 8138 8138 *"
+                "000000000 000000000 15684 98.71 0 0 8111 8111 0 0 8138 8138 *"
             },
         },
         {
@@ -62,7 +62,7 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, true, 255, true},
             // Expected results.
             {
-                "000000000 000000000 -150 100.00 0 0 150 150 1 0 150 150 *"
+                "000000000 000000000 300 100.00 0 0 150 150 1 0 150 150 *"
             },
         },
         {
@@ -77,7 +77,7 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
             // Expected results.
             {
-                "000000000 000000000 -17688 74.58 0 0 21382 22015 1 701 22028 22028 *"
+                "000000000 000000000 12740 74.58 0 0 21382 22015 1 701 22028 22028 *"
             },
         },
         {
@@ -92,7 +92,7 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, true, 255, true},
             // Expected results.
             {
-                "000000000 000000000 -150 96.77 0 0 155 155 1 0 150 150 *"
+                "000000000 000000000 270 96.77 0 0 155 155 1 0 150 150 *"
             },
         },
         {
@@ -107,7 +107,7 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, true, 255, true},
             // Expected results.
             {
-                "000000000 000000000 -984 71.07 0 0 1241 1241 0 0 1225 1225 *"
+                "000000000 000000000 392 71.07 0 0 1241 1241 0 0 1225 1225 *"
             },
         },
         {
@@ -136,7 +136,7 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
             // Expected results.
             {
-                "000000000 000000000 -1345 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
+                "000000000 000000000 284 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
             },
         },
 
@@ -177,7 +177,7 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             }
         }
 
-        ASSERT_EQ(data.expectedOverlaps, resultsStr);
+        EXPECT_EQ(data.expectedOverlaps, resultsStr);
     }
 }
 
@@ -262,8 +262,8 @@ TEST(MapperCLR, CheckMappingAndSeedHits)
             },
             // Expected mappings.
             {
-                "000000000 000000000 -4710 67.66 0 6209 12358 43446 0 7261 13474 46238 *",
-                "000000000 000000000 -525 71.66 0 5287 5940 43446 0 37146 37820 46238 *",
+                "000000000 000000000 568 67.66 0 6209 12358 43446 0 7261 13474 46238 *",
+                "000000000 000000000 188 71.66 0 5287 5940 43446 0 37146 37820 46238 *",
             },
 
 
