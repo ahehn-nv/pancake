@@ -71,11 +71,11 @@ std::vector<std::vector<std::string>> HelperFormatBatchMappingResults2(
             const auto& queryMappings = resultsForBatchElement[j];
             for (const auto& mapping : queryMappings.mappings) {
                 // std::cerr << PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
-                //                  mapping->mapping, "", "", true, false)
+                //                  *mapping->mapping, "", "", true, false)
                 //           << "\n";
 
                 chunkResults.emplace_back(PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
-                    mapping->mapping, "", "", true, false));
+                    *mapping->mapping, "", "", true, false));
             }
         }
         resultsStr.emplace_back(std::move(chunkResults));

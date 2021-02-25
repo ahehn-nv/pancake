@@ -219,7 +219,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
                 const auto& querySeq = querySeqDBReader.records()[i];
 
                 for (const auto& ovl : result.overlaps) {
-                    writer->Write(ovl, targetSeqDBReader, querySeq);
+                    writer->Write(*ovl, targetSeqDBReader, querySeq);
                 }
             }
 

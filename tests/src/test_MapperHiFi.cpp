@@ -90,12 +90,12 @@ TEST(MapperHiFi, CheckMappping_LoadFromFile)
                 }
                 const auto& mapping = queryMappings.overlaps[i];
 
-                // std::cerr << PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(mapping, "", "",
+                // std::cerr << PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(*mapping, "", "",
                 //                                                                   true, false)
                 //           << "\n";
 
                 resultsStr.emplace_back(PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
-                    mapping, "", "", true, false));
+                    *mapping, "", "", true, false));
             }
         }
 
