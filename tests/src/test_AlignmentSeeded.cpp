@@ -505,7 +505,7 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             false,
             // expectedOvl
             PacBio::Pancake::Overlap(
-                0, 0, -18.0, 0.90, false, 0, 20, 20, false, 0, 20, 20,
+                0, 0, 28, 0.90, false, 0, 20, 20, false, 0, 20, 20,
                 2, 0, OverlapType::Unknown, OverlapType::Unknown,           // editDist, numSeeds, aType, bType
                 PacBio::Data::Cigar("4=1X6=1X8="),                          // cigar
                 "", "", false, false, false                                 // aVars, bVars, isFlipped, isSupplementary, isSecondary
@@ -530,7 +530,7 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             false,
             // expectedOvl
             PacBio::Pancake::Overlap(
-                0, 0, -18.0, 0.90, false, 0, 20, 20, false, 0, 20, 20,
+                0, 0, 28, 0.90, false, 0, 20, 20, false, 0, 20, 20,
                 2, 0, OverlapType::Unknown, OverlapType::Unknown,           // editDist, numSeeds, aType, bType
                 PacBio::Data::Cigar("4=1X6=1X8="),                          // cigar
                 "", "", false, false, false                                 // aVars, bVars, isFlipped, isSupplementary, isSecondary
@@ -555,7 +555,7 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             false,
             // expectedOvl
             PacBio::Pancake::Overlap(
-                0, 0, -18.0, 0.90, false, 0, 20, 20, true, 0, 20, 20,
+                0, 0, 28, 0.90, false, 0, 20, 20, true, 0, 20, 20,
                 2, 0, OverlapType::Unknown, OverlapType::Unknown,           // editDist, numSeeds, aType, bType
                 PacBio::Data::Cigar("8=1X6=1X4="),                          // cigar
                 "", "", false, false, false                                 // aVars, bVars, isFlipped, isSupplementary, isSecondary
@@ -580,7 +580,7 @@ TEST(AlignmentSeeded, AlignmentSeeded_ArrayOfTests)
             false,
             // expectedOvl
             PacBio::Pancake::Overlap(
-                0, 0, -18.0, 0.90, false, 0, 20, 20, true, 0, 20, 20,
+                0, 0, 28, 0.90, false, 0, 20, 20, true, 0, 20, 20,
                 2, 0, OverlapType::Unknown, OverlapType::Unknown,           // editDist, numSeeds, aType, bType
                 PacBio::Data::Cigar("8=1X6=1X4="),                          // cigar
                 "", "", false, false, false                                 // aVars, bVars, isFlipped, isSupplementary, isSecondary
