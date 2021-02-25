@@ -268,6 +268,7 @@ AlignRegionsGenericResult AlignRegionsGeneric(const char* targetSeq, const int32
     }
 
     // Merge the CIGAR chunks.
+    int32_t score = 0;
     for (const auto& alnRegion : alignedRegions) {
         const auto& currCigar = alnRegion.cigar;
         if (currCigar.empty()) {
@@ -279,7 +280,9 @@ AlignRegionsGenericResult AlignRegionsGeneric(const char* targetSeq, const int32
             ret.cigar.back().Length(ret.cigar.back().Length() + currCigar.front().Length());
         }
         ret.cigar.insert(ret.cigar.end(), currCigar.begin() + 1, currCigar.end());
+        score += alnRegion.score;
     }
+    ret.score = score;
 
     return ret;
 }
@@ -342,12 +345,12 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<AlignmentReg
     }
     // Construct the new overlap.
     OverlapPtr ret = createOverlap(ovl);
-    ret->Cigar.clear();
     ret->Astart = globalAlnQueryStart - alns.offsetFrontQuery;
     ret->Aend = globalAlnQueryEnd + alns.offsetBackQuery;
     ret->Bstart = globalAlnTargetStart - alns.offsetFrontTarget;
     ret->Bend = globalAlnTargetEnd + alns.offsetBackTarget;
     ret->Cigar = std::move(alns.cigar);
+    ret->Score = alns.score;
 
     // Reverse the CIGAR and the coordinates if needed.
     if (ovl->Brev) {
@@ -368,7 +371,6 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<AlignmentReg
     // Set the alignment identity and edit distance.
     Alignment::DiffCounts diffs = CigarDiffCounts(ret->Cigar);
     diffs.Identity(false, false, ret->Identity, ret->EditDistance);
-    ret->Score = -diffs.numEq;
 
     const int32_t qstart = ret->Astart;
     const int32_t tstart = ret->Bstart;

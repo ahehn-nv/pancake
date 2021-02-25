@@ -66,6 +66,7 @@ public:
     int32_t offsetBackQuery = 0;
     int32_t offsetFrontTarget = 0;
     int32_t offsetBackTarget = 0;
+    int32_t score = 0;
 };
 
 std::vector<AlignmentRegion> ExtractAlignmentRegions(const std::vector<SeedHit>& inSortedHits,
