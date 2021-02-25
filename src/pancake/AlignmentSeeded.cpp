@@ -385,7 +385,7 @@ OverlapPtr AlignmentSeeded(const OverlapPtr& ovl, const std::vector<AlignmentReg
     } catch (std::exception& e) {
         // std::cerr << "[Note: Exception when aligning!] " << e.what() << "\n";
         // std::cerr << "Input overlap: "
-        //           << OverlapWriterBase::PrintOverlapAsM4(*ovl, "", "", true, true) << "\n";
+        //           << *ovl << "\n";
         // std::cerr << "ASpan = " << ret->ASpan() << ", BSpan = " << ret->BSpan() << "\n";
         // std::cerr << "Q: " << std::string(querySeqFwd, queryLen) << "\n";
         // std::cerr << "T: " << targetSeqForValidation << "\n";
