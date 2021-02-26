@@ -361,5 +361,59 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
     Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
 }
 
+std::vector<std::vector<std::string>> ComputeReverseComplements(
+    const std::vector<MapperBatchChunk>& batchChunks,
+    const std::vector<std::vector<MapperBaseResult>>& mappingResults, Parallel::FireAndForget* faf)
+{
+    std::vector<std::vector<uint8_t>> shouldReverse(batchChunks.size());
+    for (size_t i = 0; i < batchChunks.size(); ++i) {
+        shouldReverse[i].resize(batchChunks[i].querySeqs.size(), false);
+    }
+
+    // Results are a vector for every chunk (one chunk is one ZMW).
+    for (size_t chunkId = 0; chunkId < mappingResults.size(); ++chunkId) {
+        auto& result = mappingResults[chunkId];
+        // One chunk can have multiple queries (subreads).
+        for (size_t qId = 0; qId < result.size(); ++qId) {
+            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
+                if (result[qId].mappings[mapId] == nullptr ||
+                    result[qId].mappings[mapId]->mapping == nullptr) {
+                    continue;
+                }
+                const OverlapPtr& aln = result[qId].mappings[mapId]->mapping;
+                shouldReverse[chunkId][qId] |= aln->Brev;
+            }
+        }
+    }
+
+    // Determine how many records should land in each thread, spread roughly evenly.
+    const int32_t numThreads = faf ? faf->NumThreads() : 1;
+    const int32_t numRecords = batchChunks.size();
+    const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
+        PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
+
+    std::vector<std::vector<std::string>> querySeqsRev(batchChunks.size());
+
+    const auto Submit = [&batchChunks, &jobsPerThread, &shouldReverse, &querySeqsRev](int32_t idx) {
+        const int32_t jobStart = jobsPerThread[idx].first;
+        const int32_t jobEnd = jobsPerThread[idx].second;
+        for (int32_t chunkId = jobStart; chunkId < jobEnd; ++chunkId) {
+            auto& revSeqs = querySeqsRev[chunkId];
+            for (size_t qId = 0; qId < batchChunks[chunkId].querySeqs.size(); ++qId) {
+                if (shouldReverse[chunkId][qId]) {
+                    const auto& query = batchChunks[chunkId].querySeqs[qId];
+                    revSeqs.emplace_back(
+                        PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size()));
+                } else {
+                    revSeqs.emplace_back("");
+                }
+            }
+        }
+    };
+    Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
+
+    return querySeqsRev;
+}
+
 }  // namespace Pancake
 }  // namespace PacBio
