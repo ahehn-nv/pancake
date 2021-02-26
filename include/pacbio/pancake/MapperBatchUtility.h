@@ -108,6 +108,10 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                                 const std::vector<AlignmentStitchInfo>& alnStitchInfo,
                                 Parallel::FireAndForget* faf);
 
+std::vector<std::vector<std::string>> ComputeReverseComplements(
+    const std::vector<MapperBatchChunk>& batchChunks,
+    const std::vector<std::vector<MapperBaseResult>>& mappingResults, Parallel::FireAndForget* faf);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
