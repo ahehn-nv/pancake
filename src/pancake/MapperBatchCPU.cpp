@@ -113,15 +113,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
 
     if (settings.align) {
         // Compute the reverse complements for alignment.
-        std::vector<std::vector<std::string>> querySeqsRev;
-        for (const auto& chunk : batchChunks) {
-            std::vector<std::string> revSeqs;
-            for (const auto& query : chunk.querySeqs) {
-                revSeqs.emplace_back(
-                    PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size()));
-            }
-            querySeqsRev.emplace_back(std::move(revSeqs));
-        }
+        std::vector<std::vector<std::string>> querySeqsRev =
+            ComputeReverseComplements(batchChunks, results, faf);
 
         // Prepare the sequences for alignment.
         std::vector<PairForBatchAlignment> partsGlobal;
@@ -147,8 +140,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
                         flankAlns);
         PBLOG_TRACE << "flankAlns.size() = " << flankAlns.size();
 
-        StitchAlignments(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
-                         alnStitchInfo);
+        StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
+                                   alnStitchInfo, faf);
 
         UpdateSecondaryAndFilter(results, settings.secondaryAllowedOverlapFractionQuery,
                                  settings.secondaryAllowedOverlapFractionTarget,
