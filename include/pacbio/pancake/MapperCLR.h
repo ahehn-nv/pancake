@@ -88,7 +88,7 @@ class MapperCLRSettings
 {
 public:
     MapperCLRMapSettings map;
-    MapperCLRAlignSettings aln;
+    MapperCLRAlignSettings align;
 };
 // clang-format on
 
@@ -150,7 +150,7 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRAlignSettings&
 
 inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
 {
-    out << a.map << a.aln;
+    out << a.map << a.align;
     return out;
 }
 

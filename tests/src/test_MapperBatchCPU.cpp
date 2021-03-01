@@ -60,10 +60,9 @@ void HelperLoadBatchData(
         }
 
         // Set the seed parameter settings and create a mapper.
-        bd.settings.freqPercentile = freqPercentile;
-        bd.settings.seedParams = seedParamsPrimary;
-        bd.settings.seedParamsFallback = seedParamsFallback;
-        bd.settings.alignerTypeGlobal = alignerTypeGlobal;
+        bd.mapSettings.freqPercentile = freqPercentile;
+        bd.mapSettings.seedParams = seedParamsPrimary;
+        bd.mapSettings.seedParamsFallback = seedParamsFallback;
 
         retBatchData.emplace_back(std::move(bd));
     }
@@ -222,9 +221,9 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
                             data.alignerTypeGlobal, batchData, allSeqs);
 
         // Set the seed parameter settings and create a mapper.
-        PacBio::Pancake::MapperCLRSettings settings;
-        settings.alignerTypeGlobal = data.alignerTypeGlobal;
-        PacBio::Pancake::MapperBatchCPU mapper(settings, 1);
+        PacBio::Pancake::MapperCLRAlignSettings alignSettings;
+        alignSettings.alignerTypeGlobal = data.alignerTypeGlobal;
+        PacBio::Pancake::MapperBatchCPU mapper(alignSettings, 1);
 
         // Run the unit under test.
         // std::vector<std::vector<MapperBaseResult>> results = mapper.DummyMapAndAlign(batchData);

@@ -21,7 +21,7 @@ struct MapperBatchChunk
 {
     std::vector<FastaSequenceCached> targetSeqs;
     std::vector<FastaSequenceCached> querySeqs;
-    MapperCLRSettings settings;
+    MapperCLRMapSettings mapSettings;
 };
 
 enum class BatchAlignerRegionType

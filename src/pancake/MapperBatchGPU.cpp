@@ -21,11 +21,11 @@
 namespace PacBio {
 namespace Pancake {
 
-MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThreads,
+MapperBatchGPU::MapperBatchGPU(const MapperCLRAlignSettings& alignSettings, int32_t numThreads,
                                int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
                                uint32_t gpuDeviceId, int64_t gpuMemoryBytes,
                                bool alignRemainingOnCpu)
-    : settings_{settings}
+    : alignSettings_{alignSettings}
     , gpuStartBandwidth_(gpuStartBandwidth)
     , gpuMaxBandwidth_(gpuMaxBandwidth)
     , alignRemainingOnCpu_(alignRemainingOnCpu)
@@ -35,22 +35,22 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThr
 {
     fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
     faf_ = fafFallback_.get();
-    aligner_ = std::make_unique<AlignerBatchGPU>(faf_, settings.alnParamsGlobal, gpuStartBandwidth,
-                                                 gpuDeviceId, gpuMemoryBytes);
+    aligner_ = std::make_unique<AlignerBatchGPU>(faf_, alignSettings.alnParamsGlobal,
+                                                 gpuStartBandwidth, gpuDeviceId, gpuMemoryBytes);
 }
 
-MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf,
-                               int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
-                               uint32_t gpuDeviceId, int64_t gpuMemoryBytes,
-                               bool alignRemainingOnCpu)
-    : settings_{settings}
+MapperBatchGPU::MapperBatchGPU(const MapperCLRAlignSettings& alignSettings,
+                               Parallel::FireAndForget* faf, int32_t gpuStartBandwidth,
+                               int32_t gpuMaxBandwidth, uint32_t gpuDeviceId,
+                               int64_t gpuMemoryBytes, bool alignRemainingOnCpu)
+    : alignSettings_{alignSettings}
     , gpuStartBandwidth_(gpuStartBandwidth)
     , gpuMaxBandwidth_(gpuMaxBandwidth)
     , alignRemainingOnCpu_(alignRemainingOnCpu)
     , faf_{faf}
     , fafFallback_(nullptr)
-    , aligner_{std::make_unique<AlignerBatchGPU>(faf, settings.alnParamsGlobal, gpuStartBandwidth,
-                                                 gpuDeviceId, gpuMemoryBytes)}
+    , aligner_{std::make_unique<AlignerBatchGPU>(faf, alignSettings.alnParamsGlobal,
+                                                 gpuStartBandwidth, gpuDeviceId, gpuMemoryBytes)}
 {
 }
 
@@ -65,12 +65,12 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
     assert(aligner_);
-    return MapAndAlignImpl_(batchData, settings_, alignRemainingOnCpu_, gpuStartBandwidth_,
+    return MapAndAlignImpl_(batchData, alignSettings_, alignRemainingOnCpu_, gpuStartBandwidth_,
                             gpuMaxBandwidth_, *aligner_, faf_);
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
-    const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRSettings& settings,
+    const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRAlignSettings& alignSettings,
     bool alignRemainingOnCpu, int32_t gpuStartBandwidth, int32_t gpuMaxBandwidth,
     AlignerBatchGPU& aligner, Parallel::FireAndForget* faf)
 {
@@ -91,7 +91,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
     Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
 
     // Align the mappings if required.
-    if (settings.align) {
+    if (alignSettings.align) {
         // Sanity check.
         if (gpuStartBandwidth <= 0) {
             throw std::runtime_error(
@@ -142,9 +142,10 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         // Fallback to the CPU if there are any unaligned parts left.
         if (alignRemainingOnCpu && numInternalNotValid > 0) {
             PBLOG_TRACE << "Trying to align remaining parts on CPU.";
-            const int32_t numNotValidInternal = AlignPartsOnCpu(
-                settings.alignerTypeGlobal, settings.alnParamsGlobal, settings.alignerTypeExt,
-                settings.alnParamsExt, partsGlobal, faf, internalAlns);
+            const int32_t numNotValidInternal =
+                AlignPartsOnCpu(alignSettings.alignerTypeGlobal, alignSettings.alnParamsGlobal,
+                                alignSettings.alignerTypeExt, alignSettings.alnParamsExt,
+                                partsGlobal, faf, internalAlns);
             PBLOG_TRACE << "Total not valid: " << numNotValidInternal << " / "
                         << internalAlns.size() << "\n";
         }
@@ -152,9 +153,10 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
 
         // Flank alignment on CPU.
         std::vector<AlignmentResult> flankAlns;
-        const int32_t numNotValidFlanks = AlignPartsOnCpu(
-            settings.alignerTypeGlobal, settings.alnParamsGlobal, settings.alignerTypeExt,
-            settings.alnParamsExt, partsSemiglobal, faf, flankAlns);
+        const int32_t numNotValidFlanks =
+            AlignPartsOnCpu(alignSettings.alignerTypeGlobal, alignSettings.alnParamsGlobal,
+                            alignSettings.alignerTypeExt, alignSettings.alnParamsExt,
+                            partsSemiglobal, faf, flankAlns);
         PBLOG_TRACE << "Total not valid: " << numNotValidFlanks << " / " << flankAlns.size()
                     << "\n";
 
@@ -175,8 +177,9 @@ void MapperBatchGPU::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChu
         const auto& chunk = batchChunks[i];
 
         // Create a copy of the settings so that we can turn off the alignment.
-        MapperCLRSettings settingsCopy = chunk.settings;
-        settingsCopy.align = false;
+        MapperCLRSettings settingsCopy;
+        settingsCopy.map = chunk.mapSettings;
+        settingsCopy.align.align = false;
 
         // Create the mapper.
         MapperCLR mapper(settingsCopy);

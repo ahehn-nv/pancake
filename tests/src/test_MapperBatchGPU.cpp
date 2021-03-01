@@ -60,10 +60,9 @@ void HelperLoadBatchData2(
         }
 
         // Set the seed parameter settings and create a mapper.
-        bd.settings.freqPercentile = freqPercentile;
-        bd.settings.seedParams = seedParamsPrimary;
-        bd.settings.seedParamsFallback = seedParamsFallback;
-        bd.settings.alignerTypeGlobal = alignerTypeGlobal;
+        bd.mapSettings.freqPercentile = freqPercentile;
+        bd.mapSettings.seedParams = seedParamsPrimary;
+        bd.mapSettings.seedParamsFallback = seedParamsFallback;
 
         retBatchData.emplace_back(std::move(bd));
     }
@@ -215,9 +214,8 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
                              data.alignerTypeGlobal, batchData, allSeqs);
 
         // Set the alignment apar
-        PacBio::Pancake::MapperCLRSettings settings;
-        settings.freqPercentile = 0.000;
-        settings.alignerTypeGlobal = data.alignerTypeGlobal;
+        PacBio::Pancake::MapperCLRAlignSettings alignSettings;
+        alignSettings.alignerTypeGlobal = data.alignerTypeGlobal;
 
         const uint32_t gpuDeviceId = 0;
         const int64_t gpuMaxMemoryCap =
@@ -226,8 +224,9 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
         const int32_t startBandwidth = 500;
         const int32_t maxBandwidth = 2000;
         bool alignRemainingOnCpu = false;
-        PacBio::Pancake::MapperBatchGPU mapper(settings, numThreads, startBandwidth, maxBandwidth,
-                                               gpuDeviceId, gpuMaxMemoryCap, alignRemainingOnCpu);
+        PacBio::Pancake::MapperBatchGPU mapper(alignSettings, numThreads, startBandwidth,
+                                               maxBandwidth, gpuDeviceId, gpuMaxMemoryCap,
+                                               alignRemainingOnCpu);
 
         // Run the unit under test.
         // std::vector<std::vector<MapperBaseResult>> results = mapper.DummyMapAndAlign(batchData);

@@ -110,8 +110,9 @@ void MapperBatchCPU::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChu
         const auto& chunk = batchChunks[i];
 
         // Create a copy of the settings so that we can turn off the alignment.
-        MapperCLRSettings settingsCopy = chunk.settings;
-        settingsCopy.align = false;
+        MapperCLRSettings settingsCopy;
+        settingsCopy.map = chunk.mapSettings;
+        settingsCopy.align.align = false;
 
         // Create the mapper.
         MapperCLR mapper(settingsCopy);
@@ -151,7 +152,7 @@ void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappin
 {
     // Results are a vector for every chunk (one chunk is one ZMW).
     const auto Submit = [&](int32_t resultId) {
-        const auto& settings = batchChunks[resultId].settings;
+        const auto& settings = batchChunks[resultId].mapSettings;
         auto& result = mappingResults[resultId];
         // One chunk can have multiple queries (subreads).
         for (size_t qId = 0; qId < result.size(); ++qId) {

@@ -30,7 +30,7 @@ public:
         const std::vector<MapperBatchChunk>& batchData) override;
 
 private:
-    MapperCLRSettings alignSettings_;
+    MapperCLRAlignSettings alignSettings_;
     Parallel::FireAndForget* faf_;
     std::unique_ptr<Parallel::FireAndForget> fafFallback_;
 
