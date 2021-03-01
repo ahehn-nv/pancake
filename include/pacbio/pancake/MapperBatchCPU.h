@@ -34,10 +34,6 @@ private:
     Parallel::FireAndForget* faf_;
     std::unique_ptr<Parallel::FireAndForget> fafFallback_;
 
-    static std::vector<std::vector<MapperBaseResult>> DummyMapAndAlignImpl_(
-        const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
-        Parallel::FireAndForget* faf);
-
     static std::vector<std::vector<MapperBaseResult>> MapAndAlignImpl_(
         const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
         Parallel::FireAndForget* faf);

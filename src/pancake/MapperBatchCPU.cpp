@@ -37,12 +37,6 @@ MapperBatchCPU::~MapperBatchCPU()
     }
 }
 
-std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::DummyMapAndAlign(
-    const std::vector<MapperBatchChunk>& batchData)
-{
-    return DummyMapAndAlignImpl_(batchData, settings_, faf_);
-}
-
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
