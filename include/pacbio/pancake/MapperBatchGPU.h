@@ -50,8 +50,7 @@ private:
         AlignerBatchGPU& aligner, Parallel::FireAndForget* faf);
 
     static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
-                              int32_t endId, MapperCLR& mapper,
-                              std::vector<std::vector<MapperBaseResult>>& results);
+                              int32_t endId, std::vector<std::vector<MapperBaseResult>>& results);
 
     static int32_t AlignPartsOnGPU_(AlignerBatchGPU& aligner,
                                     const std::vector<PairForBatchAlignment>& parts,

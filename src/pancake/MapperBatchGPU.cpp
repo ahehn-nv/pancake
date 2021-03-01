@@ -80,22 +80,13 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
     const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
         PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
 
-    // Create a mapper for each thread.
-    MapperCLRSettings settingsCopy = settings;
-    settingsCopy.align = false;
-    std::vector<std::unique_ptr<MapperCLR>> mappers;
-    for (size_t i = 0; i < jobsPerThread.size(); ++i) {
-        auto mapper = std::make_unique<MapperCLR>(settingsCopy);
-        mappers.emplace_back(std::move(mapper));
-    }
-
     // Run the mapping in parallel.
     std::vector<std::vector<MapperBaseResult>> results(batchChunks.size());
 
-    const auto Submit = [&batchChunks, &mappers, &jobsPerThread, &results](int32_t idx) {
+    const auto Submit = [&batchChunks, &jobsPerThread, &results](int32_t idx) {
         const int32_t jobStart = jobsPerThread[idx].first;
         const int32_t jobEnd = jobsPerThread[idx].second;
-        WorkerMapper_(batchChunks, jobStart, jobEnd, *mappers[idx], results);
+        WorkerMapper_(batchChunks, jobStart, jobEnd, results);
     };
     Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
 
@@ -179,11 +170,19 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
 }
 
 void MapperBatchGPU::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks,
-                                   int32_t startId, int32_t endId, MapperCLR& mapper,
+                                   int32_t startId, int32_t endId,
                                    std::vector<std::vector<MapperBaseResult>>& results)
 {
     for (int32_t i = startId; i < endId; ++i) {
         const auto& chunk = batchChunks[i];
+
+        // Create a copy of the settings so that we can turn off the alignment.
+        MapperCLRSettings settingsCopy = chunk.settings;
+        settingsCopy.align = false;
+
+        // Create the mapper.
+        MapperCLR mapper(settingsCopy);
+
         results[i] = mapper.MapAndAlign(chunk.targetSeqs, chunk.querySeqs);
     }
 }

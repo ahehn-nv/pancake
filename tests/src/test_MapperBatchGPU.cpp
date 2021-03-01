@@ -7,6 +7,9 @@
 
 void HelperLoadBatchData2(
     const std::vector<std::pair<std::string, std::string>>& batchDataSequenceFiles,
+    const double freqPercentile, const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsPrimary,
+    const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsFallback,
+    const PacBio::Pancake::AlignerType alignerTypeGlobal,
     std::vector<PacBio::Pancake::MapperBatchChunk>& retBatchData,
     std::vector<PacBio::BAM::FastaSequence>& retAllSeqs)
 {
@@ -55,6 +58,12 @@ void HelperLoadBatchData2(
                 retAllSeqs.back().Bases().size(), seqId);
             bd.querySeqs.emplace_back(std::move(newFsc));
         }
+
+        // Set the seed parameter settings and create a mapper.
+        bd.settings.freqPercentile = freqPercentile;
+        bd.settings.seedParams = seedParamsPrimary;
+        bd.settings.seedParamsFallback = seedParamsFallback;
+        bd.settings.alignerTypeGlobal = alignerTypeGlobal;
 
         retBatchData.emplace_back(std::move(bd));
     }
@@ -202,13 +211,12 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
         // a vector of target-query filename pairs.
         std::vector<MapperBatchChunk> batchData;
         std::vector<PacBio::BAM::FastaSequence> allSeqs;
-        HelperLoadBatchData2(data.batchData, batchData, allSeqs);
+        HelperLoadBatchData2(data.batchData, 0.000, data.seedParamsPrimary, data.seedParamsFallback,
+                             data.alignerTypeGlobal, batchData, allSeqs);
 
-        // Set the seed parameter settings and create a mapper.
+        // Set the alignment apar
         PacBio::Pancake::MapperCLRSettings settings;
         settings.freqPercentile = 0.000;
-        settings.seedParams = data.seedParamsPrimary;
-        settings.seedParamsFallback = data.seedParamsFallback;
         settings.alignerTypeGlobal = data.alignerTypeGlobal;
 
         const uint32_t gpuDeviceId = 0;
