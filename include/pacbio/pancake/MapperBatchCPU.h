@@ -26,9 +26,6 @@ public:
 
     ~MapperBatchCPU();
 
-    std::vector<std::vector<MapperBaseResult>> DummyMapAndAlign(
-        const std::vector<MapperBatchChunk>& batchData);
-
     std::vector<std::vector<MapperBaseResult>> MapAndAlign(
         const std::vector<MapperBatchChunk>& batchData) override;
 

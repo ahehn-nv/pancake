@@ -49,39 +49,6 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlign(
     return MapAndAlignImpl_(batchData, settings_, faf_);
 }
 
-std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::DummyMapAndAlignImpl_(
-    const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
-    Parallel::FireAndForget* /*faf*/)
-{
-    std::vector<std::vector<MapperBaseResult>> results;
-    results.reserve(batchChunks.size());
-
-    // Deactivate alignment for the mapper.
-    MapperCLRSettings settingsCopy = settings;
-    settingsCopy.align = false;
-    auto mapper = std::make_unique<MapperCLR>(settingsCopy);
-
-    // Map.
-    for (size_t i = 0; i < batchChunks.size(); ++i) {
-        const auto& chunk = batchChunks[i];
-        std::vector<MapperBaseResult> result =
-            mapper->MapAndAlign(chunk.targetSeqs, chunk.querySeqs);
-        results.emplace_back(std::move(result));
-    }
-
-    if (settings.align) {
-        for (size_t i = 0; i < results.size(); ++i) {
-            auto& result = results[i];
-            const auto& chunk = batchChunks[i];
-            for (size_t qId = 0; qId < result.size(); ++qId) {
-                result[qId] = mapper->Align(chunk.targetSeqs, chunk.querySeqs[qId], result[qId]);
-            }
-        }
-    }
-
-    return results;
-}
-
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
     Parallel::FireAndForget* faf)
