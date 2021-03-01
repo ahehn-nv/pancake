@@ -46,8 +46,7 @@ private:
         Parallel::FireAndForget* faf);
 
     static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
-                              int32_t endId, const std::unique_ptr<MapperCLR>& mapper,
-                              std::vector<std::vector<MapperBaseResult>>& results);
+                              int32_t endId, std::vector<std::vector<MapperBaseResult>>& results);
 };
 
 void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappingResults,
