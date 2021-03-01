@@ -21,8 +21,8 @@ namespace Pancake {
 class MapperBatchCPU : public MapperBatchBase
 {
 public:
-    MapperBatchCPU(const MapperCLRSettings& settings, int32_t numThreads);
-    MapperBatchCPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf);
+    MapperBatchCPU(const MapperCLRAlignSettings& alignSettings, int32_t numThreads);
+    MapperBatchCPU(const MapperCLRAlignSettings& alignSettings, Parallel::FireAndForget* faf);
 
     ~MapperBatchCPU();
 
@@ -30,13 +30,13 @@ public:
         const std::vector<MapperBatchChunk>& batchData) override;
 
 private:
-    MapperCLRSettings settings_;
+    MapperCLRSettings alignSettings_;
     Parallel::FireAndForget* faf_;
     std::unique_ptr<Parallel::FireAndForget> fafFallback_;
 
     static std::vector<std::vector<MapperBaseResult>> MapAndAlignImpl_(
-        const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
-        Parallel::FireAndForget* faf);
+        const std::vector<MapperBatchChunk>& batchChunks,
+        const MapperCLRAlignSettings& alignSettings, Parallel::FireAndForget* faf);
 
     static void WorkerMapper_(const std::vector<MapperBatchChunk>& batchChunks, int32_t startId,
                               int32_t endId, std::vector<std::vector<MapperBaseResult>>& results);

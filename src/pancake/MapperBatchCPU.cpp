@@ -18,15 +18,16 @@
 namespace PacBio {
 namespace Pancake {
 
-MapperBatchCPU::MapperBatchCPU(const MapperCLRSettings& settings, int32_t numThreads)
-    : MapperBatchCPU{settings, nullptr}
+MapperBatchCPU::MapperBatchCPU(const MapperCLRAlignSettings& alignSettings, int32_t numThreads)
+    : MapperBatchCPU{alignSettings, nullptr}
 {
     fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
     faf_ = fafFallback_.get();
 }
 
-MapperBatchCPU::MapperBatchCPU(const MapperCLRSettings& settings, Parallel::FireAndForget* faf)
-    : settings_{settings}, faf_{faf}, fafFallback_{nullptr}
+MapperBatchCPU::MapperBatchCPU(const MapperCLRAlignSettings& alignSettings,
+                               Parallel::FireAndForget* faf)
+    : alignSettings_{alignSettings}, faf_{faf}, fafFallback_{nullptr}
 {
 }
 
@@ -40,11 +41,11 @@ MapperBatchCPU::~MapperBatchCPU()
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlign(
     const std::vector<MapperBatchChunk>& batchData)
 {
-    return MapAndAlignImpl_(batchData, settings_, faf_);
+    return MapAndAlignImpl_(batchData, alignSettings_, faf_);
 }
 
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
-    const std::vector<MapperBatchChunk>& batchChunks, MapperCLRSettings settings,
+    const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRAlignSettings& alignSettings,
     Parallel::FireAndForget* faf)
 {
     // Determine how many records should land in each thread, spread roughly evenly.
@@ -63,7 +64,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
 
     Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
 
-    if (settings.align) {
+    if (alignSettings.align) {
         // Compute the reverse complements for alignment.
         std::vector<std::vector<std::string>> querySeqsRev =
             ComputeReverseComplements(batchChunks, results, faf);
@@ -80,16 +81,16 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
 
         // Internal alignment on CPU.
         std::vector<AlignmentResult> internalAlns;
-        AlignPartsOnCpu(settings.alignerTypeGlobal, settings.alnParamsGlobal,
-                        settings.alignerTypeExt, settings.alnParamsExt, partsGlobal, faf,
+        AlignPartsOnCpu(alignSettings.alignerTypeGlobal, alignSettings.alnParamsGlobal,
+                        alignSettings.alignerTypeExt, alignSettings.alnParamsExt, partsGlobal, faf,
                         internalAlns);
         PBLOG_TRACE << "internalAlns.size() = " << internalAlns.size();
 
         // Flank alignment on CPU.
         std::vector<AlignmentResult> flankAlns;
-        AlignPartsOnCpu(settings.alignerTypeGlobal, settings.alnParamsGlobal,
-                        settings.alignerTypeExt, settings.alnParamsExt, partsSemiglobal, faf,
-                        flankAlns);
+        AlignPartsOnCpu(alignSettings.alignerTypeGlobal, alignSettings.alnParamsGlobal,
+                        alignSettings.alignerTypeExt, alignSettings.alnParamsExt, partsSemiglobal,
+                        faf, flankAlns);
         PBLOG_TRACE << "flankAlns.size() = " << flankAlns.size();
 
         StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
