@@ -161,9 +161,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
                                    alnStitchInfo, faf);
 
-        UpdateSecondaryAndFilter(results, settings.secondaryAllowedOverlapFractionQuery,
-                                 settings.secondaryAllowedOverlapFractionTarget,
-                                 settings.secondaryMinScoreFraction, settings.bestNSecondary, faf);
+        UpdateSecondaryAndFilter(results, faf, batchChunks);
     }
 
     return results;

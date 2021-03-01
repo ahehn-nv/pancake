@@ -55,6 +55,10 @@ void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappin
                               double secondaryMinScoreFraction, int32_t bestNSecondary,
                               Parallel::FireAndForget* faf);
 
+void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappingResults,
+                              Parallel::FireAndForget* faf,
+                              const std::vector<MapperBatchChunk>& batchChunks);
+
 int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
                         const AlignmentParameters& alnParamsGlobal,
                         const AlignerType& alignerTypeExt, const AlignmentParameters& alnParamsExt,

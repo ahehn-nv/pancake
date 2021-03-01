@@ -134,9 +134,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
         StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
                                    alnStitchInfo, faf);
 
-        UpdateSecondaryAndFilter(results, settings.secondaryAllowedOverlapFractionQuery,
-                                 settings.secondaryAllowedOverlapFractionTarget,
-                                 settings.secondaryMinScoreFraction, settings.bestNSecondary, faf);
+        UpdateSecondaryAndFilter(results, faf, batchChunks);
     }
 
     return results;
@@ -176,6 +174,30 @@ void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappin
                 result[qId].mappings, secondaryAllowedOverlapFractionQuery,
                 secondaryAllowedOverlapFractionTarget, secondaryMinScoreFraction);
             CondenseMappings(result[qId].mappings, bestNSecondary);
+        }
+    };
+    const int32_t numThreads = faf ? faf->NumThreads() : 1;
+    const int32_t numEntries = mappingResults.size();
+    const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
+        PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numEntries);
+    Parallel::Dispatch(faf, numEntries, Submit);
+}
+
+void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappingResults,
+                              Parallel::FireAndForget* faf,
+                              const std::vector<MapperBatchChunk>& batchChunks)
+{
+    // Results are a vector for every chunk (one chunk is one ZMW).
+    const auto Submit = [&](int32_t resultId) {
+        const auto& settings = batchChunks[resultId].settings;
+        auto& result = mappingResults[resultId];
+        // One chunk can have multiple queries (subreads).
+        for (size_t qId = 0; qId < result.size(); ++qId) {
+            // Secondary/supplementary flagging.
+            WrapFlagSecondaryAndSupplementary(
+                result[qId].mappings, settings.secondaryAllowedOverlapFractionQuery,
+                settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
+            CondenseMappings(result[qId].mappings, settings.bestNSecondary);
         }
     };
     const int32_t numThreads = faf ? faf->NumThreads() : 1;
