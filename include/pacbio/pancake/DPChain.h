@@ -36,6 +36,16 @@ inline bool operator==(const ChainedHits& lhs, const ChainedHits& rhs)
            lhs.score == rhs.score && lhs.coveredBasesQuery == rhs.coveredBasesQuery &&
            lhs.coveredBasesTarget == rhs.coveredBasesTarget;
 }
+inline std::ostream& operator<<(std::ostream& os, const ChainedHits& b)
+{
+    os << "targetId = " << b.targetId << ", targetRev = " << (b.targetRev ? "true" : "false")
+       << ", score = " << b.score << ", covBasesQuery = " << b.coveredBasesQuery
+       << ", covBasesTarget = " << b.coveredBasesTarget << ", hits:\n";
+    for (size_t i = 0; i < b.hits.size(); ++i) {
+        os << "  [hit " << i << "] " << b.hits[i] << "\n";
+    }
+    return os;
+}
 
 std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hits_size, int32_t chain_max_skip,
                                    int32_t chain_max_predecessors, int32_t seed_join_dist,

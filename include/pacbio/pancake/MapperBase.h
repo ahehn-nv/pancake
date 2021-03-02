@@ -8,6 +8,7 @@
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/pancake/Overlap.h>
+#include <pacbio/pancake/OverlapWriterBase.h>
 #include <pacbio/pancake/SeedIndex.h>
 #include <cstdint>
 #include <memory>
@@ -35,6 +36,17 @@ inline bool operator==(const ChainedRegion& lhs, const ChainedRegion& rhs)
              *(lhs.mapping) == *(rhs.mapping))) &&
            lhs.priority == rhs.priority && lhs.isSupplementary == rhs.isSupplementary;
 }
+inline std::ostream& operator<<(std::ostream& os, const ChainedRegion& b)
+{
+    os << "Mapping: \"" << *b.mapping << "\", priority = " << b.priority
+       << ", isSuppl = " << (b.isSupplementary ? "true" : "false") << "\n";
+    os << "Chain: " << b.chain;
+    os << "RegionsForAln:\n";
+    for (size_t i = 0; i < b.regionsForAln.size(); ++i) {
+        os << "  [region " << i << "] " << b.regionsForAln[i] << "\n";
+    }
+    return os;
+}
 
 class MapperBaseResult
 {
@@ -55,6 +67,18 @@ inline bool operator==(const MapperBaseResult& lhs, const MapperBaseResult& rhs)
         return false;
     }
     return true;
+}
+inline std::ostream& operator<<(std::ostream& os, const MapperBaseResult& b)
+{
+    for (size_t i = 0; i < b.mappings.size(); ++i) {
+        os << "[mapping " << i << "] ";
+        if (b.mappings[i] == nullptr) {
+            os << "nullptr\n";
+        } else {
+            os << *b.mappings[i] << "\n";
+        }
+    }
+    return os;
 }
 
 class MapperBase
