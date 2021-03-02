@@ -184,6 +184,11 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
         return ret;
     }
 
+    // If there is no alignment, reset the overlap.
+    if (ret->Cigar.empty()) {
+        return nullptr;
+    }
+
     ret->Astart = newQueryStart;
     ret->Aend = newQueryEnd;
     ret->Bstart = newTargetStart;
@@ -251,6 +256,10 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
         OverlapPtr newAln = StitchSingleAlignment(aln, mapping->regionsForAln, internalAlns,
                                                   flankAlns, singleAlnInfo.parts);
         std::swap(aln, newAln);
+
+        if (aln == nullptr) {
+            continue;
+        }
 
         {  // Validation of the final alignment.
             const char* querySeq =
@@ -330,6 +339,10 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
             OverlapPtr newAln = StitchSingleAlignment(aln, mapping->regionsForAln, internalAlns,
                                                       flankAlns, singleAlnInfo.parts);
             std::swap(aln, newAln);
+
+            if (aln == nullptr) {
+                continue;
+            }
 
             {  // Validation of the final alignment.
                 const char* querySeq =
