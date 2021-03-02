@@ -250,6 +250,7 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
         // Do the stitching, and swap.
         OverlapPtr newAln = StitchSingleAlignment(aln, mapping->regionsForAln, internalAlns,
                                                   flankAlns, singleAlnInfo.parts);
+        std::swap(aln, newAln);
 
         {  // Validation of the final alignment.
             const char* querySeq =
@@ -272,13 +273,16 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
                               cigarInStrand, "Full length validation, fwd.");
 
             } catch (std::exception& e) {
-                PBLOG_DEBUG << "[Note: Exception caused by ValidateCigar in StitchAlignments] "
-                            << e.what() << "\n";
+                PBLOG_WARN << "[Note: Exception caused by ValidateCigar in StitchAlignments] "
+                           << e.what() << "\n";
+                PBLOG_DEBUG << "singleAlnInfo.batchId = " << singleAlnInfo.batchId;
+                PBLOG_DEBUG << "singleAlnInfo.queryId = " << singleAlnInfo.queryId;
+                PBLOG_DEBUG << "Aligned: \"" << *newAln << "\"";
+                PBLOG_DEBUG << mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId] << "\n";
                 aln = nullptr;
+                continue;
             }
         }
-
-        std::swap(aln, newAln);
     }
 }
 
@@ -325,6 +329,7 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
             // Do the stitching, and swap.
             OverlapPtr newAln = StitchSingleAlignment(aln, mapping->regionsForAln, internalAlns,
                                                       flankAlns, singleAlnInfo.parts);
+            std::swap(aln, newAln);
 
             {  // Validation of the final alignment.
                 const char* querySeq =
@@ -349,13 +354,17 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                                   cigarInStrand, "Full length validation, fwd.");
 
                 } catch (std::exception& e) {
-                    PBLOG_DEBUG << "[Note: Exception caused by ValidateCigar in StitchAlignments] "
-                                << e.what() << "\n";
+                    PBLOG_WARN << "[Note: Exception caused by ValidateCigar in StitchAlignments] "
+                               << e.what() << "\n";
+                    PBLOG_DEBUG << "singleAlnInfo.batchId = " << singleAlnInfo.batchId;
+                    PBLOG_DEBUG << "singleAlnInfo.queryId = " << singleAlnInfo.queryId;
+                    PBLOG_DEBUG << "Aligned: \"" << *newAln << "\"";
+                    PBLOG_DEBUG << mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
+                                << "\n";
                     aln = nullptr;
+                    continue;
                 }
             }
-
-            std::swap(aln, newAln);
         }
     };
     Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
