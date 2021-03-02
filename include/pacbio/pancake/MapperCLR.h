@@ -34,6 +34,7 @@ using IntervalTreeInt32 =
 using IntervalVectorInt32 = IntervalTreeInt32::interval_vector;
 using IntervalInt32 = IntervalTreeInt32::interval;
 
+// clang-format off
 class MapperCLRMapSettings
 {
 public:
@@ -60,6 +61,11 @@ public:
     int32_t minQueryLen = 50;
     int32_t bestNSecondary = 0;
 
+    // Alignment region extraction parameters.
+    int32_t maxFlankExtensionDist = 10000;  // Maximum length of the query/target sequences to consider when aligning flanks.
+    double flankExtensionFactor = 1.3;      // Take this much more of the longer flanking sequence for alignment, to allow for indel errors.
+    int32_t minAlignmentSpan = 200;         // If two seeds are closer than this, take the next seed. (Unless there are only 2 seeds left.)
+
     // bool oneHitPerTarget = false;
     // int32_t maxSeedDistance = 5000;
     // int32_t minMappedLength = 1000;
@@ -71,19 +77,12 @@ class MapperCLRAlignSettings
 public:
     // Alignment.
     bool align = true;
-    int32_t maxFlankExtensionDist =
-        10000;  // Maximum length of the query/target sequences to consider when aligning flanks.
-    int32_t minAlignmentSpan =
-        200;  // If two seeds are closer than this, take the next seed. (Unless there are only 2 seeds left.)
-    double flankExtensionFactor =
-        1.3;  // Take this much more of the longer flanking sequence for alignment, to allow for indel errors.
     AlignerType alignerTypeGlobal = AlignerType::KSW2;
     AlignmentParameters alnParamsGlobal;
     AlignerType alignerTypeExt = AlignerType::KSW2;
     AlignmentParameters alnParamsExt;
 };
 
-// clang-format off
 class MapperCLRSettings
 {
 public:
@@ -128,6 +127,10 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRMapSettings& a
 
         << "freqPercentile = " << a.freqPercentile << "\n"
 
+        << "maxFlankExtensionDist = " << a.maxFlankExtensionDist << "\n"
+        << "flankExtensionFactor = " << a.flankExtensionFactor << "\n"
+        << "minAlignmentSpan = " << a.minAlignmentSpan << "\n"
+
         << "skipSymmetricOverlaps = " << a.skipSymmetricOverlaps << "\n"
         << "minQueryLen = " << a.minQueryLen << "\n"
         << "bestNSecondary = " << a.bestNSecondary << "\n";
@@ -138,8 +141,6 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRMapSettings& a
 inline std::ostream& operator<<(std::ostream& out, const MapperCLRAlignSettings& a)
 {
     out << "align = " << a.align << "\n"
-        << "maxFlankExtensionDist = " << a.maxFlankExtensionDist << "\n"
-        << "minAlignmentSpan = " << a.minAlignmentSpan << "\n"
         << "alignerTypeGlobal = " << AlignerTypeToString(a.alignerTypeGlobal) << "\n"
         << "alnParamsGlobal:\n"
         << a.alnParamsGlobal << "alignerTypeExt = " << AlignerTypeToString(a.alignerTypeExt) << "\n"

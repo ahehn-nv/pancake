@@ -396,8 +396,8 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
             continue;
         }
         result.mappings[i]->regionsForAln = CollectAlignmentRegions_(
-            *result.mappings[i], settings.align.minAlignmentSpan,
-            settings.align.maxFlankExtensionDist, settings.align.flankExtensionFactor);
+            *result.mappings[i], settings.map.minAlignmentSpan, settings.map.maxFlankExtensionDist,
+            settings.map.flankExtensionFactor);
     }
 
     CondenseMappings(result.mappings, settings.map.bestNSecondary);
