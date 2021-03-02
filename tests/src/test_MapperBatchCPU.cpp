@@ -9,7 +9,6 @@ void HelperLoadBatchData(
     const std::vector<std::pair<std::string, std::string>>& batchDataSequenceFiles,
     const double freqPercentile, const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsPrimary,
     const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsFallback,
-    const PacBio::Pancake::AlignerType alignerTypeGlobal,
     std::vector<PacBio::Pancake::MapperBatchChunk>& retBatchData,
     std::vector<PacBio::BAM::FastaSequence>& retAllSeqs)
 {
@@ -218,7 +217,7 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
         std::vector<MapperBatchChunk> batchData;
         std::vector<PacBio::BAM::FastaSequence> allSeqs;
         HelperLoadBatchData(data.batchData, 0.000, data.seedParamsPrimary, data.seedParamsFallback,
-                            data.alignerTypeGlobal, batchData, allSeqs);
+                            batchData, allSeqs);
 
         // Set the seed parameter settings and create a mapper.
         PacBio::Pancake::MapperCLRAlignSettings alignSettings;

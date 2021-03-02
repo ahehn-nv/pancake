@@ -9,7 +9,6 @@ void HelperLoadBatchData2(
     const std::vector<std::pair<std::string, std::string>>& batchDataSequenceFiles,
     const double freqPercentile, const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsPrimary,
     const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsFallback,
-    const PacBio::Pancake::AlignerType alignerTypeGlobal,
     std::vector<PacBio::Pancake::MapperBatchChunk>& retBatchData,
     std::vector<PacBio::BAM::FastaSequence>& retAllSeqs)
 {
@@ -211,9 +210,9 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
         std::vector<MapperBatchChunk> batchData;
         std::vector<PacBio::BAM::FastaSequence> allSeqs;
         HelperLoadBatchData2(data.batchData, 0.000, data.seedParamsPrimary, data.seedParamsFallback,
-                             data.alignerTypeGlobal, batchData, allSeqs);
+                             batchData, allSeqs);
 
-        // Set the alignment apar
+        // Set the alignment parameters.
         PacBio::Pancake::MapperCLRAlignSettings alignSettings;
         alignSettings.alignerTypeGlobal = data.alignerTypeGlobal;
 
