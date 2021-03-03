@@ -7,6 +7,8 @@
 
 void HelperLoadBatchData(
     const std::vector<std::pair<std::string, std::string>>& batchDataSequenceFiles,
+    const double freqPercentile, const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsPrimary,
+    const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsFallback,
     std::vector<PacBio::Pancake::MapperBatchChunk>& retBatchData,
     std::vector<PacBio::BAM::FastaSequence>& retAllSeqs)
 {
@@ -55,6 +57,11 @@ void HelperLoadBatchData(
                 retAllSeqs.back().Bases().size(), seqId);
             bd.querySeqs.emplace_back(std::move(newFsc));
         }
+
+        // Set the seed parameter settings and create a mapper.
+        bd.mapSettings.freqPercentile = freqPercentile;
+        bd.mapSettings.seedParams = seedParamsPrimary;
+        bd.mapSettings.seedParamsFallback = seedParamsFallback;
 
         retBatchData.emplace_back(std::move(bd));
     }
@@ -209,15 +216,13 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
         // a vector of target-query filename pairs.
         std::vector<MapperBatchChunk> batchData;
         std::vector<PacBio::BAM::FastaSequence> allSeqs;
-        HelperLoadBatchData(data.batchData, batchData, allSeqs);
+        HelperLoadBatchData(data.batchData, 0.000, data.seedParamsPrimary, data.seedParamsFallback,
+                            batchData, allSeqs);
 
         // Set the seed parameter settings and create a mapper.
-        PacBio::Pancake::MapperCLRSettings settings;
-        settings.freqPercentile = 0.000;
-        settings.seedParams = data.seedParamsPrimary;
-        settings.seedParamsFallback = data.seedParamsFallback;
-        settings.alignerTypeGlobal = data.alignerTypeGlobal;
-        PacBio::Pancake::MapperBatchCPU mapper(settings, 1);
+        PacBio::Pancake::MapperCLRAlignSettings alignSettings;
+        alignSettings.alignerTypeGlobal = data.alignerTypeGlobal;
+        PacBio::Pancake::MapperBatchCPU mapper(alignSettings, 1);
 
         // Run the unit under test.
         // std::vector<std::vector<MapperBaseResult>> results = mapper.DummyMapAndAlign(batchData);

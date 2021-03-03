@@ -7,6 +7,8 @@
 
 void HelperLoadBatchData2(
     const std::vector<std::pair<std::string, std::string>>& batchDataSequenceFiles,
+    const double freqPercentile, const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsPrimary,
+    const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsFallback,
     std::vector<PacBio::Pancake::MapperBatchChunk>& retBatchData,
     std::vector<PacBio::BAM::FastaSequence>& retAllSeqs)
 {
@@ -55,6 +57,11 @@ void HelperLoadBatchData2(
                 retAllSeqs.back().Bases().size(), seqId);
             bd.querySeqs.emplace_back(std::move(newFsc));
         }
+
+        // Set the seed parameter settings and create a mapper.
+        bd.mapSettings.freqPercentile = freqPercentile;
+        bd.mapSettings.seedParams = seedParamsPrimary;
+        bd.mapSettings.seedParamsFallback = seedParamsFallback;
 
         retBatchData.emplace_back(std::move(bd));
     }
@@ -202,14 +209,12 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
         // a vector of target-query filename pairs.
         std::vector<MapperBatchChunk> batchData;
         std::vector<PacBio::BAM::FastaSequence> allSeqs;
-        HelperLoadBatchData2(data.batchData, batchData, allSeqs);
+        HelperLoadBatchData2(data.batchData, 0.000, data.seedParamsPrimary, data.seedParamsFallback,
+                             batchData, allSeqs);
 
-        // Set the seed parameter settings and create a mapper.
-        PacBio::Pancake::MapperCLRSettings settings;
-        settings.freqPercentile = 0.000;
-        settings.seedParams = data.seedParamsPrimary;
-        settings.seedParamsFallback = data.seedParamsFallback;
-        settings.alignerTypeGlobal = data.alignerTypeGlobal;
+        // Set the alignment parameters.
+        PacBio::Pancake::MapperCLRAlignSettings alignSettings;
+        alignSettings.alignerTypeGlobal = data.alignerTypeGlobal;
 
         const uint32_t gpuDeviceId = 0;
         const int64_t gpuMaxMemoryCap =
@@ -218,8 +223,9 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
         const int32_t startBandwidth = 500;
         const int32_t maxBandwidth = 2000;
         bool alignRemainingOnCpu = false;
-        PacBio::Pancake::MapperBatchGPU mapper(settings, numThreads, startBandwidth, maxBandwidth,
-                                               gpuDeviceId, gpuMaxMemoryCap, alignRemainingOnCpu);
+        PacBio::Pancake::MapperBatchGPU mapper(alignSettings, numThreads, startBandwidth,
+                                               maxBandwidth, gpuDeviceId, gpuMaxMemoryCap,
+                                               alignRemainingOnCpu);
 
         // Run the unit under test.
         // std::vector<std::vector<MapperBaseResult>> results = mapper.DummyMapAndAlign(batchData);

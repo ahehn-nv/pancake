@@ -35,9 +35,14 @@ using IntervalVectorInt32 = IntervalTreeInt32::interval_vector;
 using IntervalInt32 = IntervalTreeInt32::interval;
 
 // clang-format off
-class MapperCLRSettings
+class MapperCLRMapSettings
 {
 public:
+    // Indexing.
+    PacBio::Pancake::SeedDB::SeedDBParameters seedParams{19, 10, 0, false, true, 255, true};
+    PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback{19, 10, 0, false, true, 255, true};
+    double freqPercentile = 0.0002;
+
     // Mapping.
     int32_t chainMaxSkip = 25;
     int32_t chainMaxPredecessors = 500;
@@ -51,34 +56,42 @@ public:
     double secondaryMinScoreFraction = 0.80;
     bool useLIS = true;
 
-    // Indexing.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams{19, 10, 0, false, true, 255, true};
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback{19, 10, 0, false, true, 255, true};
-    double freqPercentile = 0.0002;
-
-    // Alignment.
-    bool align = true;
-    int32_t maxFlankExtensionDist = 10000;      // Maximum length of the query/target sequences to consider when aligning flanks.
-    int32_t minAlignmentSpan = 200;             // If two seeds are closer than this, take the next seed. (Unless there are only 2 seeds left.)
-    double flankExtensionFactor = 1.3;          // Take this much more of the longer flanking sequence for alignment, to allow for indel errors.
-    AlignerType alignerTypeGlobal = AlignerType::KSW2;
-    AlignmentParameters alnParamsGlobal;
-    AlignerType alignerTypeExt = AlignerType::KSW2;
-    AlignmentParameters alnParamsExt;
-
     // Other.
     bool skipSymmetricOverlaps = false;
     int32_t minQueryLen = 50;
     int32_t bestNSecondary = 0;
+
+    // Alignment region extraction parameters.
+    int32_t maxFlankExtensionDist = 10000;  // Maximum length of the query/target sequences to consider when aligning flanks.
+    double flankExtensionFactor = 1.3;      // Take this much more of the longer flanking sequence for alignment, to allow for indel errors.
+    int32_t minAlignmentSpan = 200;         // If two seeds are closer than this, take the next seed. (Unless there are only 2 seeds left.)
 
     // bool oneHitPerTarget = false;
     // int32_t maxSeedDistance = 5000;
     // int32_t minMappedLength = 1000;
     // double minIdentity = 75.0;
 };
+
+class MapperCLRAlignSettings
+{
+public:
+    // Alignment.
+    bool align = true;
+    AlignerType alignerTypeGlobal = AlignerType::KSW2;
+    AlignmentParameters alnParamsGlobal;
+    AlignerType alignerTypeExt = AlignerType::KSW2;
+    AlignmentParameters alnParamsExt;
+};
+
+class MapperCLRSettings
+{
+public:
+    MapperCLRMapSettings map;
+    MapperCLRAlignSettings align;
+};
 // clang-format on
 
-inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
+inline std::ostream& operator<<(std::ostream& out, const MapperCLRMapSettings& a)
 {
     out << "chainMaxSkip = " << a.chainMaxSkip << "\n"
         << "chainMaxPredecessors = " << a.chainMaxPredecessors << "\n"
@@ -94,15 +107,6 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
         << "secondaryAllowedOverlapFractionTarget = " << a.secondaryAllowedOverlapFractionTarget
         << "\n"
         << "secondaryMinScoreFraction = " << a.secondaryMinScoreFraction << "\n"
-
-        << "align = " << a.align << "\n"
-        << "maxFlankExtensionDist = " << a.maxFlankExtensionDist << "\n"
-        << "minAlignmentSpan = " << a.minAlignmentSpan << "\n"
-        << "alignerTypeGlobal = " << AlignerTypeToString(a.alignerTypeGlobal) << "\n"
-        << "alnParamsGlobal:\n"
-        << a.alnParamsGlobal << "alignerTypeExt = " << AlignerTypeToString(a.alignerTypeExt) << "\n"
-        << "alnParamsExt:\n"
-        << a.alnParamsExt
 
         << "seedParams.KmerSize = " << a.seedParams.KmerSize << "\n"
         << "seedParams.MinimizerWindow = " << a.seedParams.MinimizerWindow << "\n"
@@ -123,10 +127,31 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
 
         << "freqPercentile = " << a.freqPercentile << "\n"
 
+        << "maxFlankExtensionDist = " << a.maxFlankExtensionDist << "\n"
+        << "flankExtensionFactor = " << a.flankExtensionFactor << "\n"
+        << "minAlignmentSpan = " << a.minAlignmentSpan << "\n"
+
         << "skipSymmetricOverlaps = " << a.skipSymmetricOverlaps << "\n"
         << "minQueryLen = " << a.minQueryLen << "\n"
         << "bestNSecondary = " << a.bestNSecondary << "\n";
 
+    return out;
+}
+
+inline std::ostream& operator<<(std::ostream& out, const MapperCLRAlignSettings& a)
+{
+    out << "align = " << a.align << "\n"
+        << "alignerTypeGlobal = " << AlignerTypeToString(a.alignerTypeGlobal) << "\n"
+        << "alnParamsGlobal:\n"
+        << a.alnParamsGlobal << "alignerTypeExt = " << AlignerTypeToString(a.alignerTypeExt) << "\n"
+        << "alnParamsExt:\n"
+        << a.alnParamsExt << "\n";
+    return out;
+}
+
+inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
+{
+    out << a.map << a.align;
     return out;
 }
 

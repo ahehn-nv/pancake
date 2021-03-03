@@ -6,8 +6,10 @@
 #include <pacbio/pancake/AlignmentSeeded.h>
 #include <pacbio/pancake/FastaSequenceCached.h>
 #include <pacbio/pancake/MapperBase.h>
+#include <pacbio/pancake/MapperCLR.h>
 #include <pbcopper/parallel/FireAndForget.h>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -19,6 +21,7 @@ struct MapperBatchChunk
 {
     std::vector<FastaSequenceCached> targetSeqs;
     std::vector<FastaSequenceCached> querySeqs;
+    MapperCLRMapSettings mapSettings;
 };
 
 enum class BatchAlignerRegionType

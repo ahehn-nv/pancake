@@ -144,7 +144,7 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
     // clang-format on
 
     PacBio::Pancake::MapperCLRSettings settings;
-    settings.freqPercentile = 0.000;
+    settings.map.freqPercentile = 0.000;
 
     for (const auto& data : testData) {
         // Load the sequences from files, and take only the first one.
@@ -159,8 +159,8 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
 
         std::cerr << "testName = " << data.testName << "\n";
 
-        settings.seedParams = data.seedParamsPrimary;
-        settings.seedParamsFallback = data.seedParamsFallback;
+        settings.map.seedParams = data.seedParamsPrimary;
+        settings.map.seedParamsFallback = data.seedParamsFallback;
         PacBio::Pancake::MapperCLR mapper(settings);
 
         std::vector<PacBio::Pancake::MapperBaseResult> result =
@@ -272,7 +272,7 @@ TEST(MapperCLR, CheckMappingAndSeedHits)
     // clang-format on
 
     PacBio::Pancake::MapperCLRSettings settings;
-    settings.freqPercentile = 0.000;
+    settings.map.freqPercentile = 0.000;
 
     for (const auto& data : testData) {
         // Load the sequences from files, and take only the first one.
@@ -287,8 +287,8 @@ TEST(MapperCLR, CheckMappingAndSeedHits)
 
         std::cerr << "testName = " << data.testName << "\n";
 
-        settings.seedParams = data.seedParamsPrimary;
-        settings.seedParamsFallback = data.seedParamsFallback;
+        settings.map.seedParams = data.seedParamsPrimary;
+        settings.map.seedParamsFallback = data.seedParamsFallback;
         // settings.align = false;
         PacBio::Pancake::MapperCLR mapper(settings);
 
@@ -439,7 +439,7 @@ TEST(MapperCLR, CondenseMappings)
     // clang-format on
 
     PacBio::Pancake::MapperCLRSettings settings;
-    settings.freqPercentile = 0.000;
+    settings.map.freqPercentile = 0.000;
 
     for (const auto& data : testData) {
         SCOPED_TRACE(data.testName);
