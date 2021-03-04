@@ -162,8 +162,11 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
                     << "\n";
 
         StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
-                                   alnStitchInfo, alignSettings.selfHitPolicy,
-                                   alignSettings.alnParamsGlobal.matchScore, faf);
+                                   alnStitchInfo, faf);
+
+        SetUnalignedAndMockedMappings(
+            results, alignSettings.selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT,
+            alignSettings.alnParamsGlobal.matchScore);
 
         UpdateSecondaryAndFilter(results, faf, batchChunks);
     }

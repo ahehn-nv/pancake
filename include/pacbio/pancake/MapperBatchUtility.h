@@ -119,9 +119,7 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
                       const std::vector<std::vector<std::string>>& querySeqsRev,
                       const std::vector<AlignmentResult>& internalAlns,
                       const std::vector<AlignmentResult>& flankAlns,
-                      const std::vector<AlignmentStitchInfo>& alnStitchInfo,
-                      const MapperSelfHitPolicy selfHitPolicy,
-                      const int32_t matchScoreForMockAlignmet);
+                      const std::vector<AlignmentStitchInfo>& alnStitchInfo);
 
 void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                                 const std::vector<MapperBatchChunk>& batchChunks,
@@ -129,8 +127,6 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                                 const std::vector<AlignmentResult>& internalAlns,
                                 const std::vector<AlignmentResult>& flankAlns,
                                 const std::vector<AlignmentStitchInfo>& alnStitchInfo,
-                                const MapperSelfHitPolicy selfHitPolicy,
-                                const int32_t matchScoreForMockAlignment,
                                 Parallel::FireAndForget* faf);
 
 void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& mappingResults,

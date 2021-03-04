@@ -241,9 +241,7 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
                       const std::vector<std::vector<std::string>>& querySeqsRev,
                       const std::vector<AlignmentResult>& internalAlns,
                       const std::vector<AlignmentResult>& flankAlns,
-                      const std::vector<AlignmentStitchInfo>& alnStitchInfo,
-                      const MapperSelfHitPolicy selfHitPolicy,
-                      const int32_t matchScoreForMockAlignment)
+                      const std::vector<AlignmentStitchInfo>& alnStitchInfo)
 {
     for (const auto& singleAlnInfo : alnStitchInfo) {
         // Not initialized for some reason, skip it.
@@ -306,10 +304,6 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
             }
         }
     }
-
-    SetUnalignedAndMockedMappings(mappingResults,
-                                  selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT,
-                                  matchScoreForMockAlignment);
 }
 
 void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
@@ -318,8 +312,6 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                                 const std::vector<AlignmentResult>& internalAlns,
                                 const std::vector<AlignmentResult>& flankAlns,
                                 const std::vector<AlignmentStitchInfo>& alnStitchInfo,
-                                const MapperSelfHitPolicy selfHitPolicy,
-                                const int32_t matchScoreForMockAlignment,
                                 Parallel::FireAndForget* faf)
 {
     // Determine how many records should land in each thread, spread roughly evenly.
@@ -400,11 +392,6 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
         }
     };
     Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
-
-    // std::cerr << "selfHitPolicy = " << MapperSelfHitPolicyToString(selfHitPolicy) << "\n";
-    SetUnalignedAndMockedMappings(mappingResults,
-                                  selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT,
-                                  matchScoreForMockAlignment);
 }
 
 void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& mappingResults,
