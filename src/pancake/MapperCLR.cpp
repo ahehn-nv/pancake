@@ -270,15 +270,27 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     std::vector<SeedHit> hits;
     index.CollectHits(&querySeeds[0], querySeeds.size(), queryLen, hits, freqCutoff);
 
+    // Check if this read as at least one seed hit to itself. If so, self-mapping
+    // will be added in the end.
+    bool addPerfectMapping = false;
+    if (settings.map.selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT) {
+        for (const SeedHit& hit : hits) {
+            if (hit.targetId == queryId) {
+                addPerfectMapping = true;
+                break;
+            }
+        }
+    }
+
     // Filter symmetric and self hits.
     if (settings.map.skipSymmetricOverlaps ||
-        settings.map.selfHitPolicy == MapperSelfHitPolicy::SKIP) {
-        std::cerr << "Skipping symmetric/self overlaps.\n";
+        settings.map.selfHitPolicy != MapperSelfHitPolicy::DEFAULT) {
+        // std::cerr << "Skipping symmetric/self overlaps.\n";
         std::vector<SeedHit> newHits = FilterSymmetricAndSelfHits_(
-            hits, queryId, settings.map.selfHitPolicy, settings.map.skipSymmetricOverlaps);
+            hits, queryId, settings.map.selfHitPolicy != MapperSelfHitPolicy::DEFAULT,
+            settings.map.skipSymmetricOverlaps);
         std::swap(hits, newHits);
     }
-    if (
 
     // Sort the seed hits.
     std::sort(hits.begin(), hits.end(), [](const auto& a, const auto& b) {
@@ -319,6 +331,38 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     // Merge long gaps.
     LongMergeChains_(allChainedRegions, settings.map.maxGap);
     DebugWriteChainedRegion(allChainedRegions, "4-long-merge-chains", queryId, queryLen);
+
+    // Add an extra query alignment only if needed (i.e. if the MapperSelfHitPolicy == PERFECT_ALIGNMENT
+    // and the query has self-hits ("self" in term of queryId/targetId).
+    if (addPerfectMapping) {
+        // std::cerr << "Adding a perfect mapping.\n";
+        const int32_t targetId = queryId;
+        const int32_t targetLen = queryLen;
+        const int32_t numSeeds = queryLen;
+        const int32_t alnScore = queryLen;
+        const float identity = 0.0;
+        const int32_t editDist = -1;
+        const bool isRev = false;
+        ChainedHits newChain{targetId,
+                             false,
+                             {
+                                 SeedHit(targetId, false, 0, 0, 0, 0, 0),
+                                 SeedHit(targetId, false, targetLen, queryLen, 0, 0, 0),
+                             },
+                             alnScore,
+                             queryLen,
+                             targetLen};
+        OverlapPtr newOvl = createOverlap(queryId, targetId, alnScore, identity, isRev, 0, queryLen,
+                                          queryLen, false, 0, targetLen, targetLen, editDist,
+                                          numSeeds, OverlapType::Contained, OverlapType::Contained);
+        auto newChainedRegion = std::make_unique<ChainedRegion>();
+        newChainedRegion->chain = std::move(newChain);
+        newChainedRegion->regionsForAln = {};  // This will be generated below.
+        newChainedRegion->mapping = std::move(newOvl);
+        newChainedRegion->priority = 0;
+        newChainedRegion->isSupplementary = false;
+        allChainedRegions.emplace_back(std::move(newChainedRegion));
+    }
 
     // Again relabel, because some chains are longer now.
     WrapFlagSecondaryAndSupplementary(
@@ -482,22 +526,22 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
 
 std::vector<SeedHit> MapperCLR::FilterSymmetricAndSelfHits_(const std::vector<SeedHit>& hits,
                                                             const int32_t queryId,
-                                                            const MapperSelfHitPolicy selfHitPolicy,
+                                                            const bool skipSelfHits,
                                                             const bool skipSymmetricOverlaps)
 {
     std::vector<SeedHit> newHits(hits.size());
     size_t newHitId = 0;
     for (const SeedHit& hit : hits) {
-        std::cerr << "[queryId = " << queryId << "] hit: " << hit << "\n";
-        if ((selfHitPolicy == MapperSelfHitPolicy::SKIP && hit.targetId == queryId) ||
+        // std::cerr << "[queryId = " << queryId << "] hit: " << hit << "\n";
+        if ((skipSelfHits && hit.targetId == queryId) ||
             (skipSymmetricOverlaps && hit.targetId > queryId)) {
-            std::cerr << "  -> skipping\n";
+            // std::cerr << "  -> skipping\n";
             continue;
         }
         newHits[newHitId] = hit;
         ++newHitId;
     }
-    std::cerr << "\n";
+    // std::cerr << "\n";
     newHits.resize(newHitId);
     return newHits;
 }

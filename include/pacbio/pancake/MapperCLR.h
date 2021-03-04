@@ -279,7 +279,7 @@ private:
     */
     static std::vector<SeedHit> FilterSymmetricAndSelfHits_(const std::vector<SeedHit>& hits,
                                                             const int32_t queryId,
-                                                            const MapperSelfHitPolicy selfHitPolicy,
+                                                            const bool skipSelfHits,
                                                             const bool skipSymmetricOverlaps);
 
     /*
