@@ -337,12 +337,17 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     if (addPerfectMapping) {
         // std::cerr << "Adding a perfect mapping.\n";
         const int32_t targetId = queryId;
-        const int32_t targetLen = queryLen;
+        const int32_t targetLen = index.GetSequenceLength(targetId);
         const int32_t numSeeds = queryLen;
         const int32_t alnScore = queryLen;
         const float identity = 0.0;
         const int32_t editDist = -1;
         const bool isRev = false;
+        if (queryLen != targetLen) {
+            throw std::runtime_error(
+                "Cannot mock a perfect mapping between the two sequences with same ID, the lengths "
+                "are different. The sequences might be mislabelled.");
+        }
         ChainedHits newChain{targetId,
                              false,
                              {
@@ -487,17 +492,57 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
         const auto& ovl = mappingResult.mappings[i]->mapping;
         const auto& tSeqFwd = targetSeqs[ovl->Bid];
 
-        // Use a custom aligner to align.
-        auto newOvl = AlignmentSeeded(ovl, mappingResult.mappings[i]->regionsForAln,
-                                      tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
-                                      &querySeqRev[0], queryLen, alignerGlobal, alignerExt);
+        // Optionally skip, mock or align the overlap.
+        if (settings.align.selfHitPolicy == MapperSelfHitPolicy::SKIP && ovl->Aid == ovl->Bid) {
+            // Pass, no need to generate any overlaps.
+            PBLOG_TRACE << "(" << __FUNCTION__
+                        << ") MapperSelfHitPolicy::SKIP. Skipping self alignment.";
 
-        auto newChainedRegion = std::make_unique<ChainedRegion>();
-        newChainedRegion->chain = chain;
-        newChainedRegion->mapping = std::move(newOvl);
-        newChainedRegion->priority = mappingResult.mappings[i]->priority;
-        newChainedRegion->isSupplementary = mappingResult.mappings[i]->isSupplementary;
-        alignedResult.mappings.emplace_back(std::move(newChainedRegion));
+        } else if (settings.align.selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT &&
+                   ovl->Aid == ovl->Bid) {
+            // Mock the perfect alignment between the sequence and itself.
+            PBLOG_TRACE << "(" << __FUNCTION__ << ") MapperSelfHitPolicy::PERFECT_ALIGNMENT. "
+                                                  "Mocking self alignment instead of actually "
+                                                  "aligning.";
+
+            if (ovl->Alen != ovl->Blen) {
+                throw std::runtime_error(
+                    "Cannot mock a perfect alignment between the two sequences with same ID, the "
+                    "lengths are different. The sequences might be mislabelled.");
+            }
+
+            const int32_t score = ovl->Alen * settings.align.alnParamsGlobal.matchScore;
+            const float identity = 100.0;
+            const int32_t editDist = 0;
+            const int32_t numSeeds = ovl->Alen;
+
+            OverlapPtr newOvl = createOverlap(
+                ovl->Aid, ovl->Bid, score, identity, false, 0, ovl->Alen, ovl->Alen, false, 0,
+                ovl->Blen, ovl->Blen, editDist, numSeeds, OverlapType::Contains,
+                OverlapType::Contains, PacBio::BAM::Cigar(std::to_string(ovl->Alen) + "="), "", "",
+                false, false, false);
+            auto newChainedRegion = std::make_unique<ChainedRegion>();
+            newChainedRegion->chain = chain;
+            newChainedRegion->mapping = std::move(newOvl);
+            newChainedRegion->priority = mappingResult.mappings[i]->priority;
+            newChainedRegion->isSupplementary = mappingResult.mappings[i]->isSupplementary;
+            alignedResult.mappings.emplace_back(std::move(newChainedRegion));
+
+        } else {
+            PBLOG_TRACE << "(" << __FUNCTION__ << ") MapperSelfHitPolicy else. Aligning.";
+
+            // Use a custom aligner to align.
+            auto newOvl = AlignmentSeeded(ovl, mappingResult.mappings[i]->regionsForAln,
+                                          tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
+                                          &querySeqRev[0], queryLen, alignerGlobal, alignerExt);
+
+            auto newChainedRegion = std::make_unique<ChainedRegion>();
+            newChainedRegion->chain = chain;
+            newChainedRegion->mapping = std::move(newOvl);
+            newChainedRegion->priority = mappingResult.mappings[i]->priority;
+            newChainedRegion->isSupplementary = mappingResult.mappings[i]->isSupplementary;
+            alignedResult.mappings.emplace_back(std::move(newChainedRegion));
+        }
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
         std::cerr << "[mapping i = " << i << ", before alignment] ovl: " << *ovl << "\n";
