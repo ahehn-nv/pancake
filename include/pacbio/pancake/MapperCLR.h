@@ -164,6 +164,24 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
     return out;
 }
 
+inline std::string MapperSelfHitPolicyToString(MapperSelfHitPolicy mp)
+{
+    switch (mp) {
+        case MapperSelfHitPolicy::DEFAULT:
+            return "DEFAULT";
+            break;
+        case MapperSelfHitPolicy::SKIP:
+            return "SKIP";
+            break;
+        case MapperSelfHitPolicy::PERFECT_ALIGNMENT:
+            return "PERFECT_ALIGNMENT";
+            break;
+        default:
+            return "UNKNOWN";
+    }
+    return "UNKNOWN";
+}
+
 class MapperCLR : public MapperBase
 {
 public:
