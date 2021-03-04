@@ -110,8 +110,9 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
         std::vector<PairForBatchAlignment> partsSemiglobal;
         std::vector<AlignmentStitchInfo> alnStitchInfo;
         int32_t longestSequenceForAln = 0;
-        PrepareSequencesForBatchAlignment(batchChunks, querySeqsRev, results, partsGlobal,
-                                          partsSemiglobal, alnStitchInfo, longestSequenceForAln);
+        PrepareSequencesForBatchAlignment(batchChunks, querySeqsRev, results,
+                                          alignSettings.selfHitPolicy, partsGlobal, partsSemiglobal,
+                                          alnStitchInfo, longestSequenceForAln);
         PBLOG_TRACE << "partsGlobal.size() = " << partsGlobal.size();
         PBLOG_TRACE << "partsSemiglobal.size() = " << partsSemiglobal.size();
 
@@ -161,7 +162,8 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
                     << "\n";
 
         StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
-                                   alnStitchInfo, faf);
+                                   alnStitchInfo, alignSettings.selfHitPolicy,
+                                   alignSettings.alnParamsGlobal.matchScore, faf);
 
         UpdateSecondaryAndFilter(results, faf, batchChunks);
     }

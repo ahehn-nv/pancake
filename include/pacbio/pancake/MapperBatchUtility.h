@@ -104,7 +104,7 @@ void PrepareSequencesForBatchAlignment(
     const std::vector<MapperBatchChunk>& batchChunks,
     const std::vector<std::vector<std::string>>& querySeqsRev,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
-    std::vector<PairForBatchAlignment>& retPartsGlobal,
+    const MapperSelfHitPolicy selfHitPolicy, std::vector<PairForBatchAlignment>& retPartsGlobal,
     std::vector<PairForBatchAlignment>& retPartsSemiglobal,
     std::vector<AlignmentStitchInfo>& retAlnStitchInfo, int32_t& retLongestSequence);
 
@@ -119,7 +119,9 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
                       const std::vector<std::vector<std::string>>& querySeqsRev,
                       const std::vector<AlignmentResult>& internalAlns,
                       const std::vector<AlignmentResult>& flankAlns,
-                      const std::vector<AlignmentStitchInfo>& alnStitchInfo);
+                      const std::vector<AlignmentStitchInfo>& alnStitchInfo,
+                      const MapperSelfHitPolicy selfHitPolicy,
+                      const int32_t matchScoreForMockAlignmet);
 
 void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                                 const std::vector<MapperBatchChunk>& batchChunks,
@@ -127,7 +129,13 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                                 const std::vector<AlignmentResult>& internalAlns,
                                 const std::vector<AlignmentResult>& flankAlns,
                                 const std::vector<AlignmentStitchInfo>& alnStitchInfo,
+                                const MapperSelfHitPolicy selfHitPolicy,
+                                const int32_t matchScoreForMockAlignment,
                                 Parallel::FireAndForget* faf);
+
+void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& mappingResults,
+                                   const bool mockPerfectAlignment,
+                                   const int32_t matchScoreForMockAlignment);
 
 std::vector<std::vector<std::string>> ComputeReverseComplements(
     const std::vector<MapperBatchChunk>& batchChunks,
