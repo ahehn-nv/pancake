@@ -34,6 +34,13 @@ using IntervalTreeInt32 =
 using IntervalVectorInt32 = IntervalTreeInt32::interval_vector;
 using IntervalInt32 = IntervalTreeInt32::interval;
 
+enum class MapperSelfHitPolicy
+{
+    DEFAULT,
+    SKIP,
+    PERFECT_ALIGNMENT,
+};
+
 // clang-format off
 class MapperCLRMapSettings
 {
@@ -58,6 +65,7 @@ public:
 
     // Other.
     bool skipSymmetricOverlaps = false;
+    MapperSelfHitPolicy selfHitPolicy = MapperSelfHitPolicy::DEFAULT;
     int32_t minQueryLen = 50;
     int32_t bestNSecondary = 0;
 
@@ -77,6 +85,7 @@ class MapperCLRAlignSettings
 public:
     // Alignment.
     bool align = true;
+    MapperSelfHitPolicy selfHitPolicy = MapperSelfHitPolicy::DEFAULT;
     AlignerType alignerTypeGlobal = AlignerType::KSW2;
     AlignmentParameters alnParamsGlobal;
     AlignerType alignerTypeExt = AlignerType::KSW2;
@@ -263,6 +272,15 @@ private:
                                    const MapperBaseResult& mappingResult,
                                    const MapperCLRSettings& settings, AlignerBasePtr& alignerGlobal,
                                    AlignerBasePtr& alignerExt);
+
+    /*
+     * \brief Filters symmetric and self seed hits, based on sequence IDs.
+     * Be careful when using this function in case when the query and target DBs are not the same.
+    */
+    static std::vector<SeedHit> FilterSymmetricAndSelfHits_(const std::vector<SeedHit>& hits,
+                                                            const int32_t queryId,
+                                                            const MapperSelfHitPolicy selfHitPolicy,
+                                                            const bool skipSymmetricOverlaps);
 
     /*
      * \brief Utility function which constructs an overlap from a given chain of seed hits.

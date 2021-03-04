@@ -270,6 +270,16 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     std::vector<SeedHit> hits;
     index.CollectHits(&querySeeds[0], querySeeds.size(), queryLen, hits, freqCutoff);
 
+    // Filter symmetric and self hits.
+    if (settings.map.skipSymmetricOverlaps ||
+        settings.map.selfHitPolicy == MapperSelfHitPolicy::SKIP) {
+        std::cerr << "Skipping symmetric/self overlaps.\n";
+        std::vector<SeedHit> newHits = FilterSymmetricAndSelfHits_(
+            hits, queryId, settings.map.selfHitPolicy, settings.map.skipSymmetricOverlaps);
+        std::swap(hits, newHits);
+    }
+    if (
+
     // Sort the seed hits.
     std::sort(hits.begin(), hits.end(), [](const auto& a, const auto& b) {
         return PackSeedHitWithDiagonalToTuple(a) < PackSeedHitWithDiagonalToTuple(b);
@@ -468,6 +478,28 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
     CondenseMappings(alignedResult.mappings, settings.map.bestNSecondary);
 
     return alignedResult;
+}
+
+std::vector<SeedHit> MapperCLR::FilterSymmetricAndSelfHits_(const std::vector<SeedHit>& hits,
+                                                            const int32_t queryId,
+                                                            const MapperSelfHitPolicy selfHitPolicy,
+                                                            const bool skipSymmetricOverlaps)
+{
+    std::vector<SeedHit> newHits(hits.size());
+    size_t newHitId = 0;
+    for (const SeedHit& hit : hits) {
+        std::cerr << "[queryId = " << queryId << "] hit: " << hit << "\n";
+        if ((selfHitPolicy == MapperSelfHitPolicy::SKIP && hit.targetId == queryId) ||
+            (skipSymmetricOverlaps && hit.targetId > queryId)) {
+            std::cerr << "  -> skipping\n";
+            continue;
+        }
+        newHits[newHitId] = hit;
+        ++newHitId;
+    }
+    std::cerr << "\n";
+    newHits.resize(newHitId);
+    return newHits;
 }
 
 std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(const ChainedRegion& singleMapping,
