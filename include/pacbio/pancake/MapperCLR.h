@@ -336,6 +336,8 @@ void WrapFlagSecondaryAndSupplementary(
 void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
                       int32_t bestNSecondary);
 
+OverlapPtr CreateMockedAlignment(const OverlapPtr& ovl, const int32_t matchScore);
+
 }  // namespace Pancake
 }  // namespace PacBio
 

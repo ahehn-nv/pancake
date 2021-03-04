@@ -504,23 +504,8 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
             PBLOG_TRACE << "(" << __FUNCTION__ << ") MapperSelfHitPolicy::PERFECT_ALIGNMENT. "
                                                   "Mocking self alignment instead of actually "
                                                   "aligning.";
-
-            if (ovl->Alen != ovl->Blen) {
-                throw std::runtime_error(
-                    "Cannot mock a perfect alignment between the two sequences with same ID, the "
-                    "lengths are different. The sequences might be mislabelled.");
-            }
-
-            const int32_t score = ovl->Alen * settings.align.alnParamsGlobal.matchScore;
-            const float identity = 100.0;
-            const int32_t editDist = 0;
-            const int32_t numSeeds = ovl->Alen;
-
-            OverlapPtr newOvl = createOverlap(
-                ovl->Aid, ovl->Bid, score, identity, false, 0, ovl->Alen, ovl->Alen, false, 0,
-                ovl->Blen, ovl->Blen, editDist, numSeeds, OverlapType::Contains,
-                OverlapType::Contains, PacBio::BAM::Cigar(std::to_string(ovl->Alen) + "="), "", "",
-                false, false, false);
+            OverlapPtr newOvl =
+                CreateMockedAlignment(ovl, settings.align.alnParamsGlobal.matchScore);
             auto newChainedRegion = std::make_unique<ChainedRegion>();
             newChainedRegion->chain = chain;
             newChainedRegion->mapping = std::move(newOvl);
@@ -1008,6 +993,26 @@ void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings, int
         ++numValid;
     }
     mappings.resize(numValid);
+}
+
+OverlapPtr CreateMockedAlignment(const OverlapPtr& ovl, const int32_t matchScore)
+{
+
+    if (ovl->Alen != ovl->Blen) {
+        throw std::runtime_error(
+            "Cannot mock a perfect alignment between the two sequences with same ID, the "
+            "lengths are different. The sequences might be mislabelled.");
+    }
+
+    const int32_t score = ovl->Alen * matchScore;
+    const float identity = 100.0;
+    const int32_t editDist = 0;
+    const int32_t numSeeds = ovl->Alen;
+    OverlapPtr newOvl = createOverlap(
+        ovl->Aid, ovl->Bid, score, identity, false, 0, ovl->Alen, ovl->Alen, false, 0, ovl->Blen,
+        ovl->Blen, editDist, numSeeds, OverlapType::Contains, OverlapType::Contains,
+        PacBio::BAM::Cigar(std::to_string(ovl->Alen) + "="), "", "", false, false, false);
+    return newOvl;
 }
 
 }  // namespace Pancake
