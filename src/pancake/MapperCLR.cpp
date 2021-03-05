@@ -385,7 +385,7 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
                   return at < bt;
               });
 
-    // Refine seed hits.
+    // Refine seed hits for alignment.
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
         auto& region = allChainedRegions[i];
         if (region->priority > 1) {
@@ -409,22 +409,19 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
 
     // Filter out the mappings.
     MapperBaseResult result;
-    int32_t numSelectedSecondary = 0;
-    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        const auto& region = allChainedRegions[i];
-        if (region->priority > 1) {
+    result.mappings = std::move(allChainedRegions);
+    CondenseMappings(result.mappings, settings.map.bestNSecondary);
+
+    // Collect regions for alignment.
+    for (size_t i = 0; i < result.mappings.size(); ++i) {
+        if (result.mappings[i] == nullptr || result.mappings[i]->mapping == nullptr) {
             continue;
         }
-        if (region->mapping == nullptr) {
-            continue;
-        }
-        if (region->priority == 0) {
-            result.mappings.emplace_back(std::move(allChainedRegions[i]));
-        } else if (region->priority == 1 && numSelectedSecondary < settings.map.bestNSecondary) {
-            result.mappings.emplace_back(std::move(allChainedRegions[i]));
-            ++numSelectedSecondary;
-        }
+        result.mappings[i]->regionsForAln = CollectAlignmentRegions_(
+            *result.mappings[i], settings.map.minAlignmentSpan, settings.map.maxFlankExtensionDist,
+            settings.map.flankExtensionFactor);
     }
+
     DebugWriteChainedRegion(result.mappings, "7-result-mappings", queryId, queryLen);
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
@@ -449,17 +446,6 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
             "target" + std::to_string(targetId), targetLen, (i > 0));
     }
 #endif
-
-    for (size_t i = 0; i < result.mappings.size(); ++i) {
-        if (result.mappings[i] == nullptr || result.mappings[i]->mapping == nullptr) {
-            continue;
-        }
-        result.mappings[i]->regionsForAln = CollectAlignmentRegions_(
-            *result.mappings[i], settings.map.minAlignmentSpan, settings.map.maxFlankExtensionDist,
-            settings.map.flankExtensionFactor);
-    }
-
-    CondenseMappings(result.mappings, settings.map.bestNSecondary);
 
     return result;
 }
