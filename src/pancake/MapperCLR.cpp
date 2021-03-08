@@ -335,37 +335,10 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     // Add an extra query alignment only if needed (i.e. if the MapperSelfHitPolicy == PERFECT_ALIGNMENT
     // and the query has self-hits ("self" in term of queryId/targetId).
     if (addPerfectMapping) {
-        // std::cerr << "Adding a perfect mapping.\n";
         const int32_t targetId = queryId;
         const int32_t targetLen = index.GetSequenceLength(targetId);
-        const int32_t numSeeds = queryLen;
-        const int32_t alnScore = queryLen;
-        const float identity = 0.0;
-        const int32_t editDist = -1;
-        const bool isRev = false;
-        if (queryLen != targetLen) {
-            throw std::runtime_error(
-                "Cannot mock a perfect mapping between the two sequences with same ID, the lengths "
-                "are different. The sequences might be mislabelled.");
-        }
-        ChainedHits newChain{targetId,
-                             false,
-                             {
-                                 SeedHit(targetId, false, 0, 0, 0, 0, 0),
-                                 SeedHit(targetId, false, targetLen, queryLen, 0, 0, 0),
-                             },
-                             alnScore,
-                             queryLen,
-                             targetLen};
-        OverlapPtr newOvl = createOverlap(queryId, targetId, alnScore, identity, isRev, 0, queryLen,
-                                          queryLen, false, 0, targetLen, targetLen, editDist,
-                                          numSeeds, OverlapType::Contained, OverlapType::Contained);
-        auto newChainedRegion = std::make_unique<ChainedRegion>();
-        newChainedRegion->chain = std::move(newChain);
-        newChainedRegion->regionsForAln = {};  // This will be generated below.
-        newChainedRegion->mapping = std::move(newOvl);
-        newChainedRegion->priority = 0;
-        newChainedRegion->isSupplementary = false;
+        std::unique_ptr<ChainedRegion> newChainedRegion =
+            CreateMockedMapping_(queryId, queryLen, targetId, targetLen);
         allChainedRegions.emplace_back(std::move(newChainedRegion));
     }
 
@@ -981,13 +954,57 @@ void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings, int
     mappings.resize(numValid);
 }
 
+std::unique_ptr<ChainedRegion> MapperCLR::CreateMockedMapping_(const int32_t queryId,
+                                                               const int32_t queryLen,
+                                                               const int32_t targetId,
+                                                               const int32_t targetLen)
+{
+    if (queryLen != targetLen) {
+        throw std::runtime_error(
+            "Cannot mock a perfect mapping between the two sequences with same ID, the "
+            "lengths are different. The sequences might be mislabelled. queryLen = " +
+            std::to_string(queryLen) + ", targetLen = " + std::to_string(targetLen));
+    }
+
+    const int32_t numSeeds = queryLen;
+    const int32_t alnScore = queryLen;
+    const float identity = 0.0;
+    const int32_t editDist = -1;
+    const bool isRev = false;
+
+    ChainedHits newChain{targetId,
+                         false,
+                         {
+                             SeedHit(targetId, false, 0, 0, 0, 0, 0),
+                             SeedHit(targetId, false, targetLen, queryLen, 0, 0, 0),
+                         },
+                         alnScore,
+                         queryLen,
+                         targetLen};
+
+    OverlapPtr newOvl = createOverlap(queryId, targetId, alnScore, identity, isRev, 0, queryLen,
+                                      queryLen, false, 0, targetLen, targetLen, editDist, numSeeds,
+                                      OverlapType::Unknown, OverlapType::Unknown);
+
+    auto newChainedRegion = std::make_unique<ChainedRegion>();
+    newChainedRegion->chain = std::move(newChain);
+    newChainedRegion->regionsForAln = {};  // This will be generated later.
+    newChainedRegion->mapping = std::move(newOvl);
+    newChainedRegion->priority = 0;
+    newChainedRegion->isSupplementary = false;
+
+    return newChainedRegion;
+}
+
 OverlapPtr CreateMockedAlignment(const OverlapPtr& ovl, const int32_t matchScore)
 {
 
     if (ovl->Alen != ovl->Blen) {
-        throw std::runtime_error(
-            "Cannot mock a perfect alignment between the two sequences with same ID, the "
-            "lengths are different. The sequences might be mislabelled.");
+        std::ostringstream oss;
+        oss << "Cannot mock a perfect alignment between the two sequences with same ID, the "
+               "lengths are different. The sequences might be mislabelled. Overlap: "
+            << *ovl;
+        throw std::runtime_error(oss.str());
     }
 
     const int32_t score = ovl->Alen * matchScore;

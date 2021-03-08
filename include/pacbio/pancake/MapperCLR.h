@@ -341,6 +341,18 @@ private:
                                                                  int32_t minAlignmentSpan,
                                                                  int32_t maxFlankExtensionDist,
                                                                  double flankExtensionFactor);
+
+    /*
+     * \brif A helper function which creates a mocked self-mapping based on the query and target
+     * IDs and lengths. The result is an unaligned mapping which spans full length of the
+     * query and target.
+     * Throws if the query and target lengths are different.
+     * This function also does not initialize the Atype and Btype labels (it sets them to Unknown).
+    */
+    static std::unique_ptr<ChainedRegion> CreateMockedMapping_(const int32_t queryId,
+                                                               const int32_t queryLen,
+                                                               const int32_t targetId,
+                                                               const int32_t targetLen);
 };
 
 /*
