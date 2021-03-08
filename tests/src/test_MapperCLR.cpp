@@ -502,3 +502,326 @@ TEST(MapperCLR, CondenseMappings)
         EXPECT_EQ(data.expected, results);
     }
 }
+
+TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
+{
+    struct TestData
+    {
+        std::string testName;
+        std::string targetFile;
+        std::string queryFile;
+        PacBio::Pancake::MapperCLRSettings settings;
+        // std::vector<std::string> expectedOverlaps;
+        std::string expectedOverlapsPath;
+    };
+
+    PacBio::Pancake::MapperCLRSettings settingsDefaultPolicy;
+    {
+        auto& settings = settingsDefaultPolicy;
+        settings.map.bestNSecondary = -1;
+        settings.map.secondaryMinScoreFraction = 0.0;
+        settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
+        settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
+        settings.map.skipSymmetricOverlaps = false;
+        settings.map.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
+        settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
+        settings.map.freqPercentile = 0.000;
+        settings.map.seedParams =
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+        settings.map.seedParamsFallback =
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+    }
+
+    PacBio::Pancake::MapperCLRSettings settingsSkipSelfHitsInBothMapAndAlign;
+    {
+        auto& settings = settingsSkipSelfHitsInBothMapAndAlign;
+        settings.map.bestNSecondary = -1;
+        settings.map.secondaryMinScoreFraction = 0.0;
+        settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
+        settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
+        settings.map.skipSymmetricOverlaps = false;
+        settings.map.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
+        settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
+        settings.map.freqPercentile = 0.000;
+        settings.map.seedParams =
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+        settings.map.seedParamsFallback =
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+    }
+
+    PacBio::Pancake::MapperCLRSettings settingsPerfectAlignSelfHitsInBothMapAndAlign;
+    {
+        auto& settings = settingsPerfectAlignSelfHitsInBothMapAndAlign;
+        settings.map.bestNSecondary = -1;
+        settings.map.secondaryMinScoreFraction = 0.0;
+        settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
+        settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
+        settings.map.skipSymmetricOverlaps = false;
+        settings.map.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::PERFECT_ALIGNMENT;
+        settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::PERFECT_ALIGNMENT;
+        settings.map.freqPercentile = 0.000;
+        settings.map.seedParams =
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+        settings.map.seedParamsFallback =
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+    }
+
+    PacBio::Pancake::MapperCLRSettings settingsSkipSymmetricOverlaps;
+    {
+        auto& settings = settingsSkipSymmetricOverlaps;
+        settings.map.bestNSecondary = -1;
+        settings.map.secondaryMinScoreFraction = 0.0;
+        settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
+        settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
+        settings.map.skipSymmetricOverlaps = true;
+        settingsSkipSelfHitsInBothMapAndAlign.map.selfHitPolicy =
+            PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
+        settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
+        settings.map.freqPercentile = 0.000;
+        settings.map.seedParams =
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+        settings.map.seedParamsFallback =
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+    }
+
+    PacBio::Pancake::MapperCLRSettings settingsSkipSelfAndSymmetricOverlaps;
+    {
+        auto& settings = settingsSkipSelfAndSymmetricOverlaps;
+        settings.map.bestNSecondary = -1;
+        settings.map.secondaryMinScoreFraction = 0.0;
+        settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
+        settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
+        settings.map.skipSymmetricOverlaps = true;
+        settings.map.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
+        settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
+        settings.map.freqPercentile = 0.000;
+        settings.map.seedParams =
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+        settings.map.seedParamsFallback =
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+    }
+
+    PacBio::Pancake::MapperCLRSettings settingsSkipSelfInMappingButDefaultInAlignment;
+    {
+        auto& settings = settingsSkipSelfInMappingButDefaultInAlignment;
+        settings.map.bestNSecondary = -1;
+        settings.map.secondaryMinScoreFraction = 0.0;
+        settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
+        settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
+        settings.map.skipSymmetricOverlaps = false;
+        settings.map.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
+        settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
+        settings.map.freqPercentile = 0.000;
+        settings.map.seedParams =
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+        settings.map.seedParamsFallback =
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+    }
+
+    PacBio::Pancake::MapperCLRSettings settingsDefaultSelfInMappingButSkipInAlignment;
+    {
+        auto& settings = settingsDefaultSelfInMappingButSkipInAlignment;
+        settings.map.bestNSecondary = -1;
+        settings.map.secondaryMinScoreFraction = 0.0;
+        settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
+        settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
+        settings.map.skipSymmetricOverlaps = false;
+        settings.map.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
+        settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
+        settings.map.freqPercentile = 0.000;
+        settings.map.seedParams =
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+        settings.map.seedParamsFallback =
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+    }
+
+    PacBio::Pancake::MapperCLRSettings settingsMockSelfInMappingButDefaultInAlignment;
+    {
+        auto& settings = settingsMockSelfInMappingButDefaultInAlignment;
+        settings.map.bestNSecondary = -1;
+        settings.map.secondaryMinScoreFraction = 0.0;
+        settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
+        settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
+        settings.map.skipSymmetricOverlaps = false;
+        settings.map.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::PERFECT_ALIGNMENT;
+        settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
+        settings.map.freqPercentile = 0.000;
+        settings.map.seedParams =
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+        settings.map.seedParamsFallback =
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+    }
+
+    PacBio::Pancake::MapperCLRSettings settingsDefaultSelfInMappingButMockInAlignment;
+    {
+        auto& settings = settingsDefaultSelfInMappingButMockInAlignment;
+        settings.map.bestNSecondary = -1;
+        settings.map.secondaryMinScoreFraction = 0.0;
+        settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
+        settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
+        settings.map.skipSymmetricOverlaps = false;
+        settings.map.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
+        settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::PERFECT_ALIGNMENT;
+        settings.map.freqPercentile = 0.000;
+        settings.map.seedParams =
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+        settings.map.seedParamsFallback =
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+    }
+
+    // clang-format off
+    std::vector<TestData> testData = {
+        {
+            "Overlap the same set of reads with itself.",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            settingsDefaultPolicy,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.m4",
+        },
+        {
+            "Skip self hits.",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            settingsSkipSelfHitsInBothMapAndAlign,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.m4",
+        },
+        {
+            "Mock perfect overlaps",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            settingsPerfectAlignSelfHitsInBothMapAndAlign,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.m4",
+        },
+        {
+            "Skip symmetric overlaps.",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            settingsSkipSymmetricOverlaps,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_symmetric.m4",
+        },
+        {
+            "Skip self and symmetric overlaps.",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            settingsSkipSelfAndSymmetricOverlaps,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits_no_symmetric.m4",
+        },
+        {
+            "Skip self hits in the mapping stage, but use the default policy during alignment. This should skip the self hits completely.",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            settingsSkipSelfInMappingButDefaultInAlignment,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.m4",
+        },
+        {
+            "Skip self hits in the alignment stage, but use the default policy during mapping. This should skip the self hits completely.",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            settingsDefaultSelfInMappingButSkipInAlignment,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.m4",
+        },
+        {
+            "Mock perfect overlaps in the mapping stage, but use the default policy during alignment. This should report proper alignments, like everything was default.",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            settingsMockSelfInMappingButDefaultInAlignment,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.m4",
+        },
+        {
+            "Mock perfect overlaps in the alignment stage, but use the default policy during mapping. This should report proper alignments, like everything was default.",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            settingsDefaultSelfInMappingButMockInAlignment,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.m4",
+        },
+    };
+    // clang-format on
+
+    auto CreateFastaSequenceCached = [](const std::vector<PacBio::BAM::FastaSequence>& seqs)
+        -> std::vector<PacBio::Pancake::FastaSequenceCached> {
+        std::vector<PacBio::Pancake::FastaSequenceCached> records;
+        for (size_t id = 0; id < seqs.size(); ++id) {
+            const auto& record = seqs[id];
+            records.emplace_back(PacBio::Pancake::FastaSequenceCached(
+                record.Name(), record.Bases().c_str(), record.Bases().size(), id));
+        }
+        return records;
+    };
+
+    for (const auto& data : testData) {
+        // Load the sequences from files, and take only the first one.
+        const std::vector<PacBio::BAM::FastaSequence> allTargetSeqs =
+            PacBio::PancakeTests::HelperLoadFasta(data.targetFile);
+        const std::vector<PacBio::BAM::FastaSequence> allQuerySeqs =
+            PacBio::PancakeTests::HelperLoadFasta(data.queryFile);
+        const std::vector<std::string> expectedOverlaps =
+            PacBio::PancakeTests::HelperLoadFile(data.expectedOverlapsPath);
+
+        const std::vector<PacBio::Pancake::FastaSequenceCached> targets =
+            CreateFastaSequenceCached(allTargetSeqs);
+        const std::vector<PacBio::Pancake::FastaSequenceCached> queries =
+            CreateFastaSequenceCached(allQuerySeqs);
+
+        SCOPED_TRACE(data.testName);
+
+        std::cerr << "testName = " << data.testName << "\n";
+
+        // Run mapping.
+        PacBio::Pancake::MapperCLR mapper(data.settings);
+        std::vector<PacBio::Pancake::MapperBaseResult> result =
+            mapper.MapAndAlign(targets, queries);
+
+        // Convert results to strings so we can compare easily.
+        std::vector<std::string> resultsStr;
+        for (const auto& queryMappings : result) {
+            for (const auto& mapping : queryMappings.mappings) {
+                resultsStr.emplace_back(PacBio::Pancake::OverlapWriterBase::PrintOverlapAsM4(
+                    *mapping->mapping, "", "", true, false));
+            }
+        }
+
+        // Sort the output so that we can compare sets easily.
+        auto expected = expectedOverlaps;
+        std::sort(expected.begin(), expected.end());
+        std::sort(resultsStr.begin(), resultsStr.end());
+
+        std::cerr << "Expected:\n";
+        for (const auto& ovlStr : expected) {
+            std::cerr << ovlStr << "\n";
+        }
+        std::cerr << "Results:\n";
+        for (const auto& ovlStr : resultsStr) {
+            std::cerr << ovlStr << "\n";
+        }
+
+        EXPECT_EQ(expected, resultsStr);
+    }
+    // exit(1);
+}
