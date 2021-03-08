@@ -991,12 +991,13 @@ OverlapPtr CreateMockedAlignment(const OverlapPtr& ovl, const int32_t matchScore
     }
 
     const int32_t score = ovl->Alen * matchScore;
-    const float identity = 100.0;
+    const float identity = 1.0;
     const int32_t editDist = 0;
     const int32_t numSeeds = ovl->Alen;
     OverlapPtr newOvl = createOverlap(
         ovl->Aid, ovl->Bid, score, identity, false, 0, ovl->Alen, ovl->Alen, false, 0, ovl->Blen,
-        ovl->Blen, editDist, numSeeds, OverlapType::Contains, OverlapType::Contains,
+        ovl->Blen, editDist, numSeeds, OverlapType::Unknown, OverlapType::Unknown,
+        // OverlapType::Contains, OverlapType::Contains,
         PacBio::BAM::Cigar(std::to_string(ovl->Alen) + "="), "", "", false, false, false);
     return newOvl;
 }
