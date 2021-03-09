@@ -527,34 +527,31 @@ TEST(MapperBatchCPU, CheckSelfHitPolicyAndSkippingSymmetrical)
             expectedOverlaps.emplace_back(std::move(temp));
         }
 
-        std::cerr << "Expected:\n";
-        for (size_t i = 0; i < data.expectedOverlapsPaths.size(); ++i) {
-            const auto& singleExpectedOverlaps = expectedOverlaps[i];
-            std::cerr << "  - Expected path: " << data.expectedOverlapsPaths[i] << "\n";
-            for (const auto& ovlStr : singleExpectedOverlaps) {
-                std::cerr << "    " << ovlStr << "\n";
-            }
-
-            std::cerr << "  - Results:\n";
-            for (const auto& ovlStr : resultsStr[i]) {
-                std::cerr << "    " << ovlStr << "\n";
-            }
-
-            if (singleExpectedOverlaps.size() != resultsStr[i].size()) {
-                std::cerr << "  - Sizes differ!\n";
-            } else {
-                for (size_t j = 0; j < resultsStr[i].size(); ++j) {
-                    if (resultsStr[i][j] != singleExpectedOverlaps[j]) {
-                        std::cerr << "  - [j = " << j << " / " << resultsStr[i].size()
-                                  << "] Different result:\n";
-                        std::cerr << "      Expected: " << singleExpectedOverlaps[j] << "\n";
-                        std::cerr << "      Result:   " << resultsStr[i][j] << "\n";
-                    }
-                }
-            }
-
-            std::cerr << "\n";
-        }
+        // std::cerr << "Expected:\n";
+        // for (size_t i = 0; i < data.expectedOverlapsPaths.size(); ++i) {
+        //     const auto& singleExpectedOverlaps = expectedOverlaps[i];
+        //     std::cerr << "  - Expected path: " << data.expectedOverlapsPaths[i] << "\n";
+        //     for (const auto& ovlStr : singleExpectedOverlaps) {
+        //         std::cerr << "    " << ovlStr << "\n";
+        //     }
+        //     std::cerr << "  - Results:\n";
+        //     for (const auto& ovlStr : resultsStr[i]) {
+        //         std::cerr << "    " << ovlStr << "\n";
+        //     }
+        //     if (singleExpectedOverlaps.size() != resultsStr[i].size()) {
+        //         std::cerr << "  - Sizes differ!\n";
+        //     } else {
+        //         for (size_t j = 0; j < resultsStr[i].size(); ++j) {
+        //             if (resultsStr[i][j] != singleExpectedOverlaps[j]) {
+        //                 std::cerr << "  - [j = " << j << " / " << resultsStr[i].size()
+        //                           << "] Different result:\n";
+        //                 std::cerr << "      Expected: " << singleExpectedOverlaps[j] << "\n";
+        //                 std::cerr << "      Result:   " << resultsStr[i][j] << "\n";
+        //             }
+        //         }
+        //     }
+        //     std::cerr << "\n";
+        // }
 
         // Evaluate.
         EXPECT_EQ(expectedOverlaps, resultsStr);
