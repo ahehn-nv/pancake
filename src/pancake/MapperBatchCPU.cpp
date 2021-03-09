@@ -44,28 +44,6 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlign(
     return MapAndAlignImpl_(batchData, alignSettings_, faf_);
 }
 
-void VerboseBatchMappingResults(std::ostream& os,
-                                const std::vector<std::vector<MapperBaseResult>>& results)
-{
-    for (size_t chunkId = 0; chunkId < results.size(); ++chunkId) {
-        const auto& chunkResults = results[chunkId];
-        for (size_t qId = 0; qId < chunkResults.size(); ++qId) {
-            // std::cerr << results[chunkId][qId] << "\n";
-
-            for (size_t mapId = 0; mapId < chunkResults[qId].mappings.size(); ++mapId) {
-                if (chunkResults[qId].mappings[mapId] == nullptr) {
-                    continue;
-                }
-                if (chunkResults[qId].mappings[mapId]->mapping == nullptr) {
-                    continue;
-                }
-                const auto& aln = chunkResults[qId].mappings[mapId]->mapping;
-                os << *aln << "\n";
-            }
-        }
-    }
-}
-
 std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
     const std::vector<MapperBatchChunk>& batchChunks, const MapperCLRAlignSettings& alignSettings,
     Parallel::FireAndForget* faf)
@@ -85,9 +63,6 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
     };
 
     Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
-
-    std::cerr << "[MapperBatchCPU::MapAndAlignImpl_] Mapped:\n";
-    VerboseBatchMappingResults(std::cerr, results);
 
     if (alignSettings.align) {
         // Compute the reverse complements for alignment.
@@ -122,20 +97,11 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
         StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
                                    alnStitchInfo, faf);
 
-        std::cerr << "[MapperBatchCPU::MapAndAlignImpl_] Stitched:\n";
-        VerboseBatchMappingResults(std::cerr, results);
-
         SetUnalignedAndMockedMappings(
             results, alignSettings.selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT,
             alignSettings.alnParamsGlobal.matchScore);
 
-        std::cerr << "[MapperBatchCPU::MapAndAlignImpl_] SetUnalignedAndMockedMappings:\n";
-        VerboseBatchMappingResults(std::cerr, results);
-
         UpdateSecondaryAndFilter(results, faf, batchChunks);
-
-        std::cerr << "[MapperBatchCPU::MapAndAlignImpl_] UpdateSecondaryAndFilter:\n";
-        VerboseBatchMappingResults(std::cerr, results);
     }
 
     return results;
@@ -172,48 +138,95 @@ void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappin
 
     // Results are a vector for every chunk (one chunk is one ZMW).
     const auto Submit = [&](int32_t jobId) {
-        std::cerr << "jobId = " << jobId << " / " << jobsPerThread.size() << "\n";
         const int32_t jobStart = jobsPerThread[jobId].first;
         const int32_t jobEnd = jobsPerThread[jobId].second;
-
-        std::cerr << "jobStart = " << jobStart << ", jobEnd = " << jobEnd << "\n";
-        std::cerr << "\n";
 
         for (int32_t resultId = jobStart; resultId < jobEnd; ++resultId) {
             const auto& settings = batchChunks[resultId].mapSettings;
             auto& result = mappingResults[resultId];
             // One chunk can have multiple queries (subreads).
             for (size_t qId = 0; qId < result.size(); ++qId) {
-                std::cerr << "[" << __FUNCTION__ << "] Before WrapFlagSecondaryAndSupplementary:\n";
-                std::cerr << result[qId] << "\n";
-                // for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
-                //     if (result[qId].mappings[mapId] == nullptr) {
-                //         std::cerr << "[resultId = " << resultId << ", qId = " << qId << ", mapId = " << mapId << "] result[qId].mappings[mapId] == nullptr\n";
-                //         continue;
-                //     }
-                //     if (result[qId].mappings[mapId]->mapping == nullptr) {
-                //         std::cerr << "[resultId = " << resultId << ", qId = " << qId << ", mapId = " << mapId << "] result[qId].mappings[mapId]->mapping == nullptr\n";
-                //         continue;
-                //     }
-                //     const auto& aln = result[qId].mappings[mapId]->mapping;
-                //     std::cerr << "[resultId = " << resultId << ", qId = " << qId << ", mapId = " << mapId << "] " << *aln << "\n";
-                // }
-
                 // Secondary/supplementary flagging.
                 WrapFlagSecondaryAndSupplementary(result[qId].mappings,
                                                   settings.secondaryAllowedOverlapFractionQuery,
                                                   settings.secondaryAllowedOverlapFractionTarget,
                                                   settings.secondaryMinScoreFraction);
 
-                std::cerr << "[" << __FUNCTION__ << "] After WrapFlagSecondaryAndSupplementary:\n";
-                std::cerr << result[qId] << "\n";
-                // for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
-                //     if (result[qId].mappings[mapId] == nullptr) {
-                //         std::cerr << "[resultId = " << resultId << ", qId = " << qId << ", mapId = " << mapId << "] result[qId].mappings[mapId] == nullptr\n";
-                //         continue;
-                //     }
-                //     if (result[qId].mappings[mapId]->mapping == nullptr) {
-                //         std::cerr << "[resultId = " << resultId << ", qId = " << qId << ", mapId = " << mapId << "] result[qId].mappings[mapId]->mapping == nullptr\n";
-                //         continue;
-                //     }
-                //     c
+                const int32_t numPrimary =
+                    CondenseMappings(result[qId].mappings, settings.bestNSecondary);
+
+                // If this occurs, that means that a filtering stage removed the primary alignment for some reason.
+                // This can happen in case self-hits are skipped in the overlapping use case (the self-hit is the
+                // highest scoring one, and it would get marked for removal).
+                // This reruns labeling to produce the next best primary.
+                if (numPrimary == 0) {
+                    WrapFlagSecondaryAndSupplementary(
+                        result[qId].mappings, settings.secondaryAllowedOverlapFractionQuery,
+                        settings.secondaryAllowedOverlapFractionTarget,
+                        settings.secondaryMinScoreFraction);
+                }
+            }
+        }
+    };
+    Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
+}
+
+int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
+                        const AlignmentParameters& alnParamsGlobal,
+                        const AlignerType& alignerTypeExt, const AlignmentParameters& alnParamsExt,
+                        const std::vector<PairForBatchAlignment>& parts, const int32_t numThreads,
+                        std::vector<AlignmentResult>& retAlns)
+{
+    Parallel::FireAndForget faf(numThreads);
+    const int32_t result = AlignPartsOnCpu(alignerTypeGlobal, alnParamsGlobal, alignerTypeExt,
+                                           alnParamsExt, parts, &faf, retAlns);
+    faf.Finalize();
+    return result;
+}
+int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
+                        const AlignmentParameters& alnParamsGlobal,
+                        const AlignerType& alignerTypeExt, const AlignmentParameters& alnParamsExt,
+                        const std::vector<PairForBatchAlignment>& parts,
+                        Parallel::FireAndForget* faf, std::vector<AlignmentResult>& retAlns)
+{
+    retAlns.resize(parts.size());
+
+    std::vector<size_t> partIds;
+
+    AlignerBatchCPU aligner(faf, alignerTypeGlobal, alnParamsGlobal, alignerTypeExt, alnParamsExt);
+
+    for (size_t i = 0; i < parts.size(); ++i) {
+        const auto& part = parts[i];
+        if (retAlns[i].valid) {
+            continue;
+        }
+        partIds.emplace_back(i);
+        if (part.regionType == RegionType::FRONT) {
+            // Reverse the sequences for front flank alignment. No need to complement.
+            std::string query(part.query, part.queryLen);
+            std::reverse(query.begin(), query.end());
+            std::string target(part.target, part.targetLen);
+            std::reverse(target.begin(), target.end());
+            aligner.AddSequencePair(query.c_str(), part.queryLen, target.c_str(), part.targetLen,
+                                    part.regionType == RegionType::GLOBAL);
+        } else {
+            aligner.AddSequencePair(part.query, part.queryLen, part.target, part.targetLen,
+                                    part.regionType == RegionType::GLOBAL);
+        }
+    }
+    aligner.AlignAll();
+
+    const std::vector<AlignmentResult>& partInternalAlns = aligner.GetAlnResults();
+    int32_t numNotValid = 0;
+    for (size_t i = 0; i < partInternalAlns.size(); ++i) {
+        const auto& aln = partInternalAlns[i];
+        if (aln.valid == false) {
+            ++numNotValid;
+        }
+        retAlns[partIds[i]] = std::move(partInternalAlns[i]);
+    }
+    return numNotValid;
+}
+
+}  // namespace Pancake
+}  // namespace PacBio
