@@ -363,8 +363,8 @@ void WrapFlagSecondaryAndSupplementary(
     double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
     double secondaryMinScoreFraction);
 
-void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
-                      int32_t bestNSecondary);
+int32_t CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
+                         int32_t bestNSecondary);
 
 OverlapPtr CreateMockedAlignment(const OverlapPtr& ovl, const int32_t matchScore);
 
