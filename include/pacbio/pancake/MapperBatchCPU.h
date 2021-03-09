@@ -43,12 +43,6 @@ private:
 };
 
 void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappingResults,
-                              double secondaryAllowedOverlapFractionQuery,
-                              double secondaryAllowedOverlapFractionTarget,
-                              double secondaryMinScoreFraction, int32_t bestNSecondary,
-                              Parallel::FireAndForget* faf);
-
-void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                               Parallel::FireAndForget* faf,
                               const std::vector<MapperBatchChunk>& batchChunks);
 
