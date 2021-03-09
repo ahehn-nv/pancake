@@ -455,6 +455,25 @@ TEST(MapperCLR, CondenseMappings)
                 {"000000005 000000006 -1000 99.90 0 5000 10000 12000 0 0 5000 10000 u", 0, false, false},       // Another primary
             },
         },
+        {
+            "Test that the condensing will work fine when the first overlap is nullptr. Keeping all secondary overlaps regardless of how many there are (bestN = -1).",
+            {
+                {"", 0, false, true},                                                                      // Nullptr mapping.
+                {"000000000 000000003 7630 99.77 0 0 3845 11811 1 0 3838 10150 *", 1, false, false},       // Primary
+                {"000000000 000000002 9854 99.90 0 0 4946 11811 0 4181 9125 9139 *", 1, false, false},       // Secondary
+                {"000000000 000000004 11982 99.82 0 0 6031 11811 0 2564 8590 8590 *", 1, false, false},       // Secondary
+                {"000000000 000000005 15756 99.94 0 0 7895 11811 1 0 7894 11307 *", 1, false, false},       // Secondary
+                {"000000000 000000001 18014 99.74 0 0 9077 11811 0 981 10059 10059 *", 1, false, false},       // Secondary
+            },
+            -1,
+            {
+                {"000000000 000000003 7630 99.77 0 0 3845 11811 1 0 3838 10150 *", 1, false, false},       // Primary
+                {"000000000 000000002 9854 99.90 0 0 4946 11811 0 4181 9125 9139 *", 1, false, false},       // Secondary
+                {"000000000 000000004 11982 99.82 0 0 6031 11811 0 2564 8590 8590 *", 1, false, false},       // Secondary
+                {"000000000 000000005 15756 99.94 0 0 7895 11811 1 0 7894 11307 *", 1, false, false},       // Secondary
+                {"000000000 000000001 18014 99.74 0 0 9077 11811 0 981 10059 10059 *", 1, false, false},       // Secondary
+            },
+        },
     };
     // clang-format on
 
@@ -511,7 +530,6 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         std::string targetFile;
         std::string queryFile;
         PacBio::Pancake::MapperCLRSettings settings;
-        // std::vector<std::string> expectedOverlaps;
         std::string expectedOverlapsPath;
     };
 
@@ -574,8 +592,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.map.secondaryAllowedOverlapFractionTarget = 0.0;
         settings.map.secondaryAllowedOverlapFractionQuery = 0.0;
         settings.map.skipSymmetricOverlaps = true;
-        settingsSkipSelfHitsInBothMapAndAlign.map.selfHitPolicy =
-            PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
+        settings.map.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
@@ -812,14 +829,14 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         std::sort(expected.begin(), expected.end());
         std::sort(resultsStr.begin(), resultsStr.end());
 
-        std::cerr << "Expected:\n";
-        for (const auto& ovlStr : expected) {
-            std::cerr << ovlStr << "\n";
-        }
-        std::cerr << "Results:\n";
-        for (const auto& ovlStr : resultsStr) {
-            std::cerr << ovlStr << "\n";
-        }
+        // std::cerr << "Expected:\n";
+        // for (const auto& ovlStr : expected) {
+        //     std::cerr << ovlStr << "\n";
+        // }
+        // std::cerr << "Results:\n";
+        // for (const auto& ovlStr : resultsStr) {
+        //     std::cerr << ovlStr << "\n";
+        // }
 
         EXPECT_EQ(expected, resultsStr);
     }
