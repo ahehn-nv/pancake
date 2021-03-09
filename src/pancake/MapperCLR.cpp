@@ -285,7 +285,6 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     // Filter symmetric and self hits.
     if (settings.map.skipSymmetricOverlaps ||
         settings.map.selfHitPolicy != MapperSelfHitPolicy::DEFAULT) {
-        // std::cerr << "Skipping symmetric/self overlaps.\n";
         std::vector<SeedHit> newHits = FilterSymmetricAndSelfHits_(
             hits, queryId, settings.map.selfHitPolicy != MapperSelfHitPolicy::DEFAULT,
             settings.map.skipSymmetricOverlaps);
@@ -546,16 +545,13 @@ std::vector<SeedHit> MapperCLR::FilterSymmetricAndSelfHits_(const std::vector<Se
     std::vector<SeedHit> newHits(hits.size());
     size_t newHitId = 0;
     for (const SeedHit& hit : hits) {
-        // std::cerr << "[queryId = " << queryId << "] hit: " << hit << "\n";
         if ((skipSelfHits && hit.targetId == queryId) ||
             (skipSymmetricOverlaps && hit.targetId > queryId)) {
-            // std::cerr << "  -> skipping\n";
             continue;
         }
         newHits[newHitId] = hit;
         ++newHitId;
     }
-    // std::cerr << "\n";
     newHits.resize(newHitId);
     return newHits;
 }

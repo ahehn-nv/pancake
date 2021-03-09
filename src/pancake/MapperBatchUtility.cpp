@@ -412,9 +412,7 @@ void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& m
                 OverlapPtr& aln = result[qId].mappings[mapId]->mapping;
 
                 if (mockPerfectAlignment && aln->Aid == aln->Bid) {
-                    aln = CreateMockedAlignment(
-                        aln,
-                        matchScoreForMockAlignment);  // settings.align.alnParamsGlobal.matchScore);
+                    aln = CreateMockedAlignment(aln, matchScoreForMockAlignment);
                 }
                 if (aln->Cigar.empty()) {
                     aln = nullptr;
