@@ -696,7 +696,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             settingsDefaultPolicy,
             // Expected overlaps.
-            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.m4",
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.ksw2.m4",
         },
         {
             "Skip self hits.",
@@ -706,7 +706,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             settingsSkipSelfHitsInBothMapAndAlign,
             // Expected overlaps.
-            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.m4",
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.ksw2.m4",
         },
         {
             "Mock perfect overlaps",
@@ -716,7 +716,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             settingsPerfectAlignSelfHitsInBothMapAndAlign,
             // Expected overlaps.
-            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.m4",
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.ksw2.m4",
         },
         {
             "Skip symmetric overlaps.",
@@ -726,7 +726,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             settingsSkipSymmetricOverlaps,
             // Expected overlaps.
-            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_symmetric.m4",
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_symmetric.ksw2.m4",
         },
         {
             "Skip self and symmetric overlaps.",
@@ -736,7 +736,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             settingsSkipSelfAndSymmetricOverlaps,
             // Expected overlaps.
-            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits_no_symmetric.m4",
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits_no_symmetric.ksw2.m4",
         },
         {
             "Skip self hits in the mapping stage, but use the default policy during alignment. This should skip the self hits completely.",
@@ -746,7 +746,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             settingsSkipSelfInMappingButDefaultInAlignment,
             // Expected overlaps.
-            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.m4",
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.ksw2.m4",
         },
         {
             "Skip self hits in the alignment stage, but use the default policy during mapping. This should skip the self hits completely.",
@@ -756,7 +756,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             settingsDefaultSelfInMappingButSkipInAlignment,
             // Expected overlaps.
-            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.m4",
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.ksw2.m4",
         },
         {
             "Mock perfect overlaps in the mapping stage, but use the default policy during alignment. This should report proper alignments, like everything was default.",
@@ -766,7 +766,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             settingsMockSelfInMappingButDefaultInAlignment,
             // Expected overlaps.
-            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.m4",
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.ksw2.m4",
         },
         {
             "Mock perfect overlaps in the alignment stage, but use the default policy during mapping. This should report proper alignments, like everything was default.",
@@ -776,7 +776,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             settingsDefaultSelfInMappingButMockInAlignment,
             // Expected overlaps.
-            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.m4",
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.ksw2.m4",
         },
     };
     // clang-format on
