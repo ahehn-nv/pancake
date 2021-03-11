@@ -5,7 +5,7 @@
 
 ## v1.2.0
 ### Version
-- `pancake`
+- `pancake` - 2f05f3e16219291485de130f7ca68dc40ae7c5c5 (Mar 11, 2021), `pancake 1.2.0 (commit SL-release-10.0.0-417-g2f05f3e)`
 
 ### Changes
 - The `AlignmentResult` now stores the number of alignment differences, so that the client doesn't have to parse the CIGAR string again. Updated the aligners to produce the diff counts.
