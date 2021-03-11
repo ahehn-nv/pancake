@@ -270,7 +270,7 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     std::vector<SeedHit> hits;
     index.CollectHits(&querySeeds[0], querySeeds.size(), queryLen, hits, freqCutoff);
 
-    // Check if this read as at least one seed hit to itself. If so, self-mapping
+    // Check if this read has at least one seed hit to itself. If so, self-mapping
     // will be added in the end.
     bool addPerfectMapping = false;
     if (settings.map.selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT) {
@@ -460,15 +460,16 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
         const auto& chain = mappingResult.mappings[i]->chain;
         const auto& ovl = mappingResult.mappings[i]->mapping;
         const auto& tSeqFwd = targetSeqs[ovl->Bid];
+        const bool isIdIdentical = (ovl->Aid == ovl->Bid);
 
         // Optionally skip, mock or align the overlap.
-        if (settings.align.selfHitPolicy == MapperSelfHitPolicy::SKIP && ovl->Aid == ovl->Bid) {
+        if (settings.align.selfHitPolicy == MapperSelfHitPolicy::SKIP && isIdIdentical) {
             // Pass, no need to generate any overlaps.
             PBLOG_TRACE << "(" << __FUNCTION__
                         << ") MapperSelfHitPolicy::SKIP. Skipping self alignment.";
 
         } else if (settings.align.selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT &&
-                   ovl->Aid == ovl->Bid) {
+                   isIdIdentical) {
             // Mock the perfect alignment between the sequence and itself.
             PBLOG_TRACE << "(" << __FUNCTION__ << ") MapperSelfHitPolicy::PERFECT_ALIGNMENT. "
                                                   "Mocking self alignment instead of actually "
