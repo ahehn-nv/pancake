@@ -2,10 +2,17 @@
 
 ## Active version in development
 ### Changes
+
+## v1.2.0
+### Version
+- `pancake` - 2f05f3e16219291485de130f7ca68dc40ae7c5c5 (Mar 11, 2021), `pancake 1.2.0 (commit SL-release-10.0.0-417-g2f05f3e)`
+
+### Changes
 - The `AlignmentResult` now stores the number of alignment differences, so that the client doesn't have to parse the CIGAR string again. Updated the aligners to produce the diff counts.
 - `FastaSequenceCachedStore` implementation. This is a store for `FastaSequenceCached` objects, which are like a "view" into the FASTA sequences (they do not own the data, only point to it). This is now used in the `SeqDBReaderCachedBlock`.
 - Generic interface to `MapperHiFi`. It's now possible to run a single function which takes a set of `std::string` targets and queries, and maps/aligns them.
 - Added the SeqDB dump tool (`seqdb-dump`) to dump the entire DB or just one block.
+- Added the SeqDB info tool (`seqdb-info`) to display information about the SeqDB (length, N50, etc.).
 - Minor refactoring, versioning code.
 - (non-IPA related) KSW2 third-party library now removed from Pancake, and used from Pbcopper.
 - (non-IPA related) Refactoring the MapperCLR: parametrized the flankExtensionFactor setting ; and always computing alignment regions during mapping, instead of only when performing alignment.
@@ -17,6 +24,9 @@
 - (non-IPA related) Optional dependency injection of the FireAndForget object into the `AlignerBatchCPU`, `MapperBatchCPU` and `MapperBatchGPU` to better handle kernel overload.
 - All CLR mappers (MapperCLR, MapperBatchCPU, MapperBatch GPU) can now optionally skip/mock perfect alignments, and skip symmetric overlaps. (Mocking means that if a self-hit is detected based on sequence IDs, a perfect alignment result will be generated without actually computing the alignment.)
 - Fixed the bestNSecondary in MapperCLR::Map_ where it did not properly respect the value < 0. (Instead of reporting all alignments, only some were reported.)
+- The batch mappers (MapperBatchCPU, MapperBatchGPU) can accept custom mapping parameters for every chunk in a batch.
+- Converted the `unique_ptr` to references in the overlap writers.
+- Fixed the score computation in MapperCLR.
 
 ## v1.1.0 - SL - Release 10.1.0
 ### Version
