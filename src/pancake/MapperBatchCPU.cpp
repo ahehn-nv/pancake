@@ -74,8 +74,9 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
         std::vector<PairForBatchAlignment> partsSemiglobal;
         std::vector<AlignmentStitchInfo> alnStitchInfo;
         int32_t longestSequenceForAln = 0;
-        PrepareSequencesForBatchAlignment(batchChunks, querySeqsRev, results, partsGlobal,
-                                          partsSemiglobal, alnStitchInfo, longestSequenceForAln);
+        PrepareSequencesForBatchAlignment(batchChunks, querySeqsRev, results,
+                                          alignSettings.selfHitPolicy, partsGlobal, partsSemiglobal,
+                                          alnStitchInfo, longestSequenceForAln);
         PBLOG_TRACE << "partsGlobal.size() = " << partsGlobal.size();
         PBLOG_TRACE << "partsSemiglobal.size() = " << partsSemiglobal.size();
 
@@ -95,6 +96,10 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
 
         StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
                                    alnStitchInfo, faf);
+
+        SetUnalignedAndMockedMappings(
+            results, alignSettings.selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT,
+            alignSettings.alnParamsGlobal.matchScore);
 
         UpdateSecondaryAndFilter(results, faf, batchChunks);
     }
@@ -122,52 +127,48 @@ void MapperBatchCPU::WorkerMapper_(const std::vector<MapperBatchChunk>& batchChu
 }
 
 void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappingResults,
-                              double secondaryAllowedOverlapFractionQuery,
-                              double secondaryAllowedOverlapFractionTarget,
-                              double secondaryMinScoreFraction, int32_t bestNSecondary,
-                              Parallel::FireAndForget* faf)
-{
-    // Results are a vector for every chunk (one chunk is one ZMW).
-    const auto Submit = [&](int32_t resultId) {
-        auto& result = mappingResults[resultId];
-        // One chunk can have multiple queries (subreads).
-        for (size_t qId = 0; qId < result.size(); ++qId) {
-            // Secondary/supplementary flagging.
-            WrapFlagSecondaryAndSupplementary(
-                result[qId].mappings, secondaryAllowedOverlapFractionQuery,
-                secondaryAllowedOverlapFractionTarget, secondaryMinScoreFraction);
-            CondenseMappings(result[qId].mappings, bestNSecondary);
-        }
-    };
-    const int32_t numThreads = faf ? faf->NumThreads() : 1;
-    const int32_t numEntries = mappingResults.size();
-    const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
-        PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numEntries);
-    Parallel::Dispatch(faf, numEntries, Submit);
-}
-
-void UpdateSecondaryAndFilter(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                               Parallel::FireAndForget* faf,
                               const std::vector<MapperBatchChunk>& batchChunks)
 {
-    // Results are a vector for every chunk (one chunk is one ZMW).
-    const auto Submit = [&](int32_t resultId) {
-        const auto& settings = batchChunks[resultId].mapSettings;
-        auto& result = mappingResults[resultId];
-        // One chunk can have multiple queries (subreads).
-        for (size_t qId = 0; qId < result.size(); ++qId) {
-            // Secondary/supplementary flagging.
-            WrapFlagSecondaryAndSupplementary(
-                result[qId].mappings, settings.secondaryAllowedOverlapFractionQuery,
-                settings.secondaryAllowedOverlapFractionTarget, settings.secondaryMinScoreFraction);
-            CondenseMappings(result[qId].mappings, settings.bestNSecondary);
-        }
-    };
+
     const int32_t numThreads = faf ? faf->NumThreads() : 1;
     const int32_t numEntries = mappingResults.size();
     const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
         PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numEntries);
-    Parallel::Dispatch(faf, numEntries, Submit);
+
+    // Results are a vector for every chunk (one chunk is one ZMW).
+    const auto Submit = [&](int32_t jobId) {
+        const int32_t jobStart = jobsPerThread[jobId].first;
+        const int32_t jobEnd = jobsPerThread[jobId].second;
+
+        for (int32_t resultId = jobStart; resultId < jobEnd; ++resultId) {
+            const auto& settings = batchChunks[resultId].mapSettings;
+            auto& result = mappingResults[resultId];
+            // One chunk can have multiple queries (subreads).
+            for (size_t qId = 0; qId < result.size(); ++qId) {
+                // Secondary/supplementary flagging.
+                WrapFlagSecondaryAndSupplementary(result[qId].mappings,
+                                                  settings.secondaryAllowedOverlapFractionQuery,
+                                                  settings.secondaryAllowedOverlapFractionTarget,
+                                                  settings.secondaryMinScoreFraction);
+
+                const int32_t numPrimary =
+                    CondenseMappings(result[qId].mappings, settings.bestNSecondary);
+
+                // If this occurs, that means that a filtering stage removed the primary alignment for some reason.
+                // This can happen in case self-hits are skipped in the overlapping use case (the self-hit is the
+                // highest scoring one, and it would get marked for removal).
+                // This reruns labeling to produce the next best primary.
+                if (numPrimary == 0) {
+                    WrapFlagSecondaryAndSupplementary(
+                        result[qId].mappings, settings.secondaryAllowedOverlapFractionQuery,
+                        settings.secondaryAllowedOverlapFractionTarget,
+                        settings.secondaryMinScoreFraction);
+                }
+            }
+        }
+    };
+    Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
 }
 
 int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,

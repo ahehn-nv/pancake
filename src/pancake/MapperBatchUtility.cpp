@@ -47,7 +47,7 @@ void PrepareSequencesForBatchAlignment(
     const std::vector<MapperBatchChunk>& batchChunks,
     const std::vector<std::vector<std::string>>& querySeqsRev,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
-    std::vector<PairForBatchAlignment>& retPartsGlobal,
+    const MapperSelfHitPolicy selfHitPolicy, std::vector<PairForBatchAlignment>& retPartsGlobal,
     std::vector<PairForBatchAlignment>& retPartsSemiglobal,
     std::vector<AlignmentStitchInfo>& retAlnStitchInfo, int32_t& retLongestSequence)
 {
@@ -72,6 +72,13 @@ void PrepareSequencesForBatchAlignment(
             for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
                 const auto& mapping = result[qId].mappings[mapId];
                 const char* tSeq = chunk.targetSeqs[mapping->mapping->Bid].c_str();
+
+                const auto& aln = mapping->mapping;
+
+                // Skip self-hits unless the default policy is used, in which case align all.
+                if (selfHitPolicy != MapperSelfHitPolicy::DEFAULT && aln->Aid == aln->Bid) {
+                    continue;
+                }
 
                 // AlignmentStitchVector singleQueryStitches;
                 AlignmentStitchInfo singleAlnStitches(resultId, qId, mapId);
@@ -118,6 +125,10 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
                                  const std::vector<AlignmentResult>& flankAlns,
                                  const std::vector<AlignmentStitchPart>& parts)
 {
+    if (parts.empty()) {
+        return nullptr;
+    }
+
     auto ret = createOverlap(aln);
     ret->Cigar.clear();
 
@@ -381,6 +392,34 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
         }
     };
     Parallel::Dispatch(faf, jobsPerThread.size(), Submit);
+}
+
+void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& mappingResults,
+                                   const bool mockPerfectAlignment,
+                                   const int32_t matchScoreForMockAlignment)
+{
+    for (size_t chunkId = 0; chunkId < mappingResults.size(); ++chunkId) {
+        auto& result = mappingResults[chunkId];
+
+        // One chunk can have multiple queries (subreads).
+        for (size_t qId = 0; qId < result.size(); ++qId) {
+            // Each query can have multiple alignments.
+            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
+                if (result[qId].mappings[mapId] == nullptr ||
+                    result[qId].mappings[mapId]->mapping == nullptr) {
+                    continue;
+                }
+                OverlapPtr& aln = result[qId].mappings[mapId]->mapping;
+
+                if (mockPerfectAlignment && aln->Aid == aln->Bid) {
+                    aln = CreateMockedAlignment(aln, matchScoreForMockAlignment);
+                }
+                if (aln->Cigar.empty()) {
+                    aln = nullptr;
+                }
+            }
+        }
+    }
 }
 
 std::vector<std::vector<std::string>> ComputeReverseComplements(

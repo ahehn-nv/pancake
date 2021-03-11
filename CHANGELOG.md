@@ -15,6 +15,8 @@
 - (non-IPA related) `MapperBatchGPU` - analogous to the `MapperBatchCPU`, but this uses the GPU aligner to align sequences. Mapping is still performed on the CPU, same as with the `MapperBatchCPU`.
 - (non-IPA related) Abstract class `MapperBatchBase` added, and `MapperBatchCPU` and `MapperBatchGPU` now both inherit the interface.
 - (non-IPA related) Optional dependency injection of the FireAndForget object into the `AlignerBatchCPU`, `MapperBatchCPU` and `MapperBatchGPU` to better handle kernel overload.
+- All CLR mappers (MapperCLR, MapperBatchCPU, MapperBatch GPU) can now optionally skip/mock perfect alignments, and skip symmetric overlaps. (Mocking means that if a self-hit is detected based on sequence IDs, a perfect alignment result will be generated without actually computing the alignment.)
+- Fixed the bestNSecondary in MapperCLR::Map_ where it did not properly respect the value < 0. (Instead of reporting all alignments, only some were reported.)
 
 ## v1.1.0 - SL - Release 10.1.0
 ### Version

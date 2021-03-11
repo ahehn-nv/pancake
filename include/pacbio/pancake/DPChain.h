@@ -29,6 +29,16 @@ struct ChainedHits
 
     ChainedHits() = default;
     ChainedHits(int32_t _targetId, bool _targetRev) : targetId(_targetId), targetRev(_targetRev) {}
+    ChainedHits(int32_t _targetId, bool _targetRev, const std::vector<SeedHit>& _hits,
+                int32_t _score, int32_t _coveredBasesQuery, int32_t _coveredBasesTarget)
+        : targetId(_targetId)
+        , targetRev(_targetRev)
+        , hits(_hits)
+        , score(_score)
+        , coveredBasesQuery(_coveredBasesQuery)
+        , coveredBasesTarget(_coveredBasesTarget)
+    {
+    }
 };
 inline bool operator==(const ChainedHits& lhs, const ChainedHits& rhs)
 {

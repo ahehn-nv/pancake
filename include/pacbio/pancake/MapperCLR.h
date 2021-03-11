@@ -34,6 +34,13 @@ using IntervalTreeInt32 =
 using IntervalVectorInt32 = IntervalTreeInt32::interval_vector;
 using IntervalInt32 = IntervalTreeInt32::interval;
 
+enum class MapperSelfHitPolicy
+{
+    DEFAULT,
+    SKIP,
+    PERFECT_ALIGNMENT,
+};
+
 // clang-format off
 class MapperCLRMapSettings
 {
@@ -58,6 +65,7 @@ public:
 
     // Other.
     bool skipSymmetricOverlaps = false;
+    MapperSelfHitPolicy selfHitPolicy = MapperSelfHitPolicy::DEFAULT;
     int32_t minQueryLen = 50;
     int32_t bestNSecondary = 0;
 
@@ -77,6 +85,7 @@ class MapperCLRAlignSettings
 public:
     // Alignment.
     bool align = true;
+    MapperSelfHitPolicy selfHitPolicy = MapperSelfHitPolicy::DEFAULT;
     AlignerType alignerTypeGlobal = AlignerType::KSW2;
     AlignmentParameters alnParamsGlobal;
     AlignerType alignerTypeExt = AlignerType::KSW2;
@@ -153,6 +162,24 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRSettings& a)
 {
     out << a.map << a.align;
     return out;
+}
+
+inline std::string MapperSelfHitPolicyToString(MapperSelfHitPolicy mp)
+{
+    switch (mp) {
+        case MapperSelfHitPolicy::DEFAULT:
+            return "DEFAULT";
+            break;
+        case MapperSelfHitPolicy::SKIP:
+            return "SKIP";
+            break;
+        case MapperSelfHitPolicy::PERFECT_ALIGNMENT:
+            return "PERFECT_ALIGNMENT";
+            break;
+        default:
+            return "UNKNOWN";
+    }
+    return "UNKNOWN";
 }
 
 class MapperCLR : public MapperBase
@@ -265,6 +292,15 @@ private:
                                    AlignerBasePtr& alignerExt);
 
     /*
+     * \brief Filters symmetric and self seed hits, based on sequence IDs.
+     * Be careful when using this function in case when the query and target DBs are not the same.
+    */
+    static std::vector<SeedHit> FilterSymmetricAndSelfHits_(const std::vector<SeedHit>& hits,
+                                                            const int32_t queryId,
+                                                            const bool skipSelfHits,
+                                                            const bool skipSymmetricOverlaps);
+
+    /*
      * \brief Utility function which constructs an overlap from a given chain of seed hits.
      * Overlap coordinates are determined based on the bounding box around the seed hits.
     */
@@ -305,6 +341,18 @@ private:
                                                                  int32_t minAlignmentSpan,
                                                                  int32_t maxFlankExtensionDist,
                                                                  double flankExtensionFactor);
+
+    /*
+     * \brif A helper function which creates a mocked self-mapping based on the query and target
+     * IDs and lengths. The result is an unaligned mapping which spans full length of the
+     * query and target.
+     * Throws if the query and target lengths are different.
+     * This function also does not initialize the Atype and Btype labels (it sets them to Unknown).
+    */
+    static std::unique_ptr<ChainedRegion> CreateMockedMapping_(const int32_t queryId,
+                                                               const int32_t queryLen,
+                                                               const int32_t targetId,
+                                                               const int32_t targetLen);
 };
 
 /*
@@ -315,8 +363,10 @@ void WrapFlagSecondaryAndSupplementary(
     double secondaryAllowedOverlapFractionQuery, double secondaryAllowedOverlapFractionTarget,
     double secondaryMinScoreFraction);
 
-void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
-                      int32_t bestNSecondary);
+int32_t CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
+                         int32_t bestNSecondary);
+
+OverlapPtr CreateMockedAlignment(const OverlapPtr& ovl, const int32_t matchScore);
 
 }  // namespace Pancake
 }  // namespace PacBio

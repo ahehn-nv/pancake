@@ -36,15 +36,26 @@ inline bool operator==(const ChainedRegion& lhs, const ChainedRegion& rhs)
              *(lhs.mapping) == *(rhs.mapping))) &&
            lhs.priority == rhs.priority && lhs.isSupplementary == rhs.isSupplementary;
 }
+inline void VerboseChainedRegion(std::ostream& os, const ChainedRegion& b, bool detailed)
+{
+    if (b.mapping == nullptr) {
+        os << "Mapping: nullptr!";
+    } else {
+        os << "Mapping: \"" << *b.mapping << "\"";
+    }
+    os << ", priority = " << b.priority << ", isSuppl = " << (b.isSupplementary ? "true" : "false");
+    if (detailed) {
+        os << "\n";
+        os << "Chain: " << b.chain;
+        os << "RegionsForAln:\n";
+        for (size_t i = 0; i < b.regionsForAln.size(); ++i) {
+            os << "  [region " << i << "] " << b.regionsForAln[i] << "\n";
+        }
+    }
+}
 inline std::ostream& operator<<(std::ostream& os, const ChainedRegion& b)
 {
-    os << "Mapping: \"" << *b.mapping << "\", priority = " << b.priority
-       << ", isSuppl = " << (b.isSupplementary ? "true" : "false") << "\n";
-    os << "Chain: " << b.chain;
-    os << "RegionsForAln:\n";
-    for (size_t i = 0; i < b.regionsForAln.size(); ++i) {
-        os << "  [region " << i << "] " << b.regionsForAln[i] << "\n";
-    }
+    VerboseChainedRegion(os, b, false);
     return os;
 }
 
@@ -68,16 +79,21 @@ inline bool operator==(const MapperBaseResult& lhs, const MapperBaseResult& rhs)
     }
     return true;
 }
-inline std::ostream& operator<<(std::ostream& os, const MapperBaseResult& b)
+inline void VerboseMapperBaseResult(std::ostream& os, const MapperBaseResult& b, bool detailed)
 {
     for (size_t i = 0; i < b.mappings.size(); ++i) {
         os << "[mapping " << i << "] ";
         if (b.mappings[i] == nullptr) {
             os << "nullptr\n";
         } else {
-            os << *b.mappings[i] << "\n";
+            VerboseChainedRegion(os, *b.mappings[i], detailed);
+            os << "\n";
         }
     }
+}
+inline std::ostream& operator<<(std::ostream& os, const MapperBaseResult& b)
+{
+    VerboseMapperBaseResult(os, b, false);
     return os;
 }
 

@@ -48,13 +48,31 @@ struct PairForBatchAlignment
     bool regionIsRev = false;
 };
 
+/*
+ * \brief The AlignmentStitchPart is used to relate the alignment regions
+ * created during mapping to the actual alignment parts.
+*/
 struct AlignmentStitchPart
 {
+    // RegionType is defined in AlignmentSeeded. It's either FRONT, BACK or GLOBAL.
+    // If FRONT, the sequence of this part will have to be reversed.
     RegionType regionType = RegionType::GLOBAL;
+
+    // The partId corresponds to the ID in either the internal or the
+    // flank PairForBatchAlignment vectors, depending on the regionType value.
     int64_t partId = 0;
+
+    // ID of the corresponding region in ChainedRegion::regionsForAln for an alignment
+    // (it's a std::vector<AlignmentRegion>).
     int64_t regionId = 0;
 };
 
+/*
+ * \brief Keeps the information needed to stitch the batch alignment for a particular query.
+ * Each object is enough to reconstruct one query alignment. The vector of parts holds the
+ * information about which internal or flank alignment portion should be used to splice
+ * the alignment together, linearly.
+*/
 class AlignmentStitchInfo
 {
 public:
@@ -86,7 +104,7 @@ void PrepareSequencesForBatchAlignment(
     const std::vector<MapperBatchChunk>& batchChunks,
     const std::vector<std::vector<std::string>>& querySeqsRev,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
-    std::vector<PairForBatchAlignment>& retPartsGlobal,
+    const MapperSelfHitPolicy selfHitPolicy, std::vector<PairForBatchAlignment>& retPartsGlobal,
     std::vector<PairForBatchAlignment>& retPartsSemiglobal,
     std::vector<AlignmentStitchInfo>& retAlnStitchInfo, int32_t& retLongestSequence);
 
@@ -110,6 +128,10 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                                 const std::vector<AlignmentResult>& flankAlns,
                                 const std::vector<AlignmentStitchInfo>& alnStitchInfo,
                                 Parallel::FireAndForget* faf);
+
+void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& mappingResults,
+                                   const bool mockPerfectAlignment,
+                                   const int32_t matchScoreForMockAlignment);
 
 std::vector<std::vector<std::string>> ComputeReverseComplements(
     const std::vector<MapperBatchChunk>& batchChunks,

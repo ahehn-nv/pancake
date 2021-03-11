@@ -270,6 +270,27 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     std::vector<SeedHit> hits;
     index.CollectHits(&querySeeds[0], querySeeds.size(), queryLen, hits, freqCutoff);
 
+    // Check if this read has at least one seed hit to itself. If so, self-mapping
+    // will be added in the end.
+    bool addPerfectMapping = false;
+    if (settings.map.selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT) {
+        for (const SeedHit& hit : hits) {
+            if (hit.targetId == queryId) {
+                addPerfectMapping = true;
+                break;
+            }
+        }
+    }
+
+    // Filter symmetric and self hits.
+    if (settings.map.skipSymmetricOverlaps ||
+        settings.map.selfHitPolicy != MapperSelfHitPolicy::DEFAULT) {
+        std::vector<SeedHit> newHits = FilterSymmetricAndSelfHits_(
+            hits, queryId, settings.map.selfHitPolicy != MapperSelfHitPolicy::DEFAULT,
+            settings.map.skipSymmetricOverlaps);
+        std::swap(hits, newHits);
+    }
+
     // Sort the seed hits.
     std::sort(hits.begin(), hits.end(), [](const auto& a, const auto& b) {
         return PackSeedHitWithDiagonalToTuple(a) < PackSeedHitWithDiagonalToTuple(b);
@@ -310,6 +331,16 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
     LongMergeChains_(allChainedRegions, settings.map.maxGap);
     DebugWriteChainedRegion(allChainedRegions, "4-long-merge-chains", queryId, queryLen);
 
+    // Add an extra query alignment only if needed (i.e. if the MapperSelfHitPolicy == PERFECT_ALIGNMENT
+    // and the query has self-hits ("self" in term of queryId/targetId).
+    if (addPerfectMapping) {
+        const int32_t targetId = queryId;
+        const int32_t targetLen = index.GetSequenceLength(targetId);
+        std::unique_ptr<ChainedRegion> newChainedRegion =
+            CreateMockedMapping_(queryId, queryLen, targetId, targetLen);
+        allChainedRegions.emplace_back(std::move(newChainedRegion));
+    }
+
     // Again relabel, because some chains are longer now.
     WrapFlagSecondaryAndSupplementary(
         allChainedRegions, settings.map.secondaryAllowedOverlapFractionQuery,
@@ -326,7 +357,7 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
                   return at < bt;
               });
 
-    // Refine seed hits.
+    // Refine seed hits for alignment.
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
         auto& region = allChainedRegions[i];
         if (region->priority > 1) {
@@ -350,22 +381,30 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
 
     // Filter out the mappings.
     MapperBaseResult result;
-    int32_t numSelectedSecondary = 0;
-    for (size_t i = 0; i < allChainedRegions.size(); ++i) {
-        const auto& region = allChainedRegions[i];
-        if (region->priority > 1) {
-            continue;
-        }
-        if (region->mapping == nullptr) {
-            continue;
-        }
-        if (region->priority == 0) {
-            result.mappings.emplace_back(std::move(allChainedRegions[i]));
-        } else if (region->priority == 1 && numSelectedSecondary < settings.map.bestNSecondary) {
-            result.mappings.emplace_back(std::move(allChainedRegions[i]));
-            ++numSelectedSecondary;
-        }
+    result.mappings = std::move(allChainedRegions);
+    const int32_t numPrimary = CondenseMappings(result.mappings, settings.map.bestNSecondary);
+
+    // If this occurs, that means that a filtering stage removed the primary alignment for some reason.
+    // This can happen in case self-hits are skipped in the overlapping use case (the self-hit is the
+    // highest scoring one, and it would get marked for removal).
+    // This reruns labeling to produce the next best primary.
+    if (numPrimary == 0) {
+        WrapFlagSecondaryAndSupplementary(allChainedRegions,
+                                          settings.map.secondaryAllowedOverlapFractionQuery,
+                                          settings.map.secondaryAllowedOverlapFractionTarget,
+                                          settings.map.secondaryMinScoreFraction);
     }
+
+    // Collect regions for alignment.
+    for (size_t i = 0; i < result.mappings.size(); ++i) {
+        if (result.mappings[i] == nullptr || result.mappings[i]->mapping == nullptr) {
+            continue;
+        }
+        result.mappings[i]->regionsForAln = CollectAlignmentRegions_(
+            *result.mappings[i], settings.map.minAlignmentSpan, settings.map.maxFlankExtensionDist,
+            settings.map.flankExtensionFactor);
+    }
+
     DebugWriteChainedRegion(result.mappings, "7-result-mappings", queryId, queryLen);
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
@@ -390,17 +429,6 @@ MapperBaseResult MapperCLR::Map_(const PacBio::Pancake::SeedIndex& index,
             "target" + std::to_string(targetId), targetLen, (i > 0));
     }
 #endif
-
-    for (size_t i = 0; i < result.mappings.size(); ++i) {
-        if (result.mappings[i] == nullptr || result.mappings[i]->mapping == nullptr) {
-            continue;
-        }
-        result.mappings[i]->regionsForAln = CollectAlignmentRegions_(
-            *result.mappings[i], settings.map.minAlignmentSpan, settings.map.maxFlankExtensionDist,
-            settings.map.flankExtensionFactor);
-    }
-
-    CondenseMappings(result.mappings, settings.map.bestNSecondary);
 
     return result;
 }
@@ -432,18 +460,44 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
         const auto& chain = mappingResult.mappings[i]->chain;
         const auto& ovl = mappingResult.mappings[i]->mapping;
         const auto& tSeqFwd = targetSeqs[ovl->Bid];
+        const bool isIdIdentical = (ovl->Aid == ovl->Bid);
 
-        // Use a custom aligner to align.
-        auto newOvl = AlignmentSeeded(ovl, mappingResult.mappings[i]->regionsForAln,
-                                      tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
-                                      &querySeqRev[0], queryLen, alignerGlobal, alignerExt);
+        // Optionally skip, mock or align the overlap.
+        if (settings.align.selfHitPolicy == MapperSelfHitPolicy::SKIP && isIdIdentical) {
+            // Pass, no need to generate any overlaps.
+            PBLOG_TRACE << "(" << __FUNCTION__
+                        << ") MapperSelfHitPolicy::SKIP. Skipping self alignment.";
 
-        auto newChainedRegion = std::make_unique<ChainedRegion>();
-        newChainedRegion->chain = chain;
-        newChainedRegion->mapping = std::move(newOvl);
-        newChainedRegion->priority = mappingResult.mappings[i]->priority;
-        newChainedRegion->isSupplementary = mappingResult.mappings[i]->isSupplementary;
-        alignedResult.mappings.emplace_back(std::move(newChainedRegion));
+        } else if (settings.align.selfHitPolicy == MapperSelfHitPolicy::PERFECT_ALIGNMENT &&
+                   isIdIdentical) {
+            // Mock the perfect alignment between the sequence and itself.
+            PBLOG_TRACE << "(" << __FUNCTION__ << ") MapperSelfHitPolicy::PERFECT_ALIGNMENT. "
+                                                  "Mocking self alignment instead of actually "
+                                                  "aligning.";
+            OverlapPtr newOvl =
+                CreateMockedAlignment(ovl, settings.align.alnParamsGlobal.matchScore);
+            auto newChainedRegion = std::make_unique<ChainedRegion>();
+            newChainedRegion->chain = chain;
+            newChainedRegion->mapping = std::move(newOvl);
+            newChainedRegion->priority = mappingResult.mappings[i]->priority;
+            newChainedRegion->isSupplementary = mappingResult.mappings[i]->isSupplementary;
+            alignedResult.mappings.emplace_back(std::move(newChainedRegion));
+
+        } else {
+            PBLOG_TRACE << "(" << __FUNCTION__ << ") MapperSelfHitPolicy else. Aligning.";
+
+            // Use a custom aligner to align.
+            auto newOvl = AlignmentSeeded(ovl, mappingResult.mappings[i]->regionsForAln,
+                                          tSeqFwd.c_str(), tSeqFwd.size(), &querySeq.c_str()[0],
+                                          &querySeqRev[0], queryLen, alignerGlobal, alignerExt);
+
+            auto newChainedRegion = std::make_unique<ChainedRegion>();
+            newChainedRegion->chain = chain;
+            newChainedRegion->mapping = std::move(newOvl);
+            newChainedRegion->priority = mappingResult.mappings[i]->priority;
+            newChainedRegion->isSupplementary = mappingResult.mappings[i]->isSupplementary;
+            alignedResult.mappings.emplace_back(std::move(newChainedRegion));
+        }
 
 #ifdef PANCAKE_MAP_CLR_DEBUG_ALIGN
         std::cerr << "[mapping i = " << i << ", before alignment] ovl: " << *ovl << "\n";
@@ -465,9 +519,42 @@ MapperBaseResult MapperCLR::Align_(const std::vector<FastaSequenceCached>& targe
 
     DebugWriteChainedRegion(alignedResult.mappings, "8-result-after-align", queryId, queryLen);
 
-    CondenseMappings(alignedResult.mappings, settings.map.bestNSecondary);
+    const int32_t numPrimary =
+        CondenseMappings(alignedResult.mappings, settings.map.bestNSecondary);
+
+    // If this occurs, that means that a filtering stage removed the primary alignment for some reason.
+    // This can happen in case self-hits are skipped in the overlapping use case (the self-hit is the
+    // highest scoring one, and it would get marked for removal).
+    // However, in this current function this cannot happen right now because flagging happens right
+    // before condensing. Still including this here to be future proof.
+    // This reruns labeling to produce the next best primary.
+    if (numPrimary == 0) {
+        WrapFlagSecondaryAndSupplementary(alignedResult.mappings,
+                                          settings.map.secondaryAllowedOverlapFractionQuery,
+                                          settings.map.secondaryAllowedOverlapFractionTarget,
+                                          settings.map.secondaryMinScoreFraction);
+    }
 
     return alignedResult;
+}
+
+std::vector<SeedHit> MapperCLR::FilterSymmetricAndSelfHits_(const std::vector<SeedHit>& hits,
+                                                            const int32_t queryId,
+                                                            const bool skipSelfHits,
+                                                            const bool skipSymmetricOverlaps)
+{
+    std::vector<SeedHit> newHits(hits.size());
+    size_t newHitId = 0;
+    for (const SeedHit& hit : hits) {
+        if ((skipSelfHits && hit.targetId == queryId) ||
+            (skipSymmetricOverlaps && hit.targetId > queryId)) {
+            continue;
+        }
+        newHits[newHitId] = hit;
+        ++newHitId;
+    }
+    newHits.resize(newHitId);
+    return newHits;
 }
 
 std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(const ChainedRegion& singleMapping,
@@ -833,33 +920,42 @@ void WrapFlagSecondaryAndSupplementary(
     */
     // Copy the overlaps so we can satisfy the FlagSecondaryAndSupplementary API.
     std::vector<OverlapPtr> tmpOverlaps;
+    std::vector<int32_t> inputOverlapToTmpOverlap(allChainedRegions.size(), -1);
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
         if (allChainedRegions[i] == nullptr || allChainedRegions[i]->mapping == nullptr) {
             continue;
         }
+        inputOverlapToTmpOverlap[i] = tmpOverlaps.size();
         tmpOverlaps.emplace_back(createOverlap(allChainedRegions[i]->mapping));
     }
     // Flag the secondary and supplementary overlaps.
     std::vector<OverlapPriority> overlapPriorities = FlagSecondaryAndSupplementary(
         tmpOverlaps, secondaryAllowedOverlapFractionQuery, secondaryAllowedOverlapFractionTarget,
         secondaryMinScoreFraction);
+
     // Set the flags.
     for (size_t i = 0; i < allChainedRegions.size(); ++i) {
         if (allChainedRegions[i] == nullptr || allChainedRegions[i]->mapping == nullptr) {
             continue;
         }
+        const int32_t tmpOverlapId = inputOverlapToTmpOverlap[i];
+        if (tmpOverlapId < 0) {
+            continue;
+        }
         auto& cr = allChainedRegions[i];
-        cr->mapping->IsSecondary = (overlapPriorities[i].priority > 0);
-        cr->mapping->IsSupplementary = overlapPriorities[i].isSupplementary;
-        cr->priority = overlapPriorities[i].priority;
-        cr->isSupplementary = overlapPriorities[i].isSupplementary;
+        cr->mapping->IsSecondary = (overlapPriorities[tmpOverlapId].priority > 0);
+        cr->mapping->IsSupplementary = overlapPriorities[tmpOverlapId].isSupplementary;
+        cr->priority = overlapPriorities[tmpOverlapId].priority;
+        cr->isSupplementary = overlapPriorities[tmpOverlapId].isSupplementary;
     }
 }
 
-void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings, int32_t bestNSecondary)
+int32_t CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings,
+                         int32_t bestNSecondary)
 {
     // Filter mappings.
     size_t numValid = 0;
+    int32_t numPrimary = 0;
     int32_t numSelectedSecondary = 0;
     for (size_t i = 0; i < mappings.size(); ++i) {
         if (mappings[i] == nullptr) {
@@ -876,6 +972,9 @@ void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings, int
             numSelectedSecondary >= bestNSecondary) {
             continue;
         }
+        if (region->priority == 0) {
+            ++numPrimary;
+        }
 
         if (bestNSecondary < 0 ||
             (region->priority == 1 && numSelectedSecondary < bestNSecondary)) {
@@ -887,6 +986,72 @@ void CondenseMappings(std::vector<std::unique_ptr<ChainedRegion>>& mappings, int
         ++numValid;
     }
     mappings.resize(numValid);
+    return numPrimary;
+}
+
+std::unique_ptr<ChainedRegion> MapperCLR::CreateMockedMapping_(const int32_t queryId,
+                                                               const int32_t queryLen,
+                                                               const int32_t targetId,
+                                                               const int32_t targetLen)
+{
+    if (queryLen != targetLen) {
+        throw std::runtime_error(
+            "Cannot mock a perfect mapping between the two sequences with same ID, the "
+            "lengths are different. The sequences might be mislabelled. queryLen = " +
+            std::to_string(queryLen) + ", targetLen = " + std::to_string(targetLen));
+    }
+
+    const int32_t numSeeds = queryLen;
+    const int32_t alnScore = queryLen;
+    const float identity = 0.0;
+    const int32_t editDist = -1;
+    const bool isRev = false;
+
+    ChainedHits newChain{targetId,
+                         false,
+                         {
+                             SeedHit(targetId, false, 0, 0, 0, 0, 0),
+                             SeedHit(targetId, false, targetLen, queryLen, 0, 0, 0),
+                         },
+                         alnScore,
+                         queryLen,
+                         targetLen};
+
+    OverlapPtr newOvl = createOverlap(queryId, targetId, alnScore, identity, isRev, 0, queryLen,
+                                      queryLen, false, 0, targetLen, targetLen, editDist, numSeeds,
+                                      OverlapType::Unknown, OverlapType::Unknown);
+
+    auto newChainedRegion = std::make_unique<ChainedRegion>();
+    newChainedRegion->chain = std::move(newChain);
+    newChainedRegion->regionsForAln = {};  // This will be generated later.
+    newChainedRegion->mapping = std::move(newOvl);
+    newChainedRegion->priority = 0;
+    newChainedRegion->isSupplementary = false;
+
+    return newChainedRegion;
+}
+
+OverlapPtr CreateMockedAlignment(const OverlapPtr& ovl, const int32_t matchScore)
+{
+
+    if (ovl->Alen != ovl->Blen) {
+        std::ostringstream oss;
+        oss << "Cannot mock a perfect alignment between the two sequences with same ID, the "
+               "lengths are different. The sequences might be mislabelled. Overlap: "
+            << *ovl;
+        throw std::runtime_error(oss.str());
+    }
+
+    const int32_t score = ovl->Alen * matchScore;
+    const float identity = 1.0;
+    const int32_t editDist = 0;
+    const int32_t numSeeds = ovl->Alen;
+    OverlapPtr newOvl = createOverlap(
+        ovl->Aid, ovl->Bid, score, identity, false, 0, ovl->Alen, ovl->Alen, false, 0, ovl->Blen,
+        ovl->Blen, editDist, numSeeds, OverlapType::Unknown, OverlapType::Unknown,
+        // OverlapType::Contains, OverlapType::Contains,
+        PacBio::BAM::Cigar(std::to_string(ovl->Alen) + "="), "", "", false, false, false);
+    return newOvl;
 }
 
 }  // namespace Pancake
