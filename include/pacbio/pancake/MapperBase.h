@@ -109,8 +109,11 @@ public:
         const std::vector<FastaSequenceCached>& targetSeqs,
         const std::vector<FastaSequenceCached>& querySeqs) = 0;
 
+    virtual std::vector<MapperBaseResult> MapAndAlign(
+        const FastaSequenceCachedStore& targetSeqs, const FastaSequenceCachedStore& querySeqs) = 0;
+
     virtual MapperBaseResult MapAndAlignSingleQuery(
-        const std::vector<FastaSequenceCached>& targetSeqs, const PacBio::Pancake::SeedIndex& index,
+        const FastaSequenceCachedStore& targetSeqs, const PacBio::Pancake::SeedIndex& index,
         const FastaSequenceCached& querySeq,
         const std::vector<PacBio::Pancake::Int128t>& querySeeds, const int32_t queryId,
         int64_t freqCutoff) = 0;

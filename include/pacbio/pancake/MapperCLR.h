@@ -192,10 +192,8 @@ public:
      * \brief Runs mapping and alignment of one or more query sequences to one or more target sequences.
      * This is the basic interface for the most simple usage.
      * This interface does not require the SeedIndex or minimizers, because it will compute them internally.
-     * The std::string objects are first converted to FastaSequenceCached, and then the
-     * WrapBuildIndexMapAndAlignWithFallback_ function is called.
-     * If there were no alignmentsads produced for a query using the primary seeding parameters,
-     * another call to WrapMapAndAlign_ is performed with the seedParamsFallback options.
+     * The std::string objects are first converted to FastaSequenceCached, and then the MapAndAlign overload
+     * is called on these inputs.
     */
     std::vector<MapperBaseResult> MapAndAlign(const std::vector<std::string>& targetSeqs,
                                               const std::vector<std::string>& querySeqs) override;
@@ -203,13 +201,23 @@ public:
     /*
      * \brief Runs mapping and alignment of one or more query sequences to one or more target sequences.
      * This interface does not require the SeedIndex or minimizers, because it will compute them internally.
-     * The WrapBuildIndexMapAndAlignWithFallback_ function is called for processing.
-     * If there were no alignmentsads produced for a query using the primary seeding parameters,
-     * another call to WrapMapAndAlign_ is performed with the seedParamsFallback options.
+     * This function constructs the FastaSequenceCachedStore from the given FastaSequenceCached objects,
+     * and calls the related overload of MapAndAlign with these inputs.
     */
     std::vector<MapperBaseResult> MapAndAlign(
         const std::vector<FastaSequenceCached>& targetSeqs,
         const std::vector<FastaSequenceCached>& querySeqs) override;
+
+    /*
+     * \brief Runs mapping and alignment of one or more query sequences to one or more target sequences.
+     * This interface does not require the SeedIndex or minimizers, because it will compute them internally.
+     * The WrapBuildIndexMapAndAlignWithFallback_ function is called for processing.
+     * If there were no alignmentsads produced for a query using the primary seeding parameters,
+     * another call to WrapMapAndAlign_ is performed with the seedParamsFallback options.
+     * The FastaSequenceCachedStore objects are used for random access to sequences.
+    */
+    std::vector<MapperBaseResult> MapAndAlign(const FastaSequenceCachedStore& targetSeqs,
+                                              const FastaSequenceCachedStore& querySeqs) override;
 
     /*
      * \brief Runs mapping and alignment of a single query sequence to one or more target sequences.
@@ -219,7 +227,7 @@ public:
      * There is no seed fallback implemented in this function, since the SeedIndex is precomputed
      * and provided from the outside.
     */
-    MapperBaseResult MapAndAlignSingleQuery(const std::vector<FastaSequenceCached>& targetSeqs,
+    MapperBaseResult MapAndAlignSingleQuery(const FastaSequenceCachedStore& targetSeqs,
                                             const PacBio::Pancake::SeedIndex& index,
                                             const FastaSequenceCached& querySeq,
                                             const std::vector<PacBio::Pancake::Int128t>& querySeeds,
@@ -228,14 +236,15 @@ public:
     /*
      * \brief Maps the query sequence to the targets, where targets are provided by the SeedIndex.
     */
-    MapperBaseResult Map(const PacBio::Pancake::SeedIndex& index,
+    MapperBaseResult Map(const FastaSequenceCachedStore& targetSeqs,
+                         const PacBio::Pancake::SeedIndex& index,
                          const std::vector<PacBio::Pancake::Int128t>& querySeeds,
                          const int32_t queryLen, const int32_t queryId, int64_t freqCutoff) const;
 
     /*
      * \brief Aligns a precomputed mapping result.
     */
-    MapperBaseResult Align(const std::vector<FastaSequenceCached>& targetSeqs,
+    MapperBaseResult Align(const FastaSequenceCachedStore& targetSeqs,
                            const FastaSequenceCached& querySeq,
                            const MapperBaseResult& mappingResult);
 
@@ -251,7 +260,7 @@ private:
      * of the mapping process).
     */
     static MapperBaseResult WrapMapAndAlign_(
-        const std::vector<FastaSequenceCached>& targetSeqs, const PacBio::Pancake::SeedIndex& index,
+        const FastaSequenceCachedStore& targetSeqs, const PacBio::Pancake::SeedIndex& index,
         const FastaSequenceCached& querySeq,
         const std::vector<PacBio::Pancake::Int128t>& querySeeds, const int32_t queryId,
         int64_t freqCutoff, const MapperCLRSettings& settings, AlignerBasePtr& alignerGlobal,
@@ -267,14 +276,15 @@ private:
      * run (nor will the fallback index be generated).
     */
     static std::vector<MapperBaseResult> WrapBuildIndexMapAndAlignWithFallback_(
-        const std::vector<FastaSequenceCached>& targetSeqs,
-        const std::vector<FastaSequenceCached>& querySeqs, const MapperCLRSettings& settings,
-        AlignerBasePtr& alignerGlobal, AlignerBasePtr& alignerExt);
+        const FastaSequenceCachedStore& targetSeqs, const FastaSequenceCachedStore& querySeqs,
+        const MapperCLRSettings& settings, AlignerBasePtr& alignerGlobal,
+        AlignerBasePtr& alignerExt);
 
     /*
      * \brief Maps the query sequence to the targets, where targets are provided by the SeedIndex.
     */
-    static MapperBaseResult Map_(const PacBio::Pancake::SeedIndex& index,
+    static MapperBaseResult Map_(const FastaSequenceCachedStore& targetSeqs,
+                                 const PacBio::Pancake::SeedIndex& index,
                                  const std::vector<PacBio::Pancake::Int128t>& querySeeds,
                                  const int32_t queryLen, const int32_t queryId,
                                  const MapperCLRSettings& settings, int64_t freqCutoff);
@@ -285,7 +295,7 @@ private:
      * This function cannot be const because the member alignerGlobal_ and alignerExt_ can be
      * modified (they have internal memory which gets reused with alignment).
     */
-    static MapperBaseResult Align_(const std::vector<FastaSequenceCached>& targetSeqs,
+    static MapperBaseResult Align_(const FastaSequenceCachedStore& targetSeqs,
                                    const FastaSequenceCached& querySeq,
                                    const MapperBaseResult& mappingResult,
                                    const MapperCLRSettings& settings, AlignerBasePtr& alignerGlobal,
@@ -305,7 +315,7 @@ private:
      * Overlap coordinates are determined based on the bounding box around the seed hits.
     */
     static OverlapPtr MakeOverlap_(const std::vector<SeedHit>& sortedHits, int32_t queryId,
-                                   int32_t queryLen, const PacBio::Pancake::SeedIndex& index,
+                                   int32_t queryLen, const FastaSequenceCachedStore& targetSeqs,
                                    int32_t beginId, int32_t endId, int32_t minTargetPosId,
                                    int32_t maxTargetPosId);
 
@@ -313,7 +323,7 @@ private:
      * \brief Performs LIS and DP chaining, then constructs the overlaps from those resulting chains.
     */
     static std::vector<std::unique_ptr<ChainedRegion>> ChainAndMakeOverlap_(
-        const PacBio::Pancake::SeedIndex& index, const std::vector<SeedHit>& hits,
+        const FastaSequenceCachedStore& targetSeqs, const std::vector<SeedHit>& hits,
         const std::vector<PacBio::Pancake::Range>& hitGroups, int32_t queryId, int32_t queryLen,
         int32_t chainMaxSkip, int32_t chainMaxPredecessors, int32_t maxGap, int32_t chainBandwidth,
         int32_t minNumSeeds, int32_t minCoveredBases, int32_t minDPScore, bool useLIS);
@@ -325,7 +335,7 @@ private:
     */
     static std::vector<std::unique_ptr<ChainedRegion>> ReChainSeedHits_(
         const std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,
-        const PacBio::Pancake::SeedIndex& index, int32_t queryId, int32_t queryLen,
+        const FastaSequenceCachedStore& targetSeqs, int32_t queryId, int32_t queryLen,
         int32_t chainMaxSkip, int32_t chainMaxPredecessors, int32_t maxGap, int32_t chainBandwidth,
         int32_t minNumSeeds, int32_t minCoveredBases, int32_t minDPScore);
 
