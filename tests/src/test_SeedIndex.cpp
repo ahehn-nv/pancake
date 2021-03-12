@@ -491,17 +491,17 @@ B	0	0	1	96
         {targetId, false, 5, 0, 30, 30, 0},
 
         // 123
-        {targetId, true, 7, 1, 30, 30, 0},
-        {targetId, true, 2, 1, 30, 30, 0},
-        {targetId, true, 0, 1, 30, 30, 0},
+        {targetId, true, 1, 7, 30, 30, 0},
+        {targetId, true, 6, 7, 30, 30, 0},
+        {targetId, true, 8, 7, 30, 30, 0},
 
         /// 5
-        {targetId, true, 6, 2, 30, 30, 0},
-        {targetId, true, 1, 2, 30, 30, 0},
+        {targetId, true, 2, 6, 30, 30, 0},
+        {targetId, true, 7, 6, 30, 30, 0},
         {targetId, false, 4, 2, 30, 30, 0},
 
         /// 7
-        {targetId, true, 5, 3, 30, 30, 0},
+        {targetId, true, 3, 5, 30, 30, 0},
 
         // 5
         {targetId, false, 2, 4, 30, 30, 0},
@@ -520,7 +520,7 @@ B	0	0	1	96
         // 5
         {targetId, false, 2, 7, 30, 30, 0},
         {targetId, false, 7, 7, 30, 30, 0},
-        {targetId, true, 4, 7, 30, 30, 0},
+        {targetId, true, 4, 1, 30, 30, 0},
 
         // 123
         {targetId, false, 1, 8, 30, 30, 0},
