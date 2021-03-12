@@ -172,7 +172,7 @@ MapperResult Mapper::MapSingleQuery_(const PacBio::Pancake::FastaSequenceCachedS
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Overlaps after alignment: " << overlaps.size();
     for (const auto& ovl : overlaps) {
-        PBLOG_INFO << *ovl
+        PBLOG_INFO << *ovl;
     }
 #endif
 
@@ -184,18 +184,12 @@ MapperResult Mapper::MapSingleQuery_(const PacBio::Pancake::FastaSequenceCachedS
     }
     PBLOG_INFO << "Num anchors: " << overlaps.size();
     PBLOG_INFO << "Collected " << hits.size() << " hits.";
-    PBLOG_INFO << "Time - collecting hits: " << ttCollectHits.GetMillisecs() << " ms / "
-               << ttCollectHits.GetCpuMillisecs() << " CPU ms";
-    PBLOG_INFO << "Time - sorting: " << ttSortHits.GetMillisecs() << " ms / "
-               << ttSortHits.GetCpuMillisecs() << " CPU ms";
-    PBLOG_INFO << "Time - chaining: " << ttChain.GetMillisecs() << " ms / "
-               << ttChain.GetCpuMillisecs() << " CPU ms";
-    PBLOG_INFO << "Time - tandem filter: " << ttFilterTandem.GetMillisecs() << " ms / "
-               << ttFilterTandem.GetCpuMillisecs() << " CPU ms";
-    PBLOG_INFO << "Time - alignment: " << ttAlign.GetMillisecs() << " ms / "
-               << ttAlign.GetCpuMillisecs() << " CPU ms";
-    PBLOG_INFO << "Time - filter: " << ttFilter.GetMillisecs() << " ms / "
-               << ttFilter.GetCpuMillisecs() << " CPU ms";
+    PBLOG_INFO << "Time - collecting hits: " << ttCollectHits.GetMillisecs() << " ms";
+    PBLOG_INFO << "Time - sorting: " << ttSortHits.GetMillisecs() << " ms";
+    PBLOG_INFO << "Time - chaining: " << ttChain.GetMillisecs() << " ms";
+    PBLOG_INFO << "Time - tandem filter: " << ttFilterTandem.GetMillisecs() << " ms";
+    PBLOG_INFO << "Time - alignment: " << ttAlign.GetMillisecs() << " ms";
+    PBLOG_INFO << "Time - filter: " << ttFilter.GetMillisecs() << " ms";
     DebugWriteSeedHits_("temp/debug/mapper-0-seed_hits.csv", hits, 30, querySeq.Name(),
                         querySeq.Size(), "target", 0);
 #endif
@@ -230,9 +224,9 @@ OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
 
     const int32_t targetLen = targetSeqs.GetSequence(targetId).size();
 
-    OverlapPtr ret = createOverlap(querySeq.Id(), targetId, score, identity, 0, beginHit.queryPos,
-                                   endHit.queryPos, querySeq.Size(), beginHit.targetRev,
-                                   beginHit.targetPos, endHit.targetPos, targetLen, editDist,
+    OverlapPtr ret = createOverlap(querySeq.Id(), targetId, score, identity, beginHit.targetRev, beginHit.queryPos,
+                                   endHit.queryPos + endHit.querySpan, querySeq.Size(), false,
+                                   beginHit.targetPos, endHit.targetPos + endHit.targetSpan, targetLen, editDist,
                                    numSeeds, OverlapType::Unknown, OverlapType::Unknown);
 
     ret->NormalizeStrand();
