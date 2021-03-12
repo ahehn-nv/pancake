@@ -58,26 +58,13 @@ void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
 
 template <class TargetHashType>
 bool CollectSeedHits(std::vector<SeedHit>& hits, const PacBio::Pancake::SeedDB::SeedRaw* querySeeds,
-                     const int64_t querySeedsSize, const int32_t /*queryLen*/,
+                     const int64_t querySeedsSize, const int32_t queryLen,
                      const TargetHashType& hash,
                      const PacBio::Pancake::SeedDB::SeedRaw* targetSeeds,
-                     const int64_t /*targetSeedsSize*/, const std::vector<int32_t>& targetLengths,
-                     const int32_t /*kmerSize*/, const int32_t /*spacing*/,
-                     const int64_t freqCutoff)
+                     const int64_t /*targetSeedsSize*/, const int32_t /*kmerSize*/,
+                     const int32_t /*spacing*/, const int64_t freqCutoff)
 {
     hits.clear();
-
-    static auto GetSequenceLength = [](const std::vector<int32_t>& sequenceLengths,
-                                       int32_t seqId) -> int32_t {
-        // Sanity check for the sequence ID.
-        if (seqId < 0 || seqId >= static_cast<int32_t>(sequenceLengths.size())) {
-            std::ostringstream oss;
-            oss << "Invalid seqId. seqId = " << seqId
-                << ", sequenceLengths.size() = " << sequenceLengths.size();
-            throw std::runtime_error(oss.str());
-        }
-        return sequenceLengths[seqId];
-    };
 
     // The +1 is because for every seed base there are Spacing spaces, and the subtraction
     // is because after the last seed base the spaces shouldn't be counted.
@@ -104,10 +91,11 @@ bool CollectSeedHits(std::vector<SeedHit>& hits, const PacBio::Pancake::SeedDB::
 
                 if (decodedQuery.IsRev() != decodedTarget.IsRev()) {
                     isRev = true;
-                    const int32_t targetLen = GetSequenceLength(targetLengths, decodedTarget.seqID);
-                    targetPos = targetLen - (decodedTarget.pos + targetSpan);
-                    // queryPos = queryLen - (decodedQuery.pos +
-                    //                        querySpan);  // End pos in fwd is start pos in rev.
+                    // const int32_t targetLen = GetSequenceLength(targetLengths, decodedTarget.seqID);
+                    // targetPos = targetLen - (decodedTarget.pos + targetSpan);
+
+                    queryPos = queryLen - (decodedQuery.pos +
+                                           querySpan);  // End pos in fwd is start pos in rev.
                 }
 
                 SeedHit hit{decodedTarget.seqID, isRev,     targetPos, queryPos,
