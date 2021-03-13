@@ -1,3 +1,11 @@
+// Copyright (c) 2019, Pacific Biosciences of California, Inc.
+// All rights reserved.
+// See LICENSE.txt.
+//
+// Contributions from NVIDIA are Copyright (c) 2021, NVIDIA Corporation.
+// All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 // Authors: Ivan Sovic
 #include <pacbio/pancake/AlignerBatchGPU.h>
 #include <pacbio/pancake/MapperBatchGPU.h>
@@ -36,7 +44,7 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, int32_t numThr
 {
     fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
     faf_ = fafFallback_.get();
-    aligner_ = std::make_unique<AlignerBatchGPU>(faf_, settings.alnParamsGlobal, gpuStartBandwidth,
+    aligner_ = std::make_unique<AlignerBatchGPU>(settings.alnParamsGlobal, gpuStartBandwidth,
                                                  gpuDeviceId, gpuMemoryBytes);
 }
 
@@ -50,7 +58,7 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRSettings& settings, Parallel::Fire
     , alignRemainingOnCpu_(alignRemainingOnCpu)
     , faf_{faf}
     , fafFallback_(nullptr)
-    , aligner_{std::make_unique<AlignerBatchGPU>(faf, settings.alnParamsGlobal, gpuStartBandwidth,
+    , aligner_{std::make_unique<AlignerBatchGPU>(settings.alnParamsGlobal, gpuStartBandwidth,
                                                  gpuDeviceId, gpuMemoryBytes)}
 {}
 
