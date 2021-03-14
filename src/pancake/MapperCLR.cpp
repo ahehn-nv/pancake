@@ -514,7 +514,6 @@ MapperBaseResult MapperCLR::Align_(const FastaSequenceCachedStore& targetSeqs,
         } else {
             std::cerr << "nullptr\n";
         }
-        std::cerr << "ttAlignmentSeeded = " << ttAlignmentSeeded.GetCpuMillisecs() << " ms\n";
 #endif
     }
 
@@ -811,7 +810,7 @@ OverlapPtr MapperCLR::MakeOverlap_(const std::vector<SeedHit>& sortedHits, int32
 
     OverlapPtr ret =
         createOverlap(queryId, targetId, score, identity, beginHit.targetRev, beginHit.queryPos,
-                      endHit.queryPos, queryLen, false, beginHit.targetPos, endHit.targetPos,
+                      endHit.queryPos + endHit.querySpan, queryLen, false, beginHit.targetPos, endHit.targetPos + endHit.targetSpan,
                       targetLen, editDist, numSeeds, OverlapType::Unknown, OverlapType::Unknown);
 
     ret->NormalizeStrand();
