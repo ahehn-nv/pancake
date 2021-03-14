@@ -309,15 +309,6 @@ private:
                                                             const bool skipSymmetricOverlaps);
 
     /*
-     * \brief Utility function which constructs an overlap from a given chain of seed hits.
-     * Overlap coordinates are determined based on the bounding box around the seed hits.
-    */
-    static OverlapPtr MakeOverlap_(const std::vector<SeedHit>& sortedHits, int32_t queryId,
-                                   int32_t queryLen, const FastaSequenceCachedStore& targetSeqs,
-                                   int32_t beginId, int32_t endId, int32_t minTargetPosId,
-                                   int32_t maxTargetPosId);
-
-    /*
      * \brief Performs LIS and DP chaining, then constructs the overlaps from those resulting chains.
     */
     static std::vector<std::unique_ptr<ChainedRegion>> ChainAndMakeOverlap_(
