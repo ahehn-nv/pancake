@@ -378,11 +378,13 @@ MapperBaseResult MapperCLR::Map_(const FastaSequenceCachedStore& targetSeqs,
 
         std::swap(region->chain, newChain);
 
-        region->mapping->Astart = region->chain.hits.front().queryPos;
-        region->mapping->Bstart = region->chain.hits.front().targetPos;
-        region->mapping->Aend = region->chain.hits.back().queryPos;
-        region->mapping->Bend = region->chain.hits.back().targetPos;
-        region->mapping->NumSeeds = region->chain.hits.size();
+        if (region->chain.hits.empty()) {
+            region->mapping = nullptr;
+        } else {
+            region->mapping =
+                MakeOverlap(region->chain.hits, queryId, queryLen, targetSeqs, 0,
+                            region->chain.hits.size(), 0, region->chain.hits.size() - 1);
+        }
     }
     DebugWriteChainedRegion(allChainedRegions, "6-refining-seed-hits", queryId, queryLen);
 
