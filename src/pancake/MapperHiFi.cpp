@@ -224,10 +224,11 @@ OverlapPtr Mapper::MakeOverlap_(const std::vector<SeedHit>& sortedHits,
 
     const int32_t targetLen = targetSeqs.GetSequence(targetId).size();
 
-    OverlapPtr ret = createOverlap(querySeq.Id(), targetId, score, identity, beginHit.targetRev, beginHit.queryPos,
-                                   endHit.queryPos + endHit.querySpan, querySeq.Size(), false,
-                                   beginHit.targetPos, endHit.targetPos + endHit.targetSpan, targetLen, editDist,
-                                   numSeeds, OverlapType::Unknown, OverlapType::Unknown);
+    OverlapPtr ret =
+        createOverlap(querySeq.Id(), targetId, score, identity, beginHit.targetRev,
+                      beginHit.queryPos, endHit.queryPos + endHit.querySpan, querySeq.Size(), false,
+                      beginHit.targetPos, endHit.targetPos + endHit.targetSpan, targetLen, editDist,
+                      numSeeds, OverlapType::Unknown, OverlapType::Unknown);
 
     ret->NormalizeStrand();
 
