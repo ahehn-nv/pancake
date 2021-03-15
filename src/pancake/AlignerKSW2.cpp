@@ -145,7 +145,7 @@ AlignmentResult AlignerKSW2::Extend(const char* qseq, int64_t qlen, const char* 
     ret.maxTargetPos = ez.max_t;
     ret.zdropped = ez.zdropped;
     ret.maxScore = ez.max;
-    ret.score = ret.zdropped ? ret.maxScore : ez.score;
+    ret.score = std::max(ret.maxScore, ez.score);
 
     // Free KSW2 memory.
     kfree(buffer_->km, ez.cigar);
