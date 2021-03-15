@@ -583,16 +583,17 @@ std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(const ChainedRe
     if (ovl->Astart != sortedHits.front().queryPos || ovl->Aend != sortedHits.back().queryPos ||
         ovl->Bstart != sortedHits.front().targetPos || ovl->Bend != sortedHits.back().targetPos) {
         std::ostringstream oss;
-        oss << "(AlignmentSeeded) Provided overlap coordinates do not match the first/last "
-               "seed "
-               "hit!"
+        oss << "(" << __FUNCTION__ << ") Provided overlap coordinates do not match the first/last "
+                                      "seed "
+                                      "hit!"
             << " ovl: " << *ovl << "; sortedHits.front() = " << sortedHits.front()
             << "; sortedHits.back() = " << sortedHits.back();
         throw std::runtime_error(oss.str());
     }
     if (ovl->Brev != sortedHits.front().targetRev || ovl->Brev != sortedHits.back().targetRev) {
         std::ostringstream oss;
-        oss << "(AlignmentSeeded) Strand of the provided overlap does not match the first/last "
+        oss << "(" << __FUNCTION__
+            << ") Strand of the provided overlap does not match the first/last "
                "seed hit."
             << " ovl->Brev = " << (ovl->Brev ? "true" : "false")
             << ", sortedHits.front().targetRev = "
@@ -641,11 +642,14 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
 
     auto groups = GroupByTargetAndStrand(hits2);
 
-    for (const auto& group : groups) {
+    for (size_t groupId = 0; groupId < groups.size(); ++groupId) {
+        const auto& group = groups[groupId];
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
         std::cerr << "(ReChainSeedHits_) group: " << group << ", span = " << group.Span() << "\n";
+        std::cerr << "[group " << groupId << "] After GroupByTargetAndStrand:\n";
         for (int32_t i = group.start; i < group.end; ++i) {
-            std::cerr << "    [hit i = " << i << "] " << hits2[i] << "\n";
+            const auto& hit = hits2[i];
+            std::cerr << "    [hit i = " << i << "] " << hit << "\n";
         }
         std::cerr << "\n";
 #endif
@@ -654,6 +658,19 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
         std::vector<ChainedHits> chains = ChainHits(
             &hits2[group.start], group.end - group.start, chainMaxSkip, chainMaxPredecessors,
             maxGap, chainBandwidth, minNumSeeds, minCoveredBases, minDPScore);
+
+#ifdef PANCAKE_MAP_CLR_DEBUG_2
+        std::cerr << "[group " << groupId << "] After ChainHits:\n";
+        for (size_t chainId = 0; chainId < chains.size(); ++chainId) {
+            const auto& chain = chains[chainId];
+            // std::cerr << chain << "\n";
+            for (int32_t hitId = 0; hitId < chain.hits.size(); ++hitId) {
+                const auto& hit = chain.hits[hitId];
+                std::cerr << "    [groupId = " << groupId << ", chainId = " << chainId << "\n";
+            }
+            std::cerr << "\n";
+        }
+#endif
 
         // Accumulate chains and their mapped regions.
         for (size_t i = 0; i < chains.size(); ++i) {
@@ -735,13 +752,15 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ChainAndMakeOverlap_(
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
             std::cerr << "  - Hits before LIS:\n";
             for (size_t ii = 0; ii < groupHits.size(); ++ii) {
-                std::cerr << "    [groupHits ii = " << ii << "] " << groupHits[ii] << "\n";
+                const auto& hit = groupHits[ii];
+                std::cerr << "    [groupHits ii = " << ii << "] " << hit << "\n";
             }
             std::cerr << "  - using LIS.\n";
             std::cerr << "  - lisHits.size() = " << lisHits.size() << "\n";
             std::cerr << "  - Hits after LIS:\n";
             for (size_t ii = 0; ii < lisHits.size(); ++ii) {
-                std::cerr << "    [lisHits ii = " << ii << "] " << lisHits[ii] << "\n";
+                const auto& hit = lisHits[ii];
+                std::cerr << "    [lisHits ii = " << ii << "] " << hit << "\n";
             }
 #endif
         } else {
