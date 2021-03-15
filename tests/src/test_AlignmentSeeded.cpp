@@ -255,9 +255,8 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
         },
 
         TestData{
-            "Three seeds, reverse complement strand. Internally, this function change the view so that in the output query is in the strand"
-            " of the alignment, and target is always in the fwd strand. This is important to make alignment consistent. If the SeedIndex generated "
-            " coordinates which were in strand of the query and always fwd in the target, then this function wouldn't have to do that internally.",
+            "Three seeds, reverse complement strand. Input coordinates are expected to be: (1) target coordinates always forward, "
+            "(2) query coordinates always in the strand of alignment.",
             {   // sortedHits
                 // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
                 SeedHit(0, true, 5, 5, 15, 15, 0),
@@ -271,10 +270,10 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
             // expectedRegions
             {
                 // qStart, qSpan, tStart, tSpan, queryRev, regionType, regionId
-                {0, 100, 0, 100, true, RegionType::FRONT, 0},
-                {100, 500, 100, 500, true, RegionType::GLOBAL, 1},
-                {600, 395, 600, 395, true, RegionType::GLOBAL, 2},
-                {995, 5, 995, 5, true, RegionType::BACK, 3},
+                {0, 5, 0, 5, true, RegionType::FRONT, 0},
+                {5, 395, 5, 395, true, RegionType::GLOBAL, 1},
+                {400, 500, 400, 500, true, RegionType::GLOBAL, 2},
+                {900, 100, 900, 100, true, RegionType::BACK, 3},
             },
         },
     };
