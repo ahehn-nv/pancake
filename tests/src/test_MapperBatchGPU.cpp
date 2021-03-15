@@ -48,6 +48,10 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.target.fasta",
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
                 },
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-query.fasta",
+                },
 
             },
             // Aligner type for global alignment.
@@ -75,6 +79,9 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
                 },
                 {
                     "000000000 000000000 284 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
+                },
+                {
+                    "000000000 000000000 9288 75.87 0 0 15753 15753 1 2 15953 15953 *"
                 },
             },
         },
