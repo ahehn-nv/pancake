@@ -580,28 +580,36 @@ std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(const ChainedRe
     if (ovl->Arev) {
         throw std::runtime_error("(CollectAlignmentRegions) The ovl->Arev should always be false!");
     }
-    // if (ovl->Astart != sortedHits.front().queryPos || ovl->Aend != sortedHits.back().queryPos ||
-    //     ovl->Bstart != sortedHits.front().targetPos || ovl->Bend != sortedHits.back().targetPos) {
-    //     std::ostringstream oss;
-    //     oss << "(" << __FUNCTION__ << ") Provided overlap coordinates do not match the first/last "
-    //                                   "seed "
-    //                                   "hit!"
-    //         << " ovl: " << *ovl << "; sortedHits.front() = " << sortedHits.front()
-    //         << "; sortedHits.back() = " << sortedHits.back();
-    //     throw std::runtime_error(oss.str());
-    // }
-    // if (ovl->Brev != sortedHits.front().targetRev || ovl->Brev != sortedHits.back().targetRev) {
-    //     std::ostringstream oss;
-    //     oss << "(" << __FUNCTION__
-    //         << ") Strand of the provided overlap does not match the first/last "
-    //            "seed hit."
-    //         << " ovl->Brev = " << (ovl->Brev ? "true" : "false")
-    //         << ", sortedHits.front().targetRev = "
-    //         << (sortedHits.front().targetRev ? "true" : "false")
-    //         << ", sortedHits.back().targetRev = "
-    //         << (sortedHits.back().targetRev ? "true" : "false");
-    //     throw std::runtime_error(oss.str());
-    // }
+    const int32_t Astart = ovl->Brev ? (ovl->Alen - ovl->Aend) : ovl->Astart;
+    const int32_t Aend = ovl->Brev ? (ovl->Alen - ovl->Astart) : ovl->Aend;
+    const int32_t Bstart = ovl->Brev ? (ovl->Blen - ovl->Bend) : ovl->Bstart;
+    const int32_t Bend = ovl->Brev ? (ovl->Blen - ovl->Bstart) : ovl->Bend;
+
+    if (Astart != sortedHits.front().queryPos ||
+        Aend != (sortedHits.back().queryPos + sortedHits.back().querySpan) ||
+        Bstart != sortedHits.front().targetPos ||
+        Bend != (sortedHits.back().targetPos + sortedHits.back().targetSpan)) {
+        std::ostringstream oss;
+        oss << "(" << __FUNCTION__ << ") Provided overlap coordinates do not match the first/last "
+                                      "seed "
+                                      "hit!"
+            << " ovl: " << *ovl << "; sortedHits.front() = " << sortedHits.front()
+            << "; sortedHits.back() = " << sortedHits.back() << "; Astart = " << Astart
+            << ", Aend = " << Aend << ", Bstart = " << Bstart << ", Bend = " << Bend;
+        throw std::runtime_error(oss.str());
+    }
+    if (ovl->Brev != sortedHits.front().targetRev || ovl->Brev != sortedHits.back().targetRev) {
+        std::ostringstream oss;
+        oss << "(" << __FUNCTION__
+            << ") Strand of the provided overlap does not match the first/last "
+               "seed hit."
+            << " ovl->Brev = " << (ovl->Brev ? "true" : "false")
+            << ", sortedHits.front().targetRev = "
+            << (sortedHits.front().targetRev ? "true" : "false")
+            << ", sortedHits.back().targetRev = "
+            << (sortedHits.back().targetRev ? "true" : "false");
+        throw std::runtime_error(oss.str());
+    }
 
     // Extract the regions.
     std::vector<AlignmentRegion> regions =
