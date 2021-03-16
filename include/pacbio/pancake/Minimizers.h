@@ -39,17 +39,46 @@ static inline uint64_t ComputeKmerMask(int32_t kmerSize)
     return mask;
 }
 
+/*
+ * \brief Computes minimizers for a single input sequence.
+*/
 int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const uint8_t* seq,
                        const int32_t seqLen, const int32_t seqOffset, const int32_t seqId,
                        const int32_t kmerSize, const int32_t winSize, const int32_t spacing,
                        const bool useReverseComplement, const bool useHPC);
 
+/*
+ * \brief Computes minimizers for a set of input sequences, given as a vector of FastaSequenceCached objects.
+*/
+void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
+                        const std::vector<FastaSequenceCached>& targetSeqs, const int32_t kmerSize,
+                        const int32_t winSize, const int32_t spacing,
+                        const bool useReverseComplement, const bool useHPC,
+                        const int32_t maxHPCLen);
+
+/*
+ * \brief Computes minimizers for a set of input sequences, given as a vector of std::string objects.
+*/
+void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
+                        const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
+                        const int32_t winSize, const int32_t spacing,
+                        const bool useReverseComplement, const bool useHPC,
+                        const int32_t maxHPCLen);
+
+/*
+ * \brief Computes minimizers for a set of input sequences, given as a vector of FastaSequenceCached objects.
+ *        Also collects sequence lengths for all given input sequences.
+*/
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         std::vector<int32_t>& retSequenceLengths,
                         const std::vector<FastaSequenceCached>& targetSeqs, const int32_t kmerSize,
                         const int32_t winSize, const int32_t spacing,
                         const bool useReverseComplement, const bool useHPC);
 
+/*
+ * \brief Computes minimizers for a set of input sequences, given as a vector of std::string objects.
+ *        Also collects sequence lengths for all given input sequences.
+*/
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         std::vector<int32_t>& retSequenceLengths,
                         const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
