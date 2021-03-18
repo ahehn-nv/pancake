@@ -149,7 +149,7 @@ public:
     uint64_t span : 8;
     int32_t seqID : 31;
     bool seqRev : 1;
-    int32_t pos;
+    uint32_t pos;
 };
 
 }  // namespace SeedDB
