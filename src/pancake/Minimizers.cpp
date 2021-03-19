@@ -80,7 +80,8 @@ public:
 int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const uint8_t* seq,
                        const int32_t seqLen, const int32_t seqOffset, const int32_t seqId,
                        const int32_t kmerSize, const int32_t winSize, const int32_t spacing,
-                       const bool useReverseComplement, const bool useHPC, const int32_t maxHPCLen)
+                       const bool useReverseComplement, const bool useHPC,
+                       const int32_t /*maxHPCLen*/)
 {
     const int32_t MAX_SEED_SPAN = 255;
 
@@ -95,12 +96,6 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             "Cannot generate minimizers. The kmerSize is out of bounds, should be in range [0, "
             "28]. kmerSize = " +
             std::to_string(kmerSize));
-    }
-    if (maxHPCLen >= 256) {
-        throw std::runtime_error(
-            "Cannot generate minimizers. The maxHPCLen is out of bounds, should be in range [0, "
-            "256]. maxHPCLen = " +
-            std::to_string(maxHPCLen));
     }
     if (winSize > MAX_WINDOW_BUFFER_SIZE) {
         throw std::runtime_error(
@@ -142,7 +137,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                 // add that stretch to "seed_span" (the seed_span is iteratively increased every
                 // loop iteration).
                 int32_t hpLen = 1;
-                for (hpLen = 1; hpLen < maxHPCLen && (pos + hpLen) < seqLen; ++hpLen) {
+                for (hpLen = 1; (pos + hpLen) < seqLen; ++hpLen) {
                     if (seq[pos + hpLen] != b) {
                         break;
                     }
@@ -156,9 +151,6 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                 while (bufferWD.hpEvents.size() > static_cast<size_t>(kmerSize)) {
                     bufferWD.kmerSpan -= bufferWD.hpEvents.front();
                     bufferWD.hpEvents.pop_front();
-                }
-                if (hpLen >= maxHPCLen) {
-                    continue;
                 }
             } else {
                 bufferWD.kmerSpan = std::min(
