@@ -157,7 +157,7 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
     const auto& seedParams = settings.map.seedParams;
     SeedDB::GenerateMinimizers(seeds, sequenceLengths, targetSeqs.records(), seedParams.KmerSize,
                                seedParams.MinimizerWindow, seedParams.Spacing, seedParams.UseRC,
-                               seedParams.UseHPCForSeedsOnly, seedParams.MaxHPCLen);
+                               seedParams.UseHPCForSeedsOnly);
     std::unique_ptr<SeedIndex> seedIndex =
         std::make_unique<SeedIndex>(settings.map.seedParams, sequenceLengths, std::move(seeds));
 
@@ -178,8 +178,7 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
         SeedDB::GenerateMinimizers(seedsFallback, sequenceLengths, targetSeqs.records(),
                                    seedParamsFallback.KmerSize, seedParamsFallback.MinimizerWindow,
                                    seedParamsFallback.Spacing, seedParamsFallback.UseRC,
-                                   seedParamsFallback.UseHPCForSeedsOnly,
-                                   seedParamsFallback.MaxHPCLen);
+                                   seedParamsFallback.UseHPCForSeedsOnly);
         seedIndexFallback = std::make_unique<SeedIndex>(settings.map.seedParamsFallback,
                                                         sequenceLengths, std::move(seedsFallback));
         seedIndexFallback->ComputeFrequencyStats(settings.map.freqPercentile, freqMax, freqAvg,
@@ -203,8 +202,7 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
         int rv = SeedDB::GenerateMinimizers(
             querySeeds, seq, seqLen, 0, queryId, settings.map.seedParams.KmerSize,
             settings.map.seedParams.MinimizerWindow, settings.map.seedParams.Spacing,
-            settings.map.seedParams.UseRC, settings.map.seedParams.UseHPCForSeedsOnly,
-            settings.map.seedParams.MaxHPCLen);
+            settings.map.seedParams.UseRC, settings.map.seedParams.UseHPCForSeedsOnly);
         if (rv)
             throw std::runtime_error("Generating minimizers failed for the query sequence i = " +
                                      std::to_string(i) + ", id = " + std::to_string(queryId));
@@ -218,8 +216,7 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
                 querySeeds, seq, seqLen, 0, queryId, settings.map.seedParamsFallback.KmerSize,
                 settings.map.seedParamsFallback.MinimizerWindow,
                 settings.map.seedParamsFallback.Spacing, settings.map.seedParamsFallback.UseRC,
-                settings.map.seedParamsFallback.UseHPCForSeedsOnly,
-                settings.map.seedParamsFallback.MaxHPCLen);
+                settings.map.seedParamsFallback.UseHPCForSeedsOnly);
             if (rv)
                 throw std::runtime_error(
                     "Generating minimizers failed for the query sequence, id = " +

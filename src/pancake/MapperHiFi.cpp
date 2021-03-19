@@ -1126,10 +1126,10 @@ std::vector<MapperResult> MapHiFi(const FastaSequenceCachedStore& targetSeqs,
     // Construct the target sequence index.
     std::vector<PacBio::Pancake::Int128t> seeds;
     std::vector<int32_t> sequenceLengths;
-    PacBio::Pancake::SeedDB::GenerateMinimizers(
-        seeds, sequenceLengths, targetSeqs.records(), seedParams.KmerSize,
-        seedParams.MinimizerWindow, seedParams.Spacing, seedParams.UseRC,
-        seedParams.UseHPCForSeedsOnly, seedParams.MaxHPCLen);
+    PacBio::Pancake::SeedDB::GenerateMinimizers(seeds, sequenceLengths, targetSeqs.records(),
+                                                seedParams.KmerSize, seedParams.MinimizerWindow,
+                                                seedParams.Spacing, seedParams.UseRC,
+                                                seedParams.UseHPCForSeedsOnly);
     std::unique_ptr<SeedIndex> seedIndex =
         std::make_unique<SeedIndex>(seedParams, sequenceLengths, std::move(seeds));
 
@@ -1164,10 +1164,9 @@ std::vector<MapperResult> MapHiFi(const FastaSequenceCachedStore& targetSeqs,
         std::vector<PacBio::Pancake::Int128t> querySeeds;
         int32_t seqLen = query.size();
         const uint8_t* seq = reinterpret_cast<const uint8_t*>(query.data());
-        int rv = SeedDB::GenerateMinimizers(querySeeds, seq, seqLen, 0, queryId,
-                                            seedParams.KmerSize, seedParams.MinimizerWindow,
-                                            seedParams.Spacing, seedParams.UseRC,
-                                            seedParams.UseHPCForSeedsOnly, seedParams.MaxHPCLen);
+        int rv = SeedDB::GenerateMinimizers(
+            querySeeds, seq, seqLen, 0, queryId, seedParams.KmerSize, seedParams.MinimizerWindow,
+            seedParams.Spacing, seedParams.UseRC, seedParams.UseHPCForSeedsOnly);
         if (rv) {
             throw std::runtime_error("Generating minimizers failed for the query sequence i = " +
                                      std::to_string(i) + ", id = " + std::to_string(queryId));
