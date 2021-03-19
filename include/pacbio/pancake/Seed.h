@@ -147,7 +147,7 @@ public:
 
     uint64_t key : 56;
     uint64_t span : 8;
-    int32_t seqID : 31;
+    uint32_t seqID : 31;
     bool seqRev : 1;
     uint32_t pos;
 };
