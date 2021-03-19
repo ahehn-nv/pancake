@@ -57,6 +57,8 @@ public:
 
     bool Valid() const { return span != 0; }
 
+    void SetInvalid() { span = 0; }
+
     inline PacBio::Pancake::Int128t To128t()
     {
         PacBio::Pancake::Int128t ret = static_cast<PacBio::Pancake::Int128t>(key) << (64 + 8);
@@ -138,12 +140,10 @@ public:
             seqRev == other.seqRev) {
             // Exact seed match.
             return 0;
-        } else if (key != other.key) {
-            // Keys are different, seeds do not match.
-            return 1;
+        } else if (key == other.key && span == other.span) {
+            return 2;
         }
-        // Key is the same, the rest of the seed is different.
-        return 2;
+        return 1;
     }
 
     uint64_t key : 56;
