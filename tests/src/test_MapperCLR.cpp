@@ -27,9 +27,9 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-2-real-insert-query.fasta",
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true},
             // SeedParams - fallback.
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true},
             // Expected results.
             {
                 "000000000 000000000 16398 81.12 0 0 18779 18779 0 0 18864 18865 *"
@@ -42,9 +42,9 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-3-real-subseq-full-global-match-query.fasta",
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true},
             // SeedParams - fallback.
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true},
             // Expected results.
             {
                 "000000000 000000000 15684 98.71 0 0 8111 8111 0 0 8138 8138 *"
@@ -57,9 +57,9 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-4-small-revcmp-perfect-aln-query.fasta",
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, true},
             // SeedParams - fallback.
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, true, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, true, true},
             // Expected results.
             {
                 "000000000 000000000 300 100.00 0 0 150 150 1 0 150 150 *"
@@ -72,9 +72,9 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-5-revcmp-aln-query.fasta",
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true},
             // SeedParams - fallback.
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true},
             // Expected results.
             {
                 "000000000 000000000 12740 74.58 0 0 21382 22015 1 701 22028 22028 *"
@@ -87,9 +87,9 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-6-small-revcmp-imperfect-aln-query.fasta",
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, true},
             // SeedParams - fallback.
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, true, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, true, true},
             // Expected results.
             {
                 "000000000 000000000 270 96.77 0 0 155 155 1 0 150 150 *"
@@ -102,9 +102,9 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-7-seed-fallback-query.fasta",
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, true},
             // SeedParams - fallback.
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, true, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, true, true},
             // Expected results.
             {
                 "000000000 000000000 392 71.07 0 0 1241 1241 0 0 1225 1225 *"
@@ -117,9 +117,9 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-7-seed-fallback-query.fasta",
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, true},
             // SeedParams - fallback - same as primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, true},
             // Expected results.
             {
             },
@@ -131,9 +131,9 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true},
             // SeedParams - fallback.
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true},
             // Expected results.
             {
                 "000000000 000000000 284 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
@@ -223,9 +223,9 @@ TEST(MapperCLR, CheckMappingAndSeedHits)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
             // SeedParams - primary
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, 100, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, true, true},
             // SeedParams - fallback
-            PacBio::Pancake::SeedDB::SeedDBParameters{15, 5, 0, false, true, 100, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{15, 5, 0, false, true, true},
             ///// These were the old 'wrong' mappings, where we had two seed hits which had the
             ///// same X-coordinate.
             // // Expected seed hits.
@@ -545,9 +545,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsSkipSelfHitsInBothMapAndAlign;
@@ -562,9 +562,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsPerfectAlignSelfHitsInBothMapAndAlign;
@@ -579,9 +579,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::PERFECT_ALIGNMENT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsSkipSymmetricOverlaps;
@@ -596,9 +596,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsSkipSelfAndSymmetricOverlaps;
@@ -613,9 +613,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsSkipSelfInMappingButDefaultInAlignment;
@@ -630,9 +630,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsDefaultSelfInMappingButSkipInAlignment;
@@ -647,9 +647,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsMockSelfInMappingButDefaultInAlignment;
@@ -664,9 +664,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsDefaultSelfInMappingButMockInAlignment;
@@ -681,9 +681,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::PERFECT_ALIGNMENT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     // clang-format off

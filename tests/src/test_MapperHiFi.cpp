@@ -26,7 +26,7 @@ TEST(MapperHiFi, CheckMappping_LoadFromFile)
             // Query.
             "",
             // SeedParams.
-            PacBio::Pancake::SeedDB::SeedDBParameters{28, 80, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{28, 80, 0, false, false, true},
             // Expected results.
             ""
         },
@@ -37,7 +37,7 @@ TEST(MapperHiFi, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapping/test-1-no-secondary-aln.reads.fasta",
             // SeedParams.
-            PacBio::Pancake::SeedDB::SeedDBParameters{28, 80, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{28, 80, 0, false, false, true},
             // Expected results.
             PacBio::PancakeTestsConfig::Data_Dir + "/mapping/test-1-no-secondary-aln.out.ovl"
         },
@@ -48,7 +48,7 @@ TEST(MapperHiFi, CheckMappping_LoadFromFile)
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/hifi-ovl/reads.pile1-5prime.fasta",
             // SeedParams.
-            PacBio::Pancake::SeedDB::SeedDBParameters{28, 80, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{28, 80, 0, false, false, true},
             // Expected results.
             PacBio::PancakeTestsConfig::Data_Dir + "/hifi-ovl/reads.pile1-5prime.out.all_vs_all.ovl"
         },

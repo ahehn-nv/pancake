@@ -46,8 +46,8 @@ class MapperCLRMapSettings
 {
 public:
     // Indexing.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams{19, 10, 0, false, true, 255, true};
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback{19, 10, 0, false, true, 255, true};
+    PacBio::Pancake::SeedDB::SeedDBParameters seedParams{19, 10, 0, false, true, true};
+    PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback{19, 10, 0, false, true, true};
     double freqPercentile = 0.0002;
 
     // Mapping.
@@ -122,7 +122,6 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRMapSettings& a
         << "seedParams.Spacing = " << a.seedParams.Spacing << "\n"
         << "seedParams.UseHPC = " << a.seedParams.UseHPC << "\n"
         << "seedParams.UseHPCForSeedsOnly = " << a.seedParams.UseHPCForSeedsOnly << "\n"
-        << "seedParams.MaxHPCLen = " << a.seedParams.MaxHPCLen << "\n"
         << "seedParams.UseRC = " << a.seedParams.UseRC << "\n"
 
         << "seedParamsFallback.KmerSize = " << a.seedParamsFallback.KmerSize << "\n"
@@ -131,7 +130,6 @@ inline std::ostream& operator<<(std::ostream& out, const MapperCLRMapSettings& a
         << "seedParamsFallback.UseHPC = " << a.seedParamsFallback.UseHPC << "\n"
         << "seedParamsFallback.UseHPCForSeedsOnly = " << a.seedParamsFallback.UseHPCForSeedsOnly
         << "\n"
-        << "seedParamsFallback.MaxHPCLen = " << a.seedParamsFallback.MaxHPCLen << "\n"
         << "seedParamsFallback.UseRC = " << a.seedParamsFallback.UseRC << "\n"
 
         << "freqPercentile = " << a.freqPercentile << "\n"

@@ -679,7 +679,7 @@ TEST(SeedIndex, ParsingSeedIndexCache_Stream_RoundTrip_Good)
     // Load the SeedDB cache.
     const std::string targetSeedDBString =
         R"(V	0.1.0
-P	k=15,w=10,s=0,hpc=0,hpc_len=10,rc=1
+P	k=15,w=10,s=0,hpc=0,rc=1
 F	0	reads.seeddb.0.seeds	2	992
 S	0	read1-fwd	0	0	496	180	31
 S	1	read4-rev	0	496	496	180	31
@@ -700,7 +700,7 @@ TEST(SeedIndex, ParsingSeedIndexCache_File_RoundTrip_Good)
     // Load the SeedDB cache.
     const std::string targetSeedDBString =
         R"(V	0.1.0
-P	k=15,w=10,s=0,hpc=0,hpc_len=10,rc=1
+P	k=15,w=10,s=0,hpc=0,rc=1
 F	0	reads.seeddb.0.seeds	2	992
 S	0	read1-fwd	0	0	496	180	31
 S	1	read4-rev	0	496	496	180	31

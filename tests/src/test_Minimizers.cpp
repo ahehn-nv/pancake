@@ -7,8 +7,7 @@
 using namespace PacBio::Pancake;
 
 void HelperTestGenerateMinimizers(const std::string& seq, int32_t seqId, int32_t k, int32_t w,
-                                  int32_t space, bool useHPC, int32_t maxHPCLen, bool useRC,
-                                  int32_t expectedRv,
+                                  int32_t space, bool useHPC, bool useRC, int32_t expectedRv,
                                   const std::vector<PacBio::Pancake::Int128t>& expectedSeeds,
                                   bool expectedThrow)
 {
@@ -21,13 +20,13 @@ void HelperTestGenerateMinimizers(const std::string& seq, int32_t seqId, int32_t
         EXPECT_THROW(
             {
                 PacBio::Pancake::SeedDB::GenerateMinimizers(seeds, seqData, seqLen, 0, seqId, k, w,
-                                                            space, useRC, useHPC, maxHPCLen);
+                                                            space, useRC, useHPC);
             },
             std::runtime_error);
 
     } else {
-        const int rv = PacBio::Pancake::SeedDB::GenerateMinimizers(
-            seeds, seqData, seqLen, 0, seqId, k, w, space, useRC, useHPC, maxHPCLen);
+        const int rv = PacBio::Pancake::SeedDB::GenerateMinimizers(seeds, seqData, seqLen, 0, seqId,
+                                                                   k, w, space, useRC, useHPC);
 
         // std::cerr << "Results:\n";
         // for (const auto& val : seeds) {
@@ -60,7 +59,6 @@ TEST(GenerateMinimizers, SmallTest1)
     const int32_t w = 1;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Helper function.
@@ -79,8 +77,8 @@ TEST(GenerateMinimizers, SmallTest1)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(0), k, seqId, 5, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SmallTest2)
@@ -92,7 +90,6 @@ TEST(GenerateMinimizers, SmallTest2)
     const int32_t w = 1;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Helper function.
@@ -111,8 +108,8 @@ TEST(GenerateMinimizers, SmallTest2)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(0), k, seqId, 5, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SmallTest3)
@@ -124,7 +121,6 @@ TEST(GenerateMinimizers, SmallTest3)
     const int32_t w = 1;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Helper function.
@@ -153,8 +149,8 @@ TEST(GenerateMinimizers, SmallTest3)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(484), k, seqId, 15, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SmallTest4)
@@ -166,7 +162,6 @@ TEST(GenerateMinimizers, SmallTest4)
     const int32_t w = 1;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Helper function.
@@ -185,8 +180,8 @@ TEST(GenerateMinimizers, SmallTest4)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(484), k, seqId, 5, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SmallTest5)
@@ -199,7 +194,6 @@ TEST(GenerateMinimizers, SmallTest5)
     const int32_t w = 5;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Expected results.
@@ -259,8 +253,8 @@ TEST(GenerateMinimizers, SmallTest5)
         PacBio::Pancake::SeedDB::Seed::Encode(70557206, 15, 123, 54, 0),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SmallTest6)
@@ -272,7 +266,6 @@ TEST(GenerateMinimizers, SmallTest6)
     const int32_t w = 4;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Expected results.
@@ -301,8 +294,8 @@ TEST(GenerateMinimizers, SmallTest6)
         PacBio::Pancake::SeedDB::Seed::Encode(239, 5, 123, 15, 0),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SmallTest7WithNBases)
@@ -314,7 +307,6 @@ TEST(GenerateMinimizers, SmallTest7WithNBases)
     const int32_t w = 4;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Expected results.
@@ -355,8 +347,8 @@ TEST(GenerateMinimizers, SmallTest7WithNBases)
         PacBio::Pancake::SeedDB::Seed::Encode(239, 5, 123, 46, 0),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SeedSize32BasePairs_PolyA)
@@ -368,7 +360,6 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyA)
     const int32_t w = 1;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Expected results.
@@ -376,8 +367,8 @@ TEST(GenerateMinimizers, SeedSize32BasePairs_PolyA)
     const bool expectedThrow = true;
     const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {};
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SeedSize28BasePairs_PolyA)
@@ -389,7 +380,6 @@ TEST(GenerateMinimizers, SeedSize28BasePairs_PolyA)
     const int32_t w = 1;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Helper function.
@@ -403,8 +393,8 @@ TEST(GenerateMinimizers, SeedSize28BasePairs_PolyA)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(0), k, seqId, 0, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SeedSize28BasePairs_PolyT_WithRC)
@@ -416,7 +406,6 @@ TEST(GenerateMinimizers, SeedSize28BasePairs_PolyT_WithRC)
     const int32_t w = 1;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
 
     // Helper function.
@@ -430,8 +419,8 @@ TEST(GenerateMinimizers, SeedSize28BasePairs_PolyT_WithRC)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(0), k, seqId, 0, true),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SeedSize28BasePairs_PolyT_OnlyFWD)
@@ -443,7 +432,6 @@ TEST(GenerateMinimizers, SeedSize28BasePairs_PolyT_OnlyFWD)
     const int32_t w = 1;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = false;
 
     // Helper function.
@@ -457,8 +445,8 @@ TEST(GenerateMinimizers, SeedSize28BasePairs_PolyT_OnlyFWD)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(0xFFFFFFFFFFFFFFFF), k, seqId, 0, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, HPC1)
@@ -470,7 +458,6 @@ TEST(GenerateMinimizers, HPC1)
     const int32_t w = 1;
     const int32_t space = 0;
     const bool useHPC = true;
-    const int32_t maxHPCLen = 5;
     const bool useRC = true;
 
     // Helper function.
@@ -484,8 +471,8 @@ TEST(GenerateMinimizers, HPC1)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(110), 8, seqId, 0, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, HPC2)
@@ -505,7 +492,6 @@ TEST(GenerateMinimizers, HPC2)
     const int32_t k = 5;
     const int32_t w = 1;
     const int32_t space = 0;
-    const int32_t maxHPCLen = 5;
     const bool useRC = true;
 
     // Run the unit under test WITH homopolymer compression for the sequence with homopolymers.
@@ -514,8 +500,8 @@ TEST(GenerateMinimizers, HPC2)
     {
         const uint8_t* seqData = reinterpret_cast<const uint8_t*>(seqWithHP.data());
         int32_t seqLen = seqWithHP.size();
-        rvWithHP = PacBio::Pancake::SeedDB::GenerateMinimizers(
-            seedsWithHP, seqData, seqLen, 0, seqId, k, w, space, useRC, true, maxHPCLen);
+        rvWithHP = PacBio::Pancake::SeedDB::GenerateMinimizers(seedsWithHP, seqData, seqLen, 0,
+                                                               seqId, k, w, space, useRC, true);
 
         // Reset the span because this will differ between the no-hpc and with-hpc runs.
         for (auto& val : seedsWithHP) {
@@ -532,7 +518,7 @@ TEST(GenerateMinimizers, HPC2)
         const uint8_t* seqData = reinterpret_cast<const uint8_t*>(seqWithoutHP.data());
         int32_t seqLen = seqWithoutHP.size();
         rvNoHP = PacBio::Pancake::SeedDB::GenerateMinimizers(seedsNoHP, seqData, seqLen, 0, seqId,
-                                                             k, w, space, useRC, false, maxHPCLen);
+                                                             k, w, space, useRC, false);
 
         // Reset the span because this will differ between the no-hpc and with-hpc runs.
         for (auto& val : seedsNoHP) {
@@ -572,7 +558,6 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_31bp_JustOneSeed)
     const int32_t w = 1;
     const int32_t space = 1;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = false;
 
     // Helper function.
@@ -586,8 +571,8 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_31bp_JustOneSeed)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(0), 31, seqId, 0, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SpacedSeed_Space1_32bp_TwoSeeds)
@@ -604,7 +589,6 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_32bp_TwoSeeds)
     const int32_t w = 1;
     const int32_t space = 1;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = false;
 
     // Helper function.
@@ -620,8 +604,8 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_32bp_TwoSeeds)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(0), 31, seqId, 1, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, SpacedSeed_Space1_33bp_ThreeSeeds)
@@ -638,7 +622,6 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_33bp_ThreeSeeds)
     const int32_t w = 1;
     const int32_t space = 1;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = false;
 
     // Helper function.
@@ -655,8 +638,8 @@ TEST(GenerateMinimizers, SpacedSeed_Space1_33bp_ThreeSeeds)
         PacBio::Pancake::SeedDB::Seed::Encode(Hash(0x0FFFFFFFE), 31, seqId, 2, false),
     };
 
-    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, maxHPCLen, useRC, expectedRv,
-                                 expectedSeeds, expectedThrow);
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
 }
 
 TEST(GenerateMinimizers, FromStrings)
@@ -666,7 +649,6 @@ TEST(GenerateMinimizers, FromStrings)
     const int32_t w = 4;
     const int32_t space = 0;
     const bool useHPC = false;
-    const int32_t maxHPCLen = 10;
     const bool useRC = true;
     const std::vector<std::string> seqs = {
         "AAAAAAAAAA", "AGCTTTTCATTCTGACTGCANNNACTNNNNNAGCTTTTCATTCTGACTGCA",
@@ -703,7 +685,7 @@ TEST(GenerateMinimizers, FromStrings)
     std::vector<PacBio::Pancake::Int128t> results;
     std::vector<int32_t> sequenceLengths;
     PacBio::Pancake::SeedDB::GenerateMinimizers(results, sequenceLengths, seqs, k, w, space, useRC,
-                                                useHPC, maxHPCLen);
+                                                useHPC);
 
     // Evaluate.
     EXPECT_EQ(expectedSeeds, results);

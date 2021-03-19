@@ -42,21 +42,19 @@ static inline uint64_t ComputeKmerMask(int32_t kmerSize)
 int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const uint8_t* seq,
                        const int32_t seqLen, const int32_t seqOffset, const int32_t seqId,
                        const int32_t kmerSize, const int32_t winSize, const int32_t spacing,
-                       const bool useReverseComplement, const bool useHPC, const int32_t maxHPCLen);
+                       const bool useReverseComplement, const bool useHPC);
 
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         std::vector<int32_t>& retSequenceLengths,
                         const std::vector<FastaSequenceCached>& targetSeqs, const int32_t kmerSize,
                         const int32_t winSize, const int32_t spacing,
-                        const bool useReverseComplement, const bool useHPC,
-                        const int32_t maxHPCLen);
+                        const bool useReverseComplement, const bool useHPC);
 
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         std::vector<int32_t>& retSequenceLengths,
                         const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
                         const int32_t winSize, const int32_t spacing,
-                        const bool useReverseComplement, const bool useHPC,
-                        const int32_t maxHPCLen);
+                        const bool useReverseComplement, const bool useHPC);
 
 template <class TargetHashType>
 bool CollectSeedHits(std::vector<SeedHit>& hits, const PacBio::Pancake::SeedDB::SeedRaw* querySeeds,
