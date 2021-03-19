@@ -714,30 +714,13 @@ TEST(GenerateMinimizers, HPCompression_SmallExampleThatFitsInSeedSpan)
         Seq:        C A A A A A C T C T C
                    .               . . . .
         Windows:   .               . . . .
-                   |C A - - A - C T| . . .      Window 0, pos = 0, span = 8. HP is longer than max, so split into two HPs' (C, 3*A, 2*A, C, T, C, T)
-                   |_______________| . . .
-                                     . . .
-                     |A - - A - C T C| . .      Window 1, pos = 1, span = 8. HP is longer than max, so split into two HPs' (3*A, 2*A, C, T, C, T, C)
-                     |_______________| . .
-                           |A - C T C T| .      Window 2, pos = 4, span = 6. This window begins at position 4 because the 3*A HP span was jumped over as a single base.
-                           |___________| .
-                               |C T C T C|      Window 3, pos = 6, span = 5. This window begins at position 4 because the second part of the HP (the 2*A HP span) was jumped over as a single base.
+                   |C A - - - - C T C| . .      Window 0, pos = 0, span = 9. (C, 5*A, C, T, C, T)
+                   |_________________| . .
+                     |A - - - - C T C T| .      Window 1, pos = 1, span = 9. (5*A, C, T, C, T, C)
+                     |_________________| .
+                               |C T C T C|      Window 2, pos = 6, span = 5.
                                |_________|
-
-        const uint64_t CAACT = 0b0001'0000'0111;
-        const uint64_t AACTC = 0b0000'0001'1101;
-        const uint64_t ACTCT = 0b0000'0111'0111;
-        const uint64_t CTCTC = 0b0001'1101'1101;
-
-        const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
-            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CAACT), 8, seqId, 0, 0), // CAACT
-            PacBio::Pancake::SeedDB::Seed::Encode(Hash(AACTC), 8, seqId, 1, 0), // AACTC
-            PacBio::Pancake::SeedDB::Seed::Encode(Hash(ACTCT), 6, seqId, 4, 0), // ACTCT
-            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTC), 5, seqId, 6, 0), // CTCTC
-        };
-
     */
-    // const uint64_t ACTCTCTCTCTCTCT = 0b0000'0111'0111'0111'0111'0111'0111'0111;
     const uint64_t CACTC = 0b0001'0001'1101;
     const uint64_t ACTCT = 0b0000'0111'0111;
     const uint64_t CTCTC = 0b0001'1101'1101;
@@ -813,7 +796,6 @@ TEST(GenerateMinimizers, HPCompression_VeryLongHPC_300bp)
 
     // clang-format off
     // Inputs.
-    // const std::string seq = "CTCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACTCTCTCTCTCTCTCTCTCTCT";
     const std::string seq = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACTCTCTCTCTCTCTCTCTCTCT";
 
     /*
@@ -1008,6 +990,8 @@ TEST(GenerateMinimizers, HPCompression_TwoVeryLongHPC_300bp_plus_300bp)
         /*
                                 C  T  C  T  C  T  C  T  C  T  C  T  C  T  C
             CTCTCTCTCTCTCTC => 01 11 01 11 01 11 01 11 01 11 01 11 01 11 01  => 0b0001'1101'1101'1101'1101'1101'1101'1101
+                                T  C  T  C  T  C  T  C  T  C  T  C  T  C  T
+            TCTCTCTCTCTCTCC => 11 01 11 01 11 01 11 01 11 01 11 01 11 01 11  => 0b0011'0111'0111'0111'0111'0111'0111'0111
         */
         const uint64_t CTCTCTCTCTCTCTC = 0b0001'1101'1101'1101'1101'1101'1101'1101;
         const uint64_t TCTCTCTCTCTCTCT = 0b0011'0111'0111'0111'0111'0111'0111'0111;
