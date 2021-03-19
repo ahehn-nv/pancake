@@ -47,7 +47,7 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hitsSize, int32_
 
     double avgQuerySpan = 0.0;
     for (int32_t i = 0; i < n_hits; i++) {
-        avgQuerySpan += hits[i].querySpan;
+        avgQuerySpan += static_cast<double>(hits[i].querySpan);
     }
     avgQuerySpan = (n_hits > 0) ? avgQuerySpan / static_cast<double>(n_hits) : 0.0;
 
@@ -378,8 +378,8 @@ ChainedHits RefineChainedHits2(const ChainedHits& chain, int32_t minGap, int32_t
     for (int32_t bpId = 0; bpId < nBreakpoints;) {
         const int32_t seedId = breakpoints[bpId];
         int32_t gap1 = std::abs(ComputeGap(hits[seedId - 1], hits[seedId]));
-        int32_t qEnd1 = hits[seedId].queryPos + hits[seedId].querySpan;
-        int32_t tEnd1 = hits[seedId].targetPos + hits[seedId].targetSpan;
+        int32_t qEnd1 = hits[seedId].queryPos + static_cast<int32_t>(hits[seedId].querySpan);
+        int32_t tEnd1 = hits[seedId].targetPos + static_cast<int32_t>(hits[seedId].targetSpan);
 
         int32_t nextBpId = 0;
         for (nextBpId = (bpId + 1); nextBpId < nBreakpoints; ++nextBpId) {
@@ -400,8 +400,8 @@ ChainedHits RefineChainedHits2(const ChainedHits& chain, int32_t minGap, int32_t
                 // If there are more matches than the total gap, stop going forward.
                 break;
             }
-            qEnd1 = hits[nextSeedId].queryPos + hits[nextSeedId].querySpan;
-            tEnd1 = hits[nextSeedId].targetPos + hits[nextSeedId].targetSpan;
+            qEnd1 = hits[nextSeedId].queryPos + static_cast<int32_t>(hits[nextSeedId].querySpan);
+            tEnd1 = hits[nextSeedId].targetPos + static_cast<int32_t>(hits[nextSeedId].targetSpan);
             gap1 = gap2;
         }
         if (nextBpId > (bpId + 1)) {
