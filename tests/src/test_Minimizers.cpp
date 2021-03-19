@@ -691,3 +691,468 @@ TEST(GenerateMinimizers, FromStrings)
     EXPECT_EQ(expectedSeeds, results);
     EXPECT_EQ(expectedSequenceLengths, sequenceLengths);
 }
+
+TEST(GenerateMinimizers, HPCompression_SmallExampleThatFitsInSeedSpan)
+{
+    // clang-format off
+    // Inputs.
+    const std::string seq = "CAAAAACTCTC";
+    const int32_t seqId = 123;
+    const int32_t k = 5;
+    const int32_t w = 1;
+    const int32_t space = 0;
+    const bool useHPC = true;
+    const bool useRC = false;
+
+    // Helper function.
+    const uint64_t mask = SeedDB::ComputeKmerMask(k);
+    auto Hash = [&](uint64_t val) { return SeedDB::InvertibleHash(val, mask); };
+
+    // Expected results.
+    /*
+        Pos:        0 1 2 3 4 5 6 7 8 9 10
+        Seq:        C A A A A A C T C T C
+                   .               . . . .
+        Windows:   .               . . . .
+                   |C A - - A - C T| . . .      Window 0, pos = 0, span = 8. HP is longer than max, so split into two HPs' (C, 3*A, 2*A, C, T, C, T)
+                   |_______________| . . .
+                                     . . .
+                     |A - - A - C T C| . .      Window 1, pos = 1, span = 8. HP is longer than max, so split into two HPs' (3*A, 2*A, C, T, C, T, C)
+                     |_______________| . .
+                           |A - C T C T| .      Window 2, pos = 4, span = 6. This window begins at position 4 because the 3*A HP span was jumped over as a single base.
+                           |___________| .
+                               |C T C T C|      Window 3, pos = 6, span = 5. This window begins at position 4 because the second part of the HP (the 2*A HP span) was jumped over as a single base.
+                               |_________|
+
+        const uint64_t CAACT = 0b0001'0000'0111;
+        const uint64_t AACTC = 0b0000'0001'1101;
+        const uint64_t ACTCT = 0b0000'0111'0111;
+        const uint64_t CTCTC = 0b0001'1101'1101;
+
+        const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CAACT), 8, seqId, 0, 0), // CAACT
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(AACTC), 8, seqId, 1, 0), // AACTC
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(ACTCT), 6, seqId, 4, 0), // ACTCT
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTC), 5, seqId, 6, 0), // CTCTC
+        };
+
+    */
+    // const uint64_t ACTCTCTCTCTCTCT = 0b0000'0111'0111'0111'0111'0111'0111'0111;
+    const uint64_t CACTC = 0b0001'0001'1101;
+    const uint64_t ACTCT = 0b0000'0111'0111;
+    const uint64_t CTCTC = 0b0001'1101'1101;
+
+    const int32_t expectedRv = 0;
+    const bool expectedThrow = false;
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(CACTC), 9, seqId, 0, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(ACTCT), 9, seqId, 1, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTC), 5, seqId, 6, 0),
+    };
+    // clang-format on
+
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
+}
+
+TEST(GenerateMinimizers, HPCompression_VeryLongHPC_150bp)
+{
+    // clang-format off
+    // Inputs.
+    // There are 150*A bases in the seq. There need to be more bases before/after the homopolymer because we need to be
+    // able to fill a 15-mer (with HP compression, all 150 bases are considered as one).
+    const std::string seq = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACTCTCTCTCTCTCTCTCTCTCT";
+    const int32_t seqId = 123;
+    const int32_t k = 15;
+    const int32_t w = 5;
+    const int32_t space = 0;
+    const bool useHPC = true;
+    const bool useRC = false;
+
+    // Helper function.
+    const uint64_t mask = SeedDB::ComputeKmerMask(k);
+    auto Hash = [&](uint64_t val) { return SeedDB::InvertibleHash(val, mask); };
+
+    // Expected results.
+    /*
+                            C  A  C  T  C  T  C  T  C  T  C  T  C  T  C
+        CACTCTCTCTCTCTC => 01 00 01 11 01 11 01 11 01 11 01 11 01 11 01  => 0b0001'0001'1101'1101'1101'1101'1101'1101
+
+                            A  C  T  C  T  C  T  C  T  C  T  C  T  C  T
+        ACTCTCTCTCTCTCT => 00 01 11 01 11 01 11 01 11 01 11 01 11 01 11  => 0b0000'0111'0111'0111'0111'0111'0111'0111
+
+                            C  T  C  T  C  T  C  T  C  T  C  T  C  T  C
+        CTCTCTCTCTCTCTC => 01 11 01 11 01 11 01 11 01 11 01 11 01 11 01  => 0b0001'1101'1101'1101'1101'1101'1101'1101
+    */
+    // const uint64_t ACTCTCTCTCTCTCT = 0b0000'0111'0111'0111'0111'0111'0111'0111;
+    const uint64_t CACTCTCTCTCTCTC = 0b0001'0001'1101'1101'1101'1101'1101'1101;
+    const uint64_t CTCTCTCTCTCTCTC = 0b0001'1101'1101'1101'1101'1101'1101'1101;
+    const int32_t expectedRv = 0;
+    const bool expectedThrow = false;
+    const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(CACTCTCTCTCTCTC), 164, seqId, 0, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 153, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 155, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 157, 0),
+    };
+    // clang-format on
+
+    HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv, expectedSeeds,
+                                 expectedThrow);
+}
+
+TEST(GenerateMinimizers, HPCompression_VeryLongHPC_300bp)
+{
+    /*
+        This tests a case where the HP span stretches out of the possible addressable area for a seed span (256 bp).
+        The HP length here is 300bp.
+        Any seed which spans > 255 bp should simply not be reported in the output.
+        This includes any seed that covers the large HP in this example.
+    */
+
+    // clang-format off
+    // Inputs.
+    // const std::string seq = "CTCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACTCTCTCTCTCTCTCTCTCTCT";
+    const std::string seq = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACTCTCTCTCTCTCTCTCTCTCT";
+
+    /*
+        CA...CTCTCTCTCTCTCTCTCTCTCT
+        This is a list of all possible seeds. Any seed that contains the 'A' homopolymer is 299bp longer than shown here.
+        These seeds cannot be encoded, so they will be skipped below.
+        Win 0:          CACTCTCTCTCTCTC     pos =   0, span = 314
+        Win 1:          ACTCTCTCTCTCTCT     pos =   1, span = 314
+        Win 2:          CTCTCTCTCTCTCTC     pos = 301, span = 15
+        Win 3:          TCTCTCTCTCTCTCT     pos = 302, span = 15
+        Win 4:          CTCTCTCTCTCTCTC     pos = 303, span = 15
+        Win 5:          TCTCTCTCTCTCTCT     pos = 304, span = 15
+        Win 6:          CTCTCTCTCTCTCTC     pos = 305, span = 15
+        Win 7:          TCTCTCTCTCTCTCT     pos = 306, span = 15
+        Win 8:          CTCTCTCTCTCTCTC     pos = 307, span = 15
+        Win 9:          TCTCTCTCTCTCTCT     pos = 308, span = 15
+    */
+
+    {   // TEST 1: All valid seeds (minimizer window of 1 bases).
+        const int32_t seqId = 123;
+        const int32_t k = 15;
+        const int32_t w = 1;
+        const int32_t space = 0;
+        const bool useHPC = true;
+        const bool useRC = false;
+
+        // Helper function.
+        const uint64_t mask = SeedDB::ComputeKmerMask(k);
+        auto Hash = [&](uint64_t val) { return SeedDB::InvertibleHash(val, mask); };
+
+        // Expected results.
+        /*
+                                C  T  C  T  C  T  C  T  C  T  C  T  C  T  C
+            CTCTCTCTCTCTCTC => 01 11 01 11 01 11 01 11 01 11 01 11 01 11 01  => 0b0001'1101'1101'1101'1101'1101'1101'1101
+                                T  C  T  C  T  C  T  C  T  C  T  C  T  C  T
+            TCTCTCTCTCTCTCC => 11 01 11 01 11 01 11 01 11 01 11 01 11 01 11  => 0b0011'0111'0111'0111'0111'0111'0111'0111
+        */
+        const uint64_t CTCTCTCTCTCTCTC = 0b0001'1101'1101'1101'1101'1101'1101'1101;
+        const uint64_t TCTCTCTCTCTCTCT = 0b0011'0111'0111'0111'0111'0111'0111'0111;
+        const int32_t expectedRv = 0;
+        const bool expectedThrow = false;
+        const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+            // Any seed with a span out of max range (256bp) will simply not be reported.
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, 123, 301, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, 123, 302, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, 123, 303, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, 123, 304, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, 123, 305, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, 123, 306, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, 123, 307, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, 123, 308, 0),
+        };
+        // clang-format on
+
+        HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv,
+                                     expectedSeeds, expectedThrow);
+    }
+
+    {  // TEST 2: Minimizer window of 5 bases.
+        const int32_t seqId = 123;
+        const int32_t k = 15;
+        const int32_t w = 5;
+        const int32_t space = 0;
+        const bool useHPC = true;
+        const bool useRC = false;
+
+        // Helper function.
+        const uint64_t mask = SeedDB::ComputeKmerMask(k);
+        auto Hash = [&](uint64_t val) { return SeedDB::InvertibleHash(val, mask); };
+
+        // Expected results.
+        /*
+                                C  T  C  T  C  T  C  T  C  T  C  T  C  T  C
+            CTCTCTCTCTCTCTC => 01 11 01 11 01 11 01 11 01 11 01 11 01 11 01  => 0b0001'1101'1101'1101'1101'1101'1101'1101
+        */
+        const uint64_t CTCTCTCTCTCTCTC = 0b0001'1101'1101'1101'1101'1101'1101'1101;
+        const int32_t expectedRv = 0;
+        const bool expectedThrow = false;
+        const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+            // Any seed with a span out of max range (256bp) will simply not be reported.
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, 123, 303, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, 123, 305, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, 123, 307, 0),
+        };
+        // clang-format on
+
+        HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv,
+                                     expectedSeeds, expectedThrow);
+    }
+}
+
+TEST(GenerateMinimizers, HPCompression_TwoVeryLongHPC_300bp_plus_300bp)
+{
+    /*
+     * This tests a case where the HP span stretches out of the possible addressable area for a seed span (256 bp).
+     * There are two HPs of 300bp in length. Any seed which spans > 255 should simply not be reported in the output.
+     * This includes any seed that covers the large HP.
+
+     * This is a great test case because it exposed an issue where after a span of non-valid seeds
+     * we end up with the minimizer window not correctly producing minimizers.
+     * Concretely, these seeds were reported for w = 5:
+            PacBio::Pancake::SeedDB::Seed::Encode(622765704, 15, 123, 303, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(622765704, 15, 123, 305, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(622765704, 15, 123, 307, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(622765704, 15, 123, 309, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(622765704, 15, 123, 624, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(996900086, 15, 123, 625, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(622765704, 15, 123, 626, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(996900086, 15, 123, 627, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(622765704, 15, 123, 628, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(622765704, 15, 123, 630, 0),
+     * Seeds at positions {303, 305, 307, 309} are correct, but starting at 624 (the second CT stretch)
+     * it looks like the minimizer generator did not remove the non-minimizer seeds.
+    */
+
+    // clang-format off
+    // Inputs.
+    const std::string seq =
+                            // first copy
+                            "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            "AAAAAAAAAAAAAAAAAAAAAACTCTCTCTCTCTCTCTCTCTCT"
+                            // second copy
+                            "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            "AAAAAAAAAAAAAAAAAAAAAACTCTCTCTCTCTCTCTCTCTCT";
+
+    /*
+        CA...CTCTCTCTCTCTCTCTCTCTCT
+
+        --- (first copy begins here
+        // These two seeds need to be skipped because they contain the first large HP.
+        Win 0:          CACTCTCTCTCTCTC     pos = 0, span = 314
+        Win 1:          ACTCTCTCTCTCTCT     pos = 1
+
+        // Valid seeds for minimizer selection.
+        Win 2:          CTCTCTCTCTCTCTC     pos = 301
+        Win 3:          TCTCTCTCTCTCTCT     pos = 302
+        Win 4:          CTCTCTCTCTCTCTC     pos = 303
+        Win 5:          TCTCTCTCTCTCTCT     pos = 304
+        Win 6:          CTCTCTCTCTCTCTC     pos = 305
+        Win 7:          TCTCTCTCTCTCTCT     pos = 306
+        Win 8:          CTCTCTCTCTCTCTC     pos = 307
+        Win 9:          TCTCTCTCTCTCTCT     pos = 308
+
+        --- (second copy begins here
+        Win 10:         CTCTCTCTCTCTCTC     pos = 309
+
+        // The following seeds should be skipped because they contain the second large HP.
+        Win 11:         TCTCTCTCTCTCTCA     pos = 310
+        Win 12:         CTCTCTCTCTCTCAC     pos = 311
+        Win 13:         TCTCTCTCTCTCACT     pos = 312
+        Win 14:         CTCTCTCTCTCACTC     pos = 313
+        Win 15:         TCTCTCTCTCACTCT     pos = 314
+        Win 16:         CTCTCTCTCACTCTC     pos = 315
+        Win 17:         TCTCTCTCACTCTCT     pos = 316
+        Win 18:         CTCTCTCACTCTCTC     pos = 317
+        Win 19:         TCTCTCACTCTCTCT     pos = 318
+        Win 20:         CTCTCACTCTCTCTC     pos = 319
+        Win 21:         TCTCACTCTCTCTCT     pos = 320
+        Win 22:         CTCACTCTCTCTCTC     pos = 321
+        Win 23:         TCACTCTCTCTCTCT     pos = 322
+        Win 24:         CACTCTCTCTCTCTC     pos = 323
+        Win 25:         ACTCTCTCTCTCTCT     pos = 324
+
+        // Valid seeds for minimizer selection.
+        Win 26:         CTCTCTCTCTCTCTC     pos = 624
+        Win 27:         TCTCTCTCTCTCTCT     pos = 625
+        Win 28:         CTCTCTCTCTCTCTC     pos = 626
+        Win 29:         TCTCTCTCTCTCTCT     pos = 627
+        Win 30:         CTCTCTCTCTCTCTC     pos = 628
+        Win 31:         TCTCTCTCTCTCTCT     pos = 629
+        Win 32:         CTCTCTCTCTCTCTC     pos = 630
+        Win 33:         TCTCTCTCTCTCTCT     pos = 631
+    */
+
+    {   // TEST 1:Minimizer window 1, so all valid seeds should be captured.
+        const int32_t seqId = 123;
+        const int32_t k = 15;
+        const int32_t w = 1;
+        const int32_t space = 0;
+        const bool useHPC = true;
+        const bool useRC = false;
+
+        // Helper function.
+        const uint64_t mask = SeedDB::ComputeKmerMask(k);
+        auto Hash = [&](uint64_t val) { return SeedDB::InvertibleHash(val, mask); };
+
+        // Expected results.
+        /*
+                                C  T  C  T  C  T  C  T  C  T  C  T  C  T  C
+            CTCTCTCTCTCTCTC => 01 11 01 11 01 11 01 11 01 11 01 11 01 11 01  => 0b0001'1101'1101'1101'1101'1101'1101'1101
+        */
+        const uint64_t CTCTCTCTCTCTCTC = 0b0001'1101'1101'1101'1101'1101'1101'1101;
+        const uint64_t TCTCTCTCTCTCTCT = 0b0011'0111'0111'0111'0111'0111'0111'0111;
+        const int32_t expectedRv = 0;
+        const bool expectedThrow = false;
+        const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 301, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, seqId, 302, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 303, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, seqId, 304, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 305, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, seqId, 306, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 307, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, seqId, 308, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 309, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 624, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, seqId, 625, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 626, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, seqId, 627, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 628, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, seqId, 629, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 630, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(TCTCTCTCTCTCTCT), 15, seqId, 631, 0),
+        };
+
+        HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv,
+                                    expectedSeeds, expectedThrow);
+    }
+
+    {   // TEST 2: Minimizer window 5.
+        const int32_t seqId = 123;
+        const int32_t k = 15;
+        const int32_t w = 5;
+        const int32_t space = 0;
+        const bool useHPC = true;
+        const bool useRC = false;
+
+        // Helper function.
+        const uint64_t mask = SeedDB::ComputeKmerMask(k);
+        auto Hash = [&](uint64_t val) { return SeedDB::InvertibleHash(val, mask); };
+
+        // Expected results.
+        /*
+                                C  T  C  T  C  T  C  T  C  T  C  T  C  T  C
+            CTCTCTCTCTCTCTC => 01 11 01 11 01 11 01 11 01 11 01 11 01 11 01  => 0b0001'1101'1101'1101'1101'1101'1101'1101
+        */
+        const uint64_t CTCTCTCTCTCTCTC = 0b0001'1101'1101'1101'1101'1101'1101'1101;
+        const int32_t expectedRv = 0;
+        const bool expectedThrow = false;
+        const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 303, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 305, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 307, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 309, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 624, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 626, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 628, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 630, 0),
+        };
+
+        HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv,
+                                    expectedSeeds, expectedThrow);
+    }
+    // clang-format on
+}
+
+TEST(GenerateMinimizers, HPCompression_TwoCloseHPsOf150bp)
+{
+    /*
+     * Kmer window should span the first HP fully (there are 12 bases before the HP, HP is counted as 1 base, and after the HP
+     * there are 2 more bases; in total that's 15 bases).
+     * When it slides one base down, it will pick up on the second HP, and the total span should be longer than MAX_SPAN, and these
+     * seeds should be ignored.
+     * After that, it will slide down after the HP, and this should produce more valid seeds.
+     *
+     * Note: each HP is 150bp in length, so each one separately can fit into the Seed's span, but together they go out of range.
+    */
+
+    // clang-format off
+    // Inputs.
+    const std::string seq =
+                            // first copy
+                            "CTCTCTCTCTCTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            ""
+                            // second copy
+                            "CTCTCTCTCTCTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                            "CT";
+
+    {   // TEST 1:Minimizer window 1, so all valid seeds should be captured.
+        const int32_t seqId = 123;
+        const int32_t k = 15;
+        const int32_t w = 1;
+        const int32_t space = 0;
+        const bool useHPC = true;
+        const bool useRC = false;
+
+        // Expected results.
+        const int32_t expectedRv = 0;
+        const bool expectedThrow = false;
+        const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+            // PacBio::Pancake::SeedDB::Seed::Encode(Hash(CTCTCTCTCTCTCTC), 15, seqId, 301, 0),
+
+            PacBio::Pancake::SeedDB::Seed::Encode(493075847, 164, 123, 0, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(757015818, 164, 123, 1, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(460313955, 164, 123, 2, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(630753600, 164, 123, 3, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(1028693452, 164, 123, 4, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(750559860, 164, 123, 5, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(432649153, 164, 123, 6, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(517395662, 164, 123, 7, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(576155398, 164, 123, 8, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(15530431, 164, 123, 9, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(710990505, 164, 123, 10, 0),
+            // Position 11 is one base before the first HP, and the HP begins at position 12. Seeds which
+            // begin at these positions also cover the second HP, so they are skipped.
+            // First base after the first HP is at position 162. There are in total 14 regular bases and 1 HP left from this
+            // position on, so only one seed is left.
+            PacBio::Pancake::SeedDB::Seed::Encode(493075847, 164, 123, 162, 0),
+        };
+
+        HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv,
+                                    expectedSeeds, expectedThrow);
+    }
+
+    {   // TEST 2: Minimizer window 5.
+        const int32_t seqId = 123;
+        const int32_t k = 15;
+        const int32_t w = 5;
+        const int32_t space = 0;
+        const bool useHPC = true;
+        const bool useRC = false;
+
+        // Expected results.
+        const int32_t expectedRv = 0;
+        const bool expectedThrow = false;
+        const std::vector<PacBio::Pancake::Int128t> expectedSeeds = {
+            PacBio::Pancake::SeedDB::Seed::Encode(460313955, 164, 123, 2, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(432649153, 164, 123, 6, 0),
+            PacBio::Pancake::SeedDB::Seed::Encode(15530431, 164, 123, 9, 0),
+        };
+
+        HelperTestGenerateMinimizers(seq, seqId, k, w, space, useHPC, useRC, expectedRv,
+                                    expectedSeeds, expectedThrow);
+    }
+    // clang-format on
+}
