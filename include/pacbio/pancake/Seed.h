@@ -40,9 +40,8 @@ public:
     Seed(uint64_t _key, int32_t _span, int32_t _seqID, int32_t _pos, bool _isRev)
         : key(_key), span(_span), seqID(_seqID), seqRev(_isRev), pos(_pos)
     {
-        if (_span >= 256) {
-            throw std::runtime_error(
-                "Seed span is larger than 8-bits. Can't encode that. (In Seed constructor.)");
+        if (span >= 256 || span < 0) {
+            span = 0;
         }
     }
     Seed(const PacBio::Pancake::Int128t& codedKeypos)
@@ -54,7 +53,9 @@ public:
     {
     }
 
-    bool IsRev() { return seqRev; }
+    bool IsRev() const { return seqRev; }
+
+    bool Valid() const { return span != 0; }
 
     inline PacBio::Pancake::Int128t To128t()
     {
@@ -75,6 +76,11 @@ public:
     static inline PacBio::Pancake::Int128t Encode(uint64_t _key, int32_t _span, int32_t _seqID,
                                                   int32_t _pos, bool _isRev)
     {
+        // If the specified span is not valid, set it to zero. This indicates that the seed
+        // is not valid (zero-length seeds are not allowed).
+        if (_span >= 256 || _span < 0) {
+            _span = 0;
+        }
         PacBio::Pancake::Int128t ret = static_cast<PacBio::Pancake::Int128t>(_key) << 72;
         ret |= (static_cast<PacBio::Pancake::Int128t>(_span) & MINIMIZER_8bit_MASK) << 64;
         ret |= ((static_cast<PacBio::Pancake::Int128t>(_seqID) << 1) & MINIMIZER_32bit_MASK) << 32;
