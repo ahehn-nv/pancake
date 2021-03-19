@@ -40,7 +40,7 @@ public:
     Seed(uint64_t _key, int32_t _span, int32_t _seqID, int32_t _pos, bool _isRev)
         : key(_key), span(_span), seqID(_seqID), seqRev(_isRev), pos(_pos)
     {
-        if (span >= 256 || span < 0) {
+        if (_span >= 256 || _span < 0) {
             span = 0;
         }
     }
