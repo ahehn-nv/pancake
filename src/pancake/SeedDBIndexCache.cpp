@@ -45,8 +45,6 @@ PacBio::Pancake::SeedDB::SeedDBParameters ParseSeedDBParams(const std::string& p
             ret.Spacing = std::stoi(values[1]);
         } else if (values[0] == "hpc") {
             ret.UseHPC = std::stoi(values[1]);
-        } else if (values[0] == "hpc_len") {
-            ret.MaxHPCLen = std::stoi(values[1]);
         } else if (values[0] == "rc") {
             ret.UseRC = std::stoi(values[1]);
         }
@@ -329,7 +327,7 @@ std::ostream& operator<<(std::ostream& os, const PacBio::Pancake::SeedDBIndexCac
     os << "V\t" << r.version << "\n";
     os << "P\tk=" << r.seedParams.KmerSize << ",w=" << r.seedParams.MinimizerWindow
        << ",s=" << r.seedParams.Spacing << ",hpc=" << r.seedParams.UseHPC
-       << ",hpc_len=" << r.seedParams.MaxHPCLen << ",rc=" << r.seedParams.UseRC << "\n";
+       << ",rc=" << r.seedParams.UseRC << "\n";
     for (const auto& fl : r.fileLines) {
         os << "F"
            << "\t" << fl.fileId << "\t" << fl.filename << "\t" << fl.numSequences << "\t"

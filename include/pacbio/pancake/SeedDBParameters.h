@@ -18,7 +18,6 @@ public:
     int32_t Spacing = 0;
     bool UseHPC = false;                // This causes the input sequences from the DB to be HP-compressed.
     bool UseHPCForSeedsOnly = false;    // This takes the uncompressed sequences, and just skips HP bases when computing seeds.
-    int32_t MaxHPCLen = 10;
     bool UseRC = true;
 
     SeedDBParameters() = default;
@@ -29,7 +28,7 @@ public:
         return KmerSize == rhs.KmerSize && MinimizerWindow == rhs.MinimizerWindow &&
             Spacing == rhs.Spacing && UseHPC == rhs.UseHPC &&
             UseHPCForSeedsOnly == rhs.UseHPCForSeedsOnly &&
-            MaxHPCLen == rhs.MaxHPCLen && UseRC == rhs.UseRC;
+            UseRC == rhs.UseRC;
     }
     bool operator!=(const SeedDBParameters& rhs) const
     {

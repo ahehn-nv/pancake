@@ -53,9 +53,9 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
             // Aligner type for global alignment.
             AlignerType::KSW2,
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true},
             // SeedParams - fallback.
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true},
             // Expected results.
             {
                 {
@@ -99,9 +99,9 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
             // Aligner type for global alignment.
             AlignerType::EDLIB,
             // SeedParams - primary.
-            PacBio::Pancake::SeedDB::SeedDBParameters{15, 5, 0, false, true, 100, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{15, 5, 0, false, true, true},
             // SeedParams - fallback.
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true},
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true},
             // Expected results.
             {
                 {
@@ -169,9 +169,9 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
         // settings.align.alignerTypeGlobal = AlignerType::EDLIB;
     }
 
@@ -187,9 +187,9 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsPerfectAlignSelfHitsInBothMapAndAlign;
@@ -204,9 +204,9 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::PERFECT_ALIGNMENT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsSkipSymmetricOverlaps;
@@ -221,9 +221,9 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsSkipSelfAndSymmetricOverlaps;
@@ -238,9 +238,9 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsSkipSelfInMappingButDefaultInAlignment;
@@ -255,9 +255,9 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsDefaultSelfInMappingButSkipInAlignment;
@@ -272,9 +272,9 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::SKIP;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsMockSelfInMappingButDefaultInAlignment;
@@ -289,9 +289,9 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::DEFAULT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     PacBio::Pancake::MapperCLRSettings settingsDefaultSelfInMappingButMockInAlignment;
@@ -306,9 +306,9 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         settings.align.selfHitPolicy = PacBio::Pancake::MapperSelfHitPolicy::PERFECT_ALIGNMENT;
         settings.map.freqPercentile = 0.000;
         settings.map.seedParams =
-            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true};
         settings.map.seedParamsFallback =
-            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, 255, true};
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true};
     }
 
     struct TestData

@@ -155,9 +155,8 @@ void SeedDBWriter::WriteIndex()
     fprintf(fpOutIndex_.get(), "V\t%s\n", version_.c_str());
 
     // Write the parameters used to compute the seeds.
-    fprintf(fpOutIndex_.get(), "P\tk=%d,w=%d,s=%d,hpc=%d,hpc_len=%d,rc=%d\n", params_.KmerSize,
-            params_.MinimizerWindow, params_.Spacing, params_.UseHPC, params_.MaxHPCLen,
-            params_.UseRC);
+    fprintf(fpOutIndex_.get(), "P\tk=%d,w=%d,s=%d,hpc=%d,rc=%d\n", params_.KmerSize,
+            params_.MinimizerWindow, params_.Spacing, params_.UseHPC, params_.UseRC);
 
     // Write all the files and their sizes.
     for (const auto& f : fileLines_) {
