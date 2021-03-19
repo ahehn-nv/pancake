@@ -37,11 +37,6 @@ class Seed
 public:
     Seed() : key(0), span(0), seqID(0), seqRev(0), pos(0) {}
 
-    Seed(uint64_t _key, int32_t _seqID, int32_t _pos, bool _isRev)
-        : key(_key), span(0), seqID(_seqID), seqRev(_isRev), pos(_pos)
-    {
-    }
-
     Seed(uint64_t _key, int32_t _span, int32_t _seqID, int32_t _pos, bool _isRev)
         : key(_key), span(_span), seqID(_seqID), seqRev(_isRev), pos(_pos)
     {
