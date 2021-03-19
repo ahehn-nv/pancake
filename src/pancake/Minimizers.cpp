@@ -180,12 +180,8 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             if (bufferWD.numBasesIn[space] >= kmerSize) {
                 // The 'pos' is the current position which is inclusive. We need to add a +1 to make it non-inclusive, so that the start position is calculated properly.
                 int32_t kmerStart = (pos + 1) - (bufferWD.kmerSpan);
-                // const int32_t seedSize = bufferWD.kmerSpan * (spacing + 1) - spacing;
-                // newSeed = Seed(key, bufferWD.kmerSpan, seqId,
-
                 newSeed = Seed(InvertibleHash(key, mask), bufferWD.kmerSpan, seqId,
                                kmerStart + seqOffset, isRev);
-
                 // This is not necessary because the constructor will mark invalid
                 // spans automatically, but let's make sure here and be future-proof.
                 if (bufferWD.kmerSpan > MAX_SEED_SPAN) {
@@ -201,7 +197,6 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             // to write out the current minimizer.
             if (bufferWD.numBasesIn[space] >= (winSize + kmerSize) && bufferWD.winBuffMinPos >= 0 &&
                 bufferWD.winBuff[bufferWD.winBuffMinPos].Valid()) {
-                // std::cerr << "[emplace 1] " << bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose() << "\n";
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
             }
             bufferWD.Clear(winSize);
@@ -214,14 +209,12 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             // First portion of the circular buffer.
             for (int32_t j = (bufferWD.winBuffPos + 1); j < winSize; ++j) {
                 if (minSeed.Compare(bufferWD.winBuff[j].key) == 2) {
-                    // std::cerr << "[emplace 2] " << bufferWD.winBuff[j].Verbose() << "\n";
                     minimizers.emplace_back(bufferWD.winBuff[j].To128t());
                 }
             }
             // Second portion of the circular buffer.
             for (int32_t j = 0; j < bufferWD.winBuffPos; ++j) {
                 if (minSeed.Compare(bufferWD.winBuff[j].key) == 2) {
-                    // std::cerr << "[emplace 3] " << bufferWD.winBuff[j].Verbose() << "\n";
                     minimizers.emplace_back(bufferWD.winBuff[j].To128t());
                 }
             }
@@ -236,7 +229,6 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             // one. This ensures that all equal minimizers in a window are written.
             if (bufferWD.winBuff[bufferWD.winBuffMinPos].Valid() &&
                 bufferWD.numBasesIn[space] >= (winSize + kmerSize)) {
-                // std::cerr << "[emplace 4] " << bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose() << "\n";
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
             }
             bufferWD.winBuffMinPos = bufferWD.winBuffPos;
@@ -244,7 +236,6 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             // The entire window has been circled around to the minimum seed key.
             if (bufferWD.winBuff[bufferWD.winBuffMinPos].Valid() &&
                 bufferWD.numBasesIn[space] >= (winSize + kmerSize - 1)) {
-                // std::cerr << "[emplace 5] " << bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose() << "\n";
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
             }
             // Find a new minimizer using the two for loops for the two portions of the circular buffer.
@@ -273,14 +264,12 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                 // First portion of the circular buffer.
                 for (int32_t j = (bufferWD.winBuffPos + 1); j < winSize; ++j) {
                     if (minSeed.Compare(bufferWD.winBuff[j].key) == 2) {
-                        // std::cerr << "[emplace 6] " << bufferWD.winBuff[j].Verbose() << "\n";
                         minimizers.emplace_back(bufferWD.winBuff[j].To128t());
                     }
                 }
                 // Second portion of the circular buffer.
                 for (int32_t j = 0; j < bufferWD.winBuffPos; ++j) {
                     if (minSeed.Compare(bufferWD.winBuff[j].key) == 2) {
-                        // std::cerr << "[emplace 7] " << bufferWD.winBuff[j].Verbose() << "\n";
                         minimizers.emplace_back(bufferWD.winBuff[j].To128t());
                     }
                 }
@@ -294,7 +283,6 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
         }
     }
     if (bufferWD.winBuffMinPos >= 0 && bufferWD.winBuff[bufferWD.winBuffMinPos].Valid()) {
-        // std::cerr << "[emplace 8] " << bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose() << "\n";
         minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
     }
 
