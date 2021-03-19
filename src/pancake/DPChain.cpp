@@ -54,41 +54,40 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hitsSize, int32_
     const double lin_factor = 0.01 * avgQuerySpan;
 
     for (int32_t i = 1; i < (n_hits + 1); i++) {
-        int32_t x_i_start = hits[i - 1].queryPos;
-        int32_t y_i_start = hits[i - 1].targetPos;
+        const int32_t x_i_start = hits[i - 1].queryPos;
+        const int32_t y_i_start = hits[i - 1].targetPos;
         // int32_t l_i = y_i_start - x_i_start;
-        int32_t t_id_i = hits[i - 1].targetId;
-        bool t_rev_i = hits[i - 1].targetRev;
+        const int32_t t_id_i = hits[i - 1].targetId;
+        const bool t_rev_i = hits[i - 1].targetRev;
 
         // Add the initial gap open penalty.
-        int32_t x_i_score = hits[i - 1].querySpan;
+        const int32_t x_i_score = hits[i - 1].querySpan;
+
         int32_t new_dp_val = x_i_score;
         int32_t new_dp_pred = 0;
         int32_t new_dp_chain = num_chains;
-
         int32_t num_skipped_predecessors = 0;
-
         int32_t num_processed = 0;
 
-        int32_t min_j = 0;
-        // int32_t min_j = std::max(0, i - 1000);
-        min_j = (chainMaxPredecessors <= 0) ? 0 : std::max(0, (i - 1 - chainMaxPredecessors));
+        const int32_t min_j =
+            (chainMaxPredecessors <= 0) ? 0 : std::max(0, (i - 1 - chainMaxPredecessors));
+
         for (int32_t j = (i - 1); j > min_j; j--) {
 #ifdef EXPERIMENTAL_QUERY_MASK
             bool is_tandem = hits[j - 1].QueryMask() & MINIMIZER_HIT_TANDEM_FLAG;
 #endif
 
-            int32_t x_j_start = hits[j - 1].queryPos;
-            int32_t y_j_start = hits[j - 1].targetPos;
-            int32_t t_id_j = hits[j - 1].targetId;
-            bool t_rev_j = hits[j - 1].targetRev;
-            int32_t x_j_span = hits[j - 1].querySpan;
+            const int32_t x_j_start = hits[j - 1].queryPos;
+            const int32_t y_j_start = hits[j - 1].targetPos;
+            const int32_t t_id_j = hits[j - 1].targetId;
+            const bool t_rev_j = hits[j - 1].targetRev;
+            const int32_t x_j_span = hits[j - 1].querySpan;
 
-            int32_t dist_x = x_i_start - x_j_start;  // If < 0, it's not a predecessor.
-            int32_t dist_y = y_i_start - y_j_start;
+            const int32_t dist_x = x_i_start - x_j_start;  // If < 0, it's not a predecessor.
+            const int32_t dist_y = y_i_start - y_j_start;
             // int32_t l_j = y_j_start - x_j_start;
 
-            int32_t gap_dist = (dist_x < dist_y) ? (dist_y - dist_x) : (dist_x - dist_y);
+            const int32_t gap_dist = (dist_x < dist_y) ? (dist_y - dist_x) : (dist_x - dist_y);
 
             if (t_id_j != t_id_i || t_rev_j != t_rev_i) {
                 break;
@@ -115,13 +114,13 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hitsSize, int32_
 
             num_processed += 1;
 
-            int32_t lin_part = (gap_dist * lin_factor);
-            int32_t log_part = ((gap_dist == 0) ? 0 : raptor::utility::ilog2_32(gap_dist));
-            int32_t edge_score = lin_part + (log_part >> 1);
+            const int32_t lin_part = (gap_dist * lin_factor);
+            const int32_t log_part = ((gap_dist == 0) ? 0 : raptor::utility::ilog2_32(gap_dist));
+            const int32_t edge_score = lin_part + (log_part >> 1);
 
-            int32_t x_j_score =
+            const int32_t x_j_score =
                 std::min(x_j_span, static_cast<int32_t>(std::min(abs(dist_x), abs(dist_y))));
-            int32_t score_ij = dp[j] + x_j_score - edge_score;
+            const int32_t score_ij = dp[j] + x_j_score - edge_score;
 
             if (score_ij >= new_dp_val) {
                 new_dp_pred = j;
@@ -184,7 +183,7 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hitsSize, int32_
         /// Create the chain. ///
         /////////////////////////
         ChainedHits chain;
-        int32_t currTargetId = hits[nodes.front()].targetId;
+        const int32_t currTargetId = hits[nodes.front()].targetId;
         bool currTargetRev = hits[nodes.front()].targetRev;
         if (chain.targetId == -1 || chain.targetId != currTargetId ||
             chain.targetRev != currTargetRev) {
@@ -303,8 +302,8 @@ ChainedHits RefineChainedHits(const ChainedHits& chain, int32_t minGap, int32_t 
         const int32_t gap = ComputeGap(hits[seedId - 1], hits[seedId]);
         int32_t nIns = (gap > 0) ? gap : 0;
         int32_t nDel = (gap > 0) ? 0 : -gap;
-        int32_t qStart = hits[seedId - 1].queryPos;
-        int32_t tStart = hits[seedId - 1].targetPos;
+        const int32_t qStart = hits[seedId - 1].queryPos;
+        const int32_t tStart = hits[seedId - 1].targetPos;
         int32_t maxDiff = 0;
         int32_t maxDiffBpId = -1;
 
