@@ -39,30 +39,7 @@ std::vector<AlignmentRegion> ExtractAlignmentRegions(const std::vector<SeedHit>&
         maxFlankExtensionDist = std::max(qLen, tLen);
     }
 
-    // NOTE: This is only required if the hit coordinates are always
-    // fwd in the query sequence. If they are not, this can be removed.
-    //
-    // Reverse the hit coordinates if required, to make the
-    // alignment simpler. This is required because the original coordinate
-    // system keeps query in fwd and target in strand, whereas here we
-    // use query in strand and target in fwd.
-    std::vector<SeedHit> hits = inSortedHits;
-    // if (isRev) {
-    //     for (size_t i = 0; i < hits.size(); ++i) {
-    //         auto& hit = hits[i];
-    //         // std::swap(hit.queryPos, hit.targetPos
-    //         hit.queryPos = qLen - hit.queryPos;
-    //         hit.targetPos = tLen - hit.targetPos;
-
-    //         if (i > 0) {
-    //             bool isLongCurr = hits[i].CheckFlagLongJoin();
-    //             bool isLongPrev = hits[i - 1].CheckFlagLongJoin();
-    //             hits[i - 1].SetFlagLongJoin(isLongCurr);
-    //             hits[i].SetFlagLongJoin(isLongPrev);
-    //         }
-    //     }
-    //     std::reverse(hits.begin(), hits.end());
-    // }
+    const std::vector<SeedHit>& hits = inSortedHits;
 
     std::vector<AlignmentRegion> ret;
     int32_t globalAlnQueryStart = hits.front().queryPos;
