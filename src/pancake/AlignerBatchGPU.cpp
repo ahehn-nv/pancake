@@ -59,8 +59,7 @@ void RetrieveResultsAsPacBioCigar(AlignerBatchGPU::AlignerBatchGPUHostBuffers* h
 {
     GW_NVTX_RANGE(profiler, "pancake retrieve results");
     namespace gw = claraparabricks::genomeworks;
-    if(hostBuffers == nullptr || aligner == nullptr)
-    {
+    if(hostBuffers == nullptr || aligner == nullptr) {
         throw std::runtime_error(
                 "hostBuffers or aligner should not be nullptr " +
             std::string(__func__) + ".");
@@ -75,6 +74,10 @@ void RetrieveResultsAsPacBioCigar(AlignerBatchGPU::AlignerBatchGPUHostBuffers* h
         throw std::runtime_error(
             "Number of alignments doesn't match number of input sequences, in " +
             std::string(__func__) + ".");
+    }
+
+    if(numberOfAlignments == 0) {
+        return;
     }
 
     gw::device_buffer<PacBio::Data::CigarOperation> pacbio_cigars_device(aln.total_length, allocator, stream);
