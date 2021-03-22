@@ -672,7 +672,7 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
         for (size_t chainId = 0; chainId < chains.size(); ++chainId) {
             const auto& chain = chains[chainId];
             // std::cerr << chain << "\n";
-            for (int32_t hitId = 0; hitId < chain.hits.size(); ++hitId) {
+            for (size_t hitId = 0; hitId < chain.hits.size(); ++hitId) {
                 const auto& hit = chain.hits[hitId];
                 std::cerr << "    [groupId = " << groupId << ", chainId = " << chainId
                           << ", hitId = " << hitId << "] " << hit << "\n";
