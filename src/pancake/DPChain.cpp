@@ -160,7 +160,7 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hitsSize, int32_
     for (int32_t i = 0; i < static_cast<int32_t>(chain_maxima.size()); i++) {
         // Trace back from the maxima.
         int32_t node_id = chain_maxima[i];
-        int32_t score = dp[node_id];
+        const int32_t score = dp[node_id];
 
         if (score < minDPScore) {
             continue;
@@ -184,13 +184,13 @@ std::vector<ChainedHits> ChainHits(const SeedHit* hits, int32_t hitsSize, int32_
         /////////////////////////
         ChainedHits chain;
         const int32_t currTargetId = hits[nodes.front()].targetId;
-        bool currTargetRev = hits[nodes.front()].targetRev;
+        const bool currTargetRev = hits[nodes.front()].targetRev;
         if (chain.targetId == -1 || chain.targetId != currTargetId ||
             chain.targetRev != currTargetRev) {
             chain = ChainedHits(currTargetId, currTargetRev);
         }
 
-        for (auto& node : nodes) {
+        for (const auto& node : nodes) {
             chain.hits.emplace_back(hits[node]);
         }
 
