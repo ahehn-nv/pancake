@@ -293,7 +293,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         const std::vector<FastaSequenceCached>& targetSeqs, const int32_t kmerSize,
                         const int32_t winSize, const int32_t spacing,
-                        const bool useReverseComplement, const bool useHPC, const int32_t maxHPCLen)
+                        const bool useReverseComplement, const bool useHPC)
 {
     retSeeds.clear();
     for (int32_t recordId = 0; recordId < static_cast<int32_t>(targetSeqs.size()); ++recordId) {
@@ -303,7 +303,7 @@ void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
         int32_t seqLen = record.size();
         std::vector<PacBio::Pancake::Int128t> newSeeds;
         int rv = GenerateMinimizers(newSeeds, seq, seqLen, 0, seqId, kmerSize, winSize, spacing,
-                                    useReverseComplement, useHPC, maxHPCLen);
+                                    useReverseComplement, useHPC);
         if (rv)
             throw std::runtime_error("Generating minimizers failed for the target sequence, id = " +
                                      std::to_string(recordId));
@@ -314,7 +314,7 @@ void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
                         const int32_t winSize, const int32_t spacing,
-                        const bool useReverseComplement, const bool useHPC, const int32_t maxHPCLen)
+                        const bool useReverseComplement, const bool useHPC)
 {
     retSeeds.clear();
     for (int32_t seqId = 0; seqId < static_cast<int32_t>(targetSeqs.size()); ++seqId) {
@@ -323,7 +323,7 @@ void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
         int32_t seqLen = record.size();
         std::vector<PacBio::Pancake::Int128t> newSeeds;
         int rv = GenerateMinimizers(newSeeds, seq, seqLen, 0, seqId, kmerSize, winSize, spacing,
-                                    useReverseComplement, useHPC, maxHPCLen);
+                                    useReverseComplement, useHPC);
         if (rv)
             throw std::runtime_error("Generating minimizers failed for the target sequence, id = " +
                                      std::to_string(seqId));

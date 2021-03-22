@@ -53,8 +53,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         const std::vector<FastaSequenceCached>& targetSeqs, const int32_t kmerSize,
                         const int32_t winSize, const int32_t spacing,
-                        const bool useReverseComplement, const bool useHPC,
-                        const int32_t maxHPCLen);
+                        const bool useReverseComplement, const bool useHPC);
 
 /*
  * \brief Computes minimizers for a set of input sequences, given as a vector of std::string objects.
@@ -62,8 +61,7 @@ void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
                         const int32_t winSize, const int32_t spacing,
-                        const bool useReverseComplement, const bool useHPC,
-                        const int32_t maxHPCLen);
+                        const bool useReverseComplement, const bool useHPC);
 
 /*
  * \brief Computes minimizers for a set of input sequences, given as a vector of FastaSequenceCached objects.
