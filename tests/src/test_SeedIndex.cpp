@@ -547,6 +547,71 @@ B	0	0	1	96
     EXPECT_EQ(expected, results);
 }
 
+TEST(SeedIndex, CollectHitsLongSeedSpan)
+{
+    const int32_t targetId = 0;
+    std::vector<PacBio::Pancake::SeedDB::SeedRaw> targetSeeds = {
+        PacBio::Pancake::SeedDB::Seed::Encode(0, 164, targetId, 0, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(1, 15, targetId, 1, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(2, 128, targetId, 2, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(3, 255, targetId, 3, 0),
+    };
+    const int32_t queryId = 0;
+    const std::vector<PacBio::Pancake::SeedDB::SeedRaw> querySeeds = {
+        // PacBio::Pancake::SeedDB::Seed::Encode(0, 164, queryId, 0, 0),
+        // PacBio::Pancake::SeedDB::Seed::Encode(1, 15, queryId, 153, 0),
+        // PacBio::Pancake::SeedDB::Seed::Encode(1, 15, queryId, 155, 0),
+        // PacBio::Pancake::SeedDB::Seed::Encode(1, 15, queryId, 157, 0),
+
+        PacBio::Pancake::SeedDB::Seed::Encode(0, 164, queryId, 0, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(1, 15, queryId, 1, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(2, 128, queryId, 2, 0),
+        PacBio::Pancake::SeedDB::Seed::Encode(3, 255, queryId, 3, 0),
+    };
+    const int32_t queryLen = 173;
+
+    // clang-format off
+    // Expected results.
+    const std::vector<PacBio::Pancake::SeedHit> expected = {
+        {targetId, false, 0, 0, 164, 164, 0},
+        {targetId, false, 1, 1, 15, 15, 0},
+        {targetId, false, 2, 2, 128, 128, 0},
+        {targetId, false, 3, 3, 255, 255, 0},
+    };
+    // clang-format on
+
+    // Dummy SeedDB cache.
+    // No cache information is needed for this test.
+    std::shared_ptr<PacBio::Pancake::SeedDBIndexCache> dummySeedDBCache(
+        new PacBio::Pancake::SeedDBIndexCache);
+
+    // Run the unit under test.
+    PacBio::Pancake::SeedIndex si(dummySeedDBCache, std::move(targetSeeds));
+    std::vector<PacBio::Pancake::SeedHit> results;
+    si.CollectHits(querySeeds, queryLen, results, 100);
+
+    for (size_t i = 0; i < results.size(); ++i) {
+        const auto& hit = results[i];
+        std::cerr << "{targetId"
+                  << ", " << (hit.targetRev ? "true" : "false") << ", " << hit.targetPos << ", "
+                  << hit.queryPos << ", " << hit.targetSpan << ", " << hit.querySpan << ", "
+                  << hit.flags << "},\n";
+    }
+
+    // Evaluate.
+    // This test is not very useful to check for positive/negative spans because
+    // the SeedHit constructor will convert those positive values >=128 to a signed 8-bit form.
+    EXPECT_EQ(expected, results);
+
+    // This actually captures that something went wrong.
+    for (const auto& result : results) {
+        std::ostringstream oss;
+        oss << result;
+        SCOPED_TRACE("Testing hit: " + oss.str());
+        EXPECT_TRUE(static_cast<int32_t>(result.querySpan) >= static_cast<int32_t>(0));
+    }
+}
+
 TEST(SeedIndex, ComputeFrequencyStatsEmptyIndex)
 {
     /*
