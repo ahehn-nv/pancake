@@ -173,8 +173,7 @@ bool SeedIndex::CollectHits(const PacBio::Pancake::SeedDB::SeedRaw* querySeeds,
                             int64_t freqCutoff) const
 {
     return PacBio::Pancake::SeedDB::CollectSeedHits<SeedHashType>(
-        hits, querySeeds, querySeedsSize, queryLen, hash_, &seeds_[0], seeds_.size(),
-        seedParams_.KmerSize, seedParams_.Spacing, freqCutoff);
+        hits, querySeeds, querySeedsSize, queryLen, hash_, &seeds_[0], seeds_.size(), freqCutoff);
 }
 
 }  // namespace Pancake

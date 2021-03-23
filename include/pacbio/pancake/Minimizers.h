@@ -88,8 +88,7 @@ bool CollectSeedHits(std::vector<SeedHit>& hits, const PacBio::Pancake::SeedDB::
                      const int64_t querySeedsSize, const int32_t queryLen,
                      const TargetHashType& hash,
                      const PacBio::Pancake::SeedDB::SeedRaw* targetSeeds,
-                     const int64_t /*targetSeedsSize*/, const int32_t /*kmerSize*/,
-                     const int32_t /*spacing*/, const int64_t freqCutoff)
+                     const int64_t /*targetSeedsSize*/, const int64_t freqCutoff)
 {
     hits.clear();
 
