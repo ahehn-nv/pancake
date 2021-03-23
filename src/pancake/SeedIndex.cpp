@@ -66,13 +66,12 @@ void SeedIndex::BuildHash_(std::vector<PacBio::Pancake::SeedDB::SeedRaw>& seeds,
         retMinSeedSpan = (span < retMinSeedSpan) ? span : retMinSeedSpan;
         retMaxSeedSpan = (span > retMaxSeedSpan) ? span : retMaxSeedSpan;
         retAvgSeedSpan += static_cast<double>(span);
-        if (key == prevKey) {
-            ++end;
-        } else {
+        if (key != prevKey) {
             retHash[prevKey] = std::make_pair(start, end);
             start = i;
-            end = i + 1;
+            end = i;
         }
+        ++end;
         prevKey = key;
     }
     if (end > start) {
