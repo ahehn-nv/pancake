@@ -276,6 +276,86 @@ TEST(AlignmentSeeded, ExtractAlignmentRegions_ArrayOfTests)
                 {900, 100, 900, 100, true, RegionType::BACK, 3},
             },
         },
+        TestData{
+            "A mix of forward and reverse seed hits. This should not be possible here.",
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, false, 5, 5, 15, 15, 0),
+                SeedHit(0, true, 400, 400, 15, 15, 0),
+                SeedHit(0, true, 900, 900, 15, 15, 0),
+            },
+            // queryLen, targetLen, isRev, minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            1000, 1000, true, 200, 5000, 1.3,
+            // expectedThrow
+            true,
+            // expectedRegions
+            {
+            },
+        },
+        TestData{
+            "A mix of forward and reverse seed hits, but an internal hit is of the opposite strand. This should not be possible here.",
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, true, 5, 5, 15, 15, 0),
+                SeedHit(0, false, 400, 400, 15, 15, 0),
+                SeedHit(0, true, 900, 900, 15, 15, 0),
+            },
+            // queryLen, targetLen, isRev, minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            1000, 1000, true, 200, 5000, 1.3,
+            // expectedThrow
+            true,
+            // expectedRegions
+            {
+            },
+        },
+        TestData{
+            "Seed hit strand doesn't match the strand specified via the function parameters.",
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, true, 5, 5, 15, 15, 0),
+                SeedHit(0, true, 400, 400, 15, 15, 0),
+                SeedHit(0, true, 900, 900, 15, 15, 0),
+            },
+            // queryLen, targetLen, isRev, minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            1000, 1000, false, 200, 5000, 1.3,
+            // expectedThrow
+            true,
+            // expectedRegions
+            {
+            },
+        },
+        TestData{
+            "Chain of seed hits is not monotonically increasing.",
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, true, 5, 5, 15, 15, 0),
+                SeedHit(0, true, 900, 900, 15, 15, 0),
+                SeedHit(0, true, 400, 400, 15, 15, 0),
+            },
+            // queryLen, targetLen, isRev, minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            1000, 1000, true, 200, 5000, 1.3,
+            // expectedThrow
+            true,
+            // expectedRegions
+            {
+            },
+        },
+        TestData{
+            "Seed hit + seed span are out of bounds of the query/target lengths. (995 + 15 > 1000)",
+            {   // sortedHits
+                // targetId, targetRev, targetPos, queryPos, targetSpan, querySpan, flags
+                SeedHit(0, true, 100, 100, 15, 15, 0),
+                SeedHit(0, true, 600, 600, 15, 15, 0),
+                SeedHit(0, true, 995, 995, 15, 15, 0),
+            },
+            // queryLen, targetLen, isRev, minAlignmentSpan, maxFlankExtensionDist, flankExtensionFactor
+            1000, 1000, true, 200, 5000, 1.3,
+            // expectedThrow
+            true,
+            // expectedRegions
+            {
+            },
+        },
     };
     // clang-format on
 
