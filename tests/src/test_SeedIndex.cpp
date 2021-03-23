@@ -86,6 +86,82 @@ TEST(SeedIndex, GetSeeds2)
     EXPECT_EQ(static_cast<int64_t>(expected.size()), n);
 }
 
+TEST(SeedIndex, ComputeSeedSpanStats_EmptyInput)
+{
+    std::vector<PacBio::Pancake::Int128t> inSeeds = {};
+
+    // Expected results.
+    const int32_t expectedMinSeedSpan = 0;
+    const int32_t expectedMaxSeedSpan = 0;
+    const double expectedAvgSeedSpan = 0.0;
+
+    // Run the unit under test.
+    PacBio::Pancake::SeedIndex si(std::move(inSeeds));
+
+    // Evaluate.
+    EXPECT_EQ(expectedMinSeedSpan, si.GetMinSeedSpan());
+    EXPECT_EQ(expectedMaxSeedSpan, si.GetMaxSeedSpan());
+    EXPECT_EQ(expectedAvgSeedSpan, si.GetAvgSeedSpan());
+}
+
+TEST(SeedIndex, ComputeSeedSpanStats_SameSpan)
+{
+    const int32_t seqId = 123;
+    const int32_t span = 15;
+    std::vector<PacBio::Pancake::Int128t> inSeeds = {
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span, seqId, 0, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span, seqId, 1, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span, seqId, 2, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span, seqId, 3, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span, seqId, 4, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span, seqId, 5, false),
+    };
+
+    // Expected results.
+    const int32_t expectedMinSeedSpan = span;
+    const int32_t expectedMaxSeedSpan = span;
+    const double expectedAvgSeedSpan = span;
+
+    // Run the unit under test.
+    PacBio::Pancake::SeedIndex si(std::move(inSeeds));
+
+    // Evaluate.
+    EXPECT_EQ(expectedMinSeedSpan, si.GetMinSeedSpan());
+    EXPECT_EQ(expectedMaxSeedSpan, si.GetMaxSeedSpan());
+    EXPECT_EQ(expectedAvgSeedSpan, si.GetAvgSeedSpan());
+}
+
+TEST(SeedIndex, ComputeSeedSpanStats_MixOfDifferentSpans)
+{
+    const int32_t seqId = 123;
+    const int32_t span1 = 15;
+    const int32_t span2 = 19;
+    const int32_t span3 = 28;
+    std::vector<PacBio::Pancake::Int128t> inSeeds = {
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span1, seqId, 0, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span1, seqId, 1, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span3, seqId, 2, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span2, seqId, 3, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span3, seqId, 4, false),
+        PacBio::Pancake::SeedDB::Seed::Encode(0, span1, seqId, 5, false),
+    };
+
+    // Expected results.
+    const int32_t expectedMinSeedSpan = span1;
+    const int32_t expectedMaxSeedSpan = span3;
+    const double expectedAvgSeedSpan =
+        static_cast<double>(span1 + span1 + span3 + span2 + span3 + span1) /
+        static_cast<double>(inSeeds.size());
+
+    // Run the unit under test.
+    PacBio::Pancake::SeedIndex si(std::move(inSeeds));
+
+    // Evaluate.
+    EXPECT_EQ(expectedMinSeedSpan, si.GetMinSeedSpan());
+    EXPECT_EQ(expectedMaxSeedSpan, si.GetMaxSeedSpan());
+    EXPECT_EQ(expectedAvgSeedSpan, si.GetAvgSeedSpan());
+}
+
 TEST(SeedIndex, GetSeeds3NonexistentKey)
 {
     /*
