@@ -81,7 +81,9 @@ private:
     int32_t maxSeedSpan_;
     double avgSeedSpan_;
 
-    void BuildHash_();
+    static void BuildHash_(std::vector<PacBio::Pancake::SeedDB::SeedRaw>& seeds,
+                           SeedHashType& retHash, int32_t& retMinSeedSpan, int32_t& retMaxSeedSpan,
+                           double& retAvgSeedSpan);
 };
 
 }  // namespace Pancake
