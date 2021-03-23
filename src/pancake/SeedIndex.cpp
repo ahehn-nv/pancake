@@ -16,7 +16,11 @@ namespace Pancake {
 
 SeedIndex::SeedIndex(const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
                      std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds)
-    : seeds_(std::move(seeds)), seedParams_(seedParams)
+    : seeds_(std::move(seeds))
+    , seedParams_(seedParams)
+    , minSeedSpan_(0)
+    , maxSeedSpan_(0)
+    , avgSeedSpan_(0.0)
 {
 #ifdef SEED_INDEX_USING_DENSEHASH
     hash_.set_empty_key(
@@ -30,6 +34,10 @@ SeedIndex::~SeedIndex() = default;
 
 void SeedIndex::BuildHash_()
 {
+    minSeedSpan_ = 0;
+    maxSeedSpan_ = 0;
+    avgSeedSpan_ = 0.0;
+
     // Stop early.
     if (seeds_.empty()) {
         return;
@@ -55,8 +63,15 @@ void SeedIndex::BuildHash_()
     int64_t start = 0;
     int64_t end = 0;
     uint64_t prevKey = PacBio::Pancake::SeedDB::Seed::DecodeKey(seeds_[0]);
+    minSeedSpan_ = seeds_.empty() ? 0 : PacBio::Pancake::SeedDB::Seed::DecodeSpan(seeds_[0]);
+    maxSeedSpan_ = minSeedSpan_;
+    avgSeedSpan_ = 0.0;
     for (size_t i = 0; i < seeds_.size(); ++i) {
-        uint64_t key = PacBio::Pancake::SeedDB::Seed::DecodeKey(seeds_[i]);
+        const uint64_t key = PacBio::Pancake::SeedDB::Seed::DecodeKey(seeds_[i]);
+        const int32_t span = PacBio::Pancake::SeedDB::Seed::DecodeSpan(seeds_[i]);
+        minSeedSpan_ = (span < minSeedSpan_) ? span : minSeedSpan_;
+        maxSeedSpan_ = (span > maxSeedSpan_) ? span : maxSeedSpan_;
+        avgSeedSpan_ += static_cast<double>(span);
         if (key == prevKey) {
             ++end;
         } else {
@@ -69,6 +84,7 @@ void SeedIndex::BuildHash_()
     if (end > start) {
         hash_[prevKey] = std::make_pair(start, end);
     }
+    avgSeedSpan_ = seeds_.empty() ? 0.0 : (avgSeedSpan_ / static_cast<double>(seeds_.size()));
 }
 
 void SeedIndex::ComputeFrequencyStats(double percentileCutoff, int64_t& retFreqMax,
