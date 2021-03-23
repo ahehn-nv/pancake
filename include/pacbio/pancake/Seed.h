@@ -69,12 +69,6 @@ public:
         return ret;
     }
 
-    static inline PacBio::Pancake::Int128t Encode(uint64_t _key, int32_t _seqID, int32_t _pos,
-                                                  bool _isRev)
-    {
-        return Encode(_key, 0, _seqID, _pos, _isRev);
-    }
-
     static inline PacBio::Pancake::Int128t Encode(uint64_t _key, int32_t _span, int32_t _seqID,
                                                   int32_t _pos, bool _isRev)
     {
