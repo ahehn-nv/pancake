@@ -590,9 +590,8 @@ std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(const ChainedRe
         Bstart != sortedHits.front().targetPos ||
         Bend != (sortedHits.back().targetPos + sortedHits.back().targetSpan)) {
         std::ostringstream oss;
-        oss << "(" << __FUNCTION__ << ") Provided overlap coordinates do not match the first/last "
-                                      "seed "
-                                      "hit!"
+        oss << "(" << __FUNCTION__
+            << ") Provided overlap coordinates do not match the first/last seed hit!"
             << " ovl: " << *ovl << "; sortedHits.front() = " << sortedHits.front()
             << "; sortedHits.back() = " << sortedHits.back() << "; Astart = " << Astart
             << ", Aend = " << Aend << ", Bstart = " << Bstart << ", Bend = " << Bend;
