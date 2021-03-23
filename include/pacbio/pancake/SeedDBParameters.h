@@ -21,6 +21,15 @@ public:
     bool UseRC = true;
 
     SeedDBParameters() = default;
+    SeedDBParameters(int32_t kmerSize, int32_t minimizerWindow, int32_t spacing, bool useHPC, bool useHPCForSeedsOnly, bool useRC)
+        : KmerSize(kmerSize)
+        , MinimizerWindow(minimizerWindow)
+        , Spacing(spacing)
+        , UseHPC(useHPC)
+        , UseHPCForSeedsOnly(useHPCForSeedsOnly)
+        , UseRC(useRC)
+    {
+    }
     ~SeedDBParameters() = default;
 
     bool operator==(const SeedDBParameters& rhs) const

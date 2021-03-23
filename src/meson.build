@@ -60,6 +60,7 @@ pancake_cpp_sources = files([
     'pancake/MapperBatchUtility.cpp',
     'pancake/MapperCLR.cpp',
     'pancake/MapperHiFi.cpp',
+    'pancake/MapperUtility.cpp',
     'pancake/Minimizers.cpp',
     'pancake/Overlap.cpp',
     'pancake/OverlapWriterBase.cpp',

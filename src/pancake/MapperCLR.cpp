@@ -6,6 +6,7 @@
 #include <pacbio/alignment/SesDistanceBanded.h>
 #include <pacbio/pancake/AlignmentSeeded.h>
 #include <pacbio/pancake/MapperCLR.h>
+#include <pacbio/pancake/MapperUtility.h>
 #include <pacbio/pancake/Minimizers.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
 #include <pacbio/pancake/Secondary.h>
@@ -153,13 +154,12 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
 {
     // Construct the index.
     std::vector<PacBio::Pancake::Int128t> seeds;
-    std::vector<int32_t> sequenceLengths;
     const auto& seedParams = settings.map.seedParams;
-    SeedDB::GenerateMinimizers(seeds, sequenceLengths, targetSeqs.records(), seedParams.KmerSize,
+    SeedDB::GenerateMinimizers(seeds, targetSeqs.records(), seedParams.KmerSize,
                                seedParams.MinimizerWindow, seedParams.Spacing, seedParams.UseRC,
                                seedParams.UseHPCForSeedsOnly);
     std::unique_ptr<SeedIndex> seedIndex =
-        std::make_unique<SeedIndex>(settings.map.seedParams, sequenceLengths, std::move(seeds));
+        std::make_unique<SeedIndex>(settings.map.seedParams, std::move(seeds));
 
     // Calculate the seed frequency statistics, needed for the cutoff.
     int64_t freqMax = 0;
@@ -175,12 +175,11 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
     if (settings.map.seedParamsFallback != settings.map.seedParams) {
         std::vector<PacBio::Pancake::Int128t> seedsFallback;
         const auto& seedParamsFallback = settings.map.seedParamsFallback;
-        SeedDB::GenerateMinimizers(seedsFallback, sequenceLengths, targetSeqs.records(),
-                                   seedParamsFallback.KmerSize, seedParamsFallback.MinimizerWindow,
-                                   seedParamsFallback.Spacing, seedParamsFallback.UseRC,
-                                   seedParamsFallback.UseHPCForSeedsOnly);
-        seedIndexFallback = std::make_unique<SeedIndex>(settings.map.seedParamsFallback,
-                                                        sequenceLengths, std::move(seedsFallback));
+        SeedDB::GenerateMinimizers(seedsFallback, targetSeqs.records(), seedParamsFallback.KmerSize,
+                                   seedParamsFallback.MinimizerWindow, seedParamsFallback.Spacing,
+                                   seedParamsFallback.UseRC, seedParamsFallback.UseHPCForSeedsOnly);
+        seedIndexFallback =
+            std::make_unique<SeedIndex>(settings.map.seedParamsFallback, std::move(seedsFallback));
         seedIndexFallback->ComputeFrequencyStats(settings.map.freqPercentile, freqMax, freqAvg,
                                                  freqMedian, freqCutoffFallback);
     }
@@ -377,11 +376,13 @@ MapperBaseResult MapperCLR::Map_(const FastaSequenceCachedStore& targetSeqs,
 
         std::swap(region->chain, newChain);
 
-        region->mapping->Astart = region->chain.hits.front().queryPos;
-        region->mapping->Bstart = region->chain.hits.front().targetPos;
-        region->mapping->Aend = region->chain.hits.back().queryPos;
-        region->mapping->Bend = region->chain.hits.back().targetPos;
-        region->mapping->NumSeeds = region->chain.hits.size();
+        if (region->chain.hits.empty()) {
+            region->mapping = nullptr;
+        } else {
+            region->mapping =
+                MakeOverlap(region->chain.hits, queryId, queryLen, targetSeqs, 0,
+                            region->chain.hits.size(), 0, region->chain.hits.size() - 1);
+        }
     }
     DebugWriteChainedRegion(allChainedRegions, "6-refining-seed-hits", queryId, queryLen);
 
@@ -514,7 +515,6 @@ MapperBaseResult MapperCLR::Align_(const FastaSequenceCachedStore& targetSeqs,
         } else {
             std::cerr << "nullptr\n";
         }
-        std::cerr << "ttAlignmentSeeded = " << ttAlignmentSeeded.GetCpuMillisecs() << " ms\n";
 #endif
     }
 
@@ -580,19 +580,27 @@ std::vector<AlignmentRegion> MapperCLR::CollectAlignmentRegions_(const ChainedRe
     if (ovl->Arev) {
         throw std::runtime_error("(CollectAlignmentRegions) The ovl->Arev should always be false!");
     }
-    if (ovl->Astart != sortedHits.front().queryPos || ovl->Aend != sortedHits.back().queryPos ||
-        ovl->Bstart != sortedHits.front().targetPos || ovl->Bend != sortedHits.back().targetPos) {
+    const int32_t Astart = ovl->Brev ? (ovl->Alen - ovl->Aend) : ovl->Astart;
+    const int32_t Aend = ovl->Brev ? (ovl->Alen - ovl->Astart) : ovl->Aend;
+    const int32_t Bstart = ovl->Brev ? (ovl->Blen - ovl->Bend) : ovl->Bstart;
+    const int32_t Bend = ovl->Brev ? (ovl->Blen - ovl->Bstart) : ovl->Bend;
+
+    if (Astart != sortedHits.front().queryPos ||
+        Aend != (sortedHits.back().queryPos + sortedHits.back().querySpan) ||
+        Bstart != sortedHits.front().targetPos ||
+        Bend != (sortedHits.back().targetPos + sortedHits.back().targetSpan)) {
         std::ostringstream oss;
-        oss << "(AlignmentSeeded) Provided overlap coordinates do not match the first/last "
-               "seed "
-               "hit!"
+        oss << "(" << __FUNCTION__
+            << ") Provided overlap coordinates do not match the first/last seed hit!"
             << " ovl: " << *ovl << "; sortedHits.front() = " << sortedHits.front()
-            << "; sortedHits.back() = " << sortedHits.back();
+            << "; sortedHits.back() = " << sortedHits.back() << "; Astart = " << Astart
+            << ", Aend = " << Aend << ", Bstart = " << Bstart << ", Bend = " << Bend;
         throw std::runtime_error(oss.str());
     }
     if (ovl->Brev != sortedHits.front().targetRev || ovl->Brev != sortedHits.back().targetRev) {
         std::ostringstream oss;
-        oss << "(AlignmentSeeded) Strand of the provided overlap does not match the first/last "
+        oss << "(" << __FUNCTION__
+            << ") Strand of the provided overlap does not match the first/last "
                "seed hit."
             << " ovl->Brev = " << (ovl->Brev ? "true" : "false")
             << ", sortedHits.front().targetRev = "
@@ -641,11 +649,14 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
 
     auto groups = GroupByTargetAndStrand(hits2);
 
-    for (const auto& group : groups) {
+    for (size_t groupId = 0; groupId < groups.size(); ++groupId) {
+        const auto& group = groups[groupId];
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
         std::cerr << "(ReChainSeedHits_) group: " << group << ", span = " << group.Span() << "\n";
+        std::cerr << "[group " << groupId << "] After GroupByTargetAndStrand:\n";
         for (int32_t i = group.start; i < group.end; ++i) {
-            std::cerr << "    [hit i = " << i << "] " << hits2[i] << "\n";
+            const auto& hit = hits2[i];
+            std::cerr << "    [hit i = " << i << "] " << hit << "\n";
         }
         std::cerr << "\n";
 #endif
@@ -654,6 +665,20 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
         std::vector<ChainedHits> chains = ChainHits(
             &hits2[group.start], group.end - group.start, chainMaxSkip, chainMaxPredecessors,
             maxGap, chainBandwidth, minNumSeeds, minCoveredBases, minDPScore);
+
+#ifdef PANCAKE_MAP_CLR_DEBUG_2
+        std::cerr << "[group " << groupId << "] After ChainHits:\n";
+        for (size_t chainId = 0; chainId < chains.size(); ++chainId) {
+            const auto& chain = chains[chainId];
+            // std::cerr << chain << "\n";
+            for (size_t hitId = 0; hitId < chain.hits.size(); ++hitId) {
+                const auto& hit = chain.hits[hitId];
+                std::cerr << "    [groupId = " << groupId << ", chainId = " << chainId
+                          << ", hitId = " << hitId << "] " << hit << "\n";
+            }
+            std::cerr << "\n";
+        }
+#endif
 
         // Accumulate chains and their mapped regions.
         for (size_t i = 0; i < chains.size(); ++i) {
@@ -666,8 +691,8 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ReChainSeedHits_(
             }
 
             // Create a new chained region.
-            auto ovl = MakeOverlap_(chain.hits, queryId, queryLen, targetSeqs, 0, numHitsInChain, 0,
-                                    numHitsInChain - 1);
+            auto ovl = MakeOverlap(chain.hits, queryId, queryLen, targetSeqs, 0, numHitsInChain, 0,
+                                   numHitsInChain - 1);
             auto chainedRegion = std::make_unique<ChainedRegion>();
             chainedRegion->chain = std::move(chain);
             chainedRegion->mapping = std::move(ovl);
@@ -735,13 +760,15 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ChainAndMakeOverlap_(
 #ifdef PANCAKE_MAP_CLR_DEBUG_2
             std::cerr << "  - Hits before LIS:\n";
             for (size_t ii = 0; ii < groupHits.size(); ++ii) {
-                std::cerr << "    [groupHits ii = " << ii << "] " << groupHits[ii] << "\n";
+                const auto& hit = groupHits[ii];
+                std::cerr << "    [groupHits ii = " << ii << "] " << hit << "\n";
             }
             std::cerr << "  - using LIS.\n";
             std::cerr << "  - lisHits.size() = " << lisHits.size() << "\n";
             std::cerr << "  - Hits after LIS:\n";
             for (size_t ii = 0; ii < lisHits.size(); ++ii) {
-                std::cerr << "    [lisHits ii = " << ii << "] " << lisHits[ii] << "\n";
+                const auto& hit = lisHits[ii];
+                std::cerr << "    [lisHits ii = " << ii << "] " << hit << "\n";
             }
 #endif
         } else {
@@ -772,8 +799,8 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ChainAndMakeOverlap_(
                 continue;
             }
             // Create a new chained region.
-            auto ovl = MakeOverlap_(chain.hits, queryId, queryLen, targetSeqs, 0, numHitsInChain, 0,
-                                    numHitsInChain - 1);
+            auto ovl = MakeOverlap(chain.hits, queryId, queryLen, targetSeqs, 0, numHitsInChain, 0,
+                                   numHitsInChain - 1);
             auto chainedRegion = std::make_unique<ChainedRegion>();
             chainedRegion->chain = std::move(chain);
             chainedRegion->mapping = std::move(ovl);
@@ -781,42 +808,6 @@ std::vector<std::unique_ptr<ChainedRegion>> MapperCLR::ChainAndMakeOverlap_(
         }
     }
     return allChainedRegions;
-}
-
-OverlapPtr MapperCLR::MakeOverlap_(const std::vector<SeedHit>& sortedHits, int32_t queryId,
-                                   int32_t queryLen, const FastaSequenceCachedStore& targetSeqs,
-                                   int32_t beginId, int32_t endId, int32_t minTargetPosId,
-                                   int32_t maxTargetPosId)
-{
-
-    const auto& beginHit = sortedHits[minTargetPosId];
-    const auto& endHit = sortedHits[maxTargetPosId];
-
-    const int32_t targetId = beginHit.targetId;
-    const int32_t numSeeds = endId - beginId;
-
-    if (endHit.targetId != beginHit.targetId) {
-        std::ostringstream oss;
-        oss << "The targetId of the first and last seed does not match, in MakeOverlap. "
-               "beginHit.targetId "
-            << beginHit.targetId << ", endHit.targetId = " << endHit.targetId;
-        throw std::runtime_error(oss.str());
-    }
-
-    const float score = numSeeds;
-    const float identity = 0.0;
-    const int32_t editDist = -1;
-
-    const int32_t targetLen = targetSeqs.GetSequence(targetId).size();
-
-    OverlapPtr ret =
-        createOverlap(queryId, targetId, score, identity, beginHit.targetRev, beginHit.queryPos,
-                      endHit.queryPos, queryLen, false, beginHit.targetPos, endHit.targetPos,
-                      targetLen, editDist, numSeeds, OverlapType::Unknown, OverlapType::Unknown);
-
-    ret->NormalizeStrand();
-
-    return ret;
 }
 
 void MapperCLR::LongMergeChains_(std::vector<std::unique_ptr<ChainedRegion>>& chainedRegions,

@@ -39,17 +39,44 @@ static inline uint64_t ComputeKmerMask(int32_t kmerSize)
     return mask;
 }
 
+/*
+ * \brief Computes minimizers for a single input sequence.
+*/
 int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const uint8_t* seq,
                        const int32_t seqLen, const int32_t seqOffset, const int32_t seqId,
                        const int32_t kmerSize, const int32_t winSize, const int32_t spacing,
                        const bool useReverseComplement, const bool useHPC);
 
+/*
+ * \brief Computes minimizers for a set of input sequences, given as a vector of FastaSequenceCached objects.
+*/
+void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
+                        const std::vector<FastaSequenceCached>& targetSeqs, const int32_t kmerSize,
+                        const int32_t winSize, const int32_t spacing,
+                        const bool useReverseComplement, const bool useHPC);
+
+/*
+ * \brief Computes minimizers for a set of input sequences, given as a vector of std::string objects.
+*/
+void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
+                        const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
+                        const int32_t winSize, const int32_t spacing,
+                        const bool useReverseComplement, const bool useHPC);
+
+/*
+ * \brief Computes minimizers for a set of input sequences, given as a vector of FastaSequenceCached objects.
+ *        Also collects sequence lengths for all given input sequences.
+*/
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         std::vector<int32_t>& retSequenceLengths,
                         const std::vector<FastaSequenceCached>& targetSeqs, const int32_t kmerSize,
                         const int32_t winSize, const int32_t spacing,
                         const bool useReverseComplement, const bool useHPC);
 
+/*
+ * \brief Computes minimizers for a set of input sequences, given as a vector of std::string objects.
+ *        Also collects sequence lengths for all given input sequences.
+*/
 void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
                         std::vector<int32_t>& retSequenceLengths,
                         const std::vector<std::string>& targetSeqs, const int32_t kmerSize,
@@ -58,26 +85,13 @@ void GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& retSeeds,
 
 template <class TargetHashType>
 bool CollectSeedHits(std::vector<SeedHit>& hits, const PacBio::Pancake::SeedDB::SeedRaw* querySeeds,
-                     const int64_t querySeedsSize, const int32_t /*queryLen*/,
+                     const int64_t querySeedsSize, const int32_t queryLen,
                      const TargetHashType& hash,
                      const PacBio::Pancake::SeedDB::SeedRaw* targetSeeds,
-                     const int64_t /*targetSeedsSize*/, const std::vector<int32_t>& targetLengths,
-                     const int32_t /*kmerSize*/, const int32_t /*spacing*/,
-                     const int64_t freqCutoff)
+                     const int64_t /*targetSeedsSize*/, const int32_t /*kmerSize*/,
+                     const int32_t /*spacing*/, const int64_t freqCutoff)
 {
     hits.clear();
-
-    static auto GetSequenceLength = [](const std::vector<int32_t>& sequenceLengths,
-                                       int32_t seqId) -> int32_t {
-        // Sanity check for the sequence ID.
-        if (seqId < 0 || seqId >= static_cast<int32_t>(sequenceLengths.size())) {
-            std::ostringstream oss;
-            oss << "Invalid seqId. seqId = " << seqId
-                << ", sequenceLengths.size() = " << sequenceLengths.size();
-            throw std::runtime_error(oss.str());
-        }
-        return sequenceLengths[seqId];
-    };
 
     // The +1 is because for every seed base there are Spacing spaces, and the subtraction
     // is because after the last seed base the spaces shouldn't be counted.
@@ -104,10 +118,8 @@ bool CollectSeedHits(std::vector<SeedHit>& hits, const PacBio::Pancake::SeedDB::
 
                 if (decodedQuery.IsRev() != decodedTarget.IsRev()) {
                     isRev = true;
-                    const int32_t targetLen = GetSequenceLength(targetLengths, decodedTarget.seqID);
-                    targetPos = targetLen - (decodedTarget.pos + targetSpan);
-                    // queryPos = queryLen - (decodedQuery.pos +
-                    //                        querySpan);  // End pos in fwd is start pos in rev.
+                    // End pos in fwd is start pos in rev.
+                    queryPos = queryLen - (decodedQuery.pos + querySpan);
                 }
 
                 SeedHit hit{decodedTarget.seqID, isRev,     targetPos, queryPos,

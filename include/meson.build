@@ -127,6 +127,7 @@ if not meson.is_subproject()
       'pacbio/pancake/MapperBatchUtility.h',
       'pacbio/pancake/MapperCLR.h',
       'pacbio/pancake/MapperHiFi.h',
+      'pacbio/pancake/MapperUtility.h',
       'pacbio/pancake/Minimizers.h',
       'pacbio/pancake/Overlap.h',
       'pacbio/pancake/OverlapWriterBase.h',

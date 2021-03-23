@@ -48,6 +48,10 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.target.fasta",
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
                 },
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-query.fasta",
+                },
 
             },
             // Aligner type for global alignment.
@@ -59,7 +63,7 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
             // Expected results.
             {
                 {
-                    "000000000 000000000 19068 81.17 0 0 18779 18779 0 0 18864 18865 *",
+                    "000000000 000000000 19072 81.17 0 0 18779 18779 0 0 18864 18865 *",
                 },
                 {
                     "000000000 000000000 15726 98.71 0 0 8111 8111 0 0 8138 8138 *"
@@ -68,13 +72,16 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
                     "000000000 000000000 300 100.00 0 0 150 150 1 0 150 150 *"
                 },
                 {
-                    "000000000 000000000 16112 75.40 0 0 21382 22015 1 701 22028 22028 *"
+                    "000000000 000000000 16112 75.43 0 0 21382 22015 1 701 21992 22028 *"
                 },
                 {
                     "000000000 000000000 280 96.77 0 0 155 155 1 0 150 150 *"
                 },
                 {
                     "000000000 000000000 284 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
+                },
+                {
+                    "000000000 000000000 11218 75.98 0 0 15753 15753 1 2 15953 15953 *"
                 },
             },
         },
@@ -105,10 +112,10 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
             // Expected results.
             {
                 {
-                    "000000000 000000000 12390 76.10 0 0 15753 15753 1 2 15953 15953 *"
+                    "000000000 000000000 12370 76.04 0 0 15753 15753 1 2 15953 15953 *"
                 },
                 {
-                    "000000000 000000000 8306 78.47 0 0 9230 9230 0 8372 17577 17578 *"
+                    "000000000 000000000 8312 78.47 0 0 9230 9230 0 8372 17577 17578 *"
                 },
             },
         }
