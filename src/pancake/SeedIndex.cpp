@@ -14,13 +14,8 @@
 namespace PacBio {
 namespace Pancake {
 
-SeedIndex::SeedIndex(const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
-                     std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds)
-    : seeds_(std::move(seeds))
-    , seedParams_(seedParams)
-    , minSeedSpan_(0)
-    , maxSeedSpan_(0)
-    , avgSeedSpan_(0.0)
+SeedIndex::SeedIndex(std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds)
+    : seeds_(std::move(seeds)), minSeedSpan_(0), maxSeedSpan_(0), avgSeedSpan_(0.0)
 {
 #ifdef SEED_INDEX_USING_DENSEHASH
     hash_.set_empty_key(

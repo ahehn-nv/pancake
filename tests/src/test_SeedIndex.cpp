@@ -3,7 +3,6 @@
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
 #include <pacbio/pancake/Seed.h>
-#include <pacbio/pancake/SeedDBParameters.h>
 #include <pacbio/pancake/SeedIndex.h>
 #include <pacbio/util/CommonTypes.h>
 #include <sstream>
@@ -29,15 +28,11 @@ TEST(SeedIndex, GetSeeds1)
     };
     uint64_t inKey = 0;
 
-    // Seed parameters are needed to create the SeedIndex. Specific
-    // values are not required for this test.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-
     // Expected results.
     std::vector<PacBio::Pancake::Int128t> expected = inSeeds;
 
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(inSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(inSeeds));
     std::vector<PacBio::Pancake::Int128t> results;
     int64_t n = si.GetSeeds(inKey, results);
 
@@ -66,10 +61,6 @@ TEST(SeedIndex, GetSeeds2)
     };
     uint64_t inKey = 5;
 
-    // Seed parameters are needed to create the SeedIndex. Specific
-    // values are not required for this test.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-
     // Expected results.
     std::vector<PacBio::Pancake::Int128t> expected = {
         PacBio::Pancake::SeedDB::Seed::Encode(5, seqId, 2, false),
@@ -78,7 +69,7 @@ TEST(SeedIndex, GetSeeds2)
     };
 
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(inSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(inSeeds));
     std::vector<PacBio::Pancake::Int128t> results;
     int64_t n = si.GetSeeds(inKey, results);
 
@@ -183,15 +174,11 @@ TEST(SeedIndex, GetSeeds3NonexistentKey)
     };
     uint64_t inKey = 1024;
 
-    // Seed parameters are needed to create the SeedIndex. Specific
-    // values are not required for this test.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-
     // Expected results.
     std::vector<PacBio::Pancake::Int128t> expected = {};
 
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(inSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(inSeeds));
     std::vector<PacBio::Pancake::Int128t> results;
     int64_t n = si.GetSeeds(inKey, results);
 
@@ -229,14 +216,11 @@ TEST(SeedIndex, CollectHitsEmptyQueryNonemptyTarget)
     const std::vector<PacBio::Pancake::SeedDB::SeedRaw> querySeeds = {};
     const int32_t queryLen = 38;
 
-    // Seed parameters are needed to create the SeedIndex.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams(28, 80, 0, false, false, true);
-
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {};
 
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(targetSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
     si.CollectHits(querySeeds, queryLen, results, 100);
 
@@ -274,14 +258,11 @@ TEST(SeedIndex, CollectHitsNonemptyQueryEmptyTarget)
     };
     const int32_t queryLen = 38;
 
-    // Seed parameters are needed to create the SeedIndex.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams(28, 80, 0, false, false, true);
-
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {};
 
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(targetSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
     si.CollectHits(querySeeds, queryLen, results, 100);
 
@@ -319,14 +300,11 @@ TEST(SeedIndex, CollectHitsNonemptyQueryNonemptyTargetNoHits)
     };
     const int32_t queryLen = 38;
 
-    // Seed parameters are needed to create the SeedIndex.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams(28, 80, 0, false, false, true);
-
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {};
 
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(targetSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
     si.CollectHits(querySeeds, queryLen, results, 100);
 
@@ -359,9 +337,6 @@ TEST(SeedIndex, CollectHitsPerfectMatch)
     };
     const std::vector<PacBio::Pancake::SeedDB::SeedRaw> querySeeds = targetSeeds;
     const int32_t queryLen = 38;
-
-    // Seed parameters are needed to create the SeedIndex.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams(28, 80, 0, false, false, true);
 
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {
@@ -400,7 +375,7 @@ TEST(SeedIndex, CollectHitsPerfectMatch)
     };
 
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(targetSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
     si.CollectHits(querySeeds, queryLen, results, 100);
 
@@ -433,9 +408,6 @@ TEST(SeedIndex, CollectHitsFrequencyThreshold)
     const int32_t queryLen = 38;
     int32_t freqCutoff = 2;
 
-    // Seed parameters are needed to create the SeedIndex.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams(28, 80, 0, false, false, true);
-
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {
         // 0
@@ -449,7 +421,7 @@ TEST(SeedIndex, CollectHitsFrequencyThreshold)
     };
 
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(targetSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
     si.CollectHits(querySeeds, queryLen, results, freqCutoff);
 
@@ -493,9 +465,6 @@ TEST(SeedIndex, CollectHitsReverseStrand)
     };
     const int32_t queryLen = 38;
     int32_t freqCutoff = 0;
-
-    // Seed parameters are needed to create the SeedIndex.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams(28, 80, 0, false, false, true);
 
     // Expected results.
     const std::vector<PacBio::Pancake::SeedHit> expected = {
@@ -543,7 +512,7 @@ TEST(SeedIndex, CollectHitsReverseStrand)
     };
 
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(targetSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
     si.CollectHits(querySeeds, queryLen, results, freqCutoff);
 
@@ -594,12 +563,8 @@ TEST(SeedIndex, CollectHitsLongSeedSpan)
     };
     // clang-format on
 
-    // Seed parameters are needed to create the SeedIndex. Specific
-    // values are not required for this test.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(targetSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(targetSeeds));
     std::vector<PacBio::Pancake::SeedHit> results;
     si.CollectHits(querySeeds, queryLen, results, 100);
 
@@ -640,12 +605,8 @@ TEST(SeedIndex, ComputeFrequencyStatsEmptyIndex)
     double expectedFreqMedian = 0;
     int64_t expectedFreqCutoff = 0;
 
-    // Seed parameters are needed to create the SeedIndex. Specific
-    // values are not required for this test.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(inSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(inSeeds));
     int64_t resultFreqMax = 0;
     double resultFreqAvg = 0.0;
     double resultFreqMedian = 0.0;
@@ -685,12 +646,8 @@ TEST(SeedIndex, ComputeFrequencyStatsNormal)
     double expectedFreqMedian = 2.5;
     int64_t expectedFreqCutoff = 2;
 
-    // Seed parameters are needed to create the SeedIndex. Specific
-    // values are not required for this test.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(inSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(inSeeds));
     int64_t resultFreqMax = 0;
     double resultFreqAvg = 0.0;
     double resultFreqMedian = 0.0;
@@ -723,12 +680,8 @@ TEST(SeedIndex, ComputeFrequencyThresholdOutOfBounds)
         PacBio::Pancake::SeedDB::Seed::Encode(123, seqId, 8, false),
     };
 
-    // Seed parameters are needed to create the SeedIndex. Specific
-    // values are not required for this test.
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-
     // Run the unit under test.
-    PacBio::Pancake::SeedIndex si(seedParams, std::move(inSeeds));
+    PacBio::Pancake::SeedIndex si(std::move(inSeeds));
     int64_t resultFreqMax = 0;
     double resultFreqAvg = 0.0;
     double resultFreqMedian = 0.0;

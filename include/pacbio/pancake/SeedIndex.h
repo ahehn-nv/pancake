@@ -59,8 +59,7 @@ namespace Pancake {
 class SeedIndex
 {
 public:
-    SeedIndex(const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
-              std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds);
+    SeedIndex(std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds);
     ~SeedIndex();
 
     void ComputeFrequencyStats(double percentileCutoff, int64_t& retFreqMax, double& retFreqAvg,
@@ -71,7 +70,6 @@ public:
     bool CollectHits(const PacBio::Pancake::SeedDB::SeedRaw* querySeeds, int64_t querySeedsSize,
                      int32_t queryLen, std::vector<SeedHit>& hits, int64_t freqCutoff) const;
 
-    const PacBio::Pancake::SeedDB::SeedDBParameters& GetSeedParams() const { return seedParams_; }
     int32_t GetMinSeedSpan() const { return minSeedSpan_; }
     int32_t GetMaxSeedSpan() const { return maxSeedSpan_; }
     double GetAvgSeedSpan() const { return avgSeedSpan_; }
@@ -79,7 +77,6 @@ public:
 private:
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> seeds_;
     SeedHashType hash_;
-    PacBio::Pancake::SeedDB::SeedDBParameters seedParams_;
     int32_t minSeedSpan_;
     int32_t maxSeedSpan_;
     double avgSeedSpan_;

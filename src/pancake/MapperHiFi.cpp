@@ -91,10 +91,10 @@ MapperResult Mapper::MapSingleQuery_(const PacBio::Pancake::FastaSequenceCachedS
     // PBLOG_INFO << "Hits: " << hits.size();
 
     TicToc ttChain;
-    auto overlaps = FormAnchors2_(hits, querySeq, targetSeqs, index, settings_.ChainBandwidth,
-                                  settings_.MinNumSeeds, settings_.MinChainSpan,
-                                  index.GetSeedParams().KmerSize * 3, settings_.SkipSelfHits,
-                                  settings_.SkipSymmetricOverlaps);
+    auto overlaps =
+        FormAnchors2_(hits, querySeq, targetSeqs, index, settings_.ChainBandwidth,
+                      settings_.MinNumSeeds, settings_.MinChainSpan, index.GetMinSeedSpan() * 3,
+                      settings_.SkipSelfHits, settings_.SkipSymmetricOverlaps);
     ttChain.Stop();
 #ifdef PANCAKE_DEBUG
     PBLOG_INFO << "Formed diagonal anchors: " << overlaps.size();
@@ -520,7 +520,7 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(
             diagDiff > chainBandwidth) {
 
             auto ovl = WrapMakeOverlap(sortedHits, beginId, i, querySeq, targetSeqs, chainBandwidth,
-                                       index.GetSeedParams().KmerSize, minMatch);
+                                       index.GetMinSeedSpan(), minMatch);
             beginId = i;
             beginDiag = currDiag;
 
@@ -546,7 +546,7 @@ std::vector<OverlapPtr> Mapper::FormAnchors2_(
 
     if ((numHits - beginId) > 0) {
         auto ovl = WrapMakeOverlap(sortedHits, beginId, numHits, querySeq, targetSeqs,
-                                   chainBandwidth, index.GetSeedParams().KmerSize, minMatch);
+                                   chainBandwidth, index.GetMinSeedSpan(), minMatch);
 
 #ifdef PANCAKE_DEBUG
         std::cerr << "ovl->NumSeeds = " << ovl->NumSeeds << " (" << minNumSeeds
@@ -1123,8 +1123,7 @@ std::vector<MapperResult> MapHiFi(const FastaSequenceCachedStore& targetSeqs,
     PacBio::Pancake::SeedDB::GenerateMinimizers(seeds, targetSeqs.records(), seedParams.KmerSize,
                                                 seedParams.MinimizerWindow, seedParams.Spacing,
                                                 seedParams.UseRC, seedParams.UseHPCForSeedsOnly);
-    std::unique_ptr<SeedIndex> seedIndex =
-        std::make_unique<SeedIndex>(seedParams, std::move(seeds));
+    std::unique_ptr<SeedIndex> seedIndex = std::make_unique<SeedIndex>(std::move(seeds));
 
     // Seed statistics, and computing the cutoff.
     TicToc ttSeedStats;

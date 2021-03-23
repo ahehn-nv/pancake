@@ -158,8 +158,7 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
     SeedDB::GenerateMinimizers(seeds, targetSeqs.records(), seedParams.KmerSize,
                                seedParams.MinimizerWindow, seedParams.Spacing, seedParams.UseRC,
                                seedParams.UseHPCForSeedsOnly);
-    std::unique_ptr<SeedIndex> seedIndex =
-        std::make_unique<SeedIndex>(settings.map.seedParams, std::move(seeds));
+    std::unique_ptr<SeedIndex> seedIndex = std::make_unique<SeedIndex>(std::move(seeds));
 
     // Calculate the seed frequency statistics, needed for the cutoff.
     int64_t freqMax = 0;
@@ -178,8 +177,7 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
         SeedDB::GenerateMinimizers(seedsFallback, targetSeqs.records(), seedParamsFallback.KmerSize,
                                    seedParamsFallback.MinimizerWindow, seedParamsFallback.Spacing,
                                    seedParamsFallback.UseRC, seedParamsFallback.UseHPCForSeedsOnly);
-        seedIndexFallback =
-            std::make_unique<SeedIndex>(settings.map.seedParamsFallback, std::move(seedsFallback));
+        seedIndexFallback = std::make_unique<SeedIndex>(std::move(seedsFallback));
         seedIndexFallback->ComputeFrequencyStats(settings.map.freqPercentile, freqMax, freqAvg,
                                                  freqMedian, freqCutoffFallback);
     }
