@@ -14,27 +14,9 @@
 namespace PacBio {
 namespace Pancake {
 
-SeedIndex::SeedIndex(std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBCache,
-                     std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds)
-    : seeds_(std::move(seeds)), seedParams_(seedDBCache->seedParams)
-{
-#ifdef SEED_INDEX_USING_DENSEHASH
-    hash_.set_empty_key(
-        SEED_INDEX_EMPTY_HASH_KEY);  // Densehash requires this to be defined on top.
-#endif
-
-    sequenceLengths_.resize(seedDBCache->seedLines.size());
-    for (size_t i = 0; i < seedDBCache->seedLines.size(); ++i) {
-        sequenceLengths_[i] = seedDBCache->seedLines[i].numBases;
-    }
-
-    BuildHash_();
-}
-
 SeedIndex::SeedIndex(const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
-                     const std::vector<int32_t>& sequenceLengths,
                      std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds)
-    : seeds_(std::move(seeds)), seedParams_(seedParams), sequenceLengths_(sequenceLengths)
+    : seeds_(std::move(seeds)), seedParams_(seedParams)
 {
 #ifdef SEED_INDEX_USING_DENSEHASH
     hash_.set_empty_key(

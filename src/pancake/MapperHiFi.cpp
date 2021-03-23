@@ -1120,13 +1120,11 @@ std::vector<MapperResult> MapHiFi(const FastaSequenceCachedStore& targetSeqs,
 
     // Construct the target sequence index.
     std::vector<PacBio::Pancake::Int128t> seeds;
-    std::vector<int32_t> sequenceLengths;
-    PacBio::Pancake::SeedDB::GenerateMinimizers(seeds, sequenceLengths, targetSeqs.records(),
-                                                seedParams.KmerSize, seedParams.MinimizerWindow,
-                                                seedParams.Spacing, seedParams.UseRC,
-                                                seedParams.UseHPCForSeedsOnly);
+    PacBio::Pancake::SeedDB::GenerateMinimizers(seeds, targetSeqs.records(), seedParams.KmerSize,
+                                                seedParams.MinimizerWindow, seedParams.Spacing,
+                                                seedParams.UseRC, seedParams.UseHPCForSeedsOnly);
     std::unique_ptr<SeedIndex> seedIndex =
-        std::make_unique<SeedIndex>(seedParams, sequenceLengths, std::move(seeds));
+        std::make_unique<SeedIndex>(seedParams, std::move(seeds));
 
     // Seed statistics, and computing the cutoff.
     TicToc ttSeedStats;

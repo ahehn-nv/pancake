@@ -111,7 +111,7 @@ int OverlapHifiWorkflow::Runner(const PacBio::CLI_v2::Results& options)
 
     // Build the seed index.
     TicToc ttIndex;
-    PacBio::Pancake::SeedIndex index(targetSeedDBCache, std::move(targetSeeds));
+    PacBio::Pancake::SeedIndex index(targetSeedDBCache->seedParams, std::move(targetSeeds));
     ttIndex.Stop();
     PBLOG_INFO << "Built the seed index in " << ttIndex.GetSecs() << " sec.";
 

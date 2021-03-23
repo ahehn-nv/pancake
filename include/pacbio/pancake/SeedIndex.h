@@ -59,10 +59,7 @@ namespace Pancake {
 class SeedIndex
 {
 public:
-    SeedIndex(std::shared_ptr<PacBio::Pancake::SeedDBIndexCache>& seedDBCache,
-              std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds);
     SeedIndex(const PacBio::Pancake::SeedDB::SeedDBParameters& seedParams,
-              const std::vector<int32_t>& sequenceLengths,
               std::vector<PacBio::Pancake::SeedDB::SeedRaw>&& seeds);
     ~SeedIndex();
 
@@ -74,15 +71,12 @@ public:
     bool CollectHits(const PacBio::Pancake::SeedDB::SeedRaw* querySeeds, int64_t querySeedsSize,
                      int32_t queryLen, std::vector<SeedHit>& hits, int64_t freqCutoff) const;
 
-    const std::vector<int32_t> GetSequenceLengths() const { return sequenceLengths_; }
-
     const PacBio::Pancake::SeedDB::SeedDBParameters& GetSeedParams() const { return seedParams_; }
 
 private:
     std::vector<PacBio::Pancake::SeedDB::SeedRaw> seeds_;
     SeedHashType hash_;
     PacBio::Pancake::SeedDB::SeedDBParameters seedParams_;
-    std::vector<int32_t> sequenceLengths_;
 
     void BuildHash_();
 };

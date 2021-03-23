@@ -154,13 +154,12 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
 {
     // Construct the index.
     std::vector<PacBio::Pancake::Int128t> seeds;
-    std::vector<int32_t> sequenceLengths;
     const auto& seedParams = settings.map.seedParams;
-    SeedDB::GenerateMinimizers(seeds, sequenceLengths, targetSeqs.records(), seedParams.KmerSize,
+    SeedDB::GenerateMinimizers(seeds, targetSeqs.records(), seedParams.KmerSize,
                                seedParams.MinimizerWindow, seedParams.Spacing, seedParams.UseRC,
                                seedParams.UseHPCForSeedsOnly);
     std::unique_ptr<SeedIndex> seedIndex =
-        std::make_unique<SeedIndex>(settings.map.seedParams, sequenceLengths, std::move(seeds));
+        std::make_unique<SeedIndex>(settings.map.seedParams, std::move(seeds));
 
     // Calculate the seed frequency statistics, needed for the cutoff.
     int64_t freqMax = 0;
@@ -176,12 +175,11 @@ std::vector<MapperBaseResult> MapperCLR::WrapBuildIndexMapAndAlignWithFallback_(
     if (settings.map.seedParamsFallback != settings.map.seedParams) {
         std::vector<PacBio::Pancake::Int128t> seedsFallback;
         const auto& seedParamsFallback = settings.map.seedParamsFallback;
-        SeedDB::GenerateMinimizers(seedsFallback, sequenceLengths, targetSeqs.records(),
-                                   seedParamsFallback.KmerSize, seedParamsFallback.MinimizerWindow,
-                                   seedParamsFallback.Spacing, seedParamsFallback.UseRC,
-                                   seedParamsFallback.UseHPCForSeedsOnly);
-        seedIndexFallback = std::make_unique<SeedIndex>(settings.map.seedParamsFallback,
-                                                        sequenceLengths, std::move(seedsFallback));
+        SeedDB::GenerateMinimizers(seedsFallback, targetSeqs.records(), seedParamsFallback.KmerSize,
+                                   seedParamsFallback.MinimizerWindow, seedParamsFallback.Spacing,
+                                   seedParamsFallback.UseRC, seedParamsFallback.UseHPCForSeedsOnly);
+        seedIndexFallback =
+            std::make_unique<SeedIndex>(settings.map.seedParamsFallback, std::move(seedsFallback));
         seedIndexFallback->ComputeFrequencyStats(settings.map.freqPercentile, freqMax, freqAvg,
                                                  freqMedian, freqCutoffFallback);
     }
