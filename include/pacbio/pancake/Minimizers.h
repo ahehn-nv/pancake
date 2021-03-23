@@ -118,11 +118,8 @@ bool CollectSeedHits(std::vector<SeedHit>& hits, const PacBio::Pancake::SeedDB::
 
                 if (decodedQuery.IsRev() != decodedTarget.IsRev()) {
                     isRev = true;
-                    // const int32_t targetLen = GetSequenceLength(targetLengths, decodedTarget.seqID);
-                    // targetPos = targetLen - (decodedTarget.pos + targetSpan);
-
-                    queryPos = queryLen - (decodedQuery.pos +
-                                           querySpan);  // End pos in fwd is start pos in rev.
+                    // End pos in fwd is start pos in rev.
+                    queryPos = queryLen - (decodedQuery.pos + querySpan);
                 }
 
                 SeedHit hit{decodedTarget.seqID, isRev,     targetPos, queryPos,
