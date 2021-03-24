@@ -101,6 +101,13 @@ pancake_cpp_sources = files([
 ])
 
 if opt_cuda
+    cuda = import('unstable-cuda')
+    pancake_cuda_flags = cuda.nvcc_arch_flags(nvcc, 'Auto')
+
+    if (get_option('b_ndebug') == 'true') or ((get_option('b_ndebug') == 'if-release') and (get_option('buildtype') == 'release'))
+      pancake_cuda_flags += '-DNDEBUG'
+    endif
+
     pancake_cpp_sources += files([
         'pancake/AlignerBatchGPU.cpp',
         'pancake/MapperBatchGPU.cpp',
@@ -109,11 +116,6 @@ if opt_cuda
         'pancake/AlignerBatchGPUGenomeWorksInterface.cu',
     ])
     pancake_cpp_sources += pancake_cu_sources
-    pancake_cuda_flags = ['-gencode', 'arch=compute_75,code=sm_75', '-gencode', 'arch=compute_75,code=compute_75']
-    if (get_option('b_ndebug') == 'true') or ((get_option('b_ndebug') == 'if-release') and (get_option('buildtype') == 'release'))
-      pancake_cuda_flags += '-DNDEBUG'
-    endif
-    pancake_cuda_flags += '-Xcompiler=-Wno-pedantic'
 endif
 
 pancake_cpp_sources += pancake_version_sources
@@ -138,7 +140,8 @@ if opt_cuda
       dependencies : pancake_lib_deps,
       include_directories : pancake_include_directories,
       cpp_args : pancake_flags,
-      cuda_args : pancake_cuda_flags)
+      cuda_args : pancake_cuda_flags,
+      override_options : ['warning_level=2'])
 else
     pancake_lib = library(
       'pancake',
