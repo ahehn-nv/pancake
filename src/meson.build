@@ -109,7 +109,7 @@ if opt_cuda
         'pancake/AlignerBatchGPUGenomeWorksInterface.cu',
     ])
     pancake_cpp_sources += pancake_cu_sources
-    pancake_cuda_flags = ['-gencode', 'arch=compute_80,code=sm_80', '-gencode', 'arch=compute_80,code=compute_80']
+    pancake_cuda_flags = ['-gencode', 'arch=compute_75,code=sm_75', '-gencode', 'arch=compute_75,code=compute_75']
     if (get_option('b_ndebug') == 'true') or ((get_option('b_ndebug') == 'if-release') and (get_option('buildtype') == 'release'))
       pancake_cuda_flags += '-DNDEBUG'
     endif
