@@ -121,8 +121,13 @@ bool CollectSeedHits(std::vector<SeedHit>& hits, const PacBio::Pancake::SeedDB::
                     queryPos = queryLen - (decodedQuery.pos + querySpan);
                 }
 
-                SeedHit hit{decodedTarget.seqID, isRev,     targetPos, queryPos,
-                            targetSpan,          querySpan, 0};
+                SeedHit hit{static_cast<int32_t>(decodedTarget.seqID),
+                            isRev,
+                            targetPos,
+                            queryPos,
+                            targetSpan,
+                            querySpan,
+                            0};
 
                 hits.emplace_back(hit);
             }
