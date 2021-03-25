@@ -39,13 +39,16 @@ public:
 
     ~SpacedBuffer() = default;
 
-    std::array<uint64_t, MAX_SPACING_IN_SEED>
-        seqBuffer;  // Holds the current 2-bit seed representation.
-    std::array<uint64_t, MAX_SPACING_IN_SEED>
-        seqBufferRC;  // Holds the reverse complement 2-bit seed at the same position.
-    std::array<int32_t, MAX_SPACING_IN_SEED> numBasesIn;  // Number of bases added to the buffer.
+    // Holds the current 2-bit seed representation.
+    std::array<uint64_t, MAX_SPACING_IN_SEED> seqBuffer;
+    // Holds the reverse complement 2-bit seed at the same position.
+    std::array<uint64_t, MAX_SPACING_IN_SEED> seqBufferRC;
+    // Number of bases added to the buffer.
+    std::array<int32_t, MAX_SPACING_IN_SEED> numBasesIn;
 
-    Seed winBuff[MAX_WINDOW_BUFFER_SIZE];  // Define the new circular buffer for the window.
+    // Define the new circular buffer for the window.
+    Seed winBuff[MAX_WINDOW_BUFFER_SIZE];
+
     int32_t winBuffPos = 0;
     int32_t winBuffMinPos = -1;
     int32_t kmerSpan = 0;
@@ -112,7 +115,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
     const minkey_t mask = (kmerSize < 32) ? ((((uint64_t)1) << (2 * kmerSize)) - 1) : 0xFFFFFFFFFFFFFFFF;
 
     SpacedBuffer bufferWD;
-    int32_t minInBases = kmerSize * (spacing + 1) - spacing;
+    int32_t minInBases = kmerSize * (spacing + 1) - spacing; // Equivalent to: `k + (k - 1) * s`
     int32_t seedSpanSize = minInBases;
 
     for (int32_t pos = 0, space = 0; pos < seqLen; ++pos, ++space) {
@@ -149,16 +152,13 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                     bufferWD.hpEvents.pop_front();
                 }
             } else {
-                bufferWD.kmerSpan = std::min(
-                    (bufferWD.numBasesIn[space] + 1) * (1 + spacing) - spacing, seedSpanSize);
+                bufferWD.kmerSpan = std::min((bufferWD.numBasesIn[space] + 1) * (1 + spacing) - spacing, seedSpanSize);
             }
 
             // Add the base to the buffer.
-            bufferWD.seqBuffer[space] =
-                ((bufferWD.seqBuffer[space] << 2) | ((((uint64_t)BaseToTwobit[b]))));
-            bufferWD.seqBufferRC[space] =
-                (bufferWD.seqBufferRC[space] >> 2) |
-                ((((uint64_t)BaseToTwobitComplement[b])) << (kmerSize * 2 - 2));
+            bufferWD.seqBuffer[space] = ((bufferWD.seqBuffer[space] << 2) | (((static_cast<uint64_t>(BaseToTwobit[b])))));
+            bufferWD.seqBufferRC[space] = (bufferWD.seqBufferRC[space] >> 2) | (((static_cast<uint64_t>(BaseToTwobitComplement[b]))) << (kmerSize * 2 - 2));
+
             // Calculate the seed key.
             minkey_t key = bufferWD.seqBuffer[space] & mask;
             minkey_t keyRev = bufferWD.seqBufferRC[space] & mask;
@@ -221,19 +221,32 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
         }
 
         if (newSeed.Valid() && bufferWD.winBuffMinPos < 0) {
-            // No minimum has been set yet. Set the current buffer pos.
+            /*
+             * No minimum has been set yet, and we found the first valid key.
+             * Set the current minimum buffer pos.
+             */
+
             bufferWD.winBuffMinPos = bufferWD.winBuffPos;
+
         } else if (newSeed.Valid() && newSeed.key <= bufferWD.winBuff[bufferWD.winBuffMinPos].key) {
-            // In this case, even if we encountered the same minimal key, we will write
-            // out the previous occurence of this key, and then set the minimum to the current
-            // one. This ensures that all equal minimizers in a window are written.
+            /*
+             * We found a new minimum. Write out the previous minimum.
+             * In this case, even if we encountered the same minimal key, we will write
+             * out the previous occurence of this key, and then set the minimum to the current
+             * one. This ensures that all equal minimizers in a window are written.
+            */
+
             if (bufferWD.winBuff[bufferWD.winBuffMinPos].Valid() &&
                 bufferWD.numBasesIn[space] >= (winSize + kmerSize)) {
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
             }
             bufferWD.winBuffMinPos = bufferWD.winBuffPos;
+
         } else if (bufferWD.winBuffPos == bufferWD.winBuffMinPos && bufferWD.winBuffMinPos >= 0) {
-            // The entire window has been circled around to the minimum seed key.
+            /*
+             * The entire window has been circled around to the minimum seed key.
+             */
+
             if (bufferWD.winBuff[bufferWD.winBuffMinPos].Valid() &&
                 bufferWD.numBasesIn[space] >= (winSize + kmerSize - 1)) {
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
