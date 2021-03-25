@@ -178,11 +178,6 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             minkey_t key = bufferWD.seqBuffer[space] & mask;
             minkey_t keyRev = bufferWD.seqBufferRC[space] & mask;
 
-            // Skip symmetric kmers.
-            if (bufferWD.seqBuffer[space] == bufferWD.seqBufferRC[space]) {
-                continue;
-            }
-
             // Determine the orientation of the key.
             bool isRev = false;
             if (useReverseComplement && keyRev < key) {
@@ -207,6 +202,11 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
 #ifdef DEBUG_GENERATE_MINIMIZERS
                 std::cerr << "    -> Constructed: " << newSeed << "\n";
 #endif
+            }
+
+            // Skip symmetric kmers.
+            if (key == keyRev) {
+                newSeed.SetInvalid();
             }
 
         } else {
