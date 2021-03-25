@@ -1,15 +1,138 @@
+// Copyright (c) 2019, Pacific Biosciences of California, Inc.
+// All rights reserved.
+// See LICENSE.txt.
+//
+// Contributions from NVIDIA are Copyright (c) 2021, NVIDIA Corporation.
+// All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 // Authors: Ivan Sovic
 
 #include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignerBatchGPU.h>
+#include <pacbio/pancake/AlignerBatchGPUGenomeWorksInterface.h>
+#include <pacbio/pancake/AlignerBatchGPUGenomeWorksInterface.h>
 #include <pacbio/util/Util.h>
-#include <array>
+#include <claraparabricks/genomeworks/utils/device_buffer.hpp>
+#include <claraparabricks/genomeworks/utils/pinned_host_vector.hpp>
 #include <cstdint>
 #include <iostream>
 #include <sstream>
 
 namespace PacBio {
 namespace Pancake {
+
+struct AlignerBatchGPU::AlignerBatchGPUHostBuffers
+{
+    claraparabricks::genomeworks::pinned_host_vector<int64_t> starts;
+    claraparabricks::genomeworks::pinned_host_vector<int32_t> lengths;
+    claraparabricks::genomeworks::pinned_host_vector<int4> diffs;
+    claraparabricks::genomeworks::pinned_host_vector<int64_t> scores;
+    claraparabricks::genomeworks::pinned_host_vector<PacBio::Data::CigarOperation> cigarOpsBuffer;
+
+    void ClearAndResize(int64_t cigarOpsBufferLen, int32_t numberAlns)
+    {
+        if (starts.size() < static_cast<size_t>(numberAlns)) {
+            // add 20% to avoid later reallocations
+            const int32_t newSize = numberAlns * 12 / 10;
+            starts.clear();
+            starts.resize(newSize);
+            lengths.clear();
+            lengths.resize(newSize);
+            diffs.clear();
+            diffs.resize(newSize);
+            scores.clear();
+            scores.resize(newSize);
+        }
+        if (cigarOpsBuffer.size() < static_cast<size_t>(cigarOpsBufferLen)) {
+            // add 20% to avoid later reallocations
+            const int32_t newSize = cigarOpsBufferLen * 12 / 10;
+            cigarOpsBuffer.clear();
+            cigarOpsBuffer.resize(newSize);
+        }
+    }
+};
+
+void RetrieveResultsAsPacBioCigar(
+    AlignerBatchGPU::AlignerBatchGPUHostBuffers* hostBuffers,
+    const std::vector<int32_t>& querySpans, const std::vector<int32_t>& targetSpans,
+    const claraparabricks::genomeworks::cudaaligner::FixedBandAligner* aligner,
+    std::vector<AlignmentResult>& results, int32_t matchScore, int32_t mismatchScore,
+    int32_t gapOpenScore, int32_t gapExtScore)
+{
+    GW_NVTX_RANGE(profiler, "pancake retrieve results");
+    namespace gw = claraparabricks::genomeworks;
+    if (hostBuffers == nullptr || aligner == nullptr) {
+        throw std::runtime_error("hostBuffers or aligner should not be nullptr " +
+                                 std::string(__func__) + ".");
+    }
+    cudaStream_t stream = aligner->get_stream();
+    auto allocator = aligner->get_device_allocator();
+    gw::cudaaligner::DeviceAlignmentsPtrs aln = aligner->get_alignments_device();
+    const int32_t numberOfAlignments = aln.n_alignments;
+
+    // Number of alignments should be the same as number of sequences added.
+    if (querySpans.size() != static_cast<size_t>(numberOfAlignments)) {
+        throw std::runtime_error(
+            "Number of alignments doesn't match number of input sequences, in " +
+            std::string(__func__) + ".");
+    }
+
+    if (numberOfAlignments == 0) {
+        return;
+    }
+
+    gw::device_buffer<PacBio::Data::CigarOperation> pacbioCigarsDevice(aln.total_length, allocator,
+                                                                       stream);
+    gw::device_buffer<int4> diffsDevice(numberOfAlignments, allocator, stream);
+    gw::device_buffer<int64_t> scoresDevice(numberOfAlignments, allocator, stream);
+    GWInterface::RunConvertToPacBioCigarAndScoreGpuKernel(
+        pacbioCigarsDevice.data(), diffsDevice.data(), scoresDevice.data(), aln, matchScore,
+        mismatchScore, gapOpenScore, gapExtScore, stream, aligner->get_device());
+
+    hostBuffers->ClearAndResize(aln.total_length, numberOfAlignments);
+
+    gw::cudautils::device_copy_n_async(aln.starts, numberOfAlignments, hostBuffers->starts.data(),
+                                       stream);
+    gw::cudautils::device_copy_n_async(aln.lengths, numberOfAlignments, hostBuffers->lengths.data(),
+                                       stream);
+    gw::cudautils::device_copy_n_async(diffsDevice.data(), numberOfAlignments,
+                                       hostBuffers->diffs.data(), stream);
+    gw::cudautils::device_copy_n_async(scoresDevice.data(), numberOfAlignments,
+                                       hostBuffers->scores.data(), stream);
+    gw::cudautils::device_copy_n_async(pacbioCigarsDevice.data(), aln.total_length,
+                                       hostBuffers->cigarOpsBuffer.data(), stream);
+
+    GW_CU_CHECK_ERR(cudaStreamSynchronize(stream));
+    for (int32_t i = 0; i < numberOfAlignments; ++i) {
+        auto& res = results[i];
+        const int32_t len = std::abs(hostBuffers->lengths[i]);
+        const bool is_optimal = (hostBuffers->lengths[i] >=
+                                 0);  // if a alignment is optimal is encoded in the sign of length.
+        res.cigar.clear();
+        res.cigar.insert(end(res.cigar),
+                         begin(hostBuffers->cigarOpsBuffer) + hostBuffers->starts[i],
+                         begin(hostBuffers->cigarOpsBuffer) + hostBuffers->starts[i] + len);
+        res.lastQueryPos = querySpans[i];
+        res.lastTargetPos = targetSpans[i];
+        res.maxQueryPos = querySpans[i];
+        res.maxTargetPos = targetSpans[i];
+        const int32_t numEq = hostBuffers->diffs[i].x;
+        const int32_t numX = hostBuffers->diffs[i].y;
+        const int32_t numI = hostBuffers->diffs[i].z;
+        const int32_t numD = hostBuffers->diffs[i].w;
+        const int32_t querySpan = numEq + numX + numI;
+        const int32_t targetSpan = numEq + numX + numD;
+        res.valid = (querySpan == querySpans[i] && targetSpan == targetSpans[i] && is_optimal);
+        res.score = hostBuffers->scores[i];
+        res.maxScore = hostBuffers->scores[i];
+        res.zdropped = false;
+        res.diffs.numEq = hostBuffers->diffs[i].x;
+        res.diffs.numX = hostBuffers->diffs[i].y;
+        res.diffs.numI = hostBuffers->diffs[i].z;
+        res.diffs.numD = hostBuffers->diffs[i].w;
+    }
+}
 
 int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFraction)
 {
@@ -28,32 +151,18 @@ int64_t ComputeMaxGPUMemory(int64_t cudaalignerBatches, double maxGPUMemoryFract
     return usableMemoryPerAligner;
 }
 
-AlignerBatchGPU::AlignerBatchGPU(int32_t numThreads, const AlignmentParameters& alnParams,
-                                 uint32_t maxBandwidth, uint32_t deviceId, int64_t maxGPUMemoryCap)
-    : AlignerBatchGPU(nullptr, alnParams, maxBandwidth, deviceId, maxGPUMemoryCap)
+AlignerBatchGPU::AlignerBatchGPU(const AlignmentParameters& alnParams, uint32_t maxBandwidth,
+                                 uint32_t deviceId, int64_t maxGPUMemoryCap)
+    : alnParams_(alnParams)
+    , gpuStream_(claraparabricks::genomeworks::make_cuda_stream())
+    , gpuHostBuffers_(std::make_unique<AlignerBatchGPUHostBuffers>())
 {
-    fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
-    faf_ = fafFallback_.get();
-}
-
-AlignerBatchGPU::AlignerBatchGPU(Parallel::FireAndForget* faf, const AlignmentParameters& alnParams,
-                                 uint32_t maxBandwidth, uint32_t deviceId, int64_t maxGPUMemoryCap)
-    : faf_{faf}, fafFallback_{nullptr}, alnParams_(alnParams)
-{
-    gpuStream_ = claraparabricks::genomeworks::make_cuda_stream();
     aligner_ = claraparabricks::genomeworks::cudaaligner::create_aligner(
         claraparabricks::genomeworks::cudaaligner::AlignmentType::global_alignment, maxBandwidth,
         gpuStream_.get(), deviceId, maxGPUMemoryCap);
 }
 
-AlignerBatchGPU::~AlignerBatchGPU()
-{
-    aligner_->reset();
-    aligner_.reset();
-    if (fafFallback_) {
-        fafFallback_->Finalize();
-    }
-}
+AlignerBatchGPU::~AlignerBatchGPU() = default;
 
 void AlignerBatchGPU::Clear()
 {
@@ -70,20 +179,6 @@ void AlignerBatchGPU::ResetMaxBandwidth(int32_t maxBandwidth)
 
 StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_t queryLen,
                                                        const char* target, int32_t targetLen)
-{
-    if (queryLen == 0 || targetLen == 0) {
-        // Add a dummy sequence pair to keep the place for the alignment.
-        StatusAddSequencePair rv = AddSequencePair_("A", 1, "A", 1);
-        querySpans_.back() = queryLen;
-        targetSpans_.back() = targetLen;
-        return rv;
-    }
-
-    return AddSequencePair_(query, queryLen, target, targetLen);
-}
-
-StatusAddSequencePair AlignerBatchGPU::AddSequencePair_(const char* query, int32_t queryLen,
-                                                        const char* target, int32_t targetLen)
 {
     if (queryLen < 0 || targetLen < 0) {
         return StatusAddSequencePair::SEQUENCE_LEN_BELOW_ZERO;
@@ -119,128 +214,11 @@ StatusAddSequencePair AlignerBatchGPU::AddSequencePair_(const char* query, int32
 void AlignerBatchGPU::AlignAll()
 {
     alnResults_.clear();
-
     aligner_->align_all();
-    aligner_->sync_alignments();
-
-    const std::vector<std::shared_ptr<claraparabricks::genomeworks::cudaaligner::Alignment>>&
-        alignments = aligner_->get_alignments();
-
-    // Number of alignments should be the same as number of sequences added.
-    if (querySpans_.size() != alignments.size()) {
-        throw std::runtime_error(
-            "Number of alignments doesn't match number of input sequences, in " +
-            std::string(__func__) + ".");
-    }
-
-    // Convert the results to a form we can use downstream.
     alnResults_.resize(querySpans_.size());
-
-    // Determine how many records should land in each thread, spread roughly evenly.
-    const int32_t numRecords = alignments.size();
-    const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
-        PacBio::Pancake::DistributeJobLoad<int32_t>(faf_ ? faf_->NumThreads() : 1, numRecords);
-
-    // Run the mapping in parallel.
-    const auto Submit = [&jobsPerThread, &alignments, this](int32_t i) {
-        const int32_t jobStart = jobsPerThread[i].first;
-        const int32_t jobEnd = jobsPerThread[i].second;
-        WorkerConstructAlignmentResult(jobStart, jobEnd, querySpans_, targetSpans_, alnParams_,
-                                       alignments, alnResults_);
-    };
-    Parallel::Dispatch(faf_, jobsPerThread.size(), Submit);
-}
-
-void AlignerBatchGPU::WorkerConstructAlignmentResult(
-    int32_t jobStart, int32_t jobEnd, const std::vector<int32_t>& querySpans,
-    const std::vector<int32_t>& targetSpans, const AlignmentParameters& alnParams,
-    const std::vector<std::shared_ptr<claraparabricks::genomeworks::cudaaligner::Alignment>>&
-        alignments,
-    std::vector<AlignmentResult>& alnResults)
-{
-    for (int32_t jobId = jobStart; jobId < jobEnd; ++jobId) {
-        auto& alnRes = alnResults[jobId];
-
-        // Handle the edge cases which Cudaaligner does not handle properly.
-        if (querySpans[jobId] == 0 || targetSpans[jobId] == 0) {
-            alnRes = EdgeCaseAlignmentResult(querySpans[jobId], targetSpans[jobId],
-                                             alnParams.matchScore, alnParams.mismatchPenalty,
-                                             alnParams.gapOpen1, alnParams.gapExtend1);
-            continue;
-        }
-
-        alnRes.cigar = CudaalignToCigar_(alignments[jobId]->get_alignment(), alnRes.diffs);
-        const int32_t querySpan = alnRes.diffs.numEq + alnRes.diffs.numX + alnRes.diffs.numI;
-        const int32_t targetSpan = alnRes.diffs.numEq + alnRes.diffs.numX + alnRes.diffs.numD;
-        alnRes.score =
-            ScoreCigarAlignment(alnRes.cigar, alnParams.matchScore, alnParams.mismatchPenalty,
-                                alnParams.gapOpen1, alnParams.gapExtend1);
-        alnRes.valid = (querySpan == querySpans[jobId] && targetSpan == targetSpans[jobId] &&
-                        alignments[jobId]->is_optimal());
-        alnRes.maxScore = alnRes.score;
-        alnRes.zdropped = false;
-        alnRes.lastQueryPos = querySpans[jobId];
-        alnRes.lastTargetPos = targetSpans[jobId];
-        alnRes.maxQueryPos = querySpans[jobId];
-        alnRes.maxTargetPos = targetSpans[jobId];
-    }
-}
-
-PacBio::Data::CigarOperationType AlignerBatchGPU::CudaalignStateToPbbamState_(
-    const claraparabricks::genomeworks::cudaaligner::AlignmentState& s)
-{
-    switch (s) {
-        case claraparabricks::genomeworks::cudaaligner::AlignmentState::match:
-            return PacBio::Data::CigarOperationType::SEQUENCE_MATCH;
-        case claraparabricks::genomeworks::cudaaligner::AlignmentState::mismatch:
-            return PacBio::Data::CigarOperationType::SEQUENCE_MISMATCH;
-        case claraparabricks::genomeworks::cudaaligner::AlignmentState::insertion:
-            return PacBio::Data::CigarOperationType::INSERTION;
-        case claraparabricks::genomeworks::cudaaligner::AlignmentState::deletion:
-            return PacBio::Data::CigarOperationType::DELETION;
-        default:
-            return PacBio::Data::CigarOperationType::UNKNOWN_OP;
-    }
-    return PacBio::Data::CigarOperationType::UNKNOWN_OP;
-}
-
-PacBio::Data::Cigar AlignerBatchGPU::CudaalignToCigar_(
-    const std::vector<claraparabricks::genomeworks::cudaaligner::AlignmentState>& alignment,
-    Alignment::DiffCounts& retDiffs)
-{
-    retDiffs.Clear();
-
-    if (alignment.empty()) {
-        return {};
-    }
-
-    std::array<uint32_t, 4> counts{0, 0, 0, 0};
-
-    PacBio::Data::Cigar cigar;
-    auto lastState = alignment[0];
-    uint32_t count = 0;
-    for (auto const& currState : alignment) {
-        if (currState == lastState) {
-            ++count;
-        } else {
-            PacBio::Data::CigarOperationType cigarOpType = CudaalignStateToPbbamState_(lastState);
-            PacBio::Data::CigarOperation newOp(cigarOpType, count);
-            cigar.emplace_back(std::move(newOp));
-            counts[lastState] += count;
-            count = 1;
-            lastState = currState;
-        }
-    }
-    PacBio::Data::CigarOperationType cigarOpType = CudaalignStateToPbbamState_(lastState);
-    PacBio::Data::CigarOperation newOp(cigarOpType, count);
-    cigar.emplace_back(std::move(newOp));
-    counts[lastState] += count;
-    retDiffs.numEq = counts[claraparabricks::genomeworks::cudaaligner::AlignmentState::match];
-    retDiffs.numX = counts[claraparabricks::genomeworks::cudaaligner::AlignmentState::mismatch];
-    retDiffs.numI = counts[claraparabricks::genomeworks::cudaaligner::AlignmentState::insertion];
-    retDiffs.numD = counts[claraparabricks::genomeworks::cudaaligner::AlignmentState::deletion];
-
-    return cigar;
+    RetrieveResultsAsPacBioCigar(gpuHostBuffers_.get(), querySpans_, targetSpans_, aligner_.get(),
+                                 alnResults_, alnParams_.matchScore, alnParams_.mismatchPenalty,
+                                 alnParams_.gapOpen1, alnParams_.gapExtend1);
 }
 
 }  // namespace Pancake

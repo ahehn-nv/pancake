@@ -1,3 +1,11 @@
+// Copyright (c) 2019, Pacific Biosciences of California, Inc.
+// All rights reserved.
+// See LICENSE.txt.
+//
+// Contributions from NVIDIA are Copyright (c) 2021, NVIDIA Corporation.
+// All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause-Clear
+//
 // Authors: Ivan Sovic
 #include <pacbio/pancake/AlignerBatchGPU.h>
 #include <pacbio/pancake/MapperBatchGPU.h>
@@ -35,8 +43,8 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRAlignSettings& alignSettings, int3
 {
     fafFallback_ = std::make_unique<Parallel::FireAndForget>(numThreads);
     faf_ = fafFallback_.get();
-    aligner_ = std::make_unique<AlignerBatchGPU>(faf_, alignSettings.alnParamsGlobal,
-                                                 gpuStartBandwidth, gpuDeviceId, gpuMemoryBytes);
+    aligner_ = std::make_unique<AlignerBatchGPU>(alignSettings.alnParamsGlobal, gpuStartBandwidth,
+                                                 gpuDeviceId, gpuMemoryBytes);
 }
 
 MapperBatchGPU::MapperBatchGPU(const MapperCLRAlignSettings& alignSettings,
@@ -49,8 +57,8 @@ MapperBatchGPU::MapperBatchGPU(const MapperCLRAlignSettings& alignSettings,
     , alignRemainingOnCpu_(alignRemainingOnCpu)
     , faf_{faf}
     , fafFallback_(nullptr)
-    , aligner_{std::make_unique<AlignerBatchGPU>(faf, alignSettings.alnParamsGlobal,
-                                                 gpuStartBandwidth, gpuDeviceId, gpuMemoryBytes)}
+    , aligner_{std::make_unique<AlignerBatchGPU>(alignSettings.alnParamsGlobal, gpuStartBandwidth,
+                                                 gpuDeviceId, gpuMemoryBytes)}
 {
 }
 
@@ -205,6 +213,7 @@ int32_t MapperBatchGPU::AlignPartsOnGPU_(AlignerBatchGPU& aligner,
         aligner.Clear();
 
         std::vector<size_t> partIds;
+        partIds.reserve(parts.size());
 
         PBLOG_TRACE << "Preparing sequences for GPU alignment.";
         for (; partId < parts.size(); ++partId) {
@@ -242,7 +251,7 @@ int32_t MapperBatchGPU::AlignPartsOnGPU_(AlignerBatchGPU& aligner,
         PBLOG_TRACE << "Aligning batch of " << aligner.BatchSize() << " sequence pairs.";
         aligner.AlignAll();
 
-        const std::vector<AlignmentResult>& partInternalAlns = aligner.GetAlnResults();
+        std::vector<AlignmentResult>& partInternalAlns = aligner.GetAlnResults();
 
         int32_t numNotValid = 0;
         for (size_t i = 0; i < partInternalAlns.size(); ++i) {
