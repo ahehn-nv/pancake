@@ -30,7 +30,7 @@ struct AlignerBatchGPU::AlignerBatchGPUHostBuffers
     claraparabricks::genomeworks::pinned_host_vector<int64_t> scores;
     claraparabricks::genomeworks::pinned_host_vector<PacBio::Data::CigarOperation> cigarOpsBuffer;
 
-    void clearAndResize(int64_t cigarOpsBufferLen, int32_t numberAlns)
+    void ClearAndResize(int64_t cigarOpsBufferLen, int32_t numberAlns)
     {
         if (starts.size() < static_cast<size_t>(numberAlns)) {
             // add 20% to avoid later reallocations
@@ -82,25 +82,25 @@ void RetrieveResultsAsPacBioCigar(
         return;
     }
 
-    gw::device_buffer<PacBio::Data::CigarOperation> pacbio_cigars_device(aln.total_length,
-                                                                         allocator, stream);
-    gw::device_buffer<int4> diffs_device(numberOfAlignments, allocator, stream);
-    gw::device_buffer<int64_t> scores_device(numberOfAlignments, allocator, stream);
+    gw::device_buffer<PacBio::Data::CigarOperation> pacbioCigarsDevice(aln.total_length, allocator,
+                                                                       stream);
+    gw::device_buffer<int4> diffsDevice(numberOfAlignments, allocator, stream);
+    gw::device_buffer<int64_t> scoresDevice(numberOfAlignments, allocator, stream);
     GWInterface::RunConvertToPacBioCigarAndScoreGpuKernel(
-        pacbio_cigars_device.data(), diffs_device.data(), scores_device.data(), aln, matchScore,
+        pacbioCigarsDevice.data(), diffsDevice.data(), scoresDevice.data(), aln, matchScore,
         mismatchScore, gapOpenScore, gapExtScore, stream, aligner->get_device());
 
-    hostBuffers->clearAndResize(aln.total_length, numberOfAlignments);
+    hostBuffers->ClearAndResize(aln.total_length, numberOfAlignments);
 
     gw::cudautils::device_copy_n_async(aln.starts, numberOfAlignments, hostBuffers->starts.data(),
                                        stream);
     gw::cudautils::device_copy_n_async(aln.lengths, numberOfAlignments, hostBuffers->lengths.data(),
                                        stream);
-    gw::cudautils::device_copy_n_async(diffs_device.data(), numberOfAlignments,
+    gw::cudautils::device_copy_n_async(diffsDevice.data(), numberOfAlignments,
                                        hostBuffers->diffs.data(), stream);
-    gw::cudautils::device_copy_n_async(scores_device.data(), numberOfAlignments,
+    gw::cudautils::device_copy_n_async(scoresDevice.data(), numberOfAlignments,
                                        hostBuffers->scores.data(), stream);
-    gw::cudautils::device_copy_n_async(pacbio_cigars_device.data(), aln.total_length,
+    gw::cudautils::device_copy_n_async(pacbioCigarsDevice.data(), aln.total_length,
                                        hostBuffers->cigarOpsBuffer.data(), stream);
 
     GW_CU_CHECK_ERR(cudaStreamSynchronize(stream));
