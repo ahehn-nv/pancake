@@ -147,6 +147,13 @@ public:
     uint32_t pos;
 };
 
+inline std::ostream& operator<<(std::ostream& os, const Seed& b)
+{
+    os << "pos = " << b.pos << ", span = " << b.span << ", seqID = " << b.seqID
+       << ", seqRev = " << b.seqRev << ", key = " << b.key;
+    return os;
+}
+
 }  // namespace SeedDB
 }  // namespace Pancake
 }  // namespace PacBio
