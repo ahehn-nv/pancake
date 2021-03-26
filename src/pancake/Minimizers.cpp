@@ -24,6 +24,8 @@ using minkey_t = uint64_t;
 const int32_t MAX_SPACING_IN_SEED = 32;
 const int32_t MAX_WINDOW_BUFFER_SIZE = 512;
 
+// #define DEBUG_GENERATE_MINIMIZERS
+
 // This is a temporary class, just used for implementing the minimizer window.
 class SpacedBuffer
 {
@@ -111,7 +113,9 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
         return 0;
     }
 
+#ifdef DEBUG_GENERATE_MINIMIZERS
     std::cerr << "[GenerateMinimizers] seqId = " << seqId << ", seqLen = " << seqLen << "\n";
+#endif
 
     // Mask the number of required bits for the kmer.
     const minkey_t mask = (kmerSize < 32) ? ((((uint64_t)1) << (2 * kmerSize)) - 1) : 0xFFFFFFFFFFFFFFFF;
@@ -131,12 +135,14 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             space = 0;
         }
 
+#ifdef DEBUG_GENERATE_MINIMIZERS
         std::cerr << "[pos = " << pos << ", space = " << space << "; k = " << kmerSize << ", w = " << winSize << ", s = " << spacing << "]"
-                        << " State: winBuffPos = " << bufferWD.winBuffPos
+                        << " State: b = '" << b << "', winBuffPos = " << bufferWD.winBuffPos
                         << ", numBasesIn[space] = " << bufferWD.numBasesIn[space]
                         << ", winBuffMinPos = " << bufferWD.winBuffMinPos
                         << ", minimizer = [" << (bufferWD.winBuffMinPos < 0 ? "(no_minimizer)" : bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose()) << "]"
                         << "\n";
+#endif
 
         if (IsNucleotide[b]) {
             // If enabled, skip same bases.
@@ -188,7 +194,8 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
 
             if (bufferWD.numBasesIn[space] >= kmerSize) {
                 // The 'pos' is the current position which is inclusive. We need to add a +1 to make it non-inclusive, so that the start position is calculated properly.
-                int32_t kmerStart = (pos + 1) - (bufferWD.kmerSpan);
+                // The kmerStart has to be computed here because we don't know the current kmerSpan yet (HP).
+                const int32_t kmerStart = (pos + 1) - (bufferWD.kmerSpan);
                 newSeed = Seed(InvertibleHash(key, mask), bufferWD.kmerSpan, seqId,
                                kmerStart + seqOffset, isRev);
                 // This is not necessary because the constructor will mark invalid
@@ -197,7 +204,9 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                     newSeed.SetInvalid();
                 }
 
+#ifdef DEBUG_GENERATE_MINIMIZERS
                 std::cerr << "    -> Constructed: " << newSeed << "\n";
+#endif
             }
 
         } else {
@@ -206,37 +215,59 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             // We only need to write one and not loop through all of them, because when we encounter a seed
             // with the same key then we write out the previous minimizer out. This means that we only need
             // to write out the current minimizer.
+
+#ifdef DEBUG_GENERATE_MINIMIZERS
+            std::cerr << "    - Resetting buffers.\n";
+#endif
+
             if (bufferWD.numBasesIn[space] >= (winSize + kmerSize) && bufferWD.winBuffMinPos >= 0 &&
                 bufferWD.winBuff[bufferWD.winBuffMinPos].Valid()) {
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
+#ifdef DEBUG_GENERATE_MINIMIZERS
+                std::cerr << "    - Emplacing (0): " << bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose() << "\n";
+#endif
             }
             bufferWD.Clear(winSize);
         }
 
-        // if (bufferWD.numBasesIn[space] == (winSize + kmerSize - 1)) {
-        //     std::cerr << "    ===> bufferWD.numBasesIn[space] == (winSize + kmerSize - 1)\n";
-        // }
+#ifdef DEBUG_GENERATE_MINIMIZERS
+            std::cerr << "    newSeed = {" << newSeed.Verbose() << "}\n";
+            std::cerr << "    State after: winBuffPos = " << bufferWD.winBuffPos
+                            << ", numBasesIn[space] = " << bufferWD.numBasesIn[space]
+                            << ", winBuffMinPos = " << bufferWD.winBuffMinPos
+                            << ", minimizer = [" << (bufferWD.winBuffMinPos < 0 ? "(no_minimizer)" : bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose()) << "]"
+                            << "\n";
+
+#endif
 
         // The first time the buffer is filled, find and add the previous
         // distinct minimizer matches.
         if (bufferWD.numBasesIn[space] == (winSize + kmerSize - 1) && bufferWD.winBuffMinPos >= 0 && bufferWD.winBuff[bufferWD.winBuffMinPos].Valid()) {
+#ifdef DEBUG_GENERATE_MINIMIZERS
             std::cerr << "    First window buffer full!\n";
+#endif
             const auto& minSeed = bufferWD.winBuff[bufferWD.winBuffMinPos];
             // First portion of the circular buffer.
             for (int32_t j = (bufferWD.winBuffPos + 1); j < winSize; ++j) {
                 if (minSeed.Compare(bufferWD.winBuff[j].key) == 2) {
                     minimizers.emplace_back(bufferWD.winBuff[j].To128t());
+#ifdef DEBUG_GENERATE_MINIMIZERS
                     std::cerr << "    - Emplacing (1): " << bufferWD.winBuff[j].Verbose() << "\n";
+#endif
                 }
             }
             // Second portion of the circular buffer.
             for (int32_t j = 0; j < bufferWD.winBuffPos; ++j) {
                 if (minSeed.Compare(bufferWD.winBuff[j].key) == 2) {
                     minimizers.emplace_back(bufferWD.winBuff[j].To128t());
+#ifdef DEBUG_GENERATE_MINIMIZERS
                     std::cerr << "    - Emplacing (2): " << bufferWD.winBuff[j].Verbose() << "\n";
+#endif
                 }
             }
+#ifdef DEBUG_GENERATE_MINIMIZERS
             std::cerr << "    Done searching for minimizers in the first window.\n";
+#endif
         }
 
         if (newSeed.Valid() && bufferWD.winBuffMinPos < 0) {
@@ -246,7 +277,9 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
              */
 
             bufferWD.winBuffMinPos = bufferWD.winBuffPos;
+#ifdef DEBUG_GENERATE_MINIMIZERS
             std::cerr << "    Setting (1): bufferWD.winBuffMinPos = " << bufferWD.winBuffMinPos << "\n";
+#endif
 
         } else if (newSeed.Valid() && newSeed.key <= bufferWD.winBuff[bufferWD.winBuffMinPos].key) {
             /*
@@ -259,10 +292,14 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             if (bufferWD.winBuff[bufferWD.winBuffMinPos].Valid() &&
                 bufferWD.numBasesIn[space] >= (winSize + kmerSize)) {
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
+#ifdef DEBUG_GENERATE_MINIMIZERS
                 std::cerr << "    - Emplacing (3): " << bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose() << "\n";
+#endif
             }
             bufferWD.winBuffMinPos = bufferWD.winBuffPos;
+#ifdef DEBUG_GENERATE_MINIMIZERS
             std::cerr << "    Setting (2): bufferWD.winBuffMinPos = " << bufferWD.winBuffMinPos << "\n";
+#endif
 
         } else if (bufferWD.winBuffPos == bufferWD.winBuffMinPos && bufferWD.winBuffMinPos >= 0) {
             /*
@@ -272,7 +309,9 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             if (bufferWD.winBuff[bufferWD.winBuffMinPos].Valid() &&
                 bufferWD.numBasesIn[space] >= (winSize + kmerSize - 1)) {
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
+#ifdef DEBUG_GENERATE_MINIMIZERS
                 std::cerr << "    - Emplacing (4): " << bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose() << "\n";
+#endif
             }
             // Find a new minimizer using the two for loops for the two portions of the circular buffer.
             bufferWD.winBuffMinPos = -1;
@@ -293,7 +332,9 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             if (bufferWD.numBasesIn[space] >= (winSize + kmerSize - 1) && (bufferWD.winBuffMinPos < 0 || (newSeed.Valid() && newSeed.key <= bufferWD.winBuff[bufferWD.winBuffMinPos].key))) {
                 bufferWD.winBuffMinPos = bufferWD.winBuffPos;
             }
+#ifdef DEBUG_GENERATE_MINIMIZERS
             std::cerr << "    Setting (3): bufferWD.winBuffMinPos = " << bufferWD.winBuffMinPos << "\n";
+#endif
 
             // std::cerr << "(3) Looking for new winBuffMinPos, winBuffMinPos = " << winBuffMinPos << "\n";
             // Find and add keys that are identical to the newly found minimizer.
@@ -303,14 +344,18 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                 for (int32_t j = (bufferWD.winBuffPos + 1); j < winSize; ++j) {
                     if (minSeed.Compare(bufferWD.winBuff[j].key) == 2) {
                         minimizers.emplace_back(bufferWD.winBuff[j].To128t());
+#ifdef DEBUG_GENERATE_MINIMIZERS
                         std::cerr << "    - Emplacing (5): " << bufferWD.winBuff[j].Verbose() << "\n";
+#endif
                     }
                 }
                 // Second portion of the circular buffer.
                 for (int32_t j = 0; j < bufferWD.winBuffPos; ++j) {
                     if (minSeed.Compare(bufferWD.winBuff[j].key) == 2) {
                         minimizers.emplace_back(bufferWD.winBuff[j].To128t());
+#ifdef DEBUG_GENERATE_MINIMIZERS
                         std::cerr << "    - Emplacing (6): " << bufferWD.winBuff[j].Verbose() << "\n";
+#endif
                     }
                 }
             }
@@ -322,14 +367,20 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             bufferWD.winBuffPos = 0;
         }
 
+#ifdef DEBUG_GENERATE_MINIMIZERS
         std::cerr << "\n";
+#endif
     }
     if (bufferWD.winBuffMinPos >= 0 && bufferWD.winBuff[bufferWD.winBuffMinPos].Valid()) {
         minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
+#ifdef DEBUG_GENERATE_MINIMIZERS
         std::cerr << "    - Emplacing (7): " << bufferWD.winBuff[bufferWD.winBuffMinPos].Verbose() << "\n";
+#endif
     }
 
+#ifdef DEBUG_GENERATE_MINIMIZERS
     std::cerr << "\n";
+#endif
 
     return 0;
     // clang-format on
