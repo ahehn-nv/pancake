@@ -128,18 +128,6 @@ public:
         return ss.str();
     }
 
-    inline int32_t Compare(const Seed& other) const
-    {
-        if (key == other.key && span == other.span && seqID == other.seqID && pos == other.pos &&
-            seqRev == other.seqRev) {
-            // Exact seed match.
-            return 0;
-        } else if (key == other.key && span == other.span) {
-            return 2;
-        }
-        return 1;
-    }
-
     uint64_t key : 56;
     uint64_t span : 8;
     uint32_t seqID : 31;
