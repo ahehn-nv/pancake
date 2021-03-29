@@ -121,8 +121,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
     const minkey_t mask = (kmerSize < 32) ? ((((uint64_t)1) << (2 * kmerSize)) - 1) : 0xFFFFFFFFFFFFFFFF;
 
     SpacedBuffer bufferWD;
-    int32_t minInBases = kmerSize * (spacing + 1) - spacing; // Equivalent to: `k + (k - 1) * s`
-    int32_t seedSpanSize = minInBases;
+    const int32_t minSeedSpanSize = kmerSize * (spacing + 1) - spacing; // Equivalent to: `k + (k - 1) * s`
 
     auto IsAlternativeMinimizer = [](const Seed& s1, const Seed& s2) -> bool {
         // Another seed is a potential alternative minimizer only if it has
@@ -151,7 +150,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
 #endif
 
         if (IsNucleotide[b]) {
-            // If enabled, skip same bases.
+            // If enabled, skip same bases and compute the span.
             if (useHPC) {
                 // In this case, find the stretch of homopolymers (at least 1 base), and
                 // add that stretch to "seed_span" (the seed_span is iteratively increased every
@@ -173,21 +172,18 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                     bufferWD.hpEvents.pop_front();
                 }
             } else {
-                bufferWD.kmerSpan = std::min((bufferWD.numBasesIn[space] + 1) * (1 + spacing) - spacing, seedSpanSize);
+                bufferWD.kmerSpan = std::min((bufferWD.numBasesIn[space] + 1) * (1 + spacing) - spacing, minSeedSpanSize);
             }
 
             // Add the base to the buffer.
-            bufferWD.seqBuffer[space] = ((bufferWD.seqBuffer[space] << 2) | (((static_cast<uint64_t>(BaseToTwobit[b])))));
-            bufferWD.seqBufferRC[space] = (bufferWD.seqBufferRC[space] >> 2) | (((static_cast<uint64_t>(BaseToTwobitComplement[b]))) << (kmerSize * 2 - 2));
-
-            // Calculate the seed key.
-            minkey_t key = bufferWD.seqBuffer[space] & mask;
-            minkey_t keyRev = bufferWD.seqBufferRC[space] & mask;
+            bufferWD.seqBuffer[space] = ((bufferWD.seqBuffer[space] << 2) | (((static_cast<uint64_t>(BaseToTwobit[b]))))) & mask;
+            bufferWD.seqBufferRC[space] = ((bufferWD.seqBufferRC[space] >> 2) | (((static_cast<uint64_t>(BaseToTwobitComplement[b]))) << (kmerSize * 2 - 2))) & mask;
 
             // Determine the orientation of the key.
+            minkey_t key = bufferWD.seqBuffer[space];
             bool isRev = false;
-            if (useReverseComplement && keyRev < key) {
-                std::swap(key, keyRev);
+            if (useReverseComplement && bufferWD.seqBufferRC[space] < key) {
+                key = bufferWD.seqBufferRC[space];
                 isRev = true;
             }
 
@@ -197,8 +193,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
                 // The 'pos' is the current position which is inclusive. We need to add a +1 to make it non-inclusive, so that the start position is calculated properly.
                 // The kmerStart has to be computed here because we don't know the current kmerSpan yet (HP).
                 const int32_t kmerStart = (pos + 1) - (bufferWD.kmerSpan);
-                newSeed = Seed(InvertibleHash(key, mask), bufferWD.kmerSpan, seqId,
-                               kmerStart + seqOffset, isRev);
+                newSeed = Seed(InvertibleHash(key, mask), bufferWD.kmerSpan, seqId, kmerStart + seqOffset, isRev);
                 // This is not necessary because the constructor will mark invalid
                 // spans automatically, but let's make sure here and be future-proof.
                 if (bufferWD.kmerSpan > MAX_SEED_SPAN) {
@@ -211,7 +206,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             }
 
             // Skip symmetric kmers.
-            if (key == keyRev) {
+            if (bufferWD.seqBuffer[space] == bufferWD.seqBufferRC[space]) {
                 newSeed.SetInvalid();
             }
 
