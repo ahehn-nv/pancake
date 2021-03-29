@@ -312,6 +312,18 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
 #endif
         }
 
+        /*
+         * The first window is always special in this formulation of the minimizer generator:
+         * - Any equivalent minimial seed key is written out only after the first window is fully processed.
+         *   For any other window, previous minimizers are written out as soon as the new minimizers are found.
+         * - This is necessary because until the first window is fully processed, we cannot know that any local minimum
+         *   seed key will be the global minimum within that window. This answer will only be known when the first `w`
+         *   seeds are written (at the last position of the minimizer window), at which point we need to circle around
+         *   the buffer to find all equally minimial keys.
+         * - After the first window, we can simply dump the previous minimizer, because we know it was the actual
+         *   global minimum of the first window (because the window slides down by 1 base).
+        */
+
         if (newSeed.Valid() && bufferWD.winBuffMinPos < 0) {
             /*
              * No minimum has been set yet, and we found the first valid key.
@@ -333,8 +345,13 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
 #ifdef DEBUG_GENERATE_MINIMIZERS
             std::cerr << "    (else if 2) New minimizer found. Flushing out the old one.\n";
 #endif
-            // Special case for handling the first window where the last kmer is has an equivalent minimizer
-            // seed somewehre before it (e.g. CTCTCT... dinuc repeat. Check out this test: GenerateMinimizers::Short_Dinuc.
+            // Special case for handling the first window where the last kmer has an equivalent minimizer
+            // seed somewhere before it (e.g. CTCTCT... dinuc repeat. Check out this test: GenerateMinimizers::Short_Dinuc.
+            // This is distinct from the `else if` a few lines below because we need to check the actual position and that
+            // the seeds have an equivalend key. For the first window, if the key is not equivalent (meaning: it's smaller),
+            // then we need to ignore the previous minimum. If it's equivalent, we need to write it to not lose seeds in the
+            // first window.
+            // For any other window, we write out the seed regardles of if it's equivalent or smaller than before.
             if (IsWindowBufferElementValid(bufferWD.winBuff, bufferWD.winBuffMinPos) && IsWindowFullFirstTime(bufferWD.numBasesIn[space], winSize, kmerSize, spacing, minSeedSpanSize) &&
                 newSeed.key == bufferWD.winBuff[bufferWD.winBuffMinPos].key) {
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
@@ -344,7 +361,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             } else if (IsWindowBufferElementValid(bufferWD.winBuff, bufferWD.winBuffMinPos) && IsWindowFull(bufferWD.numBasesIn[space], winSize, kmerSize, spacing, minSeedSpanSize, 0)) {
                 /*
                  * Offset in IsWindowFull here is correctly set to 0. This is done in order to check every window
-                 * after the first one.
+                 * after the first one, since the first window is special. Check the above comment for the explanation.
                 */
                 minimizers.emplace_back(bufferWD.winBuff[bufferWD.winBuffMinPos].To128t());
 #ifdef DEBUG_GENERATE_MINIMIZERS
