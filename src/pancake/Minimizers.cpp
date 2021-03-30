@@ -303,7 +303,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             std::cerr << "    (if 1) No minimizers set yet. Setting (1): bufferWD.winBuffMinPos = " << bufferWD.winBuffMinPos << "\n";
 #endif
 
-        } else if (newSeed.Valid() && newSeed.key <= bufferWD.winBuff[bufferWD.winBuffMinPos].key) {
+        } else if (bufferWD.winBuffMinPos >= 0 && newSeed.Valid() && newSeed.key <= bufferWD.winBuff[bufferWD.winBuffMinPos].key) {
 
             /*
              * We found a new minimum. Write out the previous minimum.
@@ -333,7 +333,7 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             std::cerr << "    Setting (2): bufferWD.winBuffMinPos = " << bufferWD.winBuffMinPos << "\n";
 #endif
 
-        } else if (bufferWD.winBuffPos == bufferWD.winBuffMinPos && bufferWD.winBuffMinPos >= 0) {
+        } else if (bufferWD.winBuffMinPos >= 0 && bufferWD.winBuffPos == bufferWD.winBuffMinPos) {
 #ifdef DEBUG_GENERATE_MINIMIZERS
             std::cerr << "    (else if 3) The entire buffer was circled around. Flush current minimizer and find new ones.\n";
 #endif
