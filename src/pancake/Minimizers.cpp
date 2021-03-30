@@ -346,9 +346,9 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             std::cerr << "    (else if 2) New minimizer found. Flushing out the old one.\n";
 #endif
             // Special case for handling the first window where the last kmer has an equivalent minimizer
-            // seed somewhere before it (e.g. CTCTCT... dinuc repeat. Check out this test: GenerateMinimizers::Short_Dinuc.
+            // seed somewhere before it (e.g. CTCTCT... dinuc repeat). Check out this test: GenerateMinimizers::Short_Dinuc.
             // This is distinct from the `else if` a few lines below because we need to check the actual position and that
-            // the seeds have an equivalend key. For the first window, if the key is not equivalent (meaning: it's smaller),
+            // the seeds have an equivalent key. For the first window, if the key is not equivalent (meaning: it's smaller),
             // then we need to ignore the previous minimum. If it's equivalent, we need to write it to not lose seeds in the
             // first window.
             // For any other window, we write out the seed regardles of if it's equivalent or smaller than before.
