@@ -96,7 +96,7 @@ public:
         return records_[ordinalId];
     }
 
-    bool GetSequence(FastaSequenceCached& record, int32_t seqId)
+    bool GetSequence(FastaSequenceCached& record, int32_t seqId) const
     {
         const auto it = seqIdToOrdinalId_.find(seqId);
         if (it == seqIdToOrdinalId_.end()) {
@@ -107,7 +107,7 @@ public:
         return true;
     }
 
-    bool GetSequence(FastaSequenceCached& record, const std::string& seqName)
+    bool GetSequence(FastaSequenceCached& record, const std::string& seqName) const
     {
         const auto it = headerToOrdinalId_.find(seqName);
         if (it == headerToOrdinalId_.end()) {
