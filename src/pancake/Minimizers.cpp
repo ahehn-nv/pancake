@@ -347,14 +347,14 @@ int GenerateMinimizers(std::vector<PacBio::Pancake::Int128t>& minimizers, const 
             bufferWD.winBuffMinPos = -1;
             // First portion of the circular buffer to find a new minimizer.
             for (int32_t j = (bufferWD.winBuffPos + 1); j < winSize; ++j) {
-                if (bufferWD.winBuffMinPos < 0 || (bufferWD.winBuff[bufferWD.winBuffMinPos].Valid() && bufferWD.winBuff[bufferWD.winBuffMinPos].key >= bufferWD.winBuff[j].key)) {
+                if (bufferWD.winBuff[j].Valid() && (bufferWD.winBuffMinPos < 0 || bufferWD.winBuff[j].key <= bufferWD.winBuff[bufferWD.winBuffMinPos].key)) {
                     bufferWD.winBuffMinPos = j;
                 }
             }
             // std::cerr << "(1) Looking for new winBuffMinPos, winBuffMinPos = " << winBuffMinPos << "\n";
             // Second portion of the circular buffer to find a new minimizer.
             for (int32_t j = 0; j < bufferWD.winBuffPos; ++j) {
-                if (bufferWD.winBuffMinPos < 0 || (bufferWD.winBuff[bufferWD.winBuffMinPos].Valid() && bufferWD.winBuff[bufferWD.winBuffMinPos].key >= bufferWD.winBuff[j].key)) {
+                if (bufferWD.winBuff[j].Valid() && (bufferWD.winBuffMinPos < 0 || bufferWD.winBuff[j].key <= bufferWD.winBuff[bufferWD.winBuffMinPos].key)) {
                     bufferWD.winBuffMinPos = j;
                 }
             }
