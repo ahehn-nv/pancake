@@ -25,7 +25,7 @@ std::vector<PacBio::Pancake::MapperBatchChunk> ConstructBatchData(
             const int32_t seqId = i;
             auto seqCache = PacBio::Pancake::FastaSequenceCached(std::to_string(seqId), seq.c_str(),
                                                                  seq.size(), seqId);
-            chunk.targetSeqs.emplace_back(std::move(seqCache));
+            chunk.targetSeqs.AddRecord(std::move(seqCache));
         }
 
         // Add the query sequences to the chunk.
@@ -34,7 +34,7 @@ std::vector<PacBio::Pancake::MapperBatchChunk> ConstructBatchData(
             const int32_t seqId = i;
             auto seqCache = PacBio::Pancake::FastaSequenceCached(std::to_string(seqId), seq.c_str(),
                                                                  seq.size(), seqId);
-            chunk.querySeqs.emplace_back(std::move(seqCache));
+            chunk.querySeqs.AddRecord(std::move(seqCache));
         }
 
         batchData.emplace_back(std::move(chunk));
@@ -64,21 +64,54 @@ void PrepareSequencesForBatchAlignment(
         // One chunk can have multiple queries (subreads).
         for (size_t qId = 0; qId < result.size(); ++qId) {
             // Prepare the query data in fwd and rev.
-            const char* qSeqFwd = chunk.querySeqs[qId].c_str();
+            // Fetch the query sequence without throwing if it doesn't exist for some reason.
+            FastaSequenceCached querySeqCache;
+            const bool rvQuerySeq = chunk.querySeqs.GetSequence(querySeqCache, qId);
+            if (rvQuerySeq == false) {
+                PBLOG_DEBUG << "Could not find sequence with qId = " << qId
+                            << " in chunk.querySeqs. resultId = " << resultId << ", qId = " << qId;
+                continue;
+            }
+            assert(rvQuerySeq == false);
+            const char* qSeqFwd = querySeqCache.c_str();
+
+            // Fetch the reverse complement
             const std::string& qSeqRevString = querySeqsRev[resultId][qId];
             const char* qSeqRev = qSeqRevString.c_str();
 
             // Each query can have multiple mappings.
             for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
-                const auto& mapping = result[qId].mappings[mapId];
-                const char* tSeq = chunk.targetSeqs[mapping->mapping->Bid].c_str();
+                if (result[qId].mappings[mapId] == nullptr) {
+                    continue;
+                }
 
+                const auto& mapping = result[qId].mappings[mapId];
+
+                if (mapping->mapping == nullptr) {
+                    continue;
+                }
+
+                // Shorthand to the mapped data.
                 const auto& aln = mapping->mapping;
 
                 // Skip self-hits unless the default policy is used, in which case align all.
                 if (selfHitPolicy != MapperSelfHitPolicy::DEFAULT && aln->Aid == aln->Bid) {
                     continue;
                 }
+
+                // Fetch the target sequence without throwing if it doesn't exist for some reason.
+                FastaSequenceCached targetSeqCache;
+                const bool rvTargetSeq =
+                    chunk.targetSeqs.GetSequence(targetSeqCache, mapping->mapping->Bid);
+                if (rvTargetSeq == false) {
+                    PBLOG_DEBUG << "Could not find sequence with ID mapping->mapping->Bid = "
+                                << mapping->mapping->Bid
+                                << " in chunk.targetSeqs. resultId = " << resultId
+                                << ", qId = " << qId << ", mapId = " << mapId;
+                    continue;
+                }
+                assert(rvTargetSeq == false);
+                const char* tSeq = targetSeqCache.c_str();
 
                 // AlignmentStitchVector singleQueryStitches;
                 AlignmentStitchInfo singleAlnStitches(resultId, qId, mapId);
@@ -273,12 +306,36 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
         }
 
         {  // Validation of the final alignment.
-            const char* querySeq =
-                (aln->Brev)
-                    ? querySeqsRev[singleAlnInfo.batchId][singleAlnInfo.queryId].c_str()
-                    : batchChunks[singleAlnInfo.batchId].querySeqs[singleAlnInfo.queryId].c_str();
-            const char* targetSeq = batchChunks[singleAlnInfo.batchId].targetSeqs[aln->Bid].c_str();
 
+            const auto& chunk = batchChunks[singleAlnInfo.batchId];
+
+            // Fetch the query seq without throwing.
+            FastaSequenceCached querySeqCache;
+            const bool rvQuerySeq =
+                chunk.querySeqs.GetSequence(querySeqCache, singleAlnInfo.queryId);
+            if (rvQuerySeq == false) {
+                PBLOG_DEBUG << "Could not find sequence with ID singleAlnInfo.queryId = "
+                            << singleAlnInfo.queryId;
+                continue;
+            }
+            assert(rvQuerySeq == false);
+            const char* querySeq =
+                (aln->Brev) ? querySeqsRev[singleAlnInfo.batchId][singleAlnInfo.queryId].c_str()
+                            : querySeqCache.c_str();
+
+            // Fetch the target seq without throwing.
+            FastaSequenceCached targetSeqCache;
+            const bool rvTargetSeq =
+                chunk.targetSeqs.GetSequence(targetSeqCache, mapping->mapping->Bid);
+            if (rvTargetSeq == false) {
+                PBLOG_DEBUG << "Could not find sequence with ID mapping->mapping->Bid = "
+                            << mapping->mapping->Bid;
+                continue;
+            }
+            assert(rvTargetSeq == false);
+            const char* targetSeq = targetSeqCache.c_str();
+
+            // Coordinates.
             const int32_t qStart = (aln->Brev) ? (aln->Alen - aln->Aend) : aln->Astart;
             const int32_t tStart = aln->BstartFwd();
 
@@ -356,13 +413,34 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
             }
 
             {  // Validation of the final alignment.
+
+                const auto& chunk = batchChunks[singleAlnInfo.batchId];
+
+                // Fetch the query seq without throwing.
+                FastaSequenceCached querySeqCache;
+                const bool rvQuerySeq =
+                    chunk.querySeqs.GetSequence(querySeqCache, singleAlnInfo.queryId);
+                if (rvQuerySeq == false) {
+                    PBLOG_DEBUG << "Could not find sequence with ID singleAlnInfo.queryId = "
+                                << singleAlnInfo.queryId;
+                    continue;
+                }
+                assert(rvQuerySeq == false);
                 const char* querySeq =
                     (aln->Brev) ? querySeqsRev[singleAlnInfo.batchId][singleAlnInfo.queryId].c_str()
-                                : batchChunks[singleAlnInfo.batchId]
-                                      .querySeqs[singleAlnInfo.queryId]
-                                      .c_str();
-                const char* targetSeq =
-                    batchChunks[singleAlnInfo.batchId].targetSeqs[aln->Bid].c_str();
+                                : querySeqCache.c_str();
+
+                // Fetch the target seq without throwing.
+                FastaSequenceCached targetSeqCache;
+                const bool rvTargetSeq =
+                    chunk.targetSeqs.GetSequence(targetSeqCache, mapping->mapping->Bid);
+                if (rvTargetSeq == false) {
+                    PBLOG_DEBUG << "Could not find sequence with ID mapping->mapping->Bid = "
+                                << mapping->mapping->Bid;
+                    continue;
+                }
+                assert(rvTargetSeq == false);
+                const char* targetSeq = targetSeqCache.c_str();
 
                 const int32_t qStart = (aln->Brev) ? (aln->Alen - aln->Aend) : aln->Astart;
                 const int32_t tStart = aln->BstartFwd();
@@ -428,7 +506,7 @@ std::vector<std::vector<std::string>> ComputeReverseComplements(
 {
     std::vector<std::vector<uint8_t>> shouldReverse(batchChunks.size());
     for (size_t i = 0; i < batchChunks.size(); ++i) {
-        shouldReverse[i].resize(batchChunks[i].querySeqs.size(), false);
+        shouldReverse[i].resize(batchChunks[i].querySeqs.Size(), false);
     }
 
     // Results are a vector for every chunk (one chunk is one ZMW).
@@ -460,9 +538,9 @@ std::vector<std::vector<std::string>> ComputeReverseComplements(
         const int32_t jobEnd = jobsPerThread[idx].second;
         for (int32_t chunkId = jobStart; chunkId < jobEnd; ++chunkId) {
             auto& revSeqs = querySeqsRev[chunkId];
-            for (size_t qId = 0; qId < batchChunks[chunkId].querySeqs.size(); ++qId) {
+            for (size_t qId = 0; qId < batchChunks[chunkId].querySeqs.records().size(); ++qId) {
                 if (shouldReverse[chunkId][qId]) {
-                    const auto& query = batchChunks[chunkId].querySeqs[qId];
+                    const auto& query = batchChunks[chunkId].querySeqs.records()[qId];
                     revSeqs.emplace_back(
                         PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size()));
                 } else {

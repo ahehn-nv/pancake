@@ -89,7 +89,7 @@ void HelperLoadBatchData(
             auto newFsc = PacBio::Pancake::FastaSequenceCached(
                 std::to_string(seqId), retAllSeqs.back().Bases().c_str(),
                 retAllSeqs.back().Bases().size(), seqId);
-            bd.targetSeqs.emplace_back(std::move(newFsc));
+            bd.targetSeqs.AddRecord(std::move(newFsc));
         }
 
         // Load query sequences and construct the FastaSequenceCached objects.
@@ -102,7 +102,7 @@ void HelperLoadBatchData(
             auto newFsc = PacBio::Pancake::FastaSequenceCached(
                 std::to_string(seqId), retAllSeqs.back().Bases().c_str(),
                 retAllSeqs.back().Bases().size(), seqId);
-            bd.querySeqs.emplace_back(std::move(newFsc));
+            bd.querySeqs.AddRecord(std::move(newFsc));
         }
 
         // Set the seed parameter settings and create a mapper.
@@ -151,7 +151,7 @@ void HelperLoadBatchData(
             auto newFsc = PacBio::Pancake::FastaSequenceCached(
                 std::to_string(seqId), retAllSeqs.back().Bases().c_str(),
                 retAllSeqs.back().Bases().size(), seqId);
-            bd.targetSeqs.emplace_back(std::move(newFsc));
+            bd.targetSeqs.AddRecord(std::move(newFsc));
         }
 
         // Load query sequences and construct the FastaSequenceCached objects.
@@ -164,7 +164,7 @@ void HelperLoadBatchData(
             auto newFsc = PacBio::Pancake::FastaSequenceCached(
                 std::to_string(seqId), retAllSeqs.back().Bases().c_str(),
                 retAllSeqs.back().Bases().size(), seqId);
-            bd.querySeqs.emplace_back(std::move(newFsc));
+            bd.querySeqs.AddRecord(std::move(newFsc));
         }
 
         bd.mapSettings = mapSettings;

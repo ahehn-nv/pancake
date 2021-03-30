@@ -19,8 +19,8 @@ namespace Pancake {
 
 struct MapperBatchChunk
 {
-    std::vector<FastaSequenceCached> targetSeqs;
-    std::vector<FastaSequenceCached> querySeqs;
+    FastaSequenceCachedStore targetSeqs;
+    FastaSequenceCachedStore querySeqs;
     MapperCLRMapSettings mapSettings;
 };
 
