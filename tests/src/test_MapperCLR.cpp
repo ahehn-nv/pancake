@@ -530,6 +530,7 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
         std::string testName;
         std::string targetFile;
         std::string queryFile;
+        int32_t sequenceIdOffset;
         PacBio::Pancake::MapperCLRSettings settings;
         std::string expectedOverlapsPath;
     };
@@ -695,9 +696,23 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             settingsDefaultPolicy,
             // Expected overlaps.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.ksw2.m4",
+        },
+        {
+            "Overlap the same set of reads with itself. Offset the IDs by 10000 to check that IDs can be arbitrary.",
+            // Target.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Query.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            10000,
+            settingsDefaultPolicy,
+            // Expected overlaps.
+            PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.ksw2.id_offset_10000.m4",
         },
         {
             "Skip self hits.",
@@ -705,6 +720,8 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             settingsSkipSelfHitsInBothMapAndAlign,
             // Expected overlaps.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.ksw2.m4",
@@ -715,6 +732,8 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             settingsPerfectAlignSelfHitsInBothMapAndAlign,
             // Expected overlaps.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.ksw2.m4",
@@ -725,6 +744,8 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             settingsSkipSymmetricOverlaps,
             // Expected overlaps.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_symmetric.ksw2.m4",
@@ -735,6 +756,8 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             settingsSkipSelfAndSymmetricOverlaps,
             // Expected overlaps.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits_no_symmetric.ksw2.m4",
@@ -745,6 +768,8 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             settingsSkipSelfInMappingButDefaultInAlignment,
             // Expected overlaps.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.ksw2.m4",
@@ -755,6 +780,8 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             settingsDefaultSelfInMappingButSkipInAlignment,
             // Expected overlaps.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all_no_self_hits.ksw2.m4",
@@ -765,6 +792,8 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             settingsMockSelfInMappingButDefaultInAlignment,
             // Expected overlaps.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.ksw2.m4",
@@ -775,6 +804,8 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
             // Query.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             settingsDefaultSelfInMappingButMockInAlignment,
             // Expected overlaps.
             PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.ksw2.m4",
@@ -785,9 +816,9 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
     for (const auto& data : testData) {
         // Load the sequences from files, and take only the first one.
         const std::vector<PacBio::Pancake::FastaSequenceId> allTargetSeqs =
-            PacBio::PancakeTests::HelperLoadFastaWithId(data.targetFile, 0);
+            PacBio::PancakeTests::HelperLoadFastaWithId(data.targetFile, data.sequenceIdOffset);
         const std::vector<PacBio::Pancake::FastaSequenceId> allQuerySeqs =
-            PacBio::PancakeTests::HelperLoadFastaWithId(data.queryFile, 0);
+            PacBio::PancakeTests::HelperLoadFastaWithId(data.queryFile, data.sequenceIdOffset);
         const std::vector<std::string> expectedOverlaps =
             PacBio::PancakeTests::HelperLoadFile(data.expectedOverlapsPath);
 
