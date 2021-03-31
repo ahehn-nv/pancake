@@ -76,16 +76,25 @@ struct AlignmentStitchPart
 class AlignmentStitchInfo
 {
 public:
-    AlignmentStitchInfo(int32_t _batchId, int32_t _queryId, int32_t _mapId)
-        : batchId(_batchId), queryId(_queryId), mapId(_mapId)
+    AlignmentStitchInfo(int32_t _ordinalBatchId, int32_t _ordinalQueryId, int32_t _ordinalMapId)
+        : ordinalBatchId(_ordinalBatchId)
+        , ordinalQueryId(_ordinalQueryId)
+        , ordinalMapId(_ordinalMapId)
     {
     }
 
     std::vector<AlignmentStitchPart> parts;
-    int32_t batchId = -1;
-    int32_t queryId = -1;
-    int32_t mapId = -1;
+    int32_t ordinalBatchId = -1;
+    int32_t ordinalQueryId = -1;
+    int32_t ordinalMapId = -1;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const AlignmentStitchInfo& b)
+{
+    os << "ordinalBatchId = " << b.ordinalBatchId << ", ordinalQueryId = " << b.ordinalQueryId
+       << ", ordinalMapId = " << b.ordinalMapId;
+    return os;
+}
 
 // typedef std::vector<AlignmentStitchPart> AlignmentStitchVector;
 

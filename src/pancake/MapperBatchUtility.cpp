@@ -335,17 +335,19 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
             const AlignmentStitchInfo& singleAlnInfo = alnStitchInfo[jobId];
 
             // Not initialized for some reason, skip it.
-            if (singleAlnInfo.batchId < 0 || singleAlnInfo.queryId < 0 || singleAlnInfo.mapId < 0) {
+            if (singleAlnInfo.ordinalBatchId < 0 || singleAlnInfo.ordinalQueryId < 0 ||
+                singleAlnInfo.ordinalMapId < 0) {
                 continue;
             }
 
             // Sanity check.
-            if (mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
-                    .mappings[singleAlnInfo.mapId] == nullptr) {
+            if (mappingResults[singleAlnInfo.ordinalBatchId][singleAlnInfo.ordinalQueryId]
+                    .mappings[singleAlnInfo.ordinalMapId] == nullptr) {
                 continue;
             }
-            auto& mapping = mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
-                                .mappings[singleAlnInfo.mapId];
+            auto& mapping =
+                mappingResults[singleAlnInfo.ordinalBatchId][singleAlnInfo.ordinalQueryId]
+                    .mappings[singleAlnInfo.ordinalMapId];
 
             // Sanity check.
             if (mapping->mapping == nullptr) {
@@ -364,32 +366,33 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
 
             {  // Validation of the final alignment.
 
-                const auto& chunk = batchChunks[singleAlnInfo.batchId];
+                const auto& chunk = batchChunks[singleAlnInfo.ordinalBatchId];
 
                 // Sanity check that there are the same number of forward and reverse sequences.
-                if (batchChunks[singleAlnInfo.batchId].querySeqs.Size() !=
-                    querySeqsRev[singleAlnInfo.batchId].Size()) {
+                if (batchChunks[singleAlnInfo.ordinalBatchId].querySeqs.Size() !=
+                    querySeqsRev[singleAlnInfo.ordinalBatchId].Size()) {
                     PBLOG_DEBUG << "Forward and reverse query sequence stores do not contain the "
                                    "same number of sequences."
-                                << " singleAlnInfo.batchId = " << singleAlnInfo.batchId
-                                << ", batchChunks[singleAlnInfo.batchId].querySeqs.Size() = "
-                                << batchChunks[singleAlnInfo.batchId].querySeqs.Size()
-                                << ", querySeqsRev[singleAlnInfo.batchId].Size() = "
-                                << querySeqsRev[singleAlnInfo.batchId].Size()
+                                << " singleAlnInfo.ordinalBatchId = "
+                                << singleAlnInfo.ordinalBatchId
+                                << ", batchChunks[singleAlnInfo.ordinalBatchId].querySeqs.Size() = "
+                                << batchChunks[singleAlnInfo.ordinalBatchId].querySeqs.Size()
+                                << ", querySeqsRev[singleAlnInfo.ordinalBatchId].Size() = "
+                                << querySeqsRev[singleAlnInfo.ordinalBatchId].Size()
                                 << ", overlap: " << OverlapWriterBase::PrintOverlapAsM4(*aln, true);
                     assert(false);
                     aln = nullptr;
                     continue;
                 }
 
-                // Fetch the query seq without throwing. The singleAlnInfo.queryId is actually the ordinal ID
+                // Fetch the query seq. The singleAlnInfo.ordinalQueryId is actually the ordinal ID
                 // of the query sequence, so we can make a direct lookup instead of using the sequence cache store.
                 const char* querySeq = (aln->Brev)
-                                           ? querySeqsRev[singleAlnInfo.batchId]
-                                                 .records()[singleAlnInfo.queryId]
+                                           ? querySeqsRev[singleAlnInfo.ordinalBatchId]
+                                                 .records()[singleAlnInfo.ordinalQueryId]
                                                  .c_str()
-                                           : batchChunks[singleAlnInfo.batchId]
-                                                 .querySeqs.records()[singleAlnInfo.queryId]
+                                           : batchChunks[singleAlnInfo.ordinalBatchId]
+                                                 .querySeqs.records()[singleAlnInfo.ordinalQueryId]
                                                  .c_str();
                 if (querySeq == NULL) {
                     PBLOG_DEBUG << "querySeq == NULL. Overlap: "
@@ -427,10 +430,10 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                 } catch (std::exception& e) {
                     PBLOG_WARN << "[Note: Exception caused by ValidateCigar in StitchAlignments] "
                                << e.what() << "\n";
-                    PBLOG_DEBUG << "singleAlnInfo.batchId = " << singleAlnInfo.batchId;
-                    PBLOG_DEBUG << "singleAlnInfo.queryId = " << singleAlnInfo.queryId;
+                    PBLOG_DEBUG << "singleAlnInfo: " << singleAlnInfo;
                     PBLOG_DEBUG << "Aligned: \"" << *newAln << "\"";
-                    PBLOG_DEBUG << mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
+                    PBLOG_DEBUG << mappingResults[singleAlnInfo.ordinalBatchId]
+                                                 [singleAlnInfo.ordinalQueryId]
                                 << "\n";
                     aln = nullptr;
                     continue;
