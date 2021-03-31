@@ -79,11 +79,11 @@ void PrepareSequencesForBatchAlignment(
         const auto& chunk = batchChunks[resultId];
 
         // One chunk can have multiple queries (subreads).
-        for (size_t qId = 0; qId < result.size(); ++qId) {
+        for (size_t ordinalQueryId = 0; ordinalQueryId < result.size(); ++ordinalQueryId) {
             // Prepare the query data in fwd and rev.
             // Fetch the query sequence without throwing if it doesn't exist for some reason.
             // const char* qSeqFwd = FetchSequenceFromCacheStore(
-            //     chunk.querySeqs, qId, true,
+            //     chunk.querySeqs, ordinalQueryId, true,
             //     functionName + " Forward query. Overlap: " + PrintOverlapAsM4(*mapping->mapping));
 
             // Sanity check that there are the same number of forward and reverse sequences.
@@ -102,7 +102,7 @@ void PrepareSequencesForBatchAlignment(
             // through queries. If we were to acces them via mapping->Aid, then we'd need
             // a random access lookup. But that would be slower because it would need to happen for
             // every mapping result, and we already have them groupped by query.
-            const char* qSeqFwd = chunk.querySeqs.records()[qId].c_str();
+            const char* qSeqFwd = chunk.querySeqs.records()[ordinalQueryId].c_str();
             if (qSeqFwd == NULL) {
                 PBLOG_DEBUG << "qSeqFwd == NULL!";
                 assert(qSeqFwd == NULL);
@@ -112,7 +112,7 @@ void PrepareSequencesForBatchAlignment(
             // Fetch the reverse complement sequence. The c_str will be an empty string
             // if there is no reverse complement for this sequence.
             // const char* qSeqRev = FetchSequenceFromCacheStore(
-            //     querySeqsRev[resultId], qId, true,
+            //     querySeqsRev[resultId], ordinalQueryId, true,
             //     functionName + " Reverse query. Overlap: " + PrintOverlapAsM4(*mapping->mapping));
             // if (qSeqRev == NULL) {
             //     continue;
@@ -121,7 +121,7 @@ void PrepareSequencesForBatchAlignment(
             // Same as for the forward queries - the reverse queries are generated in the same
             // order as the forward queries. If a query does not have a reverse complement
             // generated, then the sequence will be empty but not NULL.
-            const char* qSeqRev = querySeqsRev[resultId].records()[qId].c_str();
+            const char* qSeqRev = querySeqsRev[resultId].records()[ordinalQueryId].c_str();
             if (qSeqRev == NULL) {
                 PBLOG_DEBUG << "qSeqRev == NULL!";
                 assert(qSeqRev == NULL);
@@ -129,12 +129,12 @@ void PrepareSequencesForBatchAlignment(
             }
 
             // Each query can have multiple mappings.
-            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
-                if (result[qId].mappings[mapId] == nullptr) {
+            for (size_t mapId = 0; mapId < result[ordinalQueryId].mappings.size(); ++mapId) {
+                if (result[ordinalQueryId].mappings[mapId] == nullptr) {
                     continue;
                 }
 
-                const auto& mapping = result[qId].mappings[mapId];
+                const auto& mapping = result[ordinalQueryId].mappings[mapId];
 
                 if (mapping->mapping == nullptr) {
                     continue;
@@ -158,7 +158,7 @@ void PrepareSequencesForBatchAlignment(
                 }
 
                 // AlignmentStitchVector singleQueryStitches;
-                AlignmentStitchInfo singleAlnStitches(resultId, qId, mapId);
+                AlignmentStitchInfo singleAlnStitches(resultId, ordinalQueryId, mapId);
 
                 // Each mapping is split into regions in between seed hits for alignment.
                 for (size_t regId = 0; regId < mapping->regionsForAln.size(); ++regId) {
