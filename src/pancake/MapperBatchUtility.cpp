@@ -368,32 +368,16 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
 
                 const auto& chunk = batchChunks[singleAlnInfo.ordinalBatchId];
 
-                // Sanity check that there are the same number of forward and reverse sequences.
-                if (batchChunks[singleAlnInfo.ordinalBatchId].querySeqs.Size() !=
-                    querySeqsRev[singleAlnInfo.ordinalBatchId].Size()) {
-                    PBLOG_DEBUG << "Forward and reverse query sequence stores do not contain the "
-                                   "same number of sequences."
-                                << " singleAlnInfo.ordinalBatchId = "
-                                << singleAlnInfo.ordinalBatchId
-                                << ", batchChunks[singleAlnInfo.ordinalBatchId].querySeqs.Size() = "
-                                << batchChunks[singleAlnInfo.ordinalBatchId].querySeqs.Size()
-                                << ", querySeqsRev[singleAlnInfo.ordinalBatchId].Size() = "
-                                << querySeqsRev[singleAlnInfo.ordinalBatchId].Size()
-                                << ", overlap: " << OverlapWriterBase::PrintOverlapAsM4(*aln, true);
-                    assert(false);
-                    aln = nullptr;
-                    continue;
-                }
-
-                // Fetch the query seq. The singleAlnInfo.ordinalQueryId is actually the ordinal ID
-                // of the query sequence, so we can make a direct lookup instead of using the sequence cache store.
-                const char* querySeq = (aln->Brev)
-                                           ? querySeqsRev[singleAlnInfo.ordinalBatchId]
-                                                 .records()[singleAlnInfo.ordinalQueryId]
-                                                 .c_str()
-                                           : batchChunks[singleAlnInfo.ordinalBatchId]
-                                                 .querySeqs.records()[singleAlnInfo.ordinalQueryId]
-                                                 .c_str();
+                // Fetch the query seq and its reverse complement without throwing.
+                const char* querySeqFwd = FetchSequenceFromCacheStore(
+                    chunk.querySeqs, mapping->mapping->Aid, true,
+                    "(" + std::string(__FUNCTION__) + ") Query fwd. Overlap: " +
+                        OverlapWriterBase::PrintOverlapAsM4(*aln, true));
+                const char* querySeqRev = FetchSequenceFromCacheStore(
+                    querySeqsRev[singleAlnInfo.ordinalBatchId], mapping->mapping->Aid, true,
+                    "(" + std::string(__FUNCTION__) + ") Query rev. Overlap: " +
+                        OverlapWriterBase::PrintOverlapAsM4(*aln, true));
+                const char* querySeq = (aln->Brev) ? querySeqRev : querySeqFwd;
                 if (querySeq == NULL) {
                     PBLOG_DEBUG << "querySeq == NULL. Overlap: "
                                 << OverlapWriterBase::PrintOverlapAsM4(*aln, true);
@@ -414,15 +398,19 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                     continue;
                 }
 
+                // Coordinates relative to strand (internally we represent the B sequence as
+                // reverse, but here we take the reverse of the query, so strands need to be swapped).
                 const int32_t qStart = (aln->Brev) ? (aln->Alen - aln->Aend) : aln->Astart;
                 const int32_t tStart = aln->BstartFwd();
 
+                // Reverse the CIGAR if needed.
                 PacBio::BAM::Cigar revCigar;
                 if (aln->Brev) {
                     revCigar.insert(revCigar.end(), aln->Cigar.rbegin(), aln->Cigar.rend());
                 }
                 PacBio::BAM::Cigar& cigarInStrand = (aln->Brev) ? revCigar : aln->Cigar;
 
+                // Run the actual validation.
                 try {
                     ValidateCigar(querySeq + qStart, aln->ASpan(), targetSeq + tStart, aln->BSpan(),
                                   cigarInStrand, "Full length validation, fwd.");
