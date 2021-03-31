@@ -71,6 +71,8 @@ void PrepareSequencesForBatchAlignment(
     retAlnStitchInfo.clear();
     retLongestSequence = 0;
 
+    const std::string functionName = "(" + std::string(__FUNCTION__) + ")";
+
     // Results are a vector for every chunk (one chunk is one ZMW).
     for (size_t resultId = 0; resultId < mappingResults.size(); ++resultId) {
         const auto& result = mappingResults[resultId];
@@ -80,32 +82,51 @@ void PrepareSequencesForBatchAlignment(
         for (size_t qId = 0; qId < result.size(); ++qId) {
             // Prepare the query data in fwd and rev.
             // Fetch the query sequence without throwing if it doesn't exist for some reason.
-            FastaSequenceCached querySeqCache;
-            const bool rvQuerySeq = chunk.querySeqs.GetSequence(querySeqCache, qId);
-            if (rvQuerySeq == false) {
-                PBLOG_DEBUG << "Could not find sequence with qId = " << qId
-                            << " in chunk.querySeqs. resultId = " << resultId << ", qId = " << qId;
+            // const char* qSeqFwd = FetchSequenceFromCacheStore(
+            //     chunk.querySeqs, qId, true,
+            //     functionName + " Forward query. Overlap: " + PrintOverlapAsM4(*mapping->mapping));
+
+            // Sanity check that there are the same number of forward and reverse sequences.
+            if (chunk.querySeqs.Size() != querySeqsRev[resultId].Size()) {
+                PBLOG_DEBUG << "Forward and reverse query sequence stores do not contain the same "
+                               "number of sequences."
+                            << " resultId = " << resultId
+                            << ", chunk.querySeqs.Size() = " << chunk.querySeqs.Size()
+                            << ", querySeqsRev[resultId].Size() = "
+                            << querySeqsRev[resultId].Size();
+                assert(false);
                 continue;
             }
-            assert(rvQuerySeq == false);
-            const char* qSeqFwd = querySeqCache.c_str();
+
+            // We can fetch the query via the ordinal index because we are just looping
+            // through queries. If we were to acces them via mapping->Aid, then we'd need
+            // a random access lookup. But that would be slower because it would need to happen for
+            // every mapping result, and we already have them groupped by query.
+            const char* qSeqFwd = chunk.querySeqs.records()[qId].c_str();
+            if (qSeqFwd == NULL) {
+                PBLOG_DEBUG << "qSeqFwd == NULL!";
+                assert(qSeqFwd == NULL);
+                continue;
+            }
 
             // Fetch the reverse complement sequence. The c_str will be an empty string
             // if there is no reverse complement for this sequence.
-            const char* qSeqRev = FetchSequenceFromCacheStore(
-                querySeqsRev[resultId], qId, true,
-                "(" + std::string(__FUNCTION__) + ") Reverse query. qId = " + std::to_string(qId));
-            // {
-            //     FastaSequenceCached seqCache;
-            //     const bool rvGetSequence = querySeqsRev[resultId].GetSequence(seqCache, qId);
-            //     if (rvGetSequence == false) {
-            //         PBLOG_DEBUG << "Could not find reverse query sequence with qId = " << qId
-            //                     << " in chunk.querySeqs. resultId = " << resultId << ", qId = " << qId;
-            //         assert(rvGetSequence == false);
-            //         continue;
-            //     }
-            //     qSeqRev = seqCache.c_str();
+            // const char* qSeqRev = FetchSequenceFromCacheStore(
+            //     querySeqsRev[resultId], qId, true,
+            //     functionName + " Reverse query. Overlap: " + PrintOverlapAsM4(*mapping->mapping));
+            // if (qSeqRev == NULL) {
+            //     continue;
             // }
+
+            // Same as for the forward queries - the reverse queries are generated in the same
+            // order as the forward queries. If a query does not have a reverse complement
+            // generated, then the sequence will be empty but not NULL.
+            const char* qSeqRev = querySeqsRev[resultId].records()[qId].c_str();
+            if (qSeqRev == NULL) {
+                PBLOG_DEBUG << "qSeqRev == NULL!";
+                assert(qSeqRev == NULL);
+                continue;
+            }
 
             // Each query can have multiple mappings.
             for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
@@ -128,18 +149,13 @@ void PrepareSequencesForBatchAlignment(
                 }
 
                 // Fetch the target sequence without throwing if it doesn't exist for some reason.
-                FastaSequenceCached targetSeqCache;
-                const bool rvTargetSeq =
-                    chunk.targetSeqs.GetSequence(targetSeqCache, mapping->mapping->Bid);
-                if (rvTargetSeq == false) {
-                    PBLOG_DEBUG << "Could not find sequence with ID mapping->mapping->Bid = "
-                                << mapping->mapping->Bid
-                                << " in chunk.targetSeqs. resultId = " << resultId
-                                << ", qId = " << qId << ", mapId = " << mapId;
+                const char* tSeq = FetchSequenceFromCacheStore(
+                    chunk.targetSeqs, mapping->mapping->Bid, true,
+                    functionName + " Target. Overlap: " +
+                        OverlapWriterBase::PrintOverlapAsM4(*mapping->mapping));
+                if (tSeq == NULL) {
                     continue;
                 }
-                assert(rvTargetSeq == false);
-                const char* tSeq = targetSeqCache.c_str();
 
                 // AlignmentStitchVector singleQueryStitches;
                 AlignmentStitchInfo singleAlnStitches(resultId, qId, mapId);
@@ -350,33 +366,50 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
 
                 const auto& chunk = batchChunks[singleAlnInfo.batchId];
 
-                // Fetch the query seq without throwing.
-                FastaSequenceCached querySeqCache;
-                const bool rvQuerySeq =
-                    chunk.querySeqs.GetSequence(querySeqCache, singleAlnInfo.queryId);
-                if (rvQuerySeq == false) {
-                    PBLOG_DEBUG << "Could not find sequence with ID singleAlnInfo.queryId = "
-                                << singleAlnInfo.queryId;
+                // Sanity check that there are the same number of forward and reverse sequences.
+                if (batchChunks[singleAlnInfo.batchId].querySeqs.Size() !=
+                    querySeqsRev[singleAlnInfo.batchId].Size()) {
+                    PBLOG_DEBUG << "Forward and reverse query sequence stores do not contain the "
+                                   "same number of sequences."
+                                << " singleAlnInfo.batchId = " << singleAlnInfo.batchId
+                                << ", batchChunks[singleAlnInfo.batchId].querySeqs.Size() = "
+                                << batchChunks[singleAlnInfo.batchId].querySeqs.Size()
+                                << ", querySeqsRev[singleAlnInfo.batchId].Size() = "
+                                << querySeqsRev[singleAlnInfo.batchId].Size()
+                                << ", overlap: " << OverlapWriterBase::PrintOverlapAsM4(*aln, true);
+                    assert(false);
+                    aln = nullptr;
                     continue;
                 }
-                assert(rvQuerySeq == false);
+
+                // Fetch the query seq without throwing. The singleAlnInfo.queryId is actually the ordinal ID
+                // of the query sequence, so we can make a direct lookup instead of using the sequence cache store.
                 const char* querySeq = (aln->Brev)
                                            ? querySeqsRev[singleAlnInfo.batchId]
                                                  .records()[singleAlnInfo.queryId]
                                                  .c_str()
-                                           : querySeqCache.c_str();
-
-                // Fetch the target seq without throwing.
-                FastaSequenceCached targetSeqCache;
-                const bool rvTargetSeq =
-                    chunk.targetSeqs.GetSequence(targetSeqCache, mapping->mapping->Bid);
-                if (rvTargetSeq == false) {
-                    PBLOG_DEBUG << "Could not find sequence with ID mapping->mapping->Bid = "
-                                << mapping->mapping->Bid;
+                                           : batchChunks[singleAlnInfo.batchId]
+                                                 .querySeqs.records()[singleAlnInfo.queryId]
+                                                 .c_str();
+                if (querySeq == NULL) {
+                    PBLOG_DEBUG << "querySeq == NULL. Overlap: "
+                                << OverlapWriterBase::PrintOverlapAsM4(*aln, true);
+                    assert(querySeq == NULL);
+                    aln = nullptr;
                     continue;
                 }
-                assert(rvTargetSeq == false);
-                const char* targetSeq = targetSeqCache.c_str();
+
+                // Fetch the target seq without throwing.
+                const char* targetSeq = FetchSequenceFromCacheStore(
+                    chunk.targetSeqs, mapping->mapping->Bid, true,
+                    "(" + std::string(__FUNCTION__) + ") Target. Overlap: " +
+                        OverlapWriterBase::PrintOverlapAsM4(*aln, true));
+                if (targetSeq == NULL) {
+                    PBLOG_DEBUG << "targetSeq == NULL. Overlap: " << *mapping->mapping;
+                    assert(targetSeq == NULL);
+                    aln = nullptr;
+                    continue;
+                }
 
                 const int32_t qStart = (aln->Brev) ? (aln->Alen - aln->Aend) : aln->Astart;
                 const int32_t tStart = aln->BstartFwd();
