@@ -102,7 +102,7 @@ std::vector<PacBio::Pancake::MapperBatchChunk> ConstructBatchData(
 
 void PrepareSequencesForBatchAlignment(
     const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<std::string>>& querySeqsRev,
+    const std::vector<FastaSequenceCachedStore>& querySeqsRev,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
     const MapperSelfHitPolicy selfHitPolicy, std::vector<PairForBatchAlignment>& retPartsGlobal,
     std::vector<PairForBatchAlignment>& retPartsSemiglobal,
@@ -116,14 +116,14 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
 
 void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                       const std::vector<MapperBatchChunk>& batchChunks,
-                      const std::vector<std::vector<std::string>>& querySeqsRev,
+                      const std::vector<FastaSequenceCachedStore>& querySeqsRev,
                       const std::vector<AlignmentResult>& internalAlns,
                       const std::vector<AlignmentResult>& flankAlns,
                       const std::vector<AlignmentStitchInfo>& alnStitchInfo);
 
 void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                                 const std::vector<MapperBatchChunk>& batchChunks,
-                                const std::vector<std::vector<std::string>>& querySeqsRev,
+                                const std::vector<FastaSequenceCachedStore>& querySeqsRev,
                                 const std::vector<AlignmentResult>& internalAlns,
                                 const std::vector<AlignmentResult>& flankAlns,
                                 const std::vector<AlignmentStitchInfo>& alnStitchInfo,
@@ -133,7 +133,7 @@ void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& m
                                    const bool mockPerfectAlignment,
                                    const int32_t matchScoreForMockAlignment);
 
-std::vector<std::vector<std::string>> ComputeReverseComplements(
+std::vector<std::vector<FastaSequenceId>> ComputeReverseComplements(
     const std::vector<MapperBatchChunk>& batchChunks,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults, Parallel::FireAndForget* faf);
 

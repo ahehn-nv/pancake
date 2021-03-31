@@ -66,15 +66,20 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
 
     if (alignSettings.align) {
         // Compute the reverse complements for alignment.
-        std::vector<std::vector<std::string>> querySeqsRev =
+        std::vector<std::vector<FastaSequenceId>> querySeqsRev =
             ComputeReverseComplements(batchChunks, results, faf);
+        // Convert the reverse sequences to FastaSequenceCachedStore.
+        std::vector<FastaSequenceCachedStore> querySeqsRevStore;
+        for (const auto& chunkRevQueries : querySeqsRev) {
+            querySeqsRevStore.emplace_back(FastaSequenceCachedStore(chunkRevQueries));
+        }
 
         // Prepare the sequences for alignment.
         std::vector<PairForBatchAlignment> partsGlobal;
         std::vector<PairForBatchAlignment> partsSemiglobal;
         std::vector<AlignmentStitchInfo> alnStitchInfo;
         int32_t longestSequenceForAln = 0;
-        PrepareSequencesForBatchAlignment(batchChunks, querySeqsRev, results,
+        PrepareSequencesForBatchAlignment(batchChunks, querySeqsRevStore, results,
                                           alignSettings.selfHitPolicy, partsGlobal, partsSemiglobal,
                                           alnStitchInfo, longestSequenceForAln);
         PBLOG_TRACE << "partsGlobal.size() = " << partsGlobal.size();
@@ -94,7 +99,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
                         faf, flankAlns);
         PBLOG_TRACE << "flankAlns.size() = " << flankAlns.size();
 
-        StitchAlignmentsInParallel(results, batchChunks, querySeqsRev, internalAlns, flankAlns,
+        StitchAlignmentsInParallel(results, batchChunks, querySeqsRevStore, internalAlns, flankAlns,
                                    alnStitchInfo, faf);
 
         SetUnalignedAndMockedMappings(

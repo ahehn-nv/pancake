@@ -43,9 +43,24 @@ std::vector<PacBio::Pancake::MapperBatchChunk> ConstructBatchData(
     return batchData;
 }
 
+const char* FetchSequenceFromCacheStore(const FastaSequenceCachedStore& cacheStore,
+                                        const int32_t seqId, bool doAssert,
+                                        const std::string& assertMessage)
+{
+    FastaSequenceCached seqCache;
+    const bool rvGetSequence = cacheStore.GetSequence(seqCache, seqId);
+    if (doAssert && rvGetSequence == false) {
+        PBLOG_DEBUG << "Could not find sequence with ID = " << seqId << " in cacheStore. "
+                    << assertMessage;
+        assert(rvGetSequence == false);
+        return NULL;
+    }
+    return seqCache.c_str();
+}
+
 void PrepareSequencesForBatchAlignment(
     const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<std::string>>& querySeqsRev,
+    const std::vector<FastaSequenceCachedStore>& querySeqsRev,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
     const MapperSelfHitPolicy selfHitPolicy, std::vector<PairForBatchAlignment>& retPartsGlobal,
     std::vector<PairForBatchAlignment>& retPartsSemiglobal,
@@ -75,9 +90,22 @@ void PrepareSequencesForBatchAlignment(
             assert(rvQuerySeq == false);
             const char* qSeqFwd = querySeqCache.c_str();
 
-            // Fetch the reverse complement
-            const std::string& qSeqRevString = querySeqsRev[resultId][qId];
-            const char* qSeqRev = qSeqRevString.c_str();
+            // Fetch the reverse complement sequence. The c_str will be an empty string
+            // if there is no reverse complement for this sequence.
+            const char* qSeqRev = FetchSequenceFromCacheStore(
+                querySeqsRev[resultId], qId, true,
+                "(" + std::string(__FUNCTION__) + ") Reverse query. qId = " + std::to_string(qId));
+            // {
+            //     FastaSequenceCached seqCache;
+            //     const bool rvGetSequence = querySeqsRev[resultId].GetSequence(seqCache, qId);
+            //     if (rvGetSequence == false) {
+            //         PBLOG_DEBUG << "Could not find reverse query sequence with qId = " << qId
+            //                     << " in chunk.querySeqs. resultId = " << resultId << ", qId = " << qId;
+            //         assert(rvGetSequence == false);
+            //         continue;
+            //     }
+            //     qSeqRev = seqCache.c_str();
+            // }
 
             // Each query can have multiple mappings.
             for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
@@ -271,7 +299,7 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
 
 void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                       const std::vector<MapperBatchChunk>& batchChunks,
-                      const std::vector<std::vector<std::string>>& querySeqsRev,
+                      const std::vector<FastaSequenceCachedStore>& querySeqsRev,
                       const std::vector<AlignmentResult>& internalAlns,
                       const std::vector<AlignmentResult>& flankAlns,
                       const std::vector<AlignmentStitchInfo>& alnStitchInfo)
@@ -320,8 +348,9 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
             }
             assert(rvQuerySeq == false);
             const char* querySeq =
-                (aln->Brev) ? querySeqsRev[singleAlnInfo.batchId][singleAlnInfo.queryId].c_str()
-                            : querySeqCache.c_str();
+                (aln->Brev)
+                    ? querySeqsRev[singleAlnInfo.batchId].records()[singleAlnInfo.queryId].c_str()
+                    : querySeqCache.c_str();
 
             // Fetch the target seq without throwing.
             FastaSequenceCached targetSeqCache;
@@ -365,7 +394,7 @@ void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults
 
 void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                                 const std::vector<MapperBatchChunk>& batchChunks,
-                                const std::vector<std::vector<std::string>>& querySeqsRev,
+                                const std::vector<FastaSequenceCachedStore>& querySeqsRev,
                                 const std::vector<AlignmentResult>& internalAlns,
                                 const std::vector<AlignmentResult>& flankAlns,
                                 const std::vector<AlignmentStitchInfo>& alnStitchInfo,
@@ -426,9 +455,11 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                     continue;
                 }
                 assert(rvQuerySeq == false);
-                const char* querySeq =
-                    (aln->Brev) ? querySeqsRev[singleAlnInfo.batchId][singleAlnInfo.queryId].c_str()
-                                : querySeqCache.c_str();
+                const char* querySeq = (aln->Brev)
+                                           ? querySeqsRev[singleAlnInfo.batchId]
+                                                 .records()[singleAlnInfo.queryId]
+                                                 .c_str()
+                                           : querySeqCache.c_str();
 
                 // Fetch the target seq without throwing.
                 FastaSequenceCached targetSeqCache;
@@ -500,7 +531,7 @@ void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& m
     }
 }
 
-std::vector<std::vector<std::string>> ComputeReverseComplements(
+std::vector<std::vector<FastaSequenceId>> ComputeReverseComplements(
     const std::vector<MapperBatchChunk>& batchChunks,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults, Parallel::FireAndForget* faf)
 {
@@ -531,7 +562,7 @@ std::vector<std::vector<std::string>> ComputeReverseComplements(
     const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
         PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
 
-    std::vector<std::vector<std::string>> querySeqsRev(batchChunks.size());
+    std::vector<std::vector<FastaSequenceId>> querySeqsRev(batchChunks.size());
 
     const auto Submit = [&batchChunks, &jobsPerThread, &shouldReverse, &querySeqsRev](int32_t idx) {
         const int32_t jobStart = jobsPerThread[idx].first;
@@ -539,12 +570,15 @@ std::vector<std::vector<std::string>> ComputeReverseComplements(
         for (int32_t chunkId = jobStart; chunkId < jobEnd; ++chunkId) {
             auto& revSeqs = querySeqsRev[chunkId];
             for (size_t qId = 0; qId < batchChunks[chunkId].querySeqs.records().size(); ++qId) {
+                const auto& query = batchChunks[chunkId].querySeqs.records()[qId];
                 if (shouldReverse[chunkId][qId]) {
-                    const auto& query = batchChunks[chunkId].querySeqs.records()[qId];
-                    revSeqs.emplace_back(
-                        PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size()));
+                    std::string queryRev =
+                        PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size());
+                    revSeqs.emplace_back(PacBio::Pancake::FastaSequenceId(
+                        query.Name(), std::move(queryRev), query.Id()));
                 } else {
-                    revSeqs.emplace_back("");
+                    revSeqs.emplace_back(
+                        PacBio::Pancake::FastaSequenceId(query.Name(), "", query.Id()));
                 }
             }
         }
