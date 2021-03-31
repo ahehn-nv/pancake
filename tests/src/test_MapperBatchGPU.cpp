@@ -13,6 +13,7 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
     {
         std::string testName;
         std::vector<std::pair<std::string, std::string>> batchData;
+        int32_t sequenceIdOffset = 0;
         PacBio::Pancake::AlignerType alignerTypeGlobal;
         PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
         PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
@@ -54,6 +55,8 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
                 },
 
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Aligner type for global alignment.
             AlignerType::KSW2,
             // SeedParams - primary.
@@ -103,6 +106,8 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
                     PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-9-no-front-flank-extension-query.fasta",
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Aligner type for global alignment.
             AlignerType::EDLIB,
             // SeedParams - primary.
@@ -118,7 +123,73 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
                     "000000000 000000000 8312 78.47 0 0 9230 9230 0 8372 17577 17578 *"
                 },
             },
-        }
+        },
+        {
+            "Batch 3 - same as Batch 1, but the query/target IDs start at an arbitrary value > 0.",
+            {
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-2-real-insert-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-2-real-insert-query.fasta",
+                },
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-3-real-subseq-full-global-match-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-3-real-subseq-full-global-match-query.fasta",
+                },
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-4-small-revcmp-perfect-aln-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-4-small-revcmp-perfect-aln-query.fasta",
+                },
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-5-revcmp-aln-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-5-revcmp-aln-query.fasta",
+                },
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-6-small-revcmp-imperfect-aln-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-6-small-revcmp-imperfect-aln-query.fasta",
+                },
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-1-poor-aln-overlapping-seeds.query.fasta",
+                },
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-target.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/mapper-clr/test-8-no-back-flank-extension-query.fasta",
+                },
+
+            },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            1234567,
+            // Aligner type for global alignment.
+            AlignerType::KSW2,
+            // SeedParams - primary.
+            PacBio::Pancake::SeedDB::SeedDBParameters{19, 10, 0, false, false, true},
+            // SeedParams - fallback.
+            PacBio::Pancake::SeedDB::SeedDBParameters{10, 5, 0, false, false, true},
+            // Expected results.
+            {
+                {
+                    "001234567 001234567 19072 81.17 0 0 18779 18779 0 0 18864 18865 *",
+                },
+                {
+                    "001234567 001234567 15726 98.71 0 0 8111 8111 0 0 8138 8138 *"
+                },
+                {
+                    "001234567 001234567 300 100.00 0 0 150 150 1 0 150 150 *"
+                },
+                {
+                    "001234567 001234567 16112 75.43 0 0 21382 22015 1 701 21992 22028 *"
+                },
+                {
+                    "001234567 001234567 280 96.77 0 0 155 155 1 0 150 150 *"
+                },
+                {
+                    "001234567 001234567 284 68.58 0 6209 7938 43446 0 7261 8999 46238 *"
+                },
+                {
+                    "001234567 001234567 11218 75.98 0 0 15753 15753 1 2 15953 15953 *"
+                },
+            },
+        },
     };
     // clang-format on
 
@@ -131,8 +202,9 @@ TEST(MapperBatchGPU, BatchMapping_ArrayOfTests)
         // a vector of target-query filename pairs.
         std::vector<MapperBatchChunk> batchData;
         std::vector<PacBio::BAM::FastaSequence> allSeqs;
-        PacBio::PancakeTests::HelperLoadBatchData(data.batchData, 0.000, data.seedParamsPrimary,
-                                                  data.seedParamsFallback, batchData, allSeqs);
+        PacBio::PancakeTests::HelperLoadBatchData(data.batchData, data.sequenceIdOffset, 0.000,
+                                                  data.seedParamsPrimary, data.seedParamsFallback,
+                                                  batchData, allSeqs);
 
         // Set the alignment parameters.
         PacBio::Pancake::MapperCLRAlignSettings alignSettings;
@@ -323,6 +395,7 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         std::string testName;
         std::vector<std::tuple<std::string, std::string, PacBio::Pancake::MapperCLRMapSettings>>
             batchData;
+        int32_t sequenceIdOffset = 0;
         PacBio::Pancake::MapperCLRAlignSettings alignSettings;
         std::vector<std::string> expectedOverlapsPaths;
     };
@@ -339,11 +412,32 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
                     settingsDefaultPolicy.map,
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Input alignment settings.
             settingsDefaultPolicy.align,
             // Expected results.
             {
                 PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.edlib.m4",
+            },
+        },
+        {
+            "Overlap the same set of reads with itself. Offset the IDs by 10000.",
+            // Input batch data.
+            {
+                {
+                    PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+                    PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.fasta",
+                    settingsDefaultPolicy.map,
+                },
+            },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            10000,
+            // Input alignment settings.
+            settingsDefaultPolicy.align,
+            // Expected results.
+            {
+                PacBio::PancakeTestsConfig::Data_Dir + "/ovl-clr/reads.pile1-5prime.out.all_vs_all.edlib.id_offset_10000.m4",
             },
         },
         {
@@ -356,6 +450,8 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
                     settingsSkipSelfHitsInBothMapAndAlign.map,
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Input alignment settings.
             settingsSkipSelfHitsInBothMapAndAlign.align,
             // Expected results.
@@ -373,6 +469,8 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
                     settingsPerfectAlignSelfHitsInBothMapAndAlign.map,
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Input alignment settings.
             settingsPerfectAlignSelfHitsInBothMapAndAlign.align,
             // Expected results.
@@ -390,6 +488,8 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
                     settingsSkipSymmetricOverlaps.map,
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Input alignment settings.
             settingsSkipSymmetricOverlaps.align,
             // Expected results.
@@ -408,6 +508,8 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
                     settingsSkipSelfAndSymmetricOverlaps.map,
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Input alignment settings.
             settingsSkipSelfAndSymmetricOverlaps.align,
             // Expected results.
@@ -426,6 +528,8 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
                     settingsSkipSelfInMappingButDefaultInAlignment.map,
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Input alignment settings.
             settingsSkipSelfInMappingButDefaultInAlignment.align,
             // Expected results.
@@ -446,6 +550,8 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
                     settingsDefaultSelfInMappingButSkipInAlignment.map,
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Input alignment settings.
             settingsDefaultSelfInMappingButSkipInAlignment.align,
             // Expected results.
@@ -463,6 +569,8 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
                     settingsMockSelfInMappingButDefaultInAlignment.map,
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Input alignment settings.
             settingsMockSelfInMappingButDefaultInAlignment.align,
             // Expected results.
@@ -481,6 +589,8 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
                     settingsDefaultSelfInMappingButMockInAlignment.map,
                 },
             },
+            // Sequence ID offset. Zero means that the first query/target after loading has the ID == 0.
+            0,
             // Input alignment settings.
             settingsDefaultSelfInMappingButMockInAlignment.align,
             // Expected results.
@@ -500,7 +610,8 @@ TEST(MapperBatchGPU, CheckSelfHitPolicyAndSkippingSymmetrical)
         // a vector of target-query filename pairs.
         std::vector<PacBio::Pancake::MapperBatchChunk> batchData;
         std::vector<PacBio::BAM::FastaSequence> allSeqs;
-        PacBio::PancakeTests::HelperLoadBatchData(data.batchData, batchData, allSeqs);
+        PacBio::PancakeTests::HelperLoadBatchData(data.batchData, data.sequenceIdOffset, batchData,
+                                                  allSeqs);
 
         const PacBio::Pancake::MapperCLRAlignSettings& alignSettings = data.alignSettings;
 
