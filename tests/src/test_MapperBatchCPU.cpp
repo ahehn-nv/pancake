@@ -420,7 +420,7 @@ TEST(MapperBatchCPU, CheckSelfHitPolicyAndSkippingSymmetrical)
             },
         },
         {
-            "Overlap the same set of reads with itself. Offset the IDs by 10000.",
+            "Overlap the same set of reads with itself. Offset the IDs by 10000 to check that IDs can be arbitrary.",
             // Input batch data.
             {
                 {
