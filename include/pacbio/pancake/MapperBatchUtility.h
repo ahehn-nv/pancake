@@ -114,13 +114,6 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
                                  const std::vector<AlignmentResult>& flankAlns,
                                  const std::vector<AlignmentStitchPart>& parts);
 
-void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults,
-                      const std::vector<MapperBatchChunk>& batchChunks,
-                      const std::vector<FastaSequenceCachedStore>& querySeqsRev,
-                      const std::vector<AlignmentResult>& internalAlns,
-                      const std::vector<AlignmentResult>& flankAlns,
-                      const std::vector<AlignmentStitchInfo>& alnStitchInfo);
-
 void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                                 const std::vector<MapperBatchChunk>& batchChunks,
                                 const std::vector<FastaSequenceCachedStore>& querySeqsRev,
