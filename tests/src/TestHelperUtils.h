@@ -3,6 +3,7 @@
 #ifndef PANCAKE_TEST_HELPER_UTILS_H
 #define PANCAKE_TEST_HELPER_UTILS_H
 
+#include <pacbio/pancake/FastaSequenceId.h>
 #include <pacbio/pancake/MapperBatchUtility.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
 #include <pbbam/FastaSequence.h>
@@ -13,6 +14,8 @@ namespace PacBio {
 namespace PancakeTests {
 
 std::vector<PacBio::BAM::FastaSequence> HelperLoadFasta(const std::string& inFasta);
+std::vector<PacBio::Pancake::FastaSequenceId> HelperLoadFastaWithId(const std::string& inFasta,
+                                                                    const int32_t seqIdOffset);
 std::vector<std::string> HelperLoadFastaAsStringVector(const std::string& inFasta);
 std::string HelperLoadFastaAsString(const std::string& inFasta);
 std::vector<std::string> HelperLoadFile(const std::string& inFile);

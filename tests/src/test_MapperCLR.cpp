@@ -1,5 +1,6 @@
 #include <PancakeTestData.h>
 #include <gtest/gtest.h>
+#include <pacbio/pancake/FastaSequenceCachedStore.h>
 #include <pacbio/pancake/MapperCLR.h>
 #include <pacbio/pancake/OverlapWriterBase.h>
 #include <iostream>
@@ -781,30 +782,17 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
     };
     // clang-format on
 
-    auto CreateFastaSequenceCached = [](const std::vector<PacBio::BAM::FastaSequence>& seqs)
-        -> std::vector<PacBio::Pancake::FastaSequenceCached> {
-        std::vector<PacBio::Pancake::FastaSequenceCached> records;
-        for (size_t id = 0; id < seqs.size(); ++id) {
-            const auto& record = seqs[id];
-            records.emplace_back(PacBio::Pancake::FastaSequenceCached(
-                record.Name(), record.Bases().c_str(), record.Bases().size(), id));
-        }
-        return records;
-    };
-
     for (const auto& data : testData) {
         // Load the sequences from files, and take only the first one.
-        const std::vector<PacBio::BAM::FastaSequence> allTargetSeqs =
-            PacBio::PancakeTests::HelperLoadFasta(data.targetFile);
-        const std::vector<PacBio::BAM::FastaSequence> allQuerySeqs =
-            PacBio::PancakeTests::HelperLoadFasta(data.queryFile);
+        const std::vector<PacBio::Pancake::FastaSequenceId> allTargetSeqs =
+            PacBio::PancakeTests::HelperLoadFastaWithId(data.targetFile, 0);
+        const std::vector<PacBio::Pancake::FastaSequenceId> allQuerySeqs =
+            PacBio::PancakeTests::HelperLoadFastaWithId(data.queryFile, 0);
         const std::vector<std::string> expectedOverlaps =
             PacBio::PancakeTests::HelperLoadFile(data.expectedOverlapsPath);
 
-        const std::vector<PacBio::Pancake::FastaSequenceCached> targets =
-            CreateFastaSequenceCached(allTargetSeqs);
-        const std::vector<PacBio::Pancake::FastaSequenceCached> queries =
-            CreateFastaSequenceCached(allQuerySeqs);
+        const PacBio::Pancake::FastaSequenceCachedStore targets(allTargetSeqs);
+        const PacBio::Pancake::FastaSequenceCachedStore queries(allQuerySeqs);
 
         SCOPED_TRACE(data.testName);
 

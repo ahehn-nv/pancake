@@ -18,6 +18,20 @@ std::vector<PacBio::BAM::FastaSequence> HelperLoadFasta(const std::string& inFas
     return ret;
 }
 
+std::vector<PacBio::Pancake::FastaSequenceId> HelperLoadFastaWithId(const std::string& inFasta,
+                                                                    const int32_t seqIdOffset)
+{
+    std::vector<PacBio::Pancake::FastaSequenceId> ret;
+    PacBio::BAM::FastaReader inReader{inFasta};
+    PacBio::BAM::FastaSequence record;
+    int32_t seqId = 0;
+    while (inReader.GetNext(record)) {
+        ret.emplace_back(PacBio::Pancake::FastaSequenceId(record, seqId + seqIdOffset));
+        ++seqId;
+    }
+    return ret;
+}
+
 std::string HelperLoadFastaAsString(const std::string& inFasta)
 {
     std::ostringstream oss;
