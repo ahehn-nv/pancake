@@ -273,6 +273,11 @@ void OverlapWriterBase::PrintOverlapAsSAM(FILE* fpOut, const Overlap& ovl, const
     fprintf(fpOut, "\n");
 }
 
+std::string OverlapWriterBase::PrintOverlapAsM4(const Overlap& ovl, bool writeCigar)
+{
+    return PrintOverlapAsM4(ovl, "", "", true, writeCigar);
+}
+
 std::string OverlapWriterBase::PrintOverlapAsM4(const Overlap& ovl, const std::string& Aname,
                                                 const std::string& Bname, bool writeIds,
                                                 bool writeCigar)
