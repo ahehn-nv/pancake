@@ -146,6 +146,8 @@ void PrepareSequencesForBatchAlignment(
                     FetchSequenceFromCacheStore(chunk.targetSeqs, mapping->mapping->Bid, true,
                                                 __FUNCTION__, "Target.", mapping->mapping.get());
                 if (tSeq == NULL) {
+                    PBLOG_DEBUG << "tSeq == NULL. Overlap: " << *mapping->mapping;
+                    assert(false);
                     continue;
                 }
 
