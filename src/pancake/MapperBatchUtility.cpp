@@ -57,9 +57,10 @@ const char* FetchSequenceFromCacheStore(const FastaSequenceCachedStore& cacheSto
             << " in cacheStore. " << assertMessage;
         // Optionally print out the overlap.
         if (ovl) {
-            oss << "Overlap: " << OverlapWriterBase::PrintOverlapAsM4(*ovl, true);
+            oss << "Overlap: " << OverlapWriterBase::PrintOverlapAsM4(*ovl, true) << ".";
         }
-        PBLOG_DEBUG << oss.str();
+        oss << " Skipping and continuing anyway.";
+        PBLOG_ERROR << oss.str();
         assert(false);
         return NULL;
     }
@@ -106,7 +107,7 @@ void PrepareSequencesForBatchAlignment(
                 FetchSequenceFromCacheStore(chunk.querySeqs, Aid, true, __FUNCTION__,
                                             "Query fwd. Aid = " + std::to_string(Aid), NULL);
             if (qSeqFwd == NULL) {
-                PBLOG_DEBUG << "qSeqFwd == NULL!";
+                PBLOG_ERROR << "qSeqFwd == NULL! Skipping and continuing anyway.";
                 assert(false);
                 continue;
             }
@@ -116,7 +117,7 @@ void PrepareSequencesForBatchAlignment(
                 FetchSequenceFromCacheStore(querySeqsRev[resultId], Aid, true, __FUNCTION__,
                                             "Query rev. Aid = " + std::to_string(Aid), NULL);
             if (qSeqRev == NULL) {
-                PBLOG_DEBUG << "qSeqRev == NULL!";
+                PBLOG_ERROR << "qSeqRev == NULL! Skipping and continuing anyway.";
                 assert(false);
                 continue;
             }
@@ -146,7 +147,8 @@ void PrepareSequencesForBatchAlignment(
                     FetchSequenceFromCacheStore(chunk.targetSeqs, mapping->mapping->Bid, true,
                                                 __FUNCTION__, "Target.", mapping->mapping.get());
                 if (tSeq == NULL) {
-                    PBLOG_DEBUG << "tSeq == NULL. Overlap: " << *mapping->mapping;
+                    PBLOG_ERROR << "tSeq == NULL. Overlap: " << *mapping->mapping
+                                << ". Skipping and continuing anyway.";
                     assert(false);
                     continue;
                 }
@@ -332,9 +334,9 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
             // Not initialized for some reason, skip it.
             if (singleAlnInfo.ordinalBatchId < 0 || singleAlnInfo.ordinalQueryId < 0 ||
                 singleAlnInfo.ordinalMapId < 0) {
-                PBLOG_DEBUG
+                PBLOG_ERROR
                     << "One of the ordinal values used to access a vector element is negative!"
-                    << " singleAlnInfo: " << singleAlnInfo;
+                    << " singleAlnInfo: " << singleAlnInfo << ". Skipping and continuing anyway.";
                 assert(false);
                 continue;
             }
@@ -376,8 +378,9 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                     __FUNCTION__, "Query rev.", aln.get());
                 const char* querySeq = (aln->Brev) ? querySeqRev : querySeqFwd;
                 if (querySeq == NULL) {
-                    PBLOG_DEBUG << "querySeq == NULL. Overlap: "
-                                << OverlapWriterBase::PrintOverlapAsM4(*aln, true);
+                    PBLOG_ERROR << "querySeq == NULL. Overlap: "
+                                << OverlapWriterBase::PrintOverlapAsM4(*aln, true)
+                                << ". Skipping and continuing anyway.";
                     assert(false);
                     aln = nullptr;
                     continue;
@@ -388,7 +391,8 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                     FetchSequenceFromCacheStore(chunk.targetSeqs, mapping->mapping->Bid, true,
                                                 __FUNCTION__, "Target.", aln.get());
                 if (targetSeq == NULL) {
-                    PBLOG_DEBUG << "targetSeq == NULL. Overlap: " << *mapping->mapping;
+                    PBLOG_ERROR << "targetSeq == NULL. Overlap: " << *mapping->mapping
+                                << ". Skipping and continuing anyway.";
                     assert(false);
                     aln = nullptr;
                     continue;
