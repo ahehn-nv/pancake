@@ -52,7 +52,7 @@ const char* FetchSequenceFromCacheStore(const FastaSequenceCachedStore& cacheSto
     if (doAssert && rvGetSequence == false) {
         PBLOG_DEBUG << "Could not find sequence with ID = " << seqId << " in cacheStore. "
                     << assertMessage;
-        assert(rvGetSequence == false);
+        assert(false);
         return NULL;
     }
     return seqCache.c_str();
@@ -98,20 +98,20 @@ void PrepareSequencesForBatchAlignment(
             // Fetch the query sequence without throwing if it doesn't exist for some reason.
             const char* qSeqFwd = FetchSequenceFromCacheStore(
                 chunk.querySeqs, Aid, true,
-                functionName + " Query rev. Aid = " + std::to_string(Aid));
+                functionName + " Query fwd. Aid = " + std::to_string(Aid));
             if (qSeqFwd == NULL) {
                 PBLOG_DEBUG << "qSeqFwd == NULL!";
-                assert(qSeqFwd == NULL);
+                assert(false);
                 continue;
             }
 
             // Prepare the reverse query data.
             const char* qSeqRev = FetchSequenceFromCacheStore(
                 querySeqsRev[resultId], Aid, true,
-                functionName + " Query fwd. Aid = " + std::to_string(Aid));
+                functionName + " Query rev. Aid = " + std::to_string(Aid));
             if (qSeqRev == NULL) {
                 PBLOG_DEBUG << "qSeqRev == NULL!";
-                assert(qSeqRev == NULL);
+                assert(false);
                 continue;
             }
 
@@ -368,7 +368,7 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                 if (querySeq == NULL) {
                     PBLOG_DEBUG << "querySeq == NULL. Overlap: "
                                 << OverlapWriterBase::PrintOverlapAsM4(*aln, true);
-                    assert(querySeq == NULL);
+                    assert(false);
                     aln = nullptr;
                     continue;
                 }
@@ -380,7 +380,7 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                         OverlapWriterBase::PrintOverlapAsM4(*aln, true));
                 if (targetSeq == NULL) {
                     PBLOG_DEBUG << "targetSeq == NULL. Overlap: " << *mapping->mapping;
-                    assert(targetSeq == NULL);
+                    assert(false);
                     aln = nullptr;
                     continue;
                 }
