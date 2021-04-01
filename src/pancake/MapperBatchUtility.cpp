@@ -45,13 +45,21 @@ std::vector<PacBio::Pancake::MapperBatchChunk> ConstructBatchData(
 
 const char* FetchSequenceFromCacheStore(const FastaSequenceCachedStore& cacheStore,
                                         const int32_t seqId, bool doAssert,
-                                        const std::string& assertMessage)
+                                        const std::string& sourceFunction,
+                                        const std::string& assertMessage, const Overlap* ovl)
 {
     FastaSequenceCached seqCache;
     const bool rvGetSequence = cacheStore.GetSequence(seqCache, seqId);
     if (doAssert && rvGetSequence == false) {
-        PBLOG_DEBUG << "Could not find sequence with ID = " << seqId << " in cacheStore. "
-                    << assertMessage;
+        std::ostringstream oss;
+        // Need to print out the source function name, because there is no stack trace.
+        oss << "(" << sourceFunction << ") Could not find sequence with ID = " << seqId
+            << " in cacheStore. " << assertMessage;
+        // Optionally print out the overlap.
+        if (ovl) {
+            oss << "Overlap: " << OverlapWriterBase::PrintOverlapAsM4(*ovl, true);
+        }
+        PBLOG_DEBUG << oss.str();
         assert(false);
         return NULL;
     }
@@ -70,8 +78,6 @@ void PrepareSequencesForBatchAlignment(
     retPartsSemiglobal.clear();
     retAlnStitchInfo.clear();
     retLongestSequence = 0;
-
-    const std::string functionName = "(" + std::string(__FUNCTION__) + ")";
 
     // Results are a vector for every chunk (one chunk is one ZMW).
     for (size_t resultId = 0; resultId < mappingResults.size(); ++resultId) {
@@ -96,9 +102,9 @@ void PrepareSequencesForBatchAlignment(
 
             // Prepare the forward query data.
             // Fetch the query sequence without throwing if it doesn't exist for some reason.
-            const char* qSeqFwd = FetchSequenceFromCacheStore(
-                chunk.querySeqs, Aid, true,
-                functionName + " Query fwd. Aid = " + std::to_string(Aid));
+            const char* qSeqFwd =
+                FetchSequenceFromCacheStore(chunk.querySeqs, Aid, true, __FUNCTION__,
+                                            "Query fwd. Aid = " + std::to_string(Aid), NULL);
             if (qSeqFwd == NULL) {
                 PBLOG_DEBUG << "qSeqFwd == NULL!";
                 assert(false);
@@ -106,9 +112,9 @@ void PrepareSequencesForBatchAlignment(
             }
 
             // Prepare the reverse query data.
-            const char* qSeqRev = FetchSequenceFromCacheStore(
-                querySeqsRev[resultId], Aid, true,
-                functionName + " Query rev. Aid = " + std::to_string(Aid));
+            const char* qSeqRev =
+                FetchSequenceFromCacheStore(querySeqsRev[resultId], Aid, true, __FUNCTION__,
+                                            "Query rev. Aid = " + std::to_string(Aid), NULL);
             if (qSeqRev == NULL) {
                 PBLOG_DEBUG << "qSeqRev == NULL!";
                 assert(false);
@@ -136,10 +142,9 @@ void PrepareSequencesForBatchAlignment(
                 }
 
                 // Fetch the target sequence without throwing if it doesn't exist for some reason.
-                const char* tSeq = FetchSequenceFromCacheStore(
-                    chunk.targetSeqs, mapping->mapping->Bid, true,
-                    functionName + " Target. Overlap: " +
-                        OverlapWriterBase::PrintOverlapAsM4(*mapping->mapping));
+                const char* tSeq =
+                    FetchSequenceFromCacheStore(chunk.targetSeqs, mapping->mapping->Bid, true,
+                                                __FUNCTION__, "Target.", mapping->mapping.get());
                 if (tSeq == NULL) {
                     continue;
                 }
@@ -356,14 +361,12 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                 const auto& chunk = batchChunks[singleAlnInfo.ordinalBatchId];
 
                 // Fetch the query seq and its reverse complement without throwing.
-                const char* querySeqFwd = FetchSequenceFromCacheStore(
-                    chunk.querySeqs, mapping->mapping->Aid, true,
-                    "(" + std::string(__FUNCTION__) + ") Query fwd. Overlap: " +
-                        OverlapWriterBase::PrintOverlapAsM4(*aln, true));
+                const char* querySeqFwd =
+                    FetchSequenceFromCacheStore(chunk.querySeqs, mapping->mapping->Aid, true,
+                                                __FUNCTION__, "Query fwd.", aln.get());
                 const char* querySeqRev = FetchSequenceFromCacheStore(
                     querySeqsRev[singleAlnInfo.ordinalBatchId], mapping->mapping->Aid, true,
-                    "(" + std::string(__FUNCTION__) + ") Query rev. Overlap: " +
-                        OverlapWriterBase::PrintOverlapAsM4(*aln, true));
+                    __FUNCTION__, "Query rev.", aln.get());
                 const char* querySeq = (aln->Brev) ? querySeqRev : querySeqFwd;
                 if (querySeq == NULL) {
                     PBLOG_DEBUG << "querySeq == NULL. Overlap: "
@@ -374,10 +377,9 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                 }
 
                 // Fetch the target seq without throwing.
-                const char* targetSeq = FetchSequenceFromCacheStore(
-                    chunk.targetSeqs, mapping->mapping->Bid, true,
-                    "(" + std::string(__FUNCTION__) + ") Target. Overlap: " +
-                        OverlapWriterBase::PrintOverlapAsM4(*aln, true));
+                const char* targetSeq =
+                    FetchSequenceFromCacheStore(chunk.targetSeqs, mapping->mapping->Bid, true,
+                                                __FUNCTION__, "Target.", aln.get());
                 if (targetSeq == NULL) {
                     PBLOG_DEBUG << "targetSeq == NULL. Overlap: " << *mapping->mapping;
                     assert(false);
