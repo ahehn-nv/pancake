@@ -135,9 +135,19 @@ void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& m
                                    const bool mockPerfectAlignment,
                                    const int32_t matchScoreForMockAlignment);
 
-std::vector<std::vector<FastaSequenceId>> ComputeReverseComplements(
+/**
+ * \brief This function computes the reverse complements of the query sequences.
+ *
+ * As an optimization, if the onlyWhenRequired == true then the reverse complement for
+ * a query will be computed only if there is a mapping that maps the reverse strand
+ * of a query.
+ * Otherwise, an entry in the return vector will be generated, but the sequence will be
+ * an empty string.
+*/
+std::vector<std::vector<FastaSequenceId>> ComputeQueryReverseComplements(
     const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<MapperBaseResult>>& mappingResults, Parallel::FireAndForget* faf);
+    const std::vector<std::vector<MapperBaseResult>>& mappingResults, const bool onlyWhenRequired,
+    Parallel::FireAndForget* faf);
 
 }  // namespace Pancake
 }  // namespace PacBio

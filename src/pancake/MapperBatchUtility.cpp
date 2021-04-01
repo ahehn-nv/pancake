@@ -455,27 +455,39 @@ void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& m
     }
 }
 
-std::vector<std::vector<FastaSequenceId>> ComputeReverseComplements(
+std::vector<std::vector<FastaSequenceId>> ComputeQueryReverseComplements(
     const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<MapperBaseResult>>& mappingResults, Parallel::FireAndForget* faf)
+    const std::vector<std::vector<MapperBaseResult>>& mappingResults, const bool onlyWhenRequired,
+    Parallel::FireAndForget* faf)
 {
+    /*
+     * This function computes the reverse complements of the query sequences.
+     *
+     * As an optimization, if the onlyWhenRequired == true then the reverse complement for
+     * a query will be computed only if there is a mapping that maps the reverse strand
+     * of a query.
+     * Otherwise, an entry in the return vector will be generated, but the sequence will be
+     * an empty string.
+    */
+
+    // Figure out which queries need to be reversed.
     std::vector<std::vector<uint8_t>> shouldReverse(batchChunks.size());
     for (size_t i = 0; i < batchChunks.size(); ++i) {
-        shouldReverse[i].resize(batchChunks[i].querySeqs.Size(), false);
+        shouldReverse[i].resize(batchChunks[i].querySeqs.Size(), !onlyWhenRequired);
     }
-
-    // Results are a vector for every chunk (one chunk is one ZMW).
-    for (size_t chunkId = 0; chunkId < mappingResults.size(); ++chunkId) {
-        auto& result = mappingResults[chunkId];
-        // One chunk can have multiple queries (subreads).
-        for (size_t qId = 0; qId < result.size(); ++qId) {
-            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
-                if (result[qId].mappings[mapId] == nullptr ||
-                    result[qId].mappings[mapId]->mapping == nullptr) {
-                    continue;
+    if (onlyWhenRequired) {
+        for (size_t chunkId = 0; chunkId < mappingResults.size(); ++chunkId) {
+            auto& result = mappingResults[chunkId];
+            // One chunk can have multiple queries (subreads).
+            for (size_t qId = 0; qId < result.size(); ++qId) {
+                for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
+                    if (result[qId].mappings[mapId] == nullptr ||
+                        result[qId].mappings[mapId]->mapping == nullptr) {
+                        continue;
+                    }
+                    const OverlapPtr& aln = result[qId].mappings[mapId]->mapping;
+                    shouldReverse[chunkId][qId] |= aln->Brev;
                 }
-                const OverlapPtr& aln = result[qId].mappings[mapId]->mapping;
-                shouldReverse[chunkId][qId] |= aln->Brev;
             }
         }
     }
@@ -495,15 +507,12 @@ std::vector<std::vector<FastaSequenceId>> ComputeReverseComplements(
             auto& revSeqs = querySeqsRev[chunkId];
             for (size_t qId = 0; qId < batchChunks[chunkId].querySeqs.records().size(); ++qId) {
                 const auto& query = batchChunks[chunkId].querySeqs.records()[qId];
+                std::string queryRev;
                 if (shouldReverse[chunkId][qId]) {
-                    std::string queryRev =
-                        PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size());
-                    revSeqs.emplace_back(PacBio::Pancake::FastaSequenceId(
-                        query.Name(), std::move(queryRev), query.Id()));
-                } else {
-                    revSeqs.emplace_back(
-                        PacBio::Pancake::FastaSequenceId(query.Name(), "", query.Id()));
+                    queryRev = PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size());
                 }
+                revSeqs.emplace_back(PacBio::Pancake::FastaSequenceId(
+                    query.Name(), std::move(queryRev), query.Id()));
             }
         }
     };

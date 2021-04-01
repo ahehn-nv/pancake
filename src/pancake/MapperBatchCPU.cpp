@@ -67,7 +67,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchCPU::MapAndAlignImpl_(
     if (alignSettings.align) {
         // Compute the reverse complements for alignment.
         std::vector<std::vector<FastaSequenceId>> querySeqsRev =
-            ComputeReverseComplements(batchChunks, results, faf);
+            ComputeQueryReverseComplements(batchChunks, results, true, faf);
         // Convert the reverse sequences to FastaSequenceCachedStore.
         std::vector<FastaSequenceCachedStore> querySeqsRevStore;
         for (const auto& chunkRevQueries : querySeqsRev) {
