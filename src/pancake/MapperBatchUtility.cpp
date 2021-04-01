@@ -331,6 +331,10 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
             // Not initialized for some reason, skip it.
             if (singleAlnInfo.ordinalBatchId < 0 || singleAlnInfo.ordinalQueryId < 0 ||
                 singleAlnInfo.ordinalMapId < 0) {
+                PBLOG_DEBUG
+                    << "One of the ordinal values used to access a vector element is negative!"
+                    << " singleAlnInfo: " << singleAlnInfo;
+                assert(false);
                 continue;
             }
 
