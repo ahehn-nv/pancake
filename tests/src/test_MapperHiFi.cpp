@@ -10,11 +10,11 @@ TEST(MapperHiFi, CheckMappping_LoadFromFile)
 {
     struct TestData
     {
-        std::string testName;
-        std::string targetFile;
-        std::string queryFile;
-        PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-        std::string expectedOverlapFile;
+        const std::string testName;
+        const std::string targetFile;
+        const std::string queryFile;
+        const PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
+        const std::string expectedOverlapFile;
     };
 
     // clang-format off
@@ -107,12 +107,12 @@ TEST(MapperHiFi, ArbitrarySequenceIDs)
 {
     struct TestData
     {
-        std::string testName;
-        std::string targetFile;
-        std::string queryFile;
-        int32_t sequenceIdOffset = 0;
-        PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
-        std::string expectedOverlapFile;
+        const std::string testName;
+        const std::string targetFile;
+        const std::string queryFile;
+        const int32_t sequenceIdOffset = 0;
+        const PacBio::Pancake::SeedDB::SeedDBParameters seedParams;
+        const std::string expectedOverlapFile;
     };
 
     // clang-format off

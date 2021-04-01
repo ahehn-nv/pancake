@@ -11,12 +11,12 @@ TEST(MapperCLR, CheckMappping_LoadFromFile)
 {
     struct TestData
     {
-        std::string testName;
-        std::string targetFile;
-        std::string queryFile;
-        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
-        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
-        std::vector<std::string> expectedOverlaps;
+        const std::string testName;
+        const std::string targetFile;
+        const std::string queryFile;
+        const PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
+        const PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
+        const std::vector<std::string> expectedOverlaps;
     };
 
     // clang-format off
@@ -206,13 +206,13 @@ TEST(MapperCLR, CheckMappingAndSeedHits)
 
     struct TestData
     {
-        std::string testName;
-        std::string targetFile;
-        std::string queryFile;
-        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
-        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
-        std::vector<std::vector<SeedHit>> expectedSeedHits;
-        std::vector<std::string> expectedMappings;
+        const std::string testName;
+        const std::string targetFile;
+        const std::string queryFile;
+        const PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
+        const PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
+        const std::vector<std::vector<SeedHit>> expectedSeedHits;
+        const std::vector<std::string> expectedMappings;
     };
 
     // clang-format off
@@ -324,11 +324,11 @@ TEST(MapperCLR, CondenseMappings)
 
     struct TestData
     {
-        std::string testName;
+        const std::string testName;
         // tuple: <Overlap, priority, isSupplementary, isOverlapNullptr>
-        std::vector<std::tuple<std::string, int32_t, bool, bool>> inMappings;
-        int32_t bestNSecondary = 0;
-        std::vector<std::tuple<std::string, int32_t, bool, bool>> expected;
+        const std::vector<std::tuple<std::string, int32_t, bool, bool>> inMappings;
+        const int32_t bestNSecondary = 0;
+        const std::vector<std::tuple<std::string, int32_t, bool, bool>> expected;
     };
 
     // clang-format off
@@ -527,12 +527,12 @@ TEST(MapperCLR, CheckSelfHitPolicyAndSkippingSymmetrical)
 {
     struct TestData
     {
-        std::string testName;
-        std::string targetFile;
-        std::string queryFile;
-        int32_t sequenceIdOffset;
-        PacBio::Pancake::MapperCLRSettings settings;
-        std::string expectedOverlapsPath;
+        const std::string testName;
+        const std::string targetFile;
+        const std::string queryFile;
+        const int32_t sequenceIdOffset;
+        const PacBio::Pancake::MapperCLRSettings settings;
+        const std::string expectedOverlapsPath;
     };
 
     PacBio::Pancake::MapperCLRSettings settingsDefaultPolicy;

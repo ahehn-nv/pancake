@@ -11,13 +11,13 @@ TEST(MapperBatchCPU, BatchMapping_ArrayOfTests)
 
     struct TestData
     {
-        std::string testName;
-        std::vector<std::pair<std::string, std::string>> batchData;
-        int32_t sequenceIdOffset = 0;
-        PacBio::Pancake::AlignerType alignerTypeGlobal;
-        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
-        PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
-        std::vector<std::vector<std::string>> expectedOverlaps;
+        const std::string testName;
+        const std::vector<std::pair<std::string, std::string>> batchData;
+        const int32_t sequenceIdOffset = 0;
+        const PacBio::Pancake::AlignerType alignerTypeGlobal;
+        const PacBio::Pancake::SeedDB::SeedDBParameters seedParamsPrimary;
+        const PacBio::Pancake::SeedDB::SeedDBParameters seedParamsFallback;
+        const std::vector<std::vector<std::string>> expectedOverlaps;
     };
 
     // clang-format off
@@ -390,12 +390,13 @@ TEST(MapperBatchCPU, CheckSelfHitPolicyAndSkippingSymmetrical)
 
     struct TestData
     {
-        std::string testName;
-        std::vector<std::tuple<std::string, std::string, PacBio::Pancake::MapperCLRMapSettings>>
+        const std::string testName;
+        const std::vector<
+            std::tuple<std::string, std::string, PacBio::Pancake::MapperCLRMapSettings>>
             batchData;
-        int32_t sequenceIdOffset = 0;
-        PacBio::Pancake::MapperCLRAlignSettings alignSettings;
-        std::vector<std::string> expectedOverlapsPaths;
+        const int32_t sequenceIdOffset = 0;
+        const PacBio::Pancake::MapperCLRAlignSettings alignSettings;
+        const std::vector<std::string> expectedOverlapsPaths;
     };
 
     // clang-format off
