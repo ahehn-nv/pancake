@@ -325,6 +325,7 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                          &alnStitchInfo, &mappingResults](int32_t idx) {
         const int32_t jobStart = jobsPerThread[idx].first;
         const int32_t jobEnd = jobsPerThread[idx].second;
+        PacBio::BAM::Cigar revCigar;
         for (int32_t jobId = jobStart; jobId < jobEnd; ++jobId) {
             const AlignmentStitchInfo& singleAlnInfo = alnStitchInfo[jobId];
 
@@ -399,8 +400,8 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                 const int32_t tStart = aln->BstartFwd();
 
                 // Reverse the CIGAR if needed.
-                PacBio::BAM::Cigar revCigar;
                 if (aln->Brev) {
+                    revCigar.clear();
                     revCigar.insert(revCigar.end(), aln->Cigar.rbegin(), aln->Cigar.rend());
                 }
                 PacBio::BAM::Cigar& cigarInStrand = (aln->Brev) ? revCigar : aln->Cigar;
