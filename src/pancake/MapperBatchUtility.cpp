@@ -334,7 +334,7 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                 continue;
             }
 
-            // Sanity check.
+            // Check that the mapping result was not filtered.
             if (mappingResults[singleAlnInfo.ordinalBatchId][singleAlnInfo.ordinalQueryId]
                     .mappings[singleAlnInfo.ordinalMapId] == nullptr) {
                 continue;
@@ -343,7 +343,7 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                 mappingResults[singleAlnInfo.ordinalBatchId][singleAlnInfo.ordinalQueryId]
                     .mappings[singleAlnInfo.ordinalMapId];
 
-            // Sanity check.
+            // Check that the mapping result was not filtered.
             if (mapping->mapping == nullptr) {
                 continue;
             }
