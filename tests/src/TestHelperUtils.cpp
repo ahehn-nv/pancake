@@ -18,6 +18,20 @@ std::vector<PacBio::BAM::FastaSequence> HelperLoadFasta(const std::string& inFas
     return ret;
 }
 
+std::vector<PacBio::Pancake::FastaSequenceId> HelperLoadFastaWithId(const std::string& inFasta,
+                                                                    const int32_t seqIdOffset)
+{
+    std::vector<PacBio::Pancake::FastaSequenceId> ret;
+    PacBio::BAM::FastaReader inReader{inFasta};
+    PacBio::BAM::FastaSequence record;
+    int32_t seqId = 0;
+    while (inReader.GetNext(record)) {
+        ret.emplace_back(PacBio::Pancake::FastaSequenceId(record, seqId + seqIdOffset));
+        ++seqId;
+    }
+    return ret;
+}
+
 std::string HelperLoadFastaAsString(const std::string& inFasta)
 {
     std::ostringstream oss;
@@ -54,7 +68,8 @@ std::vector<std::string> HelperLoadFile(const std::string& inFile)
 
 void HelperLoadBatchData(
     const std::vector<std::pair<std::string, std::string>>& batchDataSequenceFiles,
-    const double freqPercentile, const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsPrimary,
+    const int32_t seqIdOffset, const double freqPercentile,
+    const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsPrimary,
     const PacBio::Pancake::SeedDB::SeedDBParameters& seedParamsFallback,
     std::vector<PacBio::Pancake::MapperBatchChunk>& retBatchData,
     std::vector<PacBio::BAM::FastaSequence>& retAllSeqs)
@@ -88,8 +103,8 @@ void HelperLoadBatchData(
             retAllSeqs.emplace_back(std::move(seq));
             auto newFsc = PacBio::Pancake::FastaSequenceCached(
                 std::to_string(seqId), retAllSeqs.back().Bases().c_str(),
-                retAllSeqs.back().Bases().size(), seqId);
-            bd.targetSeqs.emplace_back(std::move(newFsc));
+                retAllSeqs.back().Bases().size(), seqId + seqIdOffset);
+            bd.targetSeqs.AddRecord(std::move(newFsc));
         }
 
         // Load query sequences and construct the FastaSequenceCached objects.
@@ -101,8 +116,8 @@ void HelperLoadBatchData(
             retAllSeqs.emplace_back(std::move(seq));
             auto newFsc = PacBio::Pancake::FastaSequenceCached(
                 std::to_string(seqId), retAllSeqs.back().Bases().c_str(),
-                retAllSeqs.back().Bases().size(), seqId);
-            bd.querySeqs.emplace_back(std::move(newFsc));
+                retAllSeqs.back().Bases().size(), seqId + seqIdOffset);
+            bd.querySeqs.AddRecord(std::move(newFsc));
         }
 
         // Set the seed parameter settings and create a mapper.
@@ -117,7 +132,7 @@ void HelperLoadBatchData(
 void HelperLoadBatchData(
     const std::vector<std::tuple<std::string, std::string, PacBio::Pancake::MapperCLRMapSettings>>&
         batchDataSequenceFiles,
-    std::vector<PacBio::Pancake::MapperBatchChunk>& retBatchData,
+    const int32_t seqIdOffset, std::vector<PacBio::Pancake::MapperBatchChunk>& retBatchData,
     std::vector<PacBio::BAM::FastaSequence>& retAllSeqs)
 {
     /*
@@ -150,8 +165,8 @@ void HelperLoadBatchData(
             retAllSeqs.emplace_back(std::move(seq));
             auto newFsc = PacBio::Pancake::FastaSequenceCached(
                 std::to_string(seqId), retAllSeqs.back().Bases().c_str(),
-                retAllSeqs.back().Bases().size(), seqId);
-            bd.targetSeqs.emplace_back(std::move(newFsc));
+                retAllSeqs.back().Bases().size(), seqId + seqIdOffset);
+            bd.targetSeqs.AddRecord(std::move(newFsc));
         }
 
         // Load query sequences and construct the FastaSequenceCached objects.
@@ -163,8 +178,8 @@ void HelperLoadBatchData(
             retAllSeqs.emplace_back(std::move(seq));
             auto newFsc = PacBio::Pancake::FastaSequenceCached(
                 std::to_string(seqId), retAllSeqs.back().Bases().c_str(),
-                retAllSeqs.back().Bases().size(), seqId);
-            bd.querySeqs.emplace_back(std::move(newFsc));
+                retAllSeqs.back().Bases().size(), seqId + seqIdOffset);
+            bd.querySeqs.AddRecord(std::move(newFsc));
         }
 
         bd.mapSettings = mapSettings;

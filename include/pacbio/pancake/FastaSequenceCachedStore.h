@@ -9,6 +9,7 @@
 #define PANCAKE_FASTA_SEQUENCE_CACHED_STORE_H
 
 #include <pacbio/pancake/FastaSequenceCached.h>
+#include <pacbio/pancake/FastaSequenceId.h>
 #include <cstdint>
 #include <sstream>
 #include <string>
@@ -39,6 +40,8 @@ public:
         AddRecords(records);
     }
 
+    FastaSequenceCachedStore(const std::vector<FastaSequenceId>& records) { AddRecords(records); }
+
     void Clear()
     {
         records_.clear();
@@ -61,7 +64,23 @@ public:
         records_.emplace_back(std::move(record));
     }
 
+    void AddRecord(const FastaSequenceId& record)
+    {
+        auto seqCache = PacBio::Pancake::FastaSequenceCached(record.Name(), record.Bases().c_str(),
+                                                             record.Bases().size(), record.Id());
+        seqIdToOrdinalId_[record.Id()] = records_.size();
+        headerToOrdinalId_[record.Name()] = records_.size();
+        records_.emplace_back(std::move(seqCache));
+    }
+
     void AddRecords(const std::vector<FastaSequenceCached>& records)
+    {
+        for (const auto& record : records) {
+            AddRecord(record);
+        }
+    }
+
+    void AddRecords(const std::vector<FastaSequenceId>& records)
     {
         for (const auto& record : records) {
             AddRecord(record);
@@ -96,7 +115,7 @@ public:
         return records_[ordinalId];
     }
 
-    bool GetSequence(FastaSequenceCached& record, int32_t seqId)
+    bool GetSequence(FastaSequenceCached& record, int32_t seqId) const
     {
         const auto it = seqIdToOrdinalId_.find(seqId);
         if (it == seqIdToOrdinalId_.end()) {
@@ -107,7 +126,7 @@ public:
         return true;
     }
 
-    bool GetSequence(FastaSequenceCached& record, const std::string& seqName)
+    bool GetSequence(FastaSequenceCached& record, const std::string& seqName) const
     {
         const auto it = headerToOrdinalId_.find(seqName);
         if (it == headerToOrdinalId_.end()) {

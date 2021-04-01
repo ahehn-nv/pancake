@@ -43,6 +43,7 @@ public:
                                   bool writeCigar);
     static std::string PrintOverlapAsM4(const Overlap& ovl, const std::string& Aname,
                                         const std::string& Bname, bool writeIds, bool writeCigar);
+    static std::string PrintOverlapAsM4(const Overlap& ovl, bool writeCigar = false);
 };
 
 constexpr char ConstexprTypeToChar(PacBio::BAM::CigarOperationType type)

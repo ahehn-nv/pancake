@@ -25,7 +25,7 @@ std::vector<PacBio::Pancake::MapperBatchChunk> ConstructBatchData(
             const int32_t seqId = i;
             auto seqCache = PacBio::Pancake::FastaSequenceCached(std::to_string(seqId), seq.c_str(),
                                                                  seq.size(), seqId);
-            chunk.targetSeqs.emplace_back(std::move(seqCache));
+            chunk.targetSeqs.AddRecord(std::move(seqCache));
         }
 
         // Add the query sequences to the chunk.
@@ -34,7 +34,7 @@ std::vector<PacBio::Pancake::MapperBatchChunk> ConstructBatchData(
             const int32_t seqId = i;
             auto seqCache = PacBio::Pancake::FastaSequenceCached(std::to_string(seqId), seq.c_str(),
                                                                  seq.size(), seqId);
-            chunk.querySeqs.emplace_back(std::move(seqCache));
+            chunk.querySeqs.AddRecord(std::move(seqCache));
         }
 
         batchData.emplace_back(std::move(chunk));
@@ -43,9 +43,33 @@ std::vector<PacBio::Pancake::MapperBatchChunk> ConstructBatchData(
     return batchData;
 }
 
+const char* FetchSequenceFromCacheStore(const FastaSequenceCachedStore& cacheStore,
+                                        const int32_t seqId, bool doAssert,
+                                        const std::string& sourceFunction,
+                                        const std::string& assertMessage, const Overlap* ovl)
+{
+    FastaSequenceCached seqCache;
+    const bool rvGetSequence = cacheStore.GetSequence(seqCache, seqId);
+    if (doAssert && rvGetSequence == false) {
+        std::ostringstream oss;
+        // Need to print out the source function name, because there is no stack trace.
+        oss << "(" << sourceFunction << ") Could not find sequence with ID = " << seqId
+            << " in cacheStore. " << assertMessage;
+        // Optionally print out the overlap.
+        if (ovl) {
+            oss << "Overlap: " << OverlapWriterBase::PrintOverlapAsM4(*ovl, true) << ".";
+        }
+        oss << " Skipping and continuing anyway.";
+        PBLOG_ERROR << oss.str();
+        assert(false);
+        return NULL;
+    }
+    return seqCache.c_str();
+}
+
 void PrepareSequencesForBatchAlignment(
     const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<std::string>>& querySeqsRev,
+    const std::vector<FastaSequenceCachedStore>& querySeqsRev,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
     const MapperSelfHitPolicy selfHitPolicy, std::vector<PairForBatchAlignment>& retPartsGlobal,
     std::vector<PairForBatchAlignment>& retPartsSemiglobal,
@@ -62,17 +86,55 @@ void PrepareSequencesForBatchAlignment(
         const auto& chunk = batchChunks[resultId];
 
         // One chunk can have multiple queries (subreads).
-        for (size_t qId = 0; qId < result.size(); ++qId) {
-            // Prepare the query data in fwd and rev.
-            const char* qSeqFwd = chunk.querySeqs[qId].c_str();
-            const std::string& qSeqRevString = querySeqsRev[resultId][qId];
-            const char* qSeqRev = qSeqRevString.c_str();
+        for (size_t ordinalQueryId = 0; ordinalQueryId < result.size(); ++ordinalQueryId) {
+            // Find the actual sequence ID from one valid mapping.
+            int32_t Aid = -1;
+            for (size_t mapId = 0; mapId < result[ordinalQueryId].mappings.size(); ++mapId) {
+                if (result[ordinalQueryId].mappings[mapId] == nullptr ||
+                    result[ordinalQueryId].mappings[mapId]->mapping == nullptr) {
+                    continue;
+                }
+                Aid = result[ordinalQueryId].mappings[mapId]->mapping->Aid;
+                break;
+            }
+            if (Aid < 0) {
+                continue;
+            }
+
+            // Prepare the forward query data.
+            // Fetch the query sequence without throwing if it doesn't exist for some reason.
+            const char* qSeqFwd =
+                FetchSequenceFromCacheStore(chunk.querySeqs, Aid, true, __FUNCTION__,
+                                            "Query fwd. Aid = " + std::to_string(Aid), NULL);
+            if (qSeqFwd == NULL) {
+                PBLOG_ERROR << "qSeqFwd == NULL! Skipping and continuing anyway.";
+                assert(false);
+                continue;
+            }
+
+            // Prepare the reverse query data.
+            const char* qSeqRev =
+                FetchSequenceFromCacheStore(querySeqsRev[resultId], Aid, true, __FUNCTION__,
+                                            "Query rev. Aid = " + std::to_string(Aid), NULL);
+            if (qSeqRev == NULL) {
+                PBLOG_ERROR << "qSeqRev == NULL! Skipping and continuing anyway.";
+                assert(false);
+                continue;
+            }
 
             // Each query can have multiple mappings.
-            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
-                const auto& mapping = result[qId].mappings[mapId];
-                const char* tSeq = chunk.targetSeqs[mapping->mapping->Bid].c_str();
+            for (size_t mapId = 0; mapId < result[ordinalQueryId].mappings.size(); ++mapId) {
+                if (result[ordinalQueryId].mappings[mapId] == nullptr) {
+                    continue;
+                }
 
+                const auto& mapping = result[ordinalQueryId].mappings[mapId];
+
+                if (mapping->mapping == nullptr) {
+                    continue;
+                }
+
+                // Shorthand to the mapped data.
                 const auto& aln = mapping->mapping;
 
                 // Skip self-hits unless the default policy is used, in which case align all.
@@ -80,8 +142,19 @@ void PrepareSequencesForBatchAlignment(
                     continue;
                 }
 
+                // Fetch the target sequence without throwing if it doesn't exist for some reason.
+                const char* tSeq =
+                    FetchSequenceFromCacheStore(chunk.targetSeqs, mapping->mapping->Bid, true,
+                                                __FUNCTION__, "Target.", mapping->mapping.get());
+                if (tSeq == NULL) {
+                    PBLOG_ERROR << "tSeq == NULL. Overlap: " << *mapping->mapping
+                                << ". Skipping and continuing anyway.";
+                    assert(false);
+                    continue;
+                }
+
                 // AlignmentStitchVector singleQueryStitches;
-                AlignmentStitchInfo singleAlnStitches(resultId, qId, mapId);
+                AlignmentStitchInfo singleAlnStitches(resultId, ordinalQueryId, mapId);
 
                 // Each mapping is split into regions in between seed hits for alignment.
                 for (size_t regId = 0; regId < mapping->regionsForAln.size(); ++regId) {
@@ -236,79 +309,9 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
     return ret;
 }
 
-void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults,
-                      const std::vector<MapperBatchChunk>& batchChunks,
-                      const std::vector<std::vector<std::string>>& querySeqsRev,
-                      const std::vector<AlignmentResult>& internalAlns,
-                      const std::vector<AlignmentResult>& flankAlns,
-                      const std::vector<AlignmentStitchInfo>& alnStitchInfo)
-{
-    for (const auto& singleAlnInfo : alnStitchInfo) {
-        // Not initialized for some reason, skip it.
-        if (singleAlnInfo.batchId < 0 || singleAlnInfo.queryId < 0 || singleAlnInfo.mapId < 0) {
-            continue;
-        }
-
-        // Sanity check.
-        if (mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
-                .mappings[singleAlnInfo.mapId] == nullptr) {
-            continue;
-        }
-        auto& mapping = mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
-                            .mappings[singleAlnInfo.mapId];
-
-        // Sanity check.
-        if (mapping->mapping == nullptr) {
-            continue;
-        }
-        auto& aln = mapping->mapping;
-
-        // Do the stitching, and swap.
-        OverlapPtr newAln = StitchSingleAlignment(aln, mapping->regionsForAln, internalAlns,
-                                                  flankAlns, singleAlnInfo.parts);
-        std::swap(aln, newAln);
-
-        if (aln == nullptr) {
-            continue;
-        }
-
-        {  // Validation of the final alignment.
-            const char* querySeq =
-                (aln->Brev)
-                    ? querySeqsRev[singleAlnInfo.batchId][singleAlnInfo.queryId].c_str()
-                    : batchChunks[singleAlnInfo.batchId].querySeqs[singleAlnInfo.queryId].c_str();
-            const char* targetSeq = batchChunks[singleAlnInfo.batchId].targetSeqs[aln->Bid].c_str();
-
-            const int32_t qStart = (aln->Brev) ? (aln->Alen - aln->Aend) : aln->Astart;
-            const int32_t tStart = aln->BstartFwd();
-
-            PacBio::BAM::Cigar revCigar;
-            if (aln->Brev) {
-                revCigar.insert(revCigar.end(), aln->Cigar.rbegin(), aln->Cigar.rend());
-            }
-            PacBio::BAM::Cigar& cigarInStrand = (aln->Brev) ? revCigar : aln->Cigar;
-
-            try {
-                ValidateCigar(querySeq + qStart, aln->ASpan(), targetSeq + tStart, aln->BSpan(),
-                              cigarInStrand, "Full length validation, fwd.");
-
-            } catch (std::exception& e) {
-                PBLOG_WARN << "[Note: Exception caused by ValidateCigar in StitchAlignments] "
-                           << e.what() << "\n";
-                PBLOG_DEBUG << "singleAlnInfo.batchId = " << singleAlnInfo.batchId;
-                PBLOG_DEBUG << "singleAlnInfo.queryId = " << singleAlnInfo.queryId;
-                PBLOG_DEBUG << "Aligned: \"" << *newAln << "\"";
-                PBLOG_DEBUG << mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId] << "\n";
-                aln = nullptr;
-                continue;
-            }
-        }
-    }
-}
-
 void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                                 const std::vector<MapperBatchChunk>& batchChunks,
-                                const std::vector<std::vector<std::string>>& querySeqsRev,
+                                const std::vector<FastaSequenceCachedStore>& querySeqsRev,
                                 const std::vector<AlignmentResult>& internalAlns,
                                 const std::vector<AlignmentResult>& flankAlns,
                                 const std::vector<AlignmentStitchInfo>& alnStitchInfo,
@@ -324,23 +327,30 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                          &alnStitchInfo, &mappingResults](int32_t idx) {
         const int32_t jobStart = jobsPerThread[idx].first;
         const int32_t jobEnd = jobsPerThread[idx].second;
+        PacBio::BAM::Cigar revCigar;
         for (int32_t jobId = jobStart; jobId < jobEnd; ++jobId) {
             const AlignmentStitchInfo& singleAlnInfo = alnStitchInfo[jobId];
 
             // Not initialized for some reason, skip it.
-            if (singleAlnInfo.batchId < 0 || singleAlnInfo.queryId < 0 || singleAlnInfo.mapId < 0) {
+            if (singleAlnInfo.ordinalBatchId < 0 || singleAlnInfo.ordinalQueryId < 0 ||
+                singleAlnInfo.ordinalMapId < 0) {
+                PBLOG_ERROR
+                    << "One of the ordinal values used to access a vector element is negative!"
+                    << " singleAlnInfo: " << singleAlnInfo << ". Skipping and continuing anyway.";
+                assert(false);
                 continue;
             }
 
-            // Sanity check.
-            if (mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
-                    .mappings[singleAlnInfo.mapId] == nullptr) {
+            // Check that the mapping result was not filtered.
+            if (mappingResults[singleAlnInfo.ordinalBatchId][singleAlnInfo.ordinalQueryId]
+                    .mappings[singleAlnInfo.ordinalMapId] == nullptr) {
                 continue;
             }
-            auto& mapping = mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
-                                .mappings[singleAlnInfo.mapId];
+            auto& mapping =
+                mappingResults[singleAlnInfo.ordinalBatchId][singleAlnInfo.ordinalQueryId]
+                    .mappings[singleAlnInfo.ordinalMapId];
 
-            // Sanity check.
+            // Check that the mapping result was not filtered.
             if (mapping->mapping == nullptr) {
                 continue;
             }
@@ -356,23 +366,51 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
             }
 
             {  // Validation of the final alignment.
-                const char* querySeq =
-                    (aln->Brev) ? querySeqsRev[singleAlnInfo.batchId][singleAlnInfo.queryId].c_str()
-                                : batchChunks[singleAlnInfo.batchId]
-                                      .querySeqs[singleAlnInfo.queryId]
-                                      .c_str();
-                const char* targetSeq =
-                    batchChunks[singleAlnInfo.batchId].targetSeqs[aln->Bid].c_str();
 
+                const auto& chunk = batchChunks[singleAlnInfo.ordinalBatchId];
+
+                // Fetch the query seq and its reverse complement without throwing.
+                const char* querySeqFwd =
+                    FetchSequenceFromCacheStore(chunk.querySeqs, mapping->mapping->Aid, true,
+                                                __FUNCTION__, "Query fwd.", aln.get());
+                const char* querySeqRev = FetchSequenceFromCacheStore(
+                    querySeqsRev[singleAlnInfo.ordinalBatchId], mapping->mapping->Aid, true,
+                    __FUNCTION__, "Query rev.", aln.get());
+                const char* querySeq = (aln->Brev) ? querySeqRev : querySeqFwd;
+                if (querySeq == NULL) {
+                    PBLOG_ERROR << "querySeq == NULL. Overlap: "
+                                << OverlapWriterBase::PrintOverlapAsM4(*aln, true)
+                                << ". Skipping and continuing anyway.";
+                    assert(false);
+                    aln = nullptr;
+                    continue;
+                }
+
+                // Fetch the target seq without throwing.
+                const char* targetSeq =
+                    FetchSequenceFromCacheStore(chunk.targetSeqs, mapping->mapping->Bid, true,
+                                                __FUNCTION__, "Target.", aln.get());
+                if (targetSeq == NULL) {
+                    PBLOG_ERROR << "targetSeq == NULL. Overlap: " << *mapping->mapping
+                                << ". Skipping and continuing anyway.";
+                    assert(false);
+                    aln = nullptr;
+                    continue;
+                }
+
+                // Coordinates relative to strand (internally we represent the B sequence as
+                // reverse, but here we take the reverse of the query, so strands need to be swapped).
                 const int32_t qStart = (aln->Brev) ? (aln->Alen - aln->Aend) : aln->Astart;
                 const int32_t tStart = aln->BstartFwd();
 
-                PacBio::BAM::Cigar revCigar;
+                // Reverse the CIGAR if needed.
                 if (aln->Brev) {
+                    revCigar.clear();
                     revCigar.insert(revCigar.end(), aln->Cigar.rbegin(), aln->Cigar.rend());
                 }
                 PacBio::BAM::Cigar& cigarInStrand = (aln->Brev) ? revCigar : aln->Cigar;
 
+                // Run the actual validation.
                 try {
                     ValidateCigar(querySeq + qStart, aln->ASpan(), targetSeq + tStart, aln->BSpan(),
                                   cigarInStrand, "Full length validation, fwd.");
@@ -380,10 +418,10 @@ void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mapp
                 } catch (std::exception& e) {
                     PBLOG_WARN << "[Note: Exception caused by ValidateCigar in StitchAlignments] "
                                << e.what() << "\n";
-                    PBLOG_DEBUG << "singleAlnInfo.batchId = " << singleAlnInfo.batchId;
-                    PBLOG_DEBUG << "singleAlnInfo.queryId = " << singleAlnInfo.queryId;
+                    PBLOG_DEBUG << "singleAlnInfo: " << singleAlnInfo;
                     PBLOG_DEBUG << "Aligned: \"" << *newAln << "\"";
-                    PBLOG_DEBUG << mappingResults[singleAlnInfo.batchId][singleAlnInfo.queryId]
+                    PBLOG_DEBUG << mappingResults[singleAlnInfo.ordinalBatchId]
+                                                 [singleAlnInfo.ordinalQueryId]
                                 << "\n";
                     aln = nullptr;
                     continue;
@@ -422,27 +460,39 @@ void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& m
     }
 }
 
-std::vector<std::vector<std::string>> ComputeReverseComplements(
+std::vector<std::vector<FastaSequenceId>> ComputeQueryReverseComplements(
     const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<MapperBaseResult>>& mappingResults, Parallel::FireAndForget* faf)
+    const std::vector<std::vector<MapperBaseResult>>& mappingResults, const bool onlyWhenRequired,
+    Parallel::FireAndForget* faf)
 {
+    /*
+     * This function computes the reverse complements of the query sequences.
+     *
+     * As an optimization, if the onlyWhenRequired == true then the reverse complement for
+     * a query will be computed only if there is a mapping that maps the reverse strand
+     * of a query.
+     * Otherwise, an entry in the return vector will be generated, but the sequence will be
+     * an empty string.
+    */
+
+    // Figure out which queries need to be reversed.
     std::vector<std::vector<uint8_t>> shouldReverse(batchChunks.size());
     for (size_t i = 0; i < batchChunks.size(); ++i) {
-        shouldReverse[i].resize(batchChunks[i].querySeqs.size(), false);
+        shouldReverse[i].resize(batchChunks[i].querySeqs.Size(), !onlyWhenRequired);
     }
-
-    // Results are a vector for every chunk (one chunk is one ZMW).
-    for (size_t chunkId = 0; chunkId < mappingResults.size(); ++chunkId) {
-        auto& result = mappingResults[chunkId];
-        // One chunk can have multiple queries (subreads).
-        for (size_t qId = 0; qId < result.size(); ++qId) {
-            for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
-                if (result[qId].mappings[mapId] == nullptr ||
-                    result[qId].mappings[mapId]->mapping == nullptr) {
-                    continue;
+    if (onlyWhenRequired) {
+        for (size_t chunkId = 0; chunkId < mappingResults.size(); ++chunkId) {
+            auto& result = mappingResults[chunkId];
+            // One chunk can have multiple queries (subreads).
+            for (size_t qId = 0; qId < result.size(); ++qId) {
+                for (size_t mapId = 0; mapId < result[qId].mappings.size(); ++mapId) {
+                    if (result[qId].mappings[mapId] == nullptr ||
+                        result[qId].mappings[mapId]->mapping == nullptr) {
+                        continue;
+                    }
+                    const OverlapPtr& aln = result[qId].mappings[mapId]->mapping;
+                    shouldReverse[chunkId][qId] |= aln->Brev;
                 }
-                const OverlapPtr& aln = result[qId].mappings[mapId]->mapping;
-                shouldReverse[chunkId][qId] |= aln->Brev;
             }
         }
     }
@@ -453,21 +503,21 @@ std::vector<std::vector<std::string>> ComputeReverseComplements(
     const std::vector<std::pair<int32_t, int32_t>> jobsPerThread =
         PacBio::Pancake::DistributeJobLoad<int32_t>(numThreads, numRecords);
 
-    std::vector<std::vector<std::string>> querySeqsRev(batchChunks.size());
+    std::vector<std::vector<FastaSequenceId>> querySeqsRev(batchChunks.size());
 
     const auto Submit = [&batchChunks, &jobsPerThread, &shouldReverse, &querySeqsRev](int32_t idx) {
         const int32_t jobStart = jobsPerThread[idx].first;
         const int32_t jobEnd = jobsPerThread[idx].second;
         for (int32_t chunkId = jobStart; chunkId < jobEnd; ++chunkId) {
             auto& revSeqs = querySeqsRev[chunkId];
-            for (size_t qId = 0; qId < batchChunks[chunkId].querySeqs.size(); ++qId) {
+            for (size_t qId = 0; qId < batchChunks[chunkId].querySeqs.records().size(); ++qId) {
+                const auto& query = batchChunks[chunkId].querySeqs.records()[qId];
+                std::string queryRev;
                 if (shouldReverse[chunkId][qId]) {
-                    const auto& query = batchChunks[chunkId].querySeqs[qId];
-                    revSeqs.emplace_back(
-                        PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size()));
-                } else {
-                    revSeqs.emplace_back("");
+                    queryRev = PacBio::Pancake::ReverseComplement(query.c_str(), 0, query.size());
                 }
+                revSeqs.emplace_back(PacBio::Pancake::FastaSequenceId(
+                    query.Name(), std::move(queryRev), query.Id()));
             }
         }
     };

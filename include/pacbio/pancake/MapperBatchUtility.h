@@ -19,8 +19,8 @@ namespace Pancake {
 
 struct MapperBatchChunk
 {
-    std::vector<FastaSequenceCached> targetSeqs;
-    std::vector<FastaSequenceCached> querySeqs;
+    FastaSequenceCachedStore targetSeqs;
+    FastaSequenceCachedStore querySeqs;
     MapperCLRMapSettings mapSettings;
 };
 
@@ -76,16 +76,25 @@ struct AlignmentStitchPart
 class AlignmentStitchInfo
 {
 public:
-    AlignmentStitchInfo(int32_t _batchId, int32_t _queryId, int32_t _mapId)
-        : batchId(_batchId), queryId(_queryId), mapId(_mapId)
+    AlignmentStitchInfo(int32_t _ordinalBatchId, int32_t _ordinalQueryId, int32_t _ordinalMapId)
+        : ordinalBatchId(_ordinalBatchId)
+        , ordinalQueryId(_ordinalQueryId)
+        , ordinalMapId(_ordinalMapId)
     {
     }
 
     std::vector<AlignmentStitchPart> parts;
-    int32_t batchId = -1;
-    int32_t queryId = -1;
-    int32_t mapId = -1;
+    int32_t ordinalBatchId = -1;
+    int32_t ordinalQueryId = -1;
+    int32_t ordinalMapId = -1;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const AlignmentStitchInfo& b)
+{
+    os << "ordinalBatchId = " << b.ordinalBatchId << ", ordinalQueryId = " << b.ordinalQueryId
+       << ", ordinalMapId = " << b.ordinalMapId;
+    return os;
+}
 
 // typedef std::vector<AlignmentStitchPart> AlignmentStitchVector;
 
@@ -102,7 +111,7 @@ std::vector<PacBio::Pancake::MapperBatchChunk> ConstructBatchData(
 
 void PrepareSequencesForBatchAlignment(
     const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<std::string>>& querySeqsRev,
+    const std::vector<FastaSequenceCachedStore>& querySeqsRev,
     const std::vector<std::vector<MapperBaseResult>>& mappingResults,
     const MapperSelfHitPolicy selfHitPolicy, std::vector<PairForBatchAlignment>& retPartsGlobal,
     std::vector<PairForBatchAlignment>& retPartsSemiglobal,
@@ -114,16 +123,9 @@ OverlapPtr StitchSingleAlignment(const OverlapPtr& aln,
                                  const std::vector<AlignmentResult>& flankAlns,
                                  const std::vector<AlignmentStitchPart>& parts);
 
-void StitchAlignments(std::vector<std::vector<MapperBaseResult>>& mappingResults,
-                      const std::vector<MapperBatchChunk>& batchChunks,
-                      const std::vector<std::vector<std::string>>& querySeqsRev,
-                      const std::vector<AlignmentResult>& internalAlns,
-                      const std::vector<AlignmentResult>& flankAlns,
-                      const std::vector<AlignmentStitchInfo>& alnStitchInfo);
-
 void StitchAlignmentsInParallel(std::vector<std::vector<MapperBaseResult>>& mappingResults,
                                 const std::vector<MapperBatchChunk>& batchChunks,
-                                const std::vector<std::vector<std::string>>& querySeqsRev,
+                                const std::vector<FastaSequenceCachedStore>& querySeqsRev,
                                 const std::vector<AlignmentResult>& internalAlns,
                                 const std::vector<AlignmentResult>& flankAlns,
                                 const std::vector<AlignmentStitchInfo>& alnStitchInfo,
@@ -133,9 +135,19 @@ void SetUnalignedAndMockedMappings(std::vector<std::vector<MapperBaseResult>>& m
                                    const bool mockPerfectAlignment,
                                    const int32_t matchScoreForMockAlignment);
 
-std::vector<std::vector<std::string>> ComputeReverseComplements(
+/**
+ * \brief This function computes the reverse complements of the query sequences.
+ *
+ * As an optimization, if the onlyWhenRequired == true then the reverse complement for
+ * a query will be computed only if there is a mapping that maps the reverse strand
+ * of a query.
+ * Otherwise, an entry in the return vector will be generated, but the sequence will be
+ * an empty string.
+*/
+std::vector<std::vector<FastaSequenceId>> ComputeQueryReverseComplements(
     const std::vector<MapperBatchChunk>& batchChunks,
-    const std::vector<std::vector<MapperBaseResult>>& mappingResults, Parallel::FireAndForget* faf);
+    const std::vector<std::vector<MapperBaseResult>>& mappingResults, const bool onlyWhenRequired,
+    Parallel::FireAndForget* faf);
 
 }  // namespace Pancake
 }  // namespace PacBio
