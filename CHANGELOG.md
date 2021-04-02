@@ -3,9 +3,23 @@
 ## Active version in development
 ### Changes
 
+
+## v1.3.0
+### Version
+- `pancake` - commit 1c1b037270bdd39b96aafc4e537345878cf4c923 (April 02, 2021), `pancake 1.3.0 (commit SL-release-10.0.0-557-g1c1b037)`
+
+### Changes
+- Arbitrary sequence IDs - sequences can now have an arbitrary numeric ID for mapping. Previously, the IDs of sequences needed to be consecutive and starting from 0.
+- CollectHits now reverses the query coordinate instead of the target coordinate if the seeds are on the opposite strands. This allows for simplification of a lot of the code, and perhaps some efficiency improvement.
+- Minor refactoring of the SeedIndex.
+- GPU CIGAR conversion for the MapperBatchGPU. This is no longer performed on the CPU, and this improves the efficiency of this mapper.
+- Removed the `maxHPCLen` parameter from minimizer computation. There is no longer an upper limit on the length of the homopolymers for compression. The `--max-hpc-len` parameter is now removed from `pancake seeddb`.
+- Bugfixes for edge cases in minimizer computation: first window had a bug when multiple equal keys are there; spaced seeds could have omitted minimizers in the first window.
+- Bugfix for negative seed hit spans (when the span of a seed ran over the range of the signed 8-bit ints).
+
 ## v1.2.0
 ### Version
-- `pancake` - 2f05f3e16219291485de130f7ca68dc40ae7c5c5 (Mar 11, 2021), `pancake 1.2.0 (commit SL-release-10.0.0-417-g2f05f3e)`
+- `pancake` - commit 2f05f3e16219291485de130f7ca68dc40ae7c5c5 (Mar 11, 2021), `pancake 1.2.0 (commit SL-release-10.0.0-417-g2f05f3e)`
 
 ### Changes
 - The `AlignmentResult` now stores the number of alignment differences, so that the client doesn't have to parse the CIGAR string again. Updated the aligners to produce the diff counts.
