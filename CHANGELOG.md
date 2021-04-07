@@ -2,7 +2,7 @@
 
 ## Active version in development
 ### Changes
-
+ - Add `dynamicBandwidth` boolean to `AlignmentParameters` that allows iterative KSW2 bandwidth exploration
 
 ## v1.3.0
 ### Version
