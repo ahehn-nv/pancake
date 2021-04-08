@@ -236,11 +236,11 @@ int32_t MapperBatchGPU::AlignPartsOnGPU_(AlignerBatchGPU& aligner,
                 std::reverse(query.begin(), query.end());
                 std::string target(part.target, part.targetLen);
                 std::reverse(target.begin(), target.end());
-                rv = aligner.AddSequencePair(query.c_str(), part.queryLen, target.c_str(),
-                                             part.targetLen);
+                rv = aligner.AddSequencePairForGlobalAlignment(query.c_str(), part.queryLen,
+                                                               target.c_str(), part.targetLen);
             } else {
-                rv =
-                    aligner.AddSequencePair(part.query, part.queryLen, part.target, part.targetLen);
+                rv = aligner.AddSequencePairForGlobalAlignment(part.query, part.queryLen,
+                                                               part.target, part.targetLen);
             }
 
             if (rv == StatusAddSequencePair::EXCEEDED_MAX_ALIGNMENTS) {

@@ -94,7 +94,8 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
         for (const auto& seqPair : data.batchData) {
             const auto& query = seqPair.first;
             const auto& target = seqPair.second;
-            aligner.AddSequencePair(query.c_str(), query.size(), target.c_str(), target.size());
+            aligner.AddSequencePairForGlobalAlignment(query.c_str(), query.size(), target.c_str(),
+                                                      target.size());
         }
 
         // Run alignment.

@@ -48,9 +48,25 @@ void AlignerBatchCPU::Clear()
     alnResults_.clear();
 }
 
-StatusAddSequencePair AlignerBatchCPU::AddSequencePair(const char* query, int32_t queryLen,
-                                                       const char* target, int32_t targetLen,
-                                                       bool isGlobalAlignment)
+StatusAddSequencePair AlignerBatchCPU::AddSequencePairForGlobalAlignment(const char* query,
+                                                                         int32_t queryLen,
+                                                                         const char* target,
+                                                                         int32_t targetLen)
+{
+    return AddSequencePair_(query, queryLen, target, targetLen, true);
+}
+
+StatusAddSequencePair AlignerBatchCPU::AddSequencePairForExtensionAlignment(const char* query,
+                                                                            int32_t queryLen,
+                                                                            const char* target,
+                                                                            int32_t targetLen)
+{
+    return AddSequencePair_(query, queryLen, target, targetLen, false);
+}
+
+StatusAddSequencePair AlignerBatchCPU::AddSequencePair_(const char* query, int32_t queryLen,
+                                                        const char* target, int32_t targetLen,
+                                                        bool isGlobalAlignment)
 {
     if (queryLen < 0 || targetLen < 0) {
         return StatusAddSequencePair::SEQUENCE_LEN_BELOW_ZERO;

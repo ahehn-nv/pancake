@@ -212,11 +212,22 @@ int32_t AlignPartsOnCpu(const AlignerType& alignerTypeGlobal,
             std::reverse(query.begin(), query.end());
             std::string target(part.target, part.targetLen);
             std::reverse(target.begin(), target.end());
-            aligner.AddSequencePair(query.c_str(), part.queryLen, target.c_str(), part.targetLen,
-                                    part.regionType == RegionType::GLOBAL);
+
+            if (part.regionType == RegionType::GLOBAL) {
+                aligner.AddSequencePairForGlobalAlignment(query.c_str(), part.queryLen,
+                                                          target.c_str(), part.targetLen);
+            } else {
+                aligner.AddSequencePairForExtensionAlignment(query.c_str(), part.queryLen,
+                                                             target.c_str(), part.targetLen);
+            }
         } else {
-            aligner.AddSequencePair(part.query, part.queryLen, part.target, part.targetLen,
-                                    part.regionType == RegionType::GLOBAL);
+            if (part.regionType == RegionType::GLOBAL) {
+                aligner.AddSequencePairForGlobalAlignment(part.query, part.queryLen, part.target,
+                                                          part.targetLen);
+            } else {
+                aligner.AddSequencePairForExtensionAlignment(part.query, part.queryLen, part.target,
+                                                             part.targetLen);
+            }
         }
     }
     aligner.AlignAll();

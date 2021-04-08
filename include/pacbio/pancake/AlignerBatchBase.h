@@ -29,7 +29,7 @@ public:
     virtual void Clear() = 0;
 
     /*
-     * Adds a single sequence pair for alignment to the internal state (modifies the state),
+     * Adds a single sequence pair for global alignment to the internal state (modifies the state),
      * but does not align the sequences right away. Alignment will be performed only when the
      * AlignAll function is called.
      * The data will be copied internally, so the query and target pointers do not have to
@@ -38,8 +38,25 @@ public:
      * or another value describing the reason for rejecting the sequence pair.
      * Calling this function will clear the internal alignment results.
     */
-    virtual StatusAddSequencePair AddSequencePair(const char* query, int32_t queryLen,
-                                                  const char* target, int32_t targetLen) = 0;
+    virtual StatusAddSequencePair AddSequencePairForGlobalAlignment(const char* query,
+                                                                    int32_t queryLen,
+                                                                    const char* target,
+                                                                    int32_t targetLen) = 0;
+
+    /*
+     * Adds a single sequence pair for extension alignment to the internal state (modifies the state),
+     * but does not align the sequences right away. Alignment will be performed only when the
+     * AlignAll function is called.
+     * The data will be copied internally, so the query and target pointers do not have to
+     * remain valid after this function has been called.
+     * The return value is either StatusAddSequencePair::OK if the sequences were added successfully,
+     * or another value describing the reason for rejecting the sequence pair.
+     * Calling this function will clear the internal alignment results.
+    */
+    virtual StatusAddSequencePair AddSequencePairForExtensionAlignment(const char* query,
+                                                                       int32_t queryLen,
+                                                                       const char* target,
+                                                                       int32_t targetLen) = 0;
 
     /*
      * Aligns all the sequence pairs added to the aligner, in parallel.
