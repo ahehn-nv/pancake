@@ -4,6 +4,7 @@
 #define PANCAKE_ALIGNER_BATCH_CPU_H
 
 #include <pacbio/pancake/AlignerBase.h>
+#include <pacbio/pancake/AlignerBatchBase.h>
 #include <pacbio/pancake/AlignerFactory.h>
 #include <pacbio/pancake/Range.h>
 #include <pbbam/Cigar.h>
@@ -15,14 +16,6 @@
 
 namespace PacBio {
 namespace Pancake {
-
-enum class StatusAddSequencePair
-{
-    OK,
-    SEQUENCE_LEN_BELOW_ZERO,
-    EXCEEDED_MAX_ALIGNMENTS,
-    SEQUENCE_TOO_LONG,
-};
 
 class AlignerBatchCPU
 {

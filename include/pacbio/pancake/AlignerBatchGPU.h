@@ -11,7 +11,7 @@
 #ifndef PANCAKE_ALIGNER_BATCH_GPU_H
 #define PANCAKE_ALIGNER_BATCH_GPU_H
 
-#include <pacbio/pancake/AlignerBatchCPU.h>
+#include <pacbio/pancake/AlignerBatchBase.h>
 #include <pacbio/pancake/AlignerFactory.h>
 #include <pbbam/Cigar.h>
 #include <claraparabricks/genomeworks/cudaaligner/aligner.hpp>
