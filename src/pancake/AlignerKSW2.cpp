@@ -54,8 +54,6 @@ AlignmentResult AlignerKSW2::Global(const char* qseq, int64_t qlen, const char* 
     const int32_t bw = (int)(opt_.alignBandwidth * 1.5 + 1.);
 
     // Memory allocations required for KSW2.
-    ksw_extz_t ez;
-    memset(&ez, 0, sizeof(ksw_extz_t));
 
     // Convert the subsequence's alphabet from ACTG to [0123].
     const std::vector<uint8_t> qseqInt = ConvertSeqAlphabet_(qseq, qlen, &BaseToTwobit[0]);
@@ -70,37 +68,54 @@ AlignmentResult AlignerKSW2::Global(const char* qseq, int64_t qlen, const char* 
     //     (h2.CheckFlagLongJoin() || spanDiff > (bw / 2)) ? longestSpan : bw;
     const int32_t actualBandwidth = (spanDiff > (bw / 2)) ? longestSpan : bw;
 
-    // First pass: with approximate Z-drop
-    AlignPair_(buffer_->km, qlen, &qseqInt[0], tlen, &tseqInt[0], mat_, actualBandwidth, -1, -1,
-               extra_flag | KSW_EZ_APPROX_MAX, &ez, opt_.gapOpen1, opt_.gapExtend1, opt_.gapOpen2,
-               opt_.gapExtend2);
-
     AlignmentResult ret;
 
-    PacBio::Data::Cigar currCigar;
-    int32_t qAlnLen = 0;
-    int32_t tAlnLen = 0;
-    ConvertMinimap2CigarToPbbam_(ez.cigar, ez.n_cigar, qseqInt, tseqInt, currCigar, qAlnLen,
-                                 tAlnLen, ret.diffs);
-
-    ret.cigar = std::move(currCigar);
-    ret.valid =
-        (ez.zdropped || ez.n_cigar == 0 || qAlnLen != qlen || tAlnLen != tlen) ? false : true;
-    ret.lastQueryPos = qlen;
-    ret.lastTargetPos = tlen;
-    ret.maxQueryPos = ez.max_q;
-    ret.maxTargetPos = ez.max_t;
-    ret.score = ez.score;
-    ret.maxScore = ez.max;
-    ret.zdropped = ez.zdropped;
-
-    if (ret.valid == false) {
-        ret.cigar.clear();
+    std::vector<int32_t> bws;
+    if (opt_.dynamicBandwidth) {
+        bws.reserve(5);
+        for (const int32_t curBw : (longestSpan < 500) ? std::vector<int32_t>{50, 100, 250}
+                                                       : std::vector<int32_t>{250, 500}) {
+            if (curBw < actualBandwidth) {
+                bws.emplace_back(curBw);
+            }
+        }
     }
+    bws.emplace_back(actualBandwidth);
+    bws.emplace_back(longestSpan);
+    for (int32_t curBw : bws) {
+        ret = AlignmentResult{};
+        ksw_extz_t ez;
+        memset(&ez, 0, sizeof(ksw_extz_t));
+        AlignPair_(buffer_->km, qlen, &qseqInt[0], tlen, &tseqInt[0], mat_, curBw, -1, -1,
+                   extra_flag | KSW_EZ_APPROX_MAX, &ez, opt_.gapOpen1, opt_.gapExtend1,
+                   opt_.gapOpen2, opt_.gapExtend2);
 
-    // Free KSW2 memory.
-    kfree(buffer_->km, ez.cigar);
+        PacBio::Data::Cigar currCigar;
+        int32_t qAlnLen = 0;
+        int32_t tAlnLen = 0;
+        ConvertMinimap2CigarToPbbam_(ez.cigar, ez.n_cigar, qseqInt, tseqInt, currCigar, qAlnLen,
+                                     tAlnLen, ret.diffs);
 
+        ret.valid = !ez.zdropped && (ez.n_cigar != 0) && (qAlnLen == qlen) && (tAlnLen == tlen);
+        if (ret.valid) {
+            ret.cigar = std::move(currCigar);
+        }
+        ret.lastQueryPos = qlen;
+        ret.lastTargetPos = tlen;
+        ret.maxQueryPos = ez.max_q;
+        ret.maxTargetPos = ez.max_t;
+        ret.score = ez.score;
+        ret.maxScore = ez.max;
+        ret.zdropped = ez.zdropped;
+
+        // Free KSW2 memory.
+        kfree(buffer_->km, ez.cigar);
+
+        // Early return if bandwidth lead to an optimal alignment
+        if (ret.valid) {
+            break;
+        }
+    }
     return ret;
 }
 
