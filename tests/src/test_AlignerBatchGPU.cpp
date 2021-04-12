@@ -113,4 +113,45 @@ TEST(AlignerBatchGPU, ArrayOfTests_Small)
         EXPECT_EQ(data.expectedAlns, results);
     }
 }
+
+TEST(AlignerBatchGPU, ArrayOfTests_Small_ShouldThrow)
+{
+    /*
+     * This test uses the same data, but calls the unsupported API AlignerBatchGPU::AddSequencePairForExtensionAlignment
+     * because Nvidia Cudaaligner does not support extension alignment.
+     * This function should throw.
+     *
+    */
+    using namespace PacBio::Pancake;
+
+    uint32_t maxBandwidth = 2000;
+    uint32_t deviceId = 0;
+    PacBio::Pancake::AlignmentParameters alnParams;
+
+    const int32_t maxMemoryCap = 100 * 1024 * 1024;
+    auto aligner =
+        PacBio::Pancake::AlignerBatchGPU(alnParams, maxBandwidth, deviceId, maxMemoryCap);
+
+    for (const auto& data : testData) {
+        // Debug info.
+        SCOPED_TRACE(data.testName);
+        // std::cerr << "testName = " << data.testName << "\n";
+
+        // Reuse the aligner in multiple batches.
+        aligner.Clear();
+
+        for (const auto& seqPair : data.batchData) {
+            const auto& query = seqPair.first;
+            const auto& target = seqPair.second;
+
+            EXPECT_THROW(
+                {
+                    aligner.AddSequencePairForExtensionAlignment(query.c_str(), query.size(),
+                                                                 target.c_str(), target.size());
+                },
+                std::runtime_error);
+        }
+    }
+}
+
 }  // namespace TestsAlignerBatchGPU
