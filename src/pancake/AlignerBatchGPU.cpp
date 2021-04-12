@@ -177,8 +177,22 @@ void AlignerBatchGPU::ResetMaxBandwidth(int32_t maxBandwidth)
     aligner_->reset_max_bandwidth(maxBandwidth);
 }
 
-StatusAddSequencePair AlignerBatchGPU::AddSequencePair(const char* query, int32_t queryLen,
-                                                       const char* target, int32_t targetLen)
+StatusAddSequencePair AlignerBatchGPU::AddSequencePairForExtensionAlignment(const char* /*query*/,
+                                                                            int32_t /*queryLen*/,
+                                                                            const char* /*target*/,
+                                                                            int32_t /*targetLen*/)
+{
+    std::ostringstream oss;
+    oss << "The GenomeWorks Cudaaligner does not support extension alignment at this "
+           "point.";
+    throw std::runtime_error(oss.str());
+    return {};
+}
+
+StatusAddSequencePair AlignerBatchGPU::AddSequencePairForGlobalAlignment(const char* query,
+                                                                         int32_t queryLen,
+                                                                         const char* target,
+                                                                         int32_t targetLen)
 {
     if (queryLen < 0 || targetLen < 0) {
         return StatusAddSequencePair::SEQUENCE_LEN_BELOW_ZERO;

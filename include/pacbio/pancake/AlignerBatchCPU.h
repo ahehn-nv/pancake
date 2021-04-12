@@ -4,6 +4,7 @@
 #define PANCAKE_ALIGNER_BATCH_CPU_H
 
 #include <pacbio/pancake/AlignerBase.h>
+#include <pacbio/pancake/AlignerBatchBase.h>
 #include <pacbio/pancake/AlignerFactory.h>
 #include <pacbio/pancake/Range.h>
 #include <pbbam/Cigar.h>
@@ -16,15 +17,7 @@
 namespace PacBio {
 namespace Pancake {
 
-enum class StatusAddSequencePair
-{
-    OK,
-    SEQUENCE_LEN_BELOW_ZERO,
-    EXCEEDED_MAX_ALIGNMENTS,
-    SEQUENCE_TOO_LONG,
-};
-
-class AlignerBatchCPU
+class AlignerBatchCPU : public AlignerBatchBase
 {
 public:
     AlignerBatchCPU(int32_t numThreads, const AlignerType alnTypeGlobal,
@@ -33,15 +26,25 @@ public:
     AlignerBatchCPU(Parallel::FireAndForget* faf, const AlignerType alnTypeGlobal,
                     const AlignmentParameters& alnParamsGlobal, const AlignerType alnTypeExt,
                     const AlignmentParameters& alnParamsExt);
-    ~AlignerBatchCPU();
+    ~AlignerBatchCPU() override;
 
-    void Clear();
+    void Clear() override;
 
-    StatusAddSequencePair AddSequencePair(const char* query, int32_t queryLen, const char* target,
-                                          int32_t targetLen, bool isGlobalAlignment);
-    void AlignAll();
+    StatusAddSequencePair AddSequencePairForGlobalAlignment(const char* query, int32_t queryLen,
+                                                            const char* target,
+                                                            int32_t targetLen) override;
 
-    const std::vector<AlignmentResult>& GetAlnResults() const { return alnResults_; }
+    StatusAddSequencePair AddSequencePairForExtensionAlignment(const char* query, int32_t queryLen,
+                                                               const char* target,
+                                                               int32_t targetLen) override;
+
+    void AlignAll() override;
+
+    const std::vector<AlignmentResult>& GetAlnResults() const override { return alnResults_; }
+
+    std::vector<AlignmentResult>& GetAlnResults() override { return alnResults_; }
+
+    size_t BatchSize() const override { return queries_.size(); }
 
 private:
     Parallel::FireAndForget* faf_;
@@ -56,6 +59,9 @@ private:
     std::vector<std::string> targets_;
     std::vector<bool> isGlobalAlignment_;
     std::vector<AlignmentResult> alnResults_;
+
+    StatusAddSequencePair AddSequencePair_(const char* query, int32_t queryLen, const char* target,
+                                           int32_t targetLen, bool isGlobalAlignment);
 
     static void Worker_(const std::vector<std::string>& queries,
                         const std::vector<std::string>& targets,

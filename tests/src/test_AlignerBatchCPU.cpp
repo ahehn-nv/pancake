@@ -101,8 +101,13 @@ TEST(AlignerBatchCPU, ArrayOfTests_Small)
             const auto& query = std::get<0>(seqPair);
             const auto& target = std::get<1>(seqPair);
             const bool isGlobal = std::get<2>(seqPair);
-            aligner.AddSequencePair(query.c_str(), query.size(), target.c_str(), target.size(),
-                                    isGlobal);
+            if (isGlobal) {
+                aligner.AddSequencePairForGlobalAlignment(query.c_str(), query.size(),
+                                                          target.c_str(), target.size());
+            } else {
+                aligner.AddSequencePairForExtensionAlignment(query.c_str(), query.size(),
+                                                             target.c_str(), target.size());
+            }
         }
 
         // Run alignment.
