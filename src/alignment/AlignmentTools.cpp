@@ -1302,8 +1302,8 @@ std::vector<uint8_t> ComputeSimpleRepeatMask(const char* seq, int32_t seqLen, in
         return std::vector<uint8_t>(seqLen, 0);
     }
     if (maxWindowSize > 7) {
-        throw std::runtime_error("The maxWindowSize is > 7. maxWindowSize = " +
-                                 std::to_string(maxWindowSize));
+        maxWindowSize = 7;
+        assert(false && "maxWindowSize is > 7");
     }
 
     // Bitmasks of different lengths.
@@ -1316,16 +1316,26 @@ std::vector<uint8_t> ComputeSimpleRepeatMask(const char* seq, int32_t seqLen, in
     // Compute the repeat masks.
     std::vector<uint8_t> ret(seqLen, 0);
     uint64_t window = 0;
+    int32_t beginI = 0;
     for (int32_t i = 0; i < seqLen; ++i) {
         const int32_t base = seq[i];
         const uint64_t baseTwobit = BaseToTwobit[base];
+
+        // Check if non-ACTG base occurred.
+        if (baseTwobit > 3) {
+            window = 0;
+            beginI = i + 1;
+            continue;
+        }
+
         window = (window << 2) | baseTwobit;
 
-        const int32_t maxSpan = std::min((i / 2) + (i % 2), maxWindowSize);
+        const int32_t distToBegin = i - beginI;
+        const int32_t maxSpan = std::min((distToBegin / 2) + (distToBegin % 2), maxWindowSize);
 
         for (int32_t span = 1; span <= maxSpan; ++span) {
             const uint64_t prev = window >> (span * 2) & masks[span];
-            int8_t isSame = (window & masks[span]) == prev;
+            const int8_t isSame = (window & masks[span]) == prev;
             const int8_t flag = (isSame << (span - 1));
 
             for (int32_t k = (i - span * 2 + 1); k <= i; ++k) {
