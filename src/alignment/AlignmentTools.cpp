@@ -1,7 +1,7 @@
 // Authors: Ivan Sovic
 
 #include <pacbio/alignment/AlignmentTools.h>
-
+#include <pacbio/pancake/Lookups.h>
 #include <array>
 #include <cstring>
 #include <sstream>
@@ -1294,6 +1294,47 @@ void MergeCigars(PacBio::Data::Cigar& dest, const PacBio::Data::Cigar& src)
         dest.emplace_back(src.front());
     }
     dest.insert(dest.end(), src.begin() + 1, src.end());
+}
+
+std::vector<uint8_t> ComputeSimpleRepeatMask(const char* seq, int32_t seqLen, int32_t maxWindowSize)
+{
+    if (maxWindowSize <= 0) {
+        return std::vector<uint8_t>(seqLen, 0);
+    }
+    if (maxWindowSize > 7) {
+        throw std::runtime_error("The maxWindowSize is > 7. maxWindowSize = " +
+                                 std::to_string(maxWindowSize));
+    }
+
+    // Bitmasks of different lengths.
+    std::array<uint64_t, 8> masks;
+    masks[0] = 0;
+    for (int32_t i = 1; i < (maxWindowSize + 1); ++i) {
+        masks[i] = ((static_cast<uint64_t>(1) << (i * 2)) - 1);
+    }
+
+    // Compute the repeat masks.
+    std::vector<uint8_t> ret(seqLen, 0);
+    uint64_t window = 0;
+    for (int32_t i = 0; i < seqLen; ++i) {
+        const int32_t base = seq[i];
+        const uint64_t baseTwobit = BaseToTwobit[base];
+        window = (window << 2) | baseTwobit;
+
+        const int32_t maxSpan = std::min((i / 2) + (i % 2), maxWindowSize);
+
+        for (int32_t span = 1; span <= maxSpan; ++span) {
+            const uint64_t prev = window >> (span * 2) & masks[span];
+            int8_t isSame = (window & masks[span]) == prev;
+            const int8_t flag = (isSame << (span - 1));
+
+            for (int32_t k = (i - span * 2 + 1); k <= i; ++k) {
+                ret[k] |= flag;
+            }
+        }
+    }
+
+    return ret;
 }
 
 }  // namespace Pancake

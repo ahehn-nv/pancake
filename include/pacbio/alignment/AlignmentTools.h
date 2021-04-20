@@ -80,6 +80,9 @@ int32_t ScoreCigarAlignment(const PacBio::BAM::Cigar& cigar, int32_t match, int3
 
 void MergeCigars(PacBio::Data::Cigar& dest, const PacBio::Data::Cigar& src);
 
+std::vector<uint8_t> ComputeSimpleRepeatMask(const char* seq, int32_t seqLen,
+                                             int32_t maxWindowSize);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
