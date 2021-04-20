@@ -1179,4 +1179,129 @@ TEST(Test_AlignmentTools_MergeCigars, ArrayOfTests)
         EXPECT_EQ(data.expected, result);
     }
 }
+
+TEST(Test_AlignmentTools_ComputeSimpleRepeatMask, ArrayOfTests)
+{
+    // clang-format off
+    struct TestDataStruct {
+        std::string name;
+        std::string seq;
+        int32_t maxSpan = 0;
+        std::vector<uint8_t> expected;
+        bool expectedThrow = false;
+    };
+    std::vector<TestDataStruct> testData = {
+        {"Empty input", "", 0, {}, false},
+        {"Simple sequence, no masking", "ACTGAAACACTG", 0, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false},
+        {"Simple sequence, HP masking", "ACTGAAACACTG", 1, {0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0}, false},
+        {"Simple sequence, dinuc masking", "ACTGAAACACTG", 2, {0, 0, 0, 0, 1, 1, 3, 2, 2, 2, 0, 0}, false},
+        {"Simple sequence, trinuc masking",
+                    "ACTG" "AA" "ACAC" "TG" "ATGATGATG" "ACTGACTG", 3,
+                    /*
+                        Seq:        ACTGAAACACTGATGATGATGACTGACTG
+                        No mask:    0000  |  |         | |      |
+                        HP:             111  |         | |      |
+                        Dinuc:            2222         | |      |
+                        Trinuc:               444444444444      |
+                        Quadnuc:                       8888888888
+                    */
+                    {
+                        0, 0, 0, 0,                     // ACTG
+                        1, 1, 3, 2, 2, 2, 4, 4,         // AAACACTG
+                        4, 4, 4, 4, 4, 4, 4, 4, 4,      // ATGATGATG
+                        4, 0, 0, 0, 0, 0, 0, 0,         // ACTGACTG
+                    },
+                    false
+        },
+        {"Simple sequence, quadnuc masking",
+                    "ACTG" "AA" "ACAC" "TG" "ATGATGATG" "ACTGACTG", 4,
+                    /*
+                        Seq:        ACTGAAACACTGATGATGATGACTGACTG
+                        No mask:    0000  |  |         | |      |
+                        HP:             111  |         | |      |
+                        Dinuc:            2222         | |      |
+                        Trinuc:               444444444444      |
+                        Quadnuc:                       8888888888
+                    */
+                    {
+                        0, 0, 0, 0,                     // ACTG
+                        1, 1, 3, 2, 2, 2, 4, 4,         // AAACACTG
+                        4, 4, 4, 4, 4, 4, 4, 12, 12,    // ATGATGATG
+                        12, 8, 8, 8, 8, 8, 8, 8,        // ACTGACTG
+                    },
+                    false
+        },
+        {"Simple sequence, level 7 masking",
+                    "ACTG" "AA" "ACAC" "TG" "ATGATGATG" "ACTGACTG", 7,
+                    {
+                        0, 0, 0, 0,                             // ACTG
+                        1, 1, 3, 2, 2, 2, 36, 36,               // AAACACTG
+                        36, 36, 36, 36, 36, 36, 36, 44, 44,     // ATGATGATG
+                        44, 8, 8, 8, 8, 8, 8, 8,                // ACTGACTG
+                    },
+                    false
+        },
+        {"Too large max span, return everything masked at level 7",
+                    "ACTG" "AA" "ACAC" "TG" "ATGATGATG" "ACTGACTG", 8,
+                    {
+                        0, 0, 0, 0,                             // ACTG
+                        1, 1, 3, 2, 2, 2, 36, 36,               // AAACACTG
+                        36, 36, 36, 36, 36, 36, 36, 44, 44,     // ATGATGATG
+                        44, 8, 8, 8, 8, 8, 8, 8,                // ACTGACTG
+                    },
+                    false
+        },
+        {"Two homopolymers", "AAAAAAAACCCCCCC", 1, {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, false},
+        {"Long HPs are also dinucs and trinucs", "AAAAAAAACCCCCCC", 3, {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}, false},
+        {"Regular sequence with HPs", "GGATCAGTTTTATATACAC", 3, {1, 1, 0, 0, 0, 0, 0, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2}, false},
+        {"Non-ACTG base, simple sequence, HP masking", "ACTGANAACACTG", 1, {0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0}, false},
+        {"Multiple non-ACTG bases, simple sequence, HP masking", "ACTGANNNANACACTG", 1, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, false},
+
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+
+        // Name the test.
+        SCOPED_TRACE("ComputeSimpleRepeatMask-" + data.name);
+
+        // std::cerr << "Test: " << data.name << "\n";
+
+        // Run.
+        if (data.expectedThrow) {
+            EXPECT_THROW(
+                {
+                    const std::vector<uint8_t> results =
+                        ComputeSimpleRepeatMask(data.seq.c_str(), data.seq.size(), data.maxSpan);
+                },
+                std::runtime_error);
+        } else {
+
+            const std::vector<uint8_t> results =
+                ComputeSimpleRepeatMask(data.seq.c_str(), data.seq.size(), data.maxSpan);
+
+            // std::cerr << "Len: seq.size() = " << data.seq.size()
+            //           << ", results.size() = " << results.size()
+            //           << ", expected.size() = " << data.expected.size() << "\n";
+            // std::cerr << "Seq: ";
+            // for (const auto& v : data.seq) {
+            //     std::cerr << v << " ";
+            // }
+            // std::cerr << "\n";
+            // std::cerr << "Res: ";
+            // for (const auto& v : results) {
+            //     std::cerr << static_cast<uint32_t>(v) << " ";
+            // }
+            // std::cerr << "\n";
+            // std::cerr << "Exp: ";
+            // for (const auto& v : data.expected) {
+            //     std::cerr << static_cast<uint32_t>(v) << " ";
+            // }
+            // std::cerr << "\n";
+
+            EXPECT_EQ(data.expected, results);
+        }
+        // std::cerr << "\n";
+    }
+}
 }
