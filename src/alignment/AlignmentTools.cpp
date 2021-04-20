@@ -1307,11 +1307,16 @@ std::vector<uint8_t> ComputeSimpleRepeatMask(const char* seq, int32_t seqLen, in
     }
 
     // Bitmasks of different lengths.
-    std::array<uint64_t, 8> masks;
-    masks[0] = 0;
-    for (int32_t i = 1; i < (maxWindowSize + 1); ++i) {
-        masks[i] = ((static_cast<uint64_t>(1) << (i * 2)) - 1);
-    }
+    constexpr std::array<uint64_t, 8> masks = {
+        0,
+        (1 << 2) - 1,
+        (1 << 4) - 1,
+        (1 << 6) - 1,
+        (1 << 8) - 1,
+        (1 << 10) - 1,
+        (1 << 12) - 1,
+        (1 << 14) - 1,
+    };
 
     // Compute the repeat masks.
     std::vector<uint8_t> ret(seqLen, 0);
