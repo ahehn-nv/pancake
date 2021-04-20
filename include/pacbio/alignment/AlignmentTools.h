@@ -80,6 +80,21 @@ int32_t ScoreCigarAlignment(const PacBio::BAM::Cigar& cigar, int32_t match, int3
 
 void MergeCigars(PacBio::Data::Cigar& dest, const PacBio::Data::Cigar& src);
 
+/**
+ * \brief Computes a vector of the length of the input sequence, where each position has an
+ *          8-bit unsigned int indicating whether the base is masked or not.
+ *          Value 0 means there is no masking. Multiple levels of simple repeats can be marked
+ *          in the same element of the vector: HPs have a value of (1 << 0), dinucs a value of (1 << 1),
+ *          trinucs (1 << 2), etc. So if a base is marked as a homopolymer, the corresponding position
+ *          in the return vector would have a value of 1. If the base is both a part of a HP and a dinuc
+ *          repeat, it would have a value of (1 + 2 = 3), and so on.
+ * \param seq C-style string of the sequence. Not null-terminated.
+ * \param seqLen Length of the input sequence.
+ * \param The maximum level of simple repeats for masking: 0 means no masking, 1 will mask homopolymers,
+ *          2 will mask homopolymers and dinucleotide repeats, 3 will mask HPs + dinucs + trinucs, etc.
+ *          Complexity of computation is O(seqLen * maxWindowSize).
+ * \return Vector with a mask for each sequence base indicating whether the base is masked (value > 0) or not.
+*/
 std::vector<uint8_t> ComputeSimpleRepeatMask(const char* seq, int32_t seqLen,
                                              int32_t maxWindowSize);
 
