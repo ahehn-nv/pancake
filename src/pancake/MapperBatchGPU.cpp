@@ -139,7 +139,7 @@ std::vector<std::vector<MapperBaseResult>> MapperBatchGPU::MapAndAlignImpl_(
 
         while (true) {
             PBLOG_TRACE << "Trying bandwidth: " << currentBandwidth;
-            aligner.ResetMaxBandwidth(gpuMaxBandwidth);
+            aligner.ResetMaxBandwidth(currentBandwidth);
             numInternalNotValid = AlignPartsOnGPU_(aligner, partsGlobal, internalAlns);
             if (numInternalNotValid == 0) {
                 break;
