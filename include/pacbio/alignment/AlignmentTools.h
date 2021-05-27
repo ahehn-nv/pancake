@@ -98,6 +98,10 @@ void MergeCigars(PacBio::Data::Cigar& dest, const PacBio::Data::Cigar& src);
 std::vector<uint8_t> ComputeSimpleRepeatMask(const char* seq, int32_t seqLen,
                                              int32_t maxWindowSize);
 
+/** \brief Walks through the CIGAR vector and for every position computes the diagonal.
+ *          If (diag > (bandwidth - 1) || diag < -(bandwidth - 1)), function returns true
+ *          to indicate suboptimal alignments.
+*/
 bool CheckAlignmentOutOfBand(const PacBio::Data::Cigar& cigar, const int32_t bandwidth);
 
 }  // namespace Pancake
