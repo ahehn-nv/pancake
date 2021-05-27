@@ -98,6 +98,8 @@ void MergeCigars(PacBio::Data::Cigar& dest, const PacBio::Data::Cigar& src);
 std::vector<uint8_t> ComputeSimpleRepeatMask(const char* seq, int32_t seqLen,
                                              int32_t maxWindowSize);
 
+bool CheckAlignmentOutOfBand(const PacBio::Data::Cigar& cigar, const int32_t bandwidth);
+
 }  // namespace Pancake
 }  // namespace PacBio
 
