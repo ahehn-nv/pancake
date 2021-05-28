@@ -1304,4 +1304,57 @@ TEST(Test_AlignmentTools_ComputeSimpleRepeatMask, ArrayOfTests)
         // std::cerr << "\n";
     }
 }
+
+TEST(Test_AlignmentTools_CheckAlignmentOutOfBand, ArrayOfTests)
+{
+    // clang-format off
+    struct TestDataStruct {
+        const std::string name;
+        const std::string cigar;
+        const int32_t bandwidth;
+        const bool expected;
+    };
+    std::vector<TestDataStruct> testData = {
+        // Within band.
+        {"Empty input", "", 0, false},
+        {"No indels, within band", "100=", 10, false},
+        {"Insertions within band", "50=5I50=", 10, false},
+        {"Deletions within band", "50=5D50=", 10, false},
+        {"Indels within band", "50=5I5D50=", 10, false},
+        {"No indels, marginal to bandwidth 0", "100=", 0, false},
+        {"No indels, marginal to bandwidth 1", "100=", 1, false},
+        {"No indels, within band", "100=", -1, false},
+
+        // Out of band.
+        {"Single insertion", "100=1I", 0, true},
+        {"Single deletion", "100=1D", 0, true},
+        {"Single insertion, bw 1", "100=1I", 1, true},
+        {"Single insertion, bw -1", "100=1I", -1, true},
+        {"Single deletion, bw 1", "100=1D", 1, true},
+        {"Single deletion, bw -1", "100=1D", -1, true},
+        {"Insertions, touches the boundary", "50=10I50=", 10, true},
+        {"Insertions, touches the diagonal -1 from the boundary (fuzz buffer)", "50=9I50=", 10, true},
+        {"Deletions, touches the boundary", "50=10D50=", 10, true},
+        {"Deletions, touches the diagonal -1 from the boundary (fuzz buffer)", "50=9D50=", 10, true},
+        {"Indels, out of band", "50=10I10D50=", 10, true},
+        {"Indels, out of band", "50=5I2D10=3I1D1=5I50=", 10, true},
+        {"Indels, out of band", "50=10D10I50=", 10, true},
+        {"Indels, out of band", "50=5D2I10=3D1I1=5D50=", 10, true},
+    };
+    // clang-format on
+
+    for (const auto& data : testData) {
+        // Inputs.
+        const PacBio::BAM::Cigar cigar(data.cigar);
+
+        // Name the test.
+        SCOPED_TRACE("CheckAlignmentOutOfBand-" + data.name);
+
+        // Run the unit under test.
+        const bool result = PacBio::Pancake::CheckAlignmentOutOfBand(cigar, data.bandwidth);
+
+        // Evaluate.
+        EXPECT_EQ(data.expected, result);
+    }
+}
 }
