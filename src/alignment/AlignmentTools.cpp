@@ -1352,5 +1352,23 @@ std::vector<uint8_t> ComputeSimpleRepeatMask(const char* seq, int32_t seqLen, in
     return ret;
 }
 
+bool CheckAlignmentOutOfBand(const PacBio::Data::Cigar& cigar, const int32_t bandwidth)
+{
+    const int32_t fuzz = 1;
+    const int32_t upperDiag = std::max(0, bandwidth - fuzz);
+    const int32_t lowerDiag = -upperDiag;
+    int32_t qpos = 0;
+    int32_t tpos = 0;
+    for (const PacBio::Data::CigarOperation& op : cigar) {
+        qpos += (PacBio::Data::ConsumesQuery(op.Type()) ? op.Length() : 0);
+        tpos += (PacBio::Data::ConsumesReference(op.Type()) ? op.Length() : 0);
+        const int32_t diag = tpos - qpos;
+        if (diag != 0 && (diag >= upperDiag || diag <= lowerDiag)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 }  // namespace Pancake
 }  // namespace PacBio

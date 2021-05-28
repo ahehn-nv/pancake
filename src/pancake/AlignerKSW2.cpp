@@ -1,5 +1,6 @@
 // Authors: Ivan Sovic
 
+#include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignerKSW2.h>
 #include <pacbio/pancake/Lookups.h>
 #include <array>
@@ -96,7 +97,12 @@ AlignmentResult AlignerKSW2::Global(const char* qseq, int64_t qlen, const char* 
         ConvertMinimap2CigarToPbbam_(ez.cigar, ez.n_cigar, qseqInt, tseqInt, currCigar, qAlnLen,
                                      tAlnLen, ret.diffs);
 
-        ret.valid = !ez.zdropped && (ez.n_cigar != 0) && (qAlnLen == qlen) && (tAlnLen == tlen);
+        // If full-width bandwidth is used, don't run the check.
+        const bool isSuboptimal =
+            (curBw != longestSpan) ? CheckAlignmentOutOfBand(currCigar, curBw) : false;
+
+        ret.valid = !isSuboptimal && !ez.zdropped && (ez.n_cigar != 0) && (qAlnLen == qlen) &&
+                    (tAlnLen == tlen);
         if (ret.valid) {
             ret.cigar = std::move(currCigar);
         }
