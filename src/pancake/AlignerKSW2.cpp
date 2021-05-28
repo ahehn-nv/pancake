@@ -97,7 +97,9 @@ AlignmentResult AlignerKSW2::Global(const char* qseq, int64_t qlen, const char* 
         ConvertMinimap2CigarToPbbam_(ez.cigar, ez.n_cigar, qseqInt, tseqInt, currCigar, qAlnLen,
                                      tAlnLen, ret.diffs);
 
-        const bool isSuboptimal = CheckAlignmentOutOfBand(currCigar, curBw);
+        // If full-width bandwidth is used, don't run the check.
+        const bool isSuboptimal =
+            (curBw != longestSpan) ? CheckAlignmentOutOfBand(currCigar, curBw) : false;
 
         ret.valid = !isSuboptimal && !ez.zdropped && (ez.n_cigar != 0) && (qAlnLen == qlen) &&
                     (tAlnLen == tlen);
