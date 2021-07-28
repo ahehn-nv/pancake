@@ -11,47 +11,87 @@
 #include <pacbio/alignment/AlignmentTools.h>
 #include <pacbio/pancake/AlignerBatchGPU.h>
 #include <pacbio/pancake/AlignerBatchGPUGenomeWorksInterface.h>
-#include <pacbio/pancake/AlignerBatchGPUGenomeWorksInterface.h>
 #include <pacbio/util/Util.h>
 #include <claraparabricks/genomeworks/utils/device_buffer.hpp>
 #include <claraparabricks/genomeworks/utils/pinned_host_vector.hpp>
 #include <cstdint>
 #include <iostream>
 #include <sstream>
+#include <limits>
+
+namespace gw = claraparabricks::genomeworks;
 
 namespace PacBio {
 namespace Pancake {
 
 struct AlignerBatchGPU::AlignerBatchGPUHostBuffers
 {
-    claraparabricks::genomeworks::pinned_host_vector<int64_t> starts;
-    claraparabricks::genomeworks::pinned_host_vector<int32_t> lengths;
+    claraparabricks::genomeworks::pinned_host_vector<int32_t> starts;
+    claraparabricks::genomeworks::pinned_host_vector<int32_t> index;
     claraparabricks::genomeworks::pinned_host_vector<int4> diffs;
     claraparabricks::genomeworks::pinned_host_vector<int64_t> scores;
     claraparabricks::genomeworks::pinned_host_vector<PacBio::Data::CigarOperation> cigarOpsBuffer;
 
-    void ClearAndResize(int64_t cigarOpsBufferLen, int32_t numberAlns)
+    void clearAndResize(int64_t cigarOpsBufferLen, int32_t numberAlns)
     {
+        if (cigarOpsBuffer.size() < static_cast<size_t>(cigarOpsBufferLen)) {
+            cigarOpsBuffer.clear();
+            cigarOpsBuffer.shrink_to_fit();
+        }
         if (starts.size() < static_cast<size_t>(numberAlns)) {
             // add 20% to avoid later reallocations
             const int32_t newSize = numberAlns * 12 / 10;
             starts.clear();
-            starts.resize(newSize);
-            lengths.clear();
-            lengths.resize(newSize);
+            index.clear();
             diffs.clear();
-            diffs.resize(newSize);
             scores.clear();
+            starts.shrink_to_fit();
+            index.shrink_to_fit();
+            diffs.shrink_to_fit();
+            scores.shrink_to_fit();
+            starts.resize(newSize + 1);
+            index.resize(newSize);
+            diffs.resize(newSize);
             scores.resize(newSize);
         }
         if (cigarOpsBuffer.size() < static_cast<size_t>(cigarOpsBufferLen)) {
             // add 20% to avoid later reallocations
             const int32_t newSize = cigarOpsBufferLen * 12 / 10;
             cigarOpsBuffer.clear();
+            cigarOpsBuffer.shrink_to_fit();
             cigarOpsBuffer.resize(newSize);
         }
     }
+
+    void free()
+    {
+        cigarOpsBuffer.clear();
+        cigarOpsBuffer.shrink_to_fit();
+        starts.clear();
+        index.clear();
+        diffs.clear();
+        scores.clear();
+        starts.shrink_to_fit();
+        index.shrink_to_fit();
+        diffs.shrink_to_fit();
+        scores.shrink_to_fit();
+    }
 };
+
+static int32_t findLongestCigarLength(const gw::cudaaligner::DeviceAlignmentsPtrs& aln, int32_t numberOfAlignments, AlignerBatchGPU::AlignerBatchGPUHostBuffers* hostBuffers, cudaStream_t stream)
+{
+    int64_t longestCigarLength = 0;
+    gw::cudautils::device_copy_n_async(aln.starts, numberOfAlignments+1, hostBuffers->starts.data(), stream);
+    GW_CU_CHECK_ERR(cudaStreamSynchronize(stream));
+    for(auto it = begin(hostBuffers->starts) + 1; it < end(hostBuffers->starts); ++it)
+    {
+        const int64_t cigarLength = *it - *(it - 1);
+        assert(cigarLength >= 0);
+        longestCigarLength = std::max(longestCigarLength, cigarLength);
+    }
+    assert(longestCigarLength < std::numeric_limits<int32_t>::max());
+    return static_cast<int32_t>(longestCigarLength);
+}
 
 void RetrieveResultsAsPacBioCigar(
     AlignerBatchGPU::AlignerBatchGPUHostBuffers* hostBuffers,
@@ -68,6 +108,7 @@ void RetrieveResultsAsPacBioCigar(
     }
     cudaStream_t stream = aligner->get_stream();
     auto allocator = aligner->get_device_allocator();
+    GW_CU_CHECK_ERR(cudaStreamSynchronize(stream));
     gw::cudaaligner::DeviceAlignmentsPtrs aln = aligner->get_alignments_device();
     const int32_t numberOfAlignments = aln.n_alignments;
 
@@ -78,59 +119,104 @@ void RetrieveResultsAsPacBioCigar(
             std::string(__func__) + ".");
     }
 
+    results.clear();
+
     if (numberOfAlignments == 0) {
         return;
     }
 
-    gw::device_buffer<PacBio::Data::CigarOperation> pacbioCigarsDevice(aln.total_length, allocator,
-                                                                       stream);
-    gw::device_buffer<int4> diffsDevice(numberOfAlignments, allocator, stream);
-    gw::device_buffer<int64_t> scoresDevice(numberOfAlignments, allocator, stream);
-    GWInterface::RunConvertToPacBioCigarAndScoreGpuKernel(
-        pacbioCigarsDevice.data(), diffsDevice.data(), scoresDevice.data(), aln, matchScore,
-        mismatchScore, gapOpenScore, gapExtScore, stream, aligner->get_device());
+    gw::device_buffer<int4> diffs_device(numberOfAlignments, allocator, stream);
+    gw::device_buffer<int64_t> scores_device(numberOfAlignments, allocator, stream);
+    gw::device_buffer<PacBio::Data::CigarOperation> pacbio_cigars_device(0, allocator, stream);
 
-    hostBuffers->ClearAndResize(aln.total_length, numberOfAlignments);
+    int64_t cigarBufSize       = aln.total_length;
+    int32_t longestCigarLength = 0;
+    while (1)
+    {
+        if(cigarBufSize < longestCigarLength)
+        {
+            throw std::runtime_error("Could not allocate enough device or pinned host memory in " + std::string(__func__) + ".");
+        }
+        try
+        {
+            pacbio_cigars_device.clear_and_resize(cigarBufSize);
+            hostBuffers->clearAndResize(cigarBufSize, numberOfAlignments);
+            break; // allocation successful
+        }
+        catch (const std::bad_alloc& except)
+        {
+        }
+        catch(const gw::device_memory_allocation_exception& except)
+        {
+        }
 
-    gw::cudautils::device_copy_n_async(aln.starts, numberOfAlignments, hostBuffers->starts.data(),
-                                       stream);
-    gw::cudautils::device_copy_n_async(aln.lengths, numberOfAlignments, hostBuffers->lengths.data(),
-                                       stream);
-    gw::cudautils::device_copy_n_async(diffsDevice.data(), numberOfAlignments,
-                                       hostBuffers->diffs.data(), stream);
-    gw::cudautils::device_copy_n_async(scoresDevice.data(), numberOfAlignments,
-                                       hostBuffers->scores.data(), stream);
-    gw::cudautils::device_copy_n_async(pacbioCigarsDevice.data(), aln.total_length,
-                                       hostBuffers->cigarOpsBuffer.data(), stream);
+        if (hostBuffers->index.size() < static_cast<size_t>(numberOfAlignments))
+        {
+            throw std::runtime_error("Could not allocate enough pinned host memory in " + std::string(__func__) + ".");
+        }
+        hostBuffers->free();
 
+        if (longestCigarLength == 0)
+        {
+            longestCigarLength = findLongestCigarLength(aln, numberOfAlignments, hostBuffers, stream);
+        }
+        cigarBufSize /= 2;
+    }
+
+    gw::cudautils::device_copy_n_async(aln.starts, numberOfAlignments + 1, hostBuffers->starts.data(), stream);
+    gw::cudautils::device_copy_n_async(aln.lengths, numberOfAlignments, hostBuffers->index.data(), stream);
+    results.resize(numberOfAlignments);
     GW_CU_CHECK_ERR(cudaStreamSynchronize(stream));
-    for (int32_t i = 0; i < numberOfAlignments; ++i) {
-        auto& res = results[i];
-        const int32_t len = std::abs(hostBuffers->lengths[i]);
-        const bool is_optimal = (hostBuffers->lengths[i] >=
-                                 0);  // if a alignment is optimal is encoded in the sign of length.
-        res.cigar.clear();
-        res.cigar.insert(end(res.cigar),
-                         begin(hostBuffers->cigarOpsBuffer) + hostBuffers->starts[i],
-                         begin(hostBuffers->cigarOpsBuffer) + hostBuffers->starts[i] + len);
-        res.lastQueryPos = querySpans[i];
-        res.lastTargetPos = targetSpans[i];
-        res.maxQueryPos = querySpans[i];
-        res.maxTargetPos = targetSpans[i];
-        const int32_t numEq = hostBuffers->diffs[i].x;
-        const int32_t numX = hostBuffers->diffs[i].y;
-        const int32_t numI = hostBuffers->diffs[i].z;
-        const int32_t numD = hostBuffers->diffs[i].w;
-        const int32_t querySpan = numEq + numX + numI;
-        const int32_t targetSpan = numEq + numX + numD;
-        res.valid = (querySpan == querySpans[i] && targetSpan == targetSpans[i] && is_optimal);
-        res.score = hostBuffers->scores[i];
-        res.maxScore = hostBuffers->scores[i];
-        res.zdropped = false;
-        res.diffs.numEq = hostBuffers->diffs[i].x;
-        res.diffs.numX = hostBuffers->diffs[i].y;
-        res.diffs.numI = hostBuffers->diffs[i].z;
-        res.diffs.numD = hostBuffers->diffs[i].w;
+    int32_t completedAlignments = 0;
+    while (completedAlignments < numberOfAlignments)
+    {
+        GWInterface::RunConvertToPacBioCigarAndScoreGpuKernel(pacbio_cigars_device.data(), diffs_device.data(), scores_device.data(), aln, cigarBufSize, completedAlignments, matchScore, mismatchScore, gapOpenScore, gapExtScore, stream, aligner->get_device());
+
+        gw::cudautils::device_copy_n_async(diffs_device.data(), numberOfAlignments, hostBuffers->diffs.data(), stream);
+        gw::cudautils::device_copy_n_async(scores_device.data(), numberOfAlignments, hostBuffers->scores.data(), stream);
+        gw::cudautils::device_copy_n_async(pacbio_cigars_device.data(), cigarBufSize, hostBuffers->cigarOpsBuffer.data(), stream);
+
+        GW_CU_CHECK_ERR(cudaStreamSynchronize(stream));
+        int32_t i = completedAlignments;
+        for(; i < numberOfAlignments; ++i)
+        {
+            const int32_t idx = hostBuffers->index[i] >> 1;
+            const bool is_optimal = hostBuffers->index[i] & 1;
+            const int64_t startPos = hostBuffers->starts[i] - hostBuffers->starts[completedAlignments];
+            const int64_t len = hostBuffers->starts[i+1] - hostBuffers->starts[i];
+            if(startPos + len > cigarBufSize)
+            {
+                if(i == completedAlignments)
+                {
+                    throw std::runtime_error("Could not allocate enough device or pinned host memory!");
+                }
+                break;
+            }
+            auto& res = results[idx];
+            res.cigar.clear();
+            res.cigar.insert(end(res.cigar), begin(hostBuffers->cigarOpsBuffer) + startPos, begin(hostBuffers->cigarOpsBuffer) + startPos + len);
+            res.lastQueryPos  = querySpans[idx];
+            res.lastTargetPos = targetSpans[idx];
+            res.maxQueryPos   = querySpans[idx];
+            res.maxTargetPos  = targetSpans[idx];
+            const int32_t numEq = hostBuffers->diffs[idx].x;
+            const int32_t numX  = hostBuffers->diffs[idx].y;
+            const int32_t numI  = hostBuffers->diffs[idx].z;
+            const int32_t numD  = hostBuffers->diffs[idx].w;
+            const int32_t querySpan  = numEq + numX + numI;
+            const int32_t targetSpan = numEq + numX + numD;
+            assert(!is_optimal || querySpan == 0 || querySpan == querySpans[idx]);
+            assert(!is_optimal || targetSpan == 0 || targetSpan == targetSpans[idx]);
+            res.valid = (querySpan == querySpans[idx] && targetSpan == targetSpans[idx] && is_optimal);
+            res.score    = hostBuffers->scores[idx];
+            res.maxScore = hostBuffers->scores[idx];
+            res.zdropped = false;
+            res.diffs.numEq = numEq;
+            res.diffs.numX  = numX;
+            res.diffs.numI  = numI;
+            res.diffs.numD  = numD;
+        }
+        completedAlignments += i;
     }
 }
 
@@ -229,7 +315,6 @@ void AlignerBatchGPU::AlignAll()
 {
     alnResults_.clear();
     aligner_->align_all();
-    alnResults_.resize(querySpans_.size());
     RetrieveResultsAsPacBioCigar(gpuHostBuffers_.get(), querySpans_, targetSpans_, aligner_.get(),
                                  alnResults_, alnParams_.matchScore, alnParams_.mismatchPenalty,
                                  alnParams_.gapOpen1, alnParams_.gapExtend1);
